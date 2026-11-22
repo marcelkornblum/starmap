@@ -219,4 +219,39 @@ describe('useResolvedSystemDetails', () => {
     expect(hookResult.result.current.focusedEntity?.id).toBe('tau-ceti-e');
     expect(hookResult.result.current.focusedDetails).not.toBeNull();
   });
+
+  it('preserves systemContextDetails and focusedDetails reference stability when ?center= changes', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<
+      typeof renderHook<
+        ReturnType<typeof useResolvedSystemDetails>,
+        { locationSearch: string }
+      >
+    >;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ locationSearch }) =>
+          useResolvedSystemDetails({
+            systemId: 'tau-ceti',
+            initialCorpus: corpus,
+            locationPathname: '/system/tau-ceti',
+            locationSearch,
+          }),
+        {
+          initialProps: { locationSearch: '?focus=tau-ceti-e' },
+          wrapper: createWrapper(store),
+        },
+      );
+    });
+
+    const initialContextDetails = hookResult.result.current.systemContextDetails;
+    const initialFocusedDetails = hookResult.result.current.focusedDetails;
+
+    await act(async () => {
+      hookResult.rerender({ locationSearch: '?focus=tau-ceti-e&center=tau-ceti-e' });
+    });
+
+    expect(hookResult.result.current.systemContextDetails).toBe(initialContextDetails);
+    expect(hookResult.result.current.focusedDetails).toBe(initialFocusedDetails);
+  });
 });

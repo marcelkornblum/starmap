@@ -49,6 +49,53 @@ const resolveSchematicReticle = (kind: string): CelestialSymbolType => {
   }
 };
 
+const areRadialSpansEqual = (
+  a: readonly [number, number] | undefined,
+  b: readonly [number, number] | undefined,
+): boolean =>
+  a === b ||
+  (a !== undefined && b !== undefined && a[0] === b[0] && a[1] === b[1]);
+
+const areChildrenEqual = (
+  a: readonly OrbitalSchematicItemType[] | undefined,
+  b: readonly OrbitalSchematicItemType[] | undefined,
+): boolean => {
+  if (a === b) return true;
+  if (!a || !b) return (a?.length ?? 0) === (b?.length ?? 0);
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const childA = a[i];
+    const childB = b[i];
+    if (!childA || !childB || !areSchematicItemsEqual(childA, childB)) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const areSchematicItemsEqual = (
+  a: OrbitalSchematicItemType,
+  b: OrbitalSchematicItemType,
+): boolean =>
+  a === b ||
+  (a.id === b.id &&
+    a.name === b.name &&
+    a.href === b.href &&
+    a.kind === b.kind &&
+    a.orbitRank === b.orbitRank &&
+    a.summaryLabel === b.summaryLabel &&
+    a.region === b.region &&
+    a.inHabitableZone === b.inHabitableZone &&
+    a.isFocused === b.isFocused &&
+    a.isSelected === b.isSelected &&
+    areRadialSpansEqual(a.radialSpanAu, b.radialSpanAu) &&
+    areChildrenEqual(a.children, b.children));
+
+const areOrbitalSchematicItemsEqual = (
+  prev: OrbitalSchematicItemProps,
+  next: OrbitalSchematicItemProps,
+): boolean => areSchematicItemsEqual(prev.item, next.item);
+
 export const OrbitalSchematicItem = memo(function OrbitalSchematicItem({
   item,
 }: OrbitalSchematicItemProps): React.ReactElement {
@@ -146,7 +193,7 @@ export const OrbitalSchematicItem = memo(function OrbitalSchematicItem({
       ) : null}
     </li>
   );
-});
+}, areOrbitalSchematicItemsEqual);
 
 OrbitalSchematicItem.displayName = 'OrbitalSchematicItem';
 

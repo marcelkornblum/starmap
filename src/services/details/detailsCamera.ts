@@ -3,6 +3,20 @@ import { parseCenterCoordinatesString } from '../../utils/url';
 import type { SceneCameraUrlState } from './detailsNavigationTypes';
 
 const CENTER_HREF_PRESERVED_PARAMS = new Set(['layer', 'select', 'route', 'q']);
+const CONTEXT_PRESERVED_PARAMS = ['q', 'searchCategory', 'select', 'layer', 'route'] as const;
+
+export const buildPreservedContextSearch = (searchParams: URLSearchParams): string => {
+  const out = new URLSearchParams();
+  for (const key of CONTEXT_PRESERVED_PARAMS) {
+    for (const value of searchParams.getAll(key)) {
+      if (value.length > 0) {
+        out.append(key, value);
+      }
+    }
+  }
+  const qs = out.toString();
+  return qs ? `?${qs}` : '';
+};
 
 export const buildCenterEntityHref = (
   viewScope: 'galaxy' | 'system' | 'planet',

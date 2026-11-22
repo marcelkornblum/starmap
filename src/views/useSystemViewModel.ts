@@ -24,6 +24,7 @@ import { useSystemOutOfScopeGuard } from './useSystemOutOfScopeGuard';
 import { useColdLoadCenter } from './useColdLoadCenterId';
 
 const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
+const EMPTY_SELECTED_IDS: readonly string[] = [];
 
 export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   const { locationPathname, locationSearch, systemId: propSystemId } = props;
@@ -154,33 +155,38 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
-  const selectQuery = select ? `?select=${encodeURIComponent(select)}` : search;
-  const selectedEntities = useMemo(
-    () =>
-      storeSelected.length > 0
-        ? storeSelected
-        : resolveSelectedSystemsFromUrlSelect(
-            selectQuery,
-            activeCorpus,
-            layerIndex,
-            loadedLayers,
-          ),
-    [storeSelected, selectQuery, activeCorpus, layerIndex, loadedLayers],
-  );
+  const selectQuery = select ? `?select=${encodeURIComponent(select)}` : '';
+  const selectedEntities = useMemo(() => {
+    if (storeSelected.length > 0) return storeSelected;
+    if (!selectQuery) return EMPTY_SELECTED_ENTITIES;
+    const resolved = resolveSelectedSystemsFromUrlSelect(
+      selectQuery,
+      activeCorpus,
+      layerIndex,
+      loadedLayers,
+    );
+    return resolved.length > 0 ? resolved : EMPTY_SELECTED_ENTITIES;
+  }, [storeSelected, selectQuery, activeCorpus, layerIndex, loadedLayers]);
 
   const urlExplicitSelectSlugs = useMemo(() => {
-    return (select ?? searchParams.get('select') ?? '')
+    const raw = select ?? '';
+    if (!raw) return EMPTY_SELECTED_IDS;
+    const slugs = raw
       .split(',')
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0 && !s.includes(':'));
-  }, [select, searchParams]);
+    return slugs.length > 0 ? slugs : EMPTY_SELECTED_IDS;
+  }, [select]);
 
   const selectedEntityIds = useMemo(() => {
+    if (selectedEntities.length === 0 && urlExplicitSelectSlugs.length === 0) {
+      return EMPTY_SELECTED_IDS;
+    }
     const ids = new Set(selectedEntities.map((e) => e.id));
     for (const slug of urlExplicitSelectSlugs) {
       ids.add(slug);
     }
-    return Array.from(ids);
+    return ids.size > 0 ? Array.from(ids) : EMPTY_SELECTED_IDS;
   }, [selectedEntities, urlExplicitSelectSlugs]);
 
   useSystemOutOfScopeGuard({
@@ -202,13 +208,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
         selectedEntityIds,
         focusedEntityId,
       }),
-    [
-      systemContextDetails,
-      activeCorpus,
-      canonRecords,
-      selectedEntityIds,
-      focusedEntityId,
-    ],
+    [systemContextDetails, activeCorpus, canonRecords, selectedEntityIds, focusedEntityId],
   );
 
   const orbitalSchematic = useMemo(
@@ -233,15 +233,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
             cameraState,
           )
         : null,
-    [
-      systemBodies,
-      orbitalSchematic,
-      systemContextDetails,
-      focusedDetails,
-      focusedEntity,
-      selectedEntities,
-      cameraState,
-    ],
+    [systemBodies, orbitalSchematic, systemContextDetails, focusedDetails, focusedEntity, selectedEntities, cameraState],
   );
 
   const { routeStops, activeJourney } = useMemo(() => {

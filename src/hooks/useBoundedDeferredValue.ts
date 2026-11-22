@@ -1,10 +1,10 @@
 import { useDeferredValue, useEffect, useState } from 'react';
+import { useUIStore } from '../stores/useUIStore';
 
 /**
  * useBoundedDeferredValue:
- * Defers value transitions using React 19's `useDeferredValue`, but imposes a maximum
- * latency bound (`maxWaitMs`). If continuous high-frequency frame tasks (e.g. SwiftShader useFrame loops)
- * starve React's transition lane past `maxWaitMs`, this hook forces the latest value into state.
+ * Defers value transitions using React 19's `useDeferredValue`, imposing a maximum
+ * latency bound (`maxWaitMs`) while avoiding synchronous flushes mid-camera-glide.
  *
  * In tests or SSR, it resolves `value` immediately.
  */
@@ -25,11 +25,25 @@ export function useBoundedDeferredValue<T>(
       return;
     }
 
+    let unsubscribe: (() => void) | undefined;
     const timer = setTimeout(() => {
-      setForcedValue(value);
+      if (!useUIStore.getState().isCameraTransitioning) {
+        setForcedValue(value);
+        return;
+      }
+      unsubscribe = useUIStore.subscribe((state) => {
+        if (!state.isCameraTransitioning) {
+          unsubscribe?.();
+          unsubscribe = undefined;
+          setForcedValue(value);
+        }
+      });
     }, maxWaitMs);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      unsubscribe?.();
+    };
   }, [value, deferred, maxWaitMs]);
 
   if (typeof window === 'undefined' || import.meta.env.MODE === 'test') {
@@ -40,5 +54,5 @@ export function useBoundedDeferredValue<T>(
     return value;
   }
 
-  return forcedValue ?? deferred;
+  return deferred;
 }

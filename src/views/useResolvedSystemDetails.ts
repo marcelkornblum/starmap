@@ -13,6 +13,7 @@ import {
 import { useSystemData } from '../hooks/useSystemData';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
+import { buildPreservedContextSearch } from '../services/details/detailsCamera';
 import type { FocusedEntityDetails } from '../services/details/detailsEntityTypes';
 import { useParams, useSearch } from '@tanstack/react-router';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
@@ -217,6 +218,10 @@ export function useResolvedSystemDetails(
   const canonRecords = useEntityAnnotations(canonLookupIds);
 
   const effectiveUrlFocusSlug = isFocusInThisSystem ? urlFocusSlug : null;
+  const preservedContextSearch = useMemo(
+    () => buildPreservedContextSearch(searchParams),
+    [searchParams],
+  );
 
   const systemContextDetails = useMemo(
     () =>
@@ -232,7 +237,7 @@ export function useResolvedSystemDetails(
         canonRecords,
         viewScope: 'system',
         currentPathname: pathname,
-        currentSearch: search,
+        currentSearch: preservedContextSearch,
       }),
     [
       focusedEntity,
@@ -246,7 +251,7 @@ export function useResolvedSystemDetails(
       isFocusInThisSystem,
       canonRecords,
       pathname,
-      search,
+      preservedContextSearch,
     ],
   );
 

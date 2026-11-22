@@ -232,4 +232,39 @@ describe('useResolvedPlanetDetails', () => {
     expect(hookResult.result.current.focusedDetails).toBeNull();
     expect(store.getState().focusedId).toBeNull();
   });
+
+  it('preserves systemContextDetails and focusedDetails reference stability when ?center= changes', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<
+      typeof renderHook<
+        ReturnType<typeof useResolvedPlanetDetails>,
+        { locationSearch: string }
+      >
+    >;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ locationSearch }) =>
+          useResolvedPlanetDetails({
+            planetId: 'earth',
+            initialCorpus: corpus,
+            locationPathname: '/planet/earth',
+            locationSearch,
+          }),
+        {
+          initialProps: { locationSearch: '?focus=moon' },
+          wrapper: createWrapper(store),
+        },
+      );
+    });
+
+    const initialContextDetails = hookResult.result.current.systemContextDetails;
+    const initialFocusedDetails = hookResult.result.current.focusedDetails;
+
+    await act(async () => {
+      hookResult.rerender({ locationSearch: '?focus=moon&center=moon' });
+    });
+
+    expect(hookResult.result.current.systemContextDetails).toBe(initialContextDetails);
+    expect(hookResult.result.current.focusedDetails).toBe(initialFocusedDetails);
+  });
 });

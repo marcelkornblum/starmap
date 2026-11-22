@@ -158,4 +158,59 @@ describe('<OrbitalSchematicPanel />', () => {
     expect(screen.getByText('Moon 0')).toBeInTheDocument();
     expect(screen.getByText('Moon 6')).toBeInTheDocument();
   });
+
+  it('memoises OrbitalSchematicItem structurally so cloned equal items compare equal while focused child updates do not', () => {
+    const baseItem: OrbitalSchematicItemType = {
+      id: 'earth',
+      name: 'Earth',
+      href: '/planet/earth',
+      kind: 'planet',
+      orbitRank: 3,
+      summaryLabel: 'Terrestrial',
+      inHabitableZone: true,
+      region: 'habitable-zone',
+      isFocused: false,
+      isSelected: false,
+      children: [
+        {
+          id: 'moon',
+          name: 'Moon',
+          href: '/planet/earth?focus=moon',
+          kind: 'moon',
+          orbitRank: 1,
+          summaryLabel: 'Moon',
+          inHabitableZone: false,
+          isFocused: false,
+          isSelected: false,
+        },
+      ],
+    };
+
+    const clonedEqualItem: OrbitalSchematicItemType = {
+      ...baseItem,
+      children: baseItem.children?.map((child) => ({ ...child })),
+    };
+
+    const compare = (
+      OrbitalSchematicItem as unknown as {
+        compare?: (
+          prev: { item: OrbitalSchematicItemType },
+          next: { item: OrbitalSchematicItemType },
+        ) => boolean;
+      }
+    ).compare;
+
+    expect(compare).toBeTypeOf('function');
+    expect(compare?.({ item: baseItem }, { item: clonedEqualItem })).toBe(true);
+
+    const focusedChildItem: OrbitalSchematicItemType = {
+      ...baseItem,
+      children: baseItem.children?.map((child) => ({
+        ...child,
+        isFocused: true,
+      })),
+    };
+
+    expect(compare?.({ item: baseItem }, { item: focusedChildItem })).toBe(false);
+  });
 });
