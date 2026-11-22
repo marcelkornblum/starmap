@@ -3,6 +3,7 @@ import { createElement, useEffect } from 'react';
 import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { SystemCameraController } from './SystemCameraController';
+import { CameraTransitionController } from '../instrument/cameraTransitionEngine';
 import {
   clearPendingCrossScaleArrival,
   computeTiltedArrivalEntryPose,
@@ -37,6 +38,7 @@ let mockControls: {
   removeEventListener: ReturnType<typeof vi.fn>;
   listeners: Record<string, Array<() => void>>;
 };
+let activeMockControls: typeof mockControls | undefined;
 const mockInvalidate = vi.fn();
 const frameCallbacks: Array<(state: unknown, delta: number) => void> = [];
 
@@ -58,7 +60,7 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
     ...actual,
     useFrame: (cb: (state: unknown, delta: number) => void) => { frameCallbacks.push(cb); },
     useThree: (selector?: (s: unknown) => unknown) => {
-      const state = { camera: mockCamera, controls: mockControls, size: { width: 1920, height: 1080 }, invalidate: mockInvalidate };
+      const state = { camera: mockCamera, controls: activeMockControls, size: { width: 1920, height: 1080 }, invalidate: mockInvalidate };
       return selector ? selector(state) : state;
     },
   };
@@ -68,7 +70,7 @@ function advanceTransitionFrames(stepMs: number[], nowSpy: ReturnType<typeof vi.
   for (const t of stepMs) {
     nowSpy.mockReturnValue(t);
     for (const cb of [...frameCallbacks]) {
-      cb({ camera: mockCamera, controls: mockControls, invalidate: mockInvalidate }, 0.016);
+      cb({ camera: mockCamera, controls: activeMockControls, invalidate: mockInvalidate }, 0.016);
     }
   }
 }
@@ -102,6 +104,7 @@ describe('SystemCameraController Component', () => {
       }),
     };
     vi.spyOn(mockControls.target, 'set');
+    activeMockControls = mockControls;
   });
 
   afterEach(() => {
@@ -446,5 +449,64 @@ describe('SystemCameraController Component', () => {
 
     expect(getCrossScalePlanePreviewState().mode).toBe('contracting');
     expect(getCrossScalePlanePreviewState().durationSec).toBeCloseTo(durations.previewSec, 6);
+  });
+
+  it('protects active Stage 2 arrival glide when OrbitControls attaches on render 2 (controls undefined -> defined)', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(8000);
+    const transitionToSpy = vi.spyOn(CameraTransitionController.prototype, 'start');
+    const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
+    const landingPos: [number, number, number] = [0, -20, 10];
+    const landingTarget: [number, number, number] = [0, 0, 0];
+
+    activeMockControls = undefined;
+    setPendingCrossScaleArrival({
+      direction: 'in',
+      targetScope: 'system',
+      durationSec: 0.9,
+      config,
+    });
+
+    const { rerender } = render(
+      createElement(SystemCameraController, {
+        scope: 'system',
+        position: landingPos,
+        target: landingTarget,
+        up: [0, 0, 1],
+        fov: 35,
+      }),
+    );
+
+    expect(getCrossScaleSceneScale()).toBeCloseTo(config.minSceneScale, 6);
+    expect(getCrossScaleInstrumentFade()).toBe(0);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    // Render 2: OrbitControls attaches (`controls` changes from undefined -> mockControls)
+    activeMockControls = mockControls;
+    rerender(
+      createElement(SystemCameraController, {
+        scope: 'system',
+        position: landingPos,
+        target: landingTarget,
+        up: [0, 0, 1],
+        fov: 35,
+      }),
+    );
+
+    expect(transitionToSpy).not.toHaveBeenCalled();
+    expect(mockControls.update).not.toHaveBeenCalled();
+    expect(getCrossScaleSceneScale()).toBeCloseTo(config.minSceneScale, 6);
+    expect(getCrossScaleInstrumentFade()).toBe(0);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    act(() => {
+      advanceTransitionFrames([8000, 8900], nowSpy);
+    });
+
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(getCrossScaleSceneScale()).toBe(1);
+    expect(getCrossScaleInstrumentFade()).toBe(1);
+    expect(mockCamera.position.x).toBeCloseTo(landingPos[0], 4);
+    expect(mockCamera.position.y).toBeCloseTo(landingPos[1], 4);
+    expect(mockCamera.position.z).toBeCloseTo(landingPos[2], 4);
   });
 });

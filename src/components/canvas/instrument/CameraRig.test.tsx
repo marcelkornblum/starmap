@@ -1,10 +1,38 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createElement, useLayoutEffect } from 'react';
+import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
+import { CameraRig } from './CameraRig';
+import { SpatialFrameProvider } from './SpatialFrameProvider';
+import { CameraTransitionProvider, useCameraTransition } from './useCameraTransition';
 import { CameraTransitionController } from './cameraTransitionEngine';
 import { type OrbitControlsLike } from './cameraRigZoomAndPan';
 import { computeAllPlaneQuadrantWeights } from '../math/cardinal';
 import { CARDINAL_CONFIG } from '../math/cameraMath';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useUIStore } from '../../../stores/useUIStore';
+
+let sharedMockCamera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
+let sharedMockControls: OrbitControlsLike | undefined;
+const mockInvalidate = vi.fn();
+
+vi.mock('@react-three/fiber', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@react-three/fiber')>();
+  return {
+    ...actual,
+    useFrame: vi.fn(),
+    useThree: (selector?: (s: unknown) => unknown) => {
+      const state = {
+        camera: sharedMockCamera,
+        controls: sharedMockControls,
+        size: { width: 1920, height: 1080 },
+        invalidate: mockInvalidate,
+        get: () => ({ camera: sharedMockCamera, controls: sharedMockControls }),
+      };
+      return selector ? selector(state) : state;
+    },
+  };
+});
 
 interface MockControls extends OrbitControlsLike {
   object: THREE.Camera;
@@ -23,6 +51,7 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
 
   beforeEach(() => {
     useCameraStore.getState().reset();
+    useUIStore.getState().resetUI();
     camera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
     camera.position.set(20, 20, 20);
     camera.up.set(0, 0, 1);
@@ -46,6 +75,9 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       },
       update: vi.fn<() => void>(),
     };
+
+    sharedMockCamera = camera;
+    sharedMockControls = mockControls;
   });
 
   describe('Camera Presets Navigation & Execution', () => {
@@ -129,6 +161,48 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(state.target).toEqual([0, 0, 0]);
       expect(state.zoom).toBe(2.0);
       expect(state.focalDistance).toBeCloseTo(Math.hypot(10, 20, 30), 4);
+    });
+  });
+
+  describe('Cross-Scale Unmount Safety', () => {
+    it('does not cancel an active transition started by a sibling/replacement scene when CameraRig unmounts', () => {
+      const transitionApiRef: { current: ReturnType<typeof useCameraTransition> | null } = {
+        current: null,
+      };
+      const onCancel = vi.fn();
+
+      const SiblingArrivalController = () => {
+        const api = useCameraTransition();
+        transitionApiRef.current = api;
+        useLayoutEffect(() => {
+          api.transitionToPose(
+            { position: [0, -35, 20], target: [0, 0, 0], up: [0, 0, 1] },
+            { duration: 0.9, onCancel },
+          );
+        }, [api]);
+        return null;
+      };
+
+      const TestHarness = ({ showOutgoing }: { showOutgoing: boolean }) =>
+        createElement(
+          CameraTransitionProvider,
+          null,
+          createElement(
+            SpatialFrameProvider,
+            null,
+            showOutgoing ? createElement(CameraRig) : createElement(SiblingArrivalController),
+          ),
+        );
+
+      const { rerender } = render(createElement(TestHarness, { showOutgoing: true }));
+
+      act(() => {
+        rerender(createElement(TestHarness, { showOutgoing: false }));
+      });
+
+      expect(onCancel).not.toHaveBeenCalled();
+      expect(transitionApiRef.current?.isTransitioning()).toBe(true);
+      expect(useUIStore.getState().isCameraTransitioning).toBe(true);
     });
   });
 });

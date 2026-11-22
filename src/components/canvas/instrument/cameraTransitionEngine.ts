@@ -162,7 +162,14 @@ export class CameraTransitionController {
     now: number = performance.now(),
   ): boolean {
     if (!this.isTransitioningState) return false;
-    if (controls && !this.activeControls) this.pauseControlsDamping(controls);
+    if (controls && this.activeControls !== controls) {
+      if (this.activeControls && this.prevEnableDamping !== undefined) {
+        this.activeControls.enableDamping = this.prevEnableDamping;
+      }
+      this.activeControls = undefined;
+      this.prevEnableDamping = undefined;
+      this.pauseControlsDamping(controls);
+    }
     if (this.pendingStart) {
       this.startTime = now;
       this.pendingStart = false;

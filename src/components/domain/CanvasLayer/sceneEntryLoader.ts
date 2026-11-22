@@ -5,6 +5,7 @@ import type { SystemSceneContent } from '../../canvas/scenes/SystemSceneEntry';
 import type { PlanetarySceneContent } from '../../canvas/scenes/PlanetarySceneEntry';
 
 export type SpatialCanvasScope = 'galaxy' | 'system' | 'planet';
+export type SpatialViewPreloader = (scope: SpatialCanvasScope) => Promise<unknown>;
 
 interface LoadedSceneMap {
   galaxy?: typeof GalacticSceneContent;
@@ -13,6 +14,15 @@ interface LoadedSceneMap {
 }
 
 const loadedScenes: LoadedSceneMap = {};
+let registeredViewPreloader: SpatialViewPreloader | null = null;
+
+export function registerSpatialViewPreloader(preloader: SpatialViewPreloader | null): void {
+  registeredViewPreloader = preloader;
+}
+
+export function preloadSpatialView(scope: SpatialCanvasScope): Promise<unknown> {
+  return registeredViewPreloader ? registeredViewPreloader(scope) : Promise.resolve();
+}
 
 export function preloadSceneEntry(scope: SpatialCanvasScope): Promise<unknown> {
   if (scope === 'galaxy') {

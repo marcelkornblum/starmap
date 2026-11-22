@@ -10,7 +10,14 @@ import {
   resolveSpaLocation,
   type StarmapSearchParams,
 } from '../hooks/useSpaLocation';
+import { registerSpatialViewPreloader } from '../components/domain/CanvasLayer/sceneEntryLoader';
 import { RootLayout } from './RootLayout';
+
+registerSpatialViewPreloader((scope) => {
+  if (scope === 'galaxy') return import('../views/GalaxyView');
+  if (scope === 'system') return import('../views/SystemView');
+  return import('../views/PlanetView');
+});
 
 const GalaxyView = lazy(() =>
   import('../views/GalaxyView').then((m) => ({ default: m.GalaxyView })),

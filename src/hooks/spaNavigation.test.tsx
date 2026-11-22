@@ -1,9 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRouter } from '@tanstack/react-router';
 import { handleSpaNavigation, useSpaLinkClick } from './spaNavigation';
 import type { AppRouterAdapter } from './useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
+import {
+  getPendingSpatialRouteTarget,
+  setPendingSpatialNavigationHref,
+} from '../utils/spatialRoute';
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/react-router')>();
@@ -22,7 +26,12 @@ describe('handleSpaNavigation', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setPendingSpatialNavigationHref(null);
     vi.mocked(useRouter).mockReturnValue(mockRouter as never);
+  });
+
+  afterEach(() => {
+    setPendingSpatialNavigationHref(null);
   });
 
   const createMockEvent = (overrides: Partial<MouseEvent> = {}): MouseEvent => {
@@ -45,6 +54,22 @@ describe('handleSpaNavigation', () => {
     expect(result).toBe(true);
     expect(event.preventDefault).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith({ href: '/galaxy?focus=tau-ceti' });
+  });
+
+  it('publishes pending spatial route target synchronously before calling router.navigate', () => {
+    let targetDuringNavigate: ReturnType<typeof getPendingSpatialRouteTarget> = null;
+    const asyncRouter: AppRouterAdapter = {
+      navigate: vi.fn(() => {
+        targetDuringNavigate = getPendingSpatialRouteTarget();
+        return new Promise<void>(() => {});
+      }) as unknown as AppRouterAdapter['navigate'],
+    };
+
+    handleSpaNavigation(createMockEvent(), '/system/alpha-centauri?focus=proxima', asyncRouter);
+    expect(targetDuringNavigate).toEqual({
+      scope: 'system',
+      targetId: 'alpha-centauri',
+    });
   });
 
   it('triggers camera recenter only when URLSearchParams includes center parameter', () => {

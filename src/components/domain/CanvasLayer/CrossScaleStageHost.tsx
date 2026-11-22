@@ -1,11 +1,16 @@
 /* ui-audit-disable-next-line missing-component-quad -- Internal R3F scene stage host extracted from CanvasWebGLHost; tested via CrossScaleStageHost.test.tsx */
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
 import { prefersReducedMotion } from '../../../utils/reducedMotion';
 import type { SpatialScale } from '../../../utils/referenceFrameOrientation';
-import { parseSpatialRouteTarget } from '../../../utils/spatialRoute';
+import {
+  getPendingSpatialRouteTarget,
+  parseSpatialRouteTarget,
+  setPendingSpatialNavigationHref,
+  subscribePendingSpatialRoute,
+} from '../../../utils/spatialRoute';
 import { useOptionalSpatialEntityStoreApi } from '../../canvas/entity/SpatialEntityContext';
 import { ORBIT_CONTROLS_PRIORITY } from '../../canvas/engineConfig';
 import { TargetReferencePlanePreview } from '../../canvas/instrument/TargetReferencePlanePreview';
@@ -13,6 +18,7 @@ import { getCrossScaleSceneScale } from '../../canvas/instrument/crossScaleVisua
 import { useCameraTransition } from '../../canvas/instrument/useCameraTransition';
 import { isOrbitControlsLike } from '../../canvas/scenes/cameraControllerUtils';
 import { launchCrossScaleDeparture } from './crossScaleChoreography';
+import { useCrossScaleReadySwap } from './useCrossScaleReadySwap';
 import {
   isMatchingSceneTarget,
   preloadTargetScaleEntry,
@@ -43,9 +49,16 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
   const inFlightTargetRef = useRef<InFlightCrossScaleTarget | null>(null);
   const beat1CleanupRef = useRef<(() => void) | null>(null);
   const sceneScaleGroupRef = useRef<THREE.Group>(null);
+  const { clearPendingReadySwap, flushPendingReadySwap, scheduleReadySwap } =
+    useCrossScaleReadySwap();
 
   const router = useOptionalRouter();
   const location = useSpaLocation();
+  const pendingIntentTarget = useSyncExternalStore(
+    subscribePendingSpatialRoute,
+    getPendingSpatialRouteTarget,
+    getPendingSpatialRouteTarget,
+  );
   const camera = useThree((s) => s.camera);
   const rawControls = useThree((s) => s.controls);
   const invalidate = useThree((s) => s.invalidate);
@@ -53,10 +66,34 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
   const outerStore = useOptionalSpatialEntityStoreApi();
   const { transitionToPose, cancelTransition } = useCameraTransition();
 
+  const currentLocationTarget = parseSpatialRouteTarget(location.pathname);
+  const pendingLocationPathname = (
+    router?.state as { pendingLocation?: { pathname?: string } } | undefined
+  )?.pendingLocation?.pathname;
+  const pendingLocationTarget = pendingLocationPathname
+    ? parseSpatialRouteTarget(pendingLocationPathname)
+    : null;
   const routeTarget =
-    router && props.isSpatialSceneMounted ? parseSpatialRouteTarget(location.pathname) : null;
+    router && props.isSpatialSceneMounted
+      ? (pendingIntentTarget ?? pendingLocationTarget ?? currentLocationTarget)
+      : null;
   const requestedScope = routeTarget?.scope ?? props.scope;
   const requestedTargetId = routeTarget ? routeTarget.targetId : props.targetId;
+
+  useEffect(() => {
+    if (
+      pendingIntentTarget &&
+      currentLocationTarget &&
+      isMatchingSceneTarget(
+        currentLocationTarget.scope,
+        currentLocationTarget.targetId,
+        pendingIntentTarget.scope,
+        pendingIntentTarget.targetId,
+      )
+    ) {
+      setPendingSpatialNavigationHref(null);
+    }
+  }, [pendingIntentTarget, currentLocationTarget]);
 
   const isUnmountedBoundary = !props.isSpatialSceneMounted || !committedProps.isSpatialSceneMounted;
   const isSameAsCommitted = isMatchingSceneTarget(
@@ -94,11 +131,12 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
       transitionTokenRef.current += 1;
       beat1CleanupRef.current?.();
       beat1CleanupRef.current = null;
+      clearPendingReadySwap();
       isDepartingRef.current = false;
       inFlightTargetRef.current = null;
       resetAllCrossScaleVisualState();
     };
-  }, []);
+  }, [clearPendingReadySwap]);
 
   useEffect(() => {
     const detachBeat1Listener = () => {
@@ -109,6 +147,7 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
     const abortPendingDeparture = () => {
       transitionTokenRef.current += 1;
       detachBeat1Listener();
+      clearPendingReadySwap();
       isDepartingRef.current = false;
       setIsDeparting(false);
       inFlightTargetRef.current = null;
@@ -154,6 +193,7 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
     ) {
       if (doPropsMatchRequested) {
         inFlightTargetRef.current.latestProps = props;
+        flushPendingReadySwap();
       }
       return;
     }
@@ -186,6 +226,7 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
     const wasDeparting = isDepartingRef.current;
     const token = (transitionTokenRef.current += 1);
     detachBeat1Listener();
+    clearPendingReadySwap();
     if (wasDeparting) {
       cancelTransition();
     }
@@ -230,6 +271,12 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
       },
       resolveFinalScope: () => resolveFinalProps().scope,
       onBeforeSwap: clearDepartureRefs,
+      scheduleReadySwap: (commitSwap) =>
+        scheduleReadySwap(
+          commitSwap,
+          () => Boolean(router) && inFlightTargetRef.current?.latestProps === undefined,
+          () => token === transitionTokenRef.current,
+        ),
       onCommitFinal: () => {
         const finalProps = resolveFinalProps();
         inFlightTargetRef.current = null;
@@ -238,6 +285,7 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
       onAbortAndCommit: () => {
         if (token !== transitionTokenRef.current) return;
         detachBeat1Listener();
+        clearPendingReadySwap();
         const finalProps = resolveFinalProps();
         clearDepartureRefs();
         inFlightTargetRef.current = null;
@@ -249,6 +297,7 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
   }, [
     props,
     committedProps,
+    router,
     requestedScope,
     requestedTargetId,
     doPropsMatchRequested,
@@ -261,6 +310,9 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
     outerStore,
     transitionToPose,
     cancelTransition,
+    clearPendingReadySwap,
+    flushPendingReadySwap,
+    scheduleReadySwap,
   ]);
 
   return (

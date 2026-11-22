@@ -248,7 +248,9 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
 
     controls.addEventListener('change', handleChange);
     controls.addEventListener('end', handleEnd);
-    syncPoseToStore();
+    if (!useUIStore.getState().isCameraTransitioning) {
+      syncPoseToStore();
+    }
 
     return () => {
       controls.removeEventListener?.('change', handleChange);

@@ -54,3 +54,49 @@ export function parseSpatialRouteTarget(pathname: string): SpatialRouteTarget | 
 export function isSpatialRoutePathname(pathname: string): boolean {
   return parseSpatialRouteTarget(pathname) !== null;
 }
+
+let pendingSpatialRouteTarget: SpatialRouteTarget | null = null;
+const pendingRouteListeners = new Set<() => void>();
+
+function stripBasePath(pathname: string): string {
+  const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/+$/, '');
+  if (base && base !== '/' && pathname.startsWith(base)) {
+    return pathname.slice(base.length) || '/';
+  }
+  return pathname;
+}
+
+/**
+ * Publishes an immediate pending spatial route target from an anchor href prior to
+ * async router chunk loading, or clears it when given `null` or a non-spatial href.
+ */
+export function setPendingSpatialNavigationHref(href: string | null): void {
+  const next = href === null ? null : parseSpatialRouteTarget(stripBasePath(href));
+  if (
+    pendingSpatialRouteTarget?.scope === next?.scope &&
+    pendingSpatialRouteTarget?.targetId === next?.targetId
+  ) {
+    return;
+  }
+  pendingSpatialRouteTarget = next;
+  for (const listener of pendingRouteListeners) {
+    listener();
+  }
+}
+
+/**
+ * Returns the latest pending spatial navigation target, or `null` when idle.
+ */
+export function getPendingSpatialRouteTarget(): SpatialRouteTarget | null {
+  return pendingSpatialRouteTarget;
+}
+
+/**
+ * Subscribes to changes in the pending spatial navigation target.
+ */
+export function subscribePendingSpatialRoute(listener: () => void): () => void {
+  pendingRouteListeners.add(listener);
+  return () => {
+    pendingRouteListeners.delete(listener);
+  };
+}

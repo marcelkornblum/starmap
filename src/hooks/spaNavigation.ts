@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type React from 'react';
 import { useCameraStore } from '../stores/useCameraStore';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import { setPendingSpatialNavigationHref } from '../utils/spatialRoute';
 import { parseCenterCoordinatesString, resolveAppHref } from '../utils/url';
 import { useOptionalRouter, type AppRouterAdapter } from './useSpaLocation';
 
@@ -85,8 +86,10 @@ export function handleSpaNavigation(
 
   let navResult: unknown;
   if (router && typeof router.navigate === 'function') {
+    setPendingSpatialNavigationHref(resolved);
     navResult = router.navigate({ href: resolved });
   } else if (router?.history?.push) {
+    setPendingSpatialNavigationHref(resolved);
     router.history.push(resolved);
   }
 

@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
-import { CanvasLayer } from './CanvasLayer';
+import { CanvasLayer, preloadWebGLHost } from './CanvasLayer';
+import * as sceneEntryLoader from './sceneEntryLoader';
 import { canMountWebGLCanvas } from './webglSupport';
 import { _resetWebGLSupportedForTesting } from './webglSupport.testing';
 import {
@@ -461,6 +462,26 @@ describe('CanvasLayer Domain Component', () => {
 
       expect(canvas.getAttribute('data-frameloop')).toBe('never');
       expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+    });
+
+    it('preloadWebGLHost eagerly preloads CanvasWebGLHost and scene entry only when WebGL is supported', () => {
+      const preloadSpy = vi
+        .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+        .mockResolvedValue(undefined);
+
+      preloadWebGLHost('system');
+      expect(preloadSpy).not.toHaveBeenCalled();
+
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      preloadWebGLHost('system');
+      expect(preloadSpy).toHaveBeenCalledWith('system');
     });
   });
 });

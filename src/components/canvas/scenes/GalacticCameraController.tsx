@@ -59,6 +59,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   const prevControlsRef = useRef<OrbitControlsLike | undefined>(undefined);
   const hasRestoredRef = useRef(false);
   const pendingPanTargetRef = useRef<string | null>(null);
+  const isArrivalInFlightRef = useRef(false);
 
   const [targetX, targetY, targetZ] = target;
   const targetPosRef = useRef({ x: targetX, y: targetY, z: targetZ });
@@ -121,6 +122,11 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
+    if (isArrivalInFlightRef.current && isTargetSame && isDistSame && isTickSame) {
+      prevControlsRef.current = controls;
+      return;
+    }
+
     const incomingCoordStr = formatCenterCoordString(targetX, targetY, targetZ);
     if (
       pendingPanTargetRef.current === incomingCoordStr &&
@@ -164,6 +170,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     const arrival = isInitialMount ? consumePendingCrossScaleArrival('galaxy') : null;
 
     if (arrival) {
+      isArrivalInFlightRef.current = true;
       const landing = resolveGalacticLandingPose(
         saved,
         targetX,
@@ -185,9 +192,20 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
         transitionToPose,
         invalidate,
         onComplete: () => {
-          hasRestoredRef.current = Boolean(controls);
-          syncCameraPoseSnapshotToStore(camera, controls, landing.target);
-          if (controls) saveCurrentGalaxyPose(true);
+          const liveControls = prevControlsRef.current ?? controls;
+          isArrivalInFlightRef.current = false;
+          hasRestoredRef.current = Boolean(liveControls);
+          syncCameraPoseSnapshotToStore(camera, liveControls, landing.target);
+          if (liveControls) {
+            persistCameraPoseToStore(
+              computeCameraPoseSnapshot(camera, liveControls, landing.target),
+              persistGalaxyPose,
+              true,
+            );
+          }
+        },
+        onCancel: () => {
+          isArrivalInFlightRef.current = false;
         },
       });
       prevTargetRef.current = landing.isTransientZero

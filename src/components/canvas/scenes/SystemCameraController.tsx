@@ -50,6 +50,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   const prevControlsRef = useRef<OrbitControlsLike | undefined>(undefined);
   const prevHasExplicitCenterRef = useRef<boolean>(hasExplicitCenter);
   const hasAppliedControlsRef = useRef(false);
+  const isArrivalInFlightRef = useRef(false);
 
   const [posX, posY, posZ] = position;
   const [tgtX, tgtY, tgtZ] = target;
@@ -60,8 +61,12 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   }, [tgtX, tgtY, tgtZ]);
 
   const syncPoseToStore = useCallback(
-    (fallbackTarget: readonly [number, number, number]) => {
-      const snapshot = computeCameraPoseSnapshot(camera, controls, fallbackTarget);
+    (fallbackTarget: readonly [number, number, number], ctrlOverride?: OrbitControlsLike) => {
+      const snapshot = computeCameraPoseSnapshot(
+        camera,
+        ctrlOverride ?? prevControlsRef.current ?? controls,
+        fallbackTarget,
+      );
       useCameraStore.getState().setCameraPose({
         position: snapshot.position,
         target: snapshot.target,
@@ -102,6 +107,12 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
       return;
     }
 
+    if (isArrivalInFlightRef.current && isTargetSame && isTickSame) {
+      prevControlsRef.current = controls;
+      prevHasExplicitCenterRef.current = hasExplicitCenter;
+      return;
+    }
+
     if (!isInitialMount && !hasExplicitCenter && isControlsSame) {
       prevTickRef.current = recenterTick;
       prevHasExplicitCenterRef.current = hasExplicitCenter;
@@ -126,6 +137,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
 
     const arrival = isInitialMount ? consumePendingCrossScaleArrival(scope) : null;
     if (arrival) {
+      isArrivalInFlightRef.current = true;
       startCrossScaleArrivalGlide({
         camera,
         controls,
@@ -139,8 +151,12 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
         transitionToPose,
         invalidate,
         onComplete: () => {
-          hasAppliedControlsRef.current = Boolean(controls);
+          isArrivalInFlightRef.current = false;
+          hasAppliedControlsRef.current = Boolean(prevControlsRef.current ?? controls);
           syncPoseToStore([tgtX, tgtY, tgtZ]);
+        },
+        onCancel: () => {
+          isArrivalInFlightRef.current = false;
         },
       });
       prevTargetRef.current = [tgtX, tgtY, tgtZ];

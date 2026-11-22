@@ -27,6 +27,7 @@ import {
   LazyPlanetarySceneContent,
   LazySystemSceneContent,
   preloadSceneEntry,
+  preloadSpatialView,
 } from './sceneEntryLoader';
 
 export interface SpatialStageSceneProps {
@@ -128,17 +129,21 @@ export function preloadSystemData(
 export function preloadTargetScaleEntry(
   scope: SpatialScale,
   targetId?: string,
+  forceInTest = false,
 ): Promise<unknown> {
   const scenePromise = preloadSceneEntry(scope);
+  if (!forceInTest && import.meta.env.MODE === 'test') {
+    return scenePromise;
+  }
+  const viewPromise = preloadSpatialView(scope).catch(() => undefined);
   if (
     scope === 'system' &&
     targetId &&
-    import.meta.env.MODE !== 'test' &&
     (!getCachedDetailRecord(targetId) || !getCachedSummaryNode(targetId))
   ) {
-    return Promise.all([scenePromise, preloadSystemData(targetId)]);
+    return Promise.all([scenePromise, viewPromise, preloadSystemData(targetId, forceInTest)]);
   }
-  return scenePromise;
+  return Promise.all([scenePromise, viewPromise]);
 }
 
 /**

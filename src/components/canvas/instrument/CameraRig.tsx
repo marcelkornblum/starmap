@@ -7,7 +7,6 @@ import {
   isOrbitControlsLike,
   releaseOrthographicLock,
 } from './cameraRigZoomAndPan';
-import { useCameraTransition } from './useCameraTransition';
 import { useCameraRigProjection } from './useCameraRigProjection';
 import { useCameraRigStoreSync } from './useCameraRigStoreSync';
 
@@ -37,7 +36,6 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   const sizeHeight = useThree((s) => s.size?.height);
   const get = useThree((s) => s.get);
   const { frame } = useSpatialFrame();
-  const { cancelTransition } = useCameraTransition();
 
   const projection = useCameraRigProjection({
     camera,
@@ -75,7 +73,6 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     const perspCam = projection.perspCamRef;
 
     return () => {
-      cancelTransition();
       if (useCameraStore.getState().isLocked && perspCam.current) {
         const state = get();
         const activeControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
@@ -89,7 +86,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
         state.set?.({ camera: perspCam.current });
       }
     };
-  }, [get, cancelTransition, projection.configuredBaseFov, projection.orthoCamRef, projection.perspCamRef]);
+  }, [get, projection.configuredBaseFov, projection.orthoCamRef, projection.perspCamRef]);
 
   return null;
 };

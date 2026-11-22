@@ -46,6 +46,7 @@ export interface LaunchCrossScaleDepartureParams {
   readonly onBeforeSwap: () => void;
   readonly onCommitFinal: () => void;
   readonly onAbortAndCommit: () => void;
+  readonly scheduleReadySwap?: (commitSwap: () => void) => void;
 }
 
 /**
@@ -72,6 +73,7 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
     onBeforeSwap,
     onCommitFinal,
     onAbortAndCommit,
+    scheduleReadySwap,
   } = params;
 
   const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
@@ -101,40 +103,49 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
       ? Math.max(0.8, currentDist * config.departureInDistanceMultiplier)
       : Math.max(4, currentDist * config.departureOutDistanceMultiplier);
 
+  const commitSwap = () => {
+    if (!isTokenCurrent()) return;
+    const finalScope = resolveFinalScope();
+    onBeforeSwap();
+    if (direction === 'in') {
+      clearCrossScalePlanePreview();
+      setCrossScaleInstrumentFade(0);
+      setCrossScaleSceneScale(config.minSceneScale);
+      setPendingCrossScaleArrival({
+        direction: 'in',
+        targetScope: finalScope,
+        durationSec: durations.arrivalSec,
+        frameTiltRad: plane.inclinationRad,
+        tiltAxis: plane.tiltAxis,
+        config,
+      });
+    } else {
+      resetCrossScaleSceneScale();
+      setCrossScaleInstrumentFade(0);
+      setPendingCrossScaleArrival({
+        direction: 'out',
+        targetScope: finalScope,
+        durationSec: durations.arrivalSec,
+        frameTiltRad: plane.inclinationRad,
+        tiltAxis: plane.tiltAxis,
+        planePreviewTargetId: committedTargetId,
+        planePreviewInclinationRad: Math.abs(plane.inclinationRad),
+        planePreviewAscendingNodeRad: plane.ascendingNodeRad,
+        config,
+      });
+    }
+    onCommitFinal();
+    invalidate?.();
+  };
+
   const finishSwap = () => {
     void preloadPromise.finally(() => {
       if (!isTokenCurrent()) return;
-      const finalScope = resolveFinalScope();
-      onBeforeSwap();
-      if (direction === 'in') {
-        clearCrossScalePlanePreview();
-        setCrossScaleInstrumentFade(0);
-        setCrossScaleSceneScale(config.minSceneScale);
-        setPendingCrossScaleArrival({
-          direction: 'in',
-          targetScope: finalScope,
-          durationSec: durations.arrivalSec,
-          frameTiltRad: plane.inclinationRad,
-          tiltAxis: plane.tiltAxis,
-          config,
-        });
+      if (scheduleReadySwap) {
+        scheduleReadySwap(commitSwap);
       } else {
-        resetCrossScaleSceneScale();
-        setCrossScaleInstrumentFade(0);
-        setPendingCrossScaleArrival({
-          direction: 'out',
-          targetScope: finalScope,
-          durationSec: durations.arrivalSec,
-          frameTiltRad: plane.inclinationRad,
-          tiltAxis: plane.tiltAxis,
-          planePreviewTargetId: committedTargetId,
-          planePreviewInclinationRad: Math.abs(plane.inclinationRad),
-          planePreviewAscendingNodeRad: plane.ascendingNodeRad,
-          config,
-        });
+        commitSwap();
       }
-      onCommitFinal();
-      invalidate?.();
     });
   };
 

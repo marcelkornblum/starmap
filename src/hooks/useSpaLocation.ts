@@ -88,8 +88,11 @@ export function useSpaLocation(
     locationSearch ??
     router?.state?.location?.searchStr ??
     (typeof window !== 'undefined' ? window.location.search : '');
+  const rawPendingPathname =
+    (router?.state as { pendingLocation?: { pathname?: string } } | undefined)?.pendingLocation
+      ?.pathname ?? '';
 
-  const lastLocationRef = useRef<string>(`${rawPathname}${rawSearch}`);
+  const lastLocationRef = useRef<string>(`${rawPathname}${rawSearch}|${rawPendingPathname}`);
 
   useEffect(() => {
     if (
@@ -107,7 +110,10 @@ export function useSpaLocation(
         locationSearch ??
         router?.state?.location?.searchStr ??
         window.location.search;
-      const current = `${nextPathname}${nextSearch}`;
+      const nextPendingPathname =
+        (router?.state as { pendingLocation?: { pathname?: string } } | undefined)?.pendingLocation
+          ?.pathname ?? '';
+      const current = `${nextPathname}${nextSearch}|${nextPendingPathname}`;
       if (current !== lastLocationRef.current) {
         lastLocationRef.current = current;
         setLocationTick((n) => n + 1);

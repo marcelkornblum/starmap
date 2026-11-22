@@ -5,8 +5,14 @@ import * as THREE from 'three';
 import { CrossScaleStageHost } from './CrossScaleStageHost';
 import {
   preloadSystemData,
+  preloadTargetScaleEntry,
   resolveTargetPlaneMetadata,
 } from './crossScaleStageHelpers';
+import { registerSpatialViewPreloader } from './sceneEntryLoader';
+import {
+  getPendingSpatialRouteTarget,
+  setPendingSpatialNavigationHref,
+} from '../../../utils/spatialRoute';
 import { CameraTransitionProvider } from '../../canvas/instrument/useCameraTransition';
 import {
   clearPendingCrossScaleArrival,
@@ -200,6 +206,9 @@ describe('CrossScaleStageHost', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
+    setPendingSpatialNavigationHref(null);
+    registerSpatialViewPreloader(null);
     clearPendingCrossScaleArrival();
     resetCrossScaleInstrumentFade();
     clearCrossScalePlanePreview();
@@ -736,5 +745,194 @@ describe('CrossScaleStageHost', () => {
     const tauScene = await screen.findByTestId('mock-system-scene');
     expect(tauScene.getAttribute('data-system-id')).toBe('tau-ceti');
     expect(mockControls.target.x).toBeCloseTo(3.2, 4);
+  });
+
+  it('starts Stage 1 at t=0ms from pending navigation intent and clears intent once router pathname catches up', async () => {
+    const viewPreloader = vi.fn().mockResolvedValue(undefined);
+    registerSpatialViewPreloader(viewPreloader);
+    await preloadTargetScaleEntry('system', 'alpha-centauri', true);
+    expect(viewPreloader).toHaveBeenCalledWith('system');
+
+    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    let currentPathname = '/galaxy';
+    const historyListeners = new Set<() => void>();
+    const mockRouter: AppRouterAdapter = {
+      get state() {
+        return { location: { pathname: currentPathname, searchStr: '' } };
+      },
+      history: {
+        subscribe: (cb) => {
+          historyListeners.add(cb);
+          return () => historyListeners.delete(cb);
+        },
+      },
+    };
+
+    render(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <CameraTransitionProvider>
+          <CrossScaleStageHost scope="galaxy" centerId="sol" isSpatialSceneMounted />
+        </CameraTransitionProvider>
+      </CanvasRouterBridgeContext.Provider>,
+    );
+    await screen.findByTestId('mock-galactic-scene');
+
+    // Navigation intent fires while router.state.location.pathname is still '/galaxy'
+    act(() => {
+      setPendingSpatialNavigationHref('/system/alpha-centauri');
+    });
+
+    expect(getCrossScalePlanePreviewState().mode).toBe('expanding');
+    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+    // Once router catches up to /system/alpha-centauri, pending intent is cleared
+    act(() => {
+      currentPathname = '/system/alpha-centauri';
+      for (const listener of historyListeners) listener();
+    });
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+  });
+
+  it('starts Stage 1 at t=0ms from router.state.pendingLocation during Back/Forward navigation', async () => {
+    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    let currentPathname = '/galaxy';
+    let pendingPathname: string | undefined;
+    const historyListeners = new Set<() => void>();
+    const mockRouter = {
+      get state() {
+        return {
+          location: { pathname: currentPathname, searchStr: '' },
+          ...(pendingPathname ? { pendingLocation: { pathname: pendingPathname } } : {}),
+        };
+      },
+      history: {
+        subscribe: (cb: () => void) => {
+          historyListeners.add(cb);
+          return () => historyListeners.delete(cb);
+        },
+      },
+    } as unknown as AppRouterAdapter;
+
+    render(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <CameraTransitionProvider>
+          <CrossScaleStageHost scope="galaxy" centerId="sol" isSpatialSceneMounted />
+        </CameraTransitionProvider>
+      </CanvasRouterBridgeContext.Provider>,
+    );
+    await screen.findByTestId('mock-galactic-scene');
+
+    act(() => {
+      pendingPathname = '/system/alpha-centauri';
+      for (const listener of historyListeners) listener();
+    });
+
+    expect(getCrossScalePlanePreviewState().mode).toBe('expanding');
+    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+  });
+
+  it('holds swap after Stage 1 until matching props arrive (single atomic swap) and falls back after 800ms if props stall', async () => {
+    vi.useFakeTimers();
+    const durations = computeCrossScaleStageDurations(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG);
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(8000);
+    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+
+    let currentPathname = '/galaxy';
+    const historyListeners = new Set<() => void>();
+    const mockRouter: AppRouterAdapter = {
+      get state() {
+        return { location: { pathname: currentPathname, searchStr: '' } };
+      },
+      history: {
+        subscribe: (cb) => {
+          historyListeners.add(cb);
+          return () => historyListeners.delete(cb);
+        },
+      },
+    };
+
+    const { rerender, unmount } = render(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <CameraTransitionProvider>
+          <CrossScaleStageHost scope="galaxy" centerId="sol" isSpatialSceneMounted />
+        </CameraTransitionProvider>
+      </CanvasRouterBridgeContext.Provider>,
+    );
+    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+    act(() => {
+      currentPathname = '/system/alpha-centauri';
+      for (const listener of historyListeners) listener();
+    });
+
+    // Complete Stage 1 while props still have scope="galaxy"
+    let t = 8000;
+    await act(async () => {
+      t = advanceDuration(t, durations.previewSec * 1000, nowSpy);
+      advanceDuration(t, durations.departureSec * 1000, nowSpy);
+      await Promise.resolve();
+    });
+
+    // Must NOT swap yet to synthesized props while waiting (<= 800ms) for matching props
+    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-system-scene')).toBeNull();
+
+    // Matching props arrive 120ms later -> swaps atomically with real centerId
+    act(() => {
+      vi.advanceTimersByTime(120);
+      rerender(
+        <CanvasRouterBridgeContext.Provider value={mockRouter}>
+          <CameraTransitionProvider>
+            <CrossScaleStageHost
+              scope="system"
+              targetId="alpha-centauri"
+              centerId="alpha-centauri-b"
+              isSpatialSceneMounted
+            />
+          </CameraTransitionProvider>
+        </CanvasRouterBridgeContext.Provider>,
+      );
+    });
+
+    const sysScene = screen.getByTestId('mock-system-scene');
+    expect(sysScene.getAttribute('data-system-id')).toBe('alpha-centauri');
+    expect(sysScene.getAttribute('data-center-id')).toBe('alpha-centauri-b');
+    unmount();
+
+    // Subcase 2: falls back after 800ms if matching props never arrive
+    currentPathname = '/galaxy';
+    const second = render(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <CameraTransitionProvider>
+          <CrossScaleStageHost scope="galaxy" centerId="sol" isSpatialSceneMounted />
+        </CameraTransitionProvider>
+      </CanvasRouterBridgeContext.Provider>,
+    );
+    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+    act(() => {
+      currentPathname = '/system/tau-ceti';
+      for (const listener of historyListeners) listener();
+    });
+
+    t = 9000;
+    await act(async () => {
+      t = advanceDuration(t, durations.previewSec * 1000, nowSpy);
+      advanceDuration(t, durations.departureSec * 1000, nowSpy);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByTestId('mock-system-scene')).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(799);
+    });
+    expect(screen.queryByTestId('mock-system-scene')).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByTestId('mock-system-scene').getAttribute('data-system-id')).toBe('tau-ceti');
+    second.unmount();
   });
 });

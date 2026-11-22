@@ -4,6 +4,7 @@ import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { GalacticCameraController } from './GalacticCameraController';
 import { GALACTIC_FRAME } from '../../../config/referenceFrames';
+import { CameraTransitionController } from '../instrument/cameraTransitionEngine';
 import {
   clearPendingCrossScaleArrival,
   computeCrossScaleArrivalEntryPosition,
@@ -41,6 +42,7 @@ let mockControls: {
   removeEventListener: ReturnType<typeof vi.fn>;
   listeners: Record<string, Array<() => void>>;
 };
+let activeMockControls: typeof mockControls | undefined;
 const mockInvalidate = vi.fn();
 const frameCallbacks: Array<(state: unknown, delta: number) => void> = [];
 let mockRouter: {
@@ -71,7 +73,7 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
     ...actual,
     useFrame: (cb: (state: unknown, delta: number) => void) => { frameCallbacks.push(cb); },
     useThree: (selector?: (s: unknown) => unknown) => {
-      const state = { camera: mockCamera, controls: mockControls, size: { width: 1920, height: 1080 }, invalidate: mockInvalidate };
+      const state = { camera: mockCamera, controls: activeMockControls, size: { width: 1920, height: 1080 }, invalidate: mockInvalidate };
       return selector ? selector(state) : state;
     },
   };
@@ -81,7 +83,7 @@ function advanceTransitionFrames(stepMs: number[], nowSpy: ReturnType<typeof vi.
   for (const t of stepMs) {
     nowSpy.mockReturnValue(t);
     for (const cb of [...frameCallbacks]) {
-      cb({ camera: mockCamera, controls: mockControls, invalidate: mockInvalidate }, 0.016);
+      cb({ camera: mockCamera, controls: activeMockControls, invalidate: mockInvalidate }, 0.016);
     }
   }
 }
@@ -116,6 +118,7 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
         listeners[type] = (listeners[type] ?? []).filter((fn) => fn !== cb);
       }),
     };
+    activeMockControls = mockControls;
   });
 
   afterEach(() => {
@@ -558,5 +561,70 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
 
     expect(getCrossScalePlanePreviewState().active).toBe(false);
     expect(getCrossScaleInstrumentFade()).toBe(1);
+  });
+
+  it('protects active Stage 2 arrival glide when OrbitControls attaches on render 2 (controls undefined -> defined)', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(8000);
+    const transitionToSpy = vi.spyOn(CameraTransitionController.prototype, 'start');
+    const savedPos: [number, number, number] = [0, -35, 20];
+    const savedTarget: [number, number, number] = [0, 0, 0];
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: savedPos,
+      target: savedTarget,
+      up: [0, 0, 1],
+      zoom: 1,
+      focalDistance: Math.hypot(0, -35, 20),
+      centerKey: '0,0,0',
+    });
+
+    activeMockControls = undefined;
+    const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
+    const durations = computeCrossScaleStageDurations(config);
+    setPendingCrossScaleArrival({
+      direction: 'out',
+      targetScope: 'galaxy',
+      durationSec: durations.arrivalSec,
+      frameTiltRad: -Math.PI / 3,
+      tiltAxis: [1, 0, 0],
+      planePreviewInclinationRad: Math.PI / 3,
+      planePreviewAscendingNodeRad: 0,
+      config,
+    });
+
+    const { rerender } = render(
+      createElement(GalacticCameraController, {
+        target: [0, 0, 0],
+        hasExplicitCenter: true,
+      }),
+    );
+
+    expect(getCrossScalePlanePreviewState().active).toBe(true);
+    expect(getCrossScaleInstrumentFade()).toBe(0);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    // Render 2: OrbitControls attaches (`controls` changes from undefined -> mockControls)
+    activeMockControls = mockControls;
+    rerender(
+      createElement(GalacticCameraController, {
+        target: [0, 0, 0],
+        hasExplicitCenter: true,
+      }),
+    );
+
+    expect(transitionToSpy).not.toHaveBeenCalled();
+    expect(mockControls.update).not.toHaveBeenCalled();
+    expect(getCrossScalePlanePreviewState().active).toBe(true);
+    expect(getCrossScaleInstrumentFade()).toBe(0);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    act(() => {
+      advanceTransitionFrames([8000, 8000 + durations.arrivalSec * 1000], nowSpy);
+    });
+
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(getCrossScaleInstrumentFade()).toBe(1);
+    expect(mockCamera.position.x).toBeCloseTo(savedPos[0], 4);
+    expect(mockCamera.position.y).toBeCloseTo(savedPos[1], 4);
+    expect(mockCamera.position.z).toBeCloseTo(savedPos[2], 4);
   });
 });

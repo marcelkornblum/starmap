@@ -3,6 +3,7 @@ import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { CanvasLayer } from './CanvasLayer';
+import * as sceneEntryLoader from './sceneEntryLoader';
 import { _resetWebGLSupportedForTesting } from './webglSupport.testing';
 import { RootCanvasHost } from './RootCanvasHost';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
@@ -409,5 +410,45 @@ describe('RootCanvasHost Domain Component', () => {
     expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBe('true');
     expect(persistentCanvas.getAttribute('data-frameloop')).toBe('never');
     expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+  });
+
+  it('eagerly mounts CanvasLayer and preloads WebGLHost + scene entry on cold spatial route load when router.state is present, while staying unmounted on /guide', async () => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+      if (contextId === 'webgl2' || contextId === 'webgl') {
+        return {} as WebGLRenderingContext;
+      }
+      return null;
+    });
+    _resetWebGLSupportedForTesting();
+    const preloadSpy = vi
+      .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+      .mockResolvedValue(undefined);
+
+    const guideRouter: AppRouterAdapter = {
+      state: { location: { pathname: '/guide', searchStr: '' } },
+    };
+    const guideRender = render(
+      <CanvasRouterBridgeContext.Provider value={guideRouter}>
+        <RootCanvasHost />
+      </CanvasRouterBridgeContext.Provider>,
+    );
+    expect(screen.queryByTestId('canvas-layer')).toBeNull();
+    expect(preloadSpy).not.toHaveBeenCalled();
+    guideRender.unmount();
+
+    const spatialRouter: AppRouterAdapter = {
+      state: { location: { pathname: '/system/alpha-centauri', searchStr: '' } },
+    };
+    render(
+      <CanvasRouterBridgeContext.Provider value={spatialRouter}>
+        <RootCanvasHost />
+      </CanvasRouterBridgeContext.Provider>,
+    );
+
+    const layer = screen.getByTestId('canvas-layer');
+    expect(layer.getAttribute('data-scope')).toBe('system');
+    expect(layer.getAttribute('data-target-id')).toBe('alpha-centauri');
+    expect(preloadSpy).toHaveBeenCalledWith('system');
+    expect(await screen.findByTestId('mock-canvas')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { isSpatialRoutePathname, parseSpatialRouteTarget } from './spatialRoute';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  getPendingSpatialRouteTarget,
+  isSpatialRoutePathname,
+  parseSpatialRouteTarget,
+  setPendingSpatialNavigationHref,
+  subscribePendingSpatialRoute,
+} from './spatialRoute';
 
 describe('isSpatialRoutePathname', () => {
   it('returns true for root and galaxy routes, ignoring trailing slashes and query strings', () => {
@@ -83,5 +89,49 @@ describe('parseSpatialRouteTarget', () => {
       scope: 'system',
       targetId: '%E0%A4%A',
     });
+  });
+});
+
+describe('pending spatial navigation intent', () => {
+  beforeEach(() => {
+    setPendingSpatialNavigationHref(null);
+  });
+
+  it('tracks pending target from href, notifies subscribers, and clears on null or non-spatial href', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribePendingSpatialRoute(listener);
+
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+
+    setPendingSpatialNavigationHref('/system/alpha-centauri?focus=proxima');
+    expect(getPendingSpatialRouteTarget()).toEqual({
+      scope: 'system',
+      targetId: 'alpha-centauri',
+    });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    setPendingSpatialNavigationHref('/planet/earth');
+    expect(getPendingSpatialRouteTarget()).toEqual({
+      scope: 'planet',
+      targetId: 'earth',
+    });
+    expect(listener).toHaveBeenCalledTimes(2);
+
+    // Non-spatial route clears pending spatial target
+    setPendingSpatialNavigationHref('/guide');
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(3);
+
+    setPendingSpatialNavigationHref('/galaxy');
+    expect(getPendingSpatialRouteTarget()).toEqual({ scope: 'galaxy' });
+    expect(listener).toHaveBeenCalledTimes(4);
+
+    setPendingSpatialNavigationHref(null);
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(5);
+
+    unsubscribe();
+    setPendingSpatialNavigationHref('/system/sol');
+    expect(listener).toHaveBeenCalledTimes(5);
   });
 });

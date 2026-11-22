@@ -29,6 +29,17 @@ function getWebGLHostLazy(
   return cachedHostLazy;
 }
 
+/**
+ * Eagerly warms the lazy WebGL host and initial scene chunks in parallel with route views.
+ */
+// oxlint-disable-next-line react/only-export-components -- Co-located host chunk preloader shares cachedHostLazy with CanvasLayer
+export function preloadWebGLHost(initialScope: SpatialCanvasScope): void {
+  if (!canMountWebGLCanvas()) return;
+  getWebGLHostLazy(initialScope);
+  void import('./CanvasWebGLHost');
+  void preloadSceneEntry(initialScope);
+}
+
 export interface CanvasLayerProps {
   readonly scope: 'galaxy' | 'system' | 'planet';
   readonly targetId?: string;
@@ -85,13 +96,15 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   const setStageProps = useCanvasStageStore((s) => s.setStageProps);
   const hasRootHostContext = React.useContext(RootCanvasStageContext);
 
+  const hasRegisteredRouter = router?.state !== undefined;
   const isSlot = (isRootCanvasMounted || hasRootHostContext) && !isRootHost;
   const isSpatialRoute = isSpatialRoutePathname(pathname);
   const isStageActive = router
-    ? hasActiveSlot || (hasStageProps && isSpatialRoute)
+    ? hasActiveSlot || ((hasStageProps || hasRegisteredRouter) && isSpatialRoute)
     : hasActiveSlot;
   const frameloop = isRootHost ? (isStageActive ? 'demand' : 'never') : 'demand';
-  const isSpatialSceneMounted = !isRootHost || (isStageActive && hasStageProps);
+  const isSpatialSceneMounted =
+    !isRootHost || (isStageActive && (hasStageProps || hasRegisteredRouter));
 
   useIsomorphicLayoutEffect(() => {
     if (!isRootHost) {

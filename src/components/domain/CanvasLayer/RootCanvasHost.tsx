@@ -13,8 +13,9 @@ import {
 } from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
-import { isSpatialRoutePathname } from '../../../utils/spatialRoute';
-import { CanvasLayer } from './CanvasLayer';
+import { isSpatialRoutePathname, parseSpatialRouteTarget } from '../../../utils/spatialRoute';
+import { CanvasLayer, preloadWebGLHost } from './CanvasLayer';
+import { preloadTargetScaleEntry } from './crossScaleStageHelpers';
 import styles from './RootCanvasHost.module.css';
 
 const useIsomorphicLayoutEffect =
@@ -28,17 +29,35 @@ export const RootCanvasHost: React.FC = () => {
   const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
   const hasStageProps = stageProps !== null;
+  const hasRegisteredRouter = router?.state !== undefined;
   const isSpatialRoute = isSpatialRoutePathname(pathname);
+  const initialRouteTarget = hasRegisteredRouter ? parseSpatialRouteTarget(pathname) : null;
   const isStageActive = router
-    ? hasActiveSlot || (hasStageProps && isSpatialRoute)
+    ? hasActiveSlot || ((hasStageProps || hasRegisteredRouter) && isSpatialRoute)
     : hasActiveSlot;
-  const [hasActivatedSpatialCanvas, setHasActivatedSpatialCanvas] = useState(isStageActive);
+  const resolvedInitialScope = stageProps?.scope ?? initialRouteTarget?.scope ?? 'galaxy';
+  const resolvedInitialTargetId = stageProps
+    ? stageProps.targetId
+    : initialRouteTarget?.targetId;
+  const shouldActivateCanvas = isStageActive || initialRouteTarget !== null;
+  const [hasActivatedSpatialCanvas, setHasActivatedSpatialCanvas] =
+    useState(shouldActivateCanvas);
 
   useIsomorphicLayoutEffect(() => {
-    if (isStageActive) {
+    if (shouldActivateCanvas) {
       setHasActivatedSpatialCanvas(true);
+      preloadWebGLHost(resolvedInitialScope);
     }
-  }, [isStageActive]);
+  }, [shouldActivateCanvas, resolvedInitialScope]);
+
+  useEffect(() => {
+    if (!hasActivatedSpatialCanvas || import.meta.env.MODE === 'test') return;
+    const idleTimer = setTimeout(() => {
+      void preloadTargetScaleEntry('system');
+      void preloadTargetScaleEntry('planet');
+    }, 600);
+    return () => clearTimeout(idleTimer);
+  }, [hasActivatedSpatialCanvas]);
   const { onInspect, onSelect, onFocusChange } = useSyncExternalStore(
     subscribeStageCallbacks,
     getStageCallbacks,
@@ -127,8 +146,8 @@ export const RootCanvasHost: React.FC = () => {
     () => (
       <CanvasLayer
         isRootHost
-        scope={stageProps?.scope ?? 'galaxy'}
-        targetId={stageProps?.targetId}
+        scope={resolvedInitialScope}
+        targetId={resolvedInitialTargetId}
         centerId={stageProps?.centerId}
         centerCoordinates={stageProps?.centerCoordinates}
         selectedEntities={stageProps?.selectedEntities}
@@ -146,8 +165,8 @@ export const RootCanvasHost: React.FC = () => {
       />
     ),
     [
-      stageProps?.scope,
-      stageProps?.targetId,
+      resolvedInitialScope,
+      resolvedInitialTargetId,
       stageProps?.centerId,
       stageProps?.centerCoordinates,
       stageProps?.selectedEntities,

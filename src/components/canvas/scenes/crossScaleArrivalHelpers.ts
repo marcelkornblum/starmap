@@ -45,6 +45,7 @@ export interface CrossScaleArrivalGlideParams {
   readonly transitionToPose: CameraTransitionApi['transitionToPose'];
   readonly invalidate?: () => void;
   readonly onComplete: () => void;
+  readonly onCancel?: () => void;
 }
 
 function resolveArrivalPreviewPosition(
@@ -85,6 +86,7 @@ export function startCrossScaleArrivalGlide(params: CrossScaleArrivalGlideParams
     transitionToPose,
     invalidate,
     onComplete,
+    onCancel,
   } = params;
 
   const config = arrival.config ?? DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
@@ -135,6 +137,7 @@ export function startCrossScaleArrivalGlide(params: CrossScaleArrivalGlideParams
       onCancel: () => {
         resetCrossScaleSceneScale();
         resetCrossScaleInstrumentFade();
+        onCancel?.();
         invalidate?.();
       },
     });
@@ -207,6 +210,7 @@ export function startCrossScaleArrivalGlide(params: CrossScaleArrivalGlideParams
     onCancel: () => {
       resetCrossScaleInstrumentFade();
       clearCrossScalePlanePreview();
+      onCancel?.();
       invalidate?.();
     },
   });
