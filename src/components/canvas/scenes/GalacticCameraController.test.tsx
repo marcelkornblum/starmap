@@ -634,4 +634,68 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     expect(mockCamera.position.y).toBeCloseTo(savedPos[1], 4);
     expect(mockCamera.position.z).toBeCloseTo(savedPos[2], 4);
   });
+
+  it('transitions to pendingSearchFrame target and distance when requested on galaxy view and saves pose on settle', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(9000);
+    render(createElement(GalacticCameraController, { target: [0, 0, 0] }));
+
+    act(() => {
+      useCameraStore.getState().requestSearchFrame([12, -6, 3], 32);
+    });
+
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    act(() => {
+      advanceTransitionFrames([9000, 10500], nowSpy);
+    });
+
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(mockControls.target.x).toBeCloseTo(12, 4);
+    expect(mockControls.target.y).toBeCloseTo(-6, 4);
+    expect(mockControls.target.z).toBeCloseTo(3, 4);
+    const settledDist = mockCamera.position.distanceTo(mockControls.target);
+    expect(settledDist).toBeCloseTo(32, 3);
+    expect(useCameraStore.getState().savedGalaxyCamera?.target[0]).toBeCloseTo(12, 4);
+  });
+
+  it('lands directly on pendingSearchFrame target and distance during Stage 2 cross-scale arrival from system/planet view', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(11000);
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: [1, -35, 20],
+      target: [1, 0, 0],
+      up: [0, 0, 1],
+      zoom: 1,
+      focalDistance: 40,
+      centerKey: '1,0,0',
+    });
+
+    useCameraStore.getState().requestSearchFrame([14, 8, -2], 48);
+    setPendingCrossScaleArrival({
+      direction: 'out',
+      targetScope: 'galaxy',
+      durationSec: 0.9,
+    });
+
+    render(
+      createElement(GalacticCameraController, {
+        target: [0, 0, 0],
+        hasExplicitCenter: false,
+      }),
+    );
+
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    act(() => {
+      advanceTransitionFrames([11000, 11900], nowSpy);
+    });
+
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(mockControls.target.x).toBeCloseTo(14, 4);
+    expect(mockControls.target.y).toBeCloseTo(8, 4);
+    expect(mockControls.target.z).toBeCloseTo(-2, 4);
+    const settledDist = mockCamera.position.distanceTo(mockControls.target);
+    expect(settledDist).toBeCloseTo(48, 3);
+  });
 });

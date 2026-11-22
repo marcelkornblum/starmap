@@ -5,6 +5,8 @@ import { SearchPanel } from '../SearchPanel';
 import { SearchInput } from '../SearchInput';
 import { SearchResults } from '../SearchResults';
 import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
+import { SEARCH_FRAMING_SETTLE_MS } from '../../../../utils/searchFraming';
+import { useCameraStore } from '../../../../stores/useCameraStore';
 import { SpatialEntityProvider } from '../../../canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../../../canvas/entity/SpatialEntityStore';
 import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
@@ -162,5 +164,62 @@ describe('<SearchRoot />', () => {
 
     expect(input.value).toBe('');
     expect(screen.queryByText('Tau Ceti')).toBeNull();
+  });
+
+  it('triggers galactic search framing 800ms after typing settles on a spatial route when syncUrl is true and cancels on result click or clear', () => {
+    vi.useFakeTimers();
+    useCameraStore.getState().reset();
+    const store = createSpatialEntityStore();
+    const corpusWithPositions: readonly CompactSearchEntry[] = [
+      ...TEST_CORPUS,
+      {
+        i: 'tau-ceti-alt',
+        n: 'Tau Ceti',
+        p: [4, 2, -1],
+        m: [3.49, 'G8V', 4, 1],
+        a: 'tau ceti',
+      },
+    ];
+
+    render(
+      <SpatialEntityProvider store={store}>
+        <SearchRoot
+          initialCorpus={corpusWithPositions}
+          syncUrl={true}
+          syncMode={true}
+          locationPathname="/galaxy"
+          locationSearch=""
+        >
+          <SearchPanel>
+            <SearchInput />
+          </SearchPanel>
+          <SearchResults />
+        </SearchRoot>
+      </SpatialEntityProvider>,
+    );
+
+    const input = screen.getByRole('searchbox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'Tau' } });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS - 10);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+
+    // Clicking a result link before 800ms cancels the pending framing timer
+    const link = screen.getAllByRole('link')[0];
+    fireEvent.click(link);
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+
+    // Typing again and letting 800ms settle triggers requestSearchFrame
+    fireEvent.change(input, { target: { value: 'Tau' } });
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).not.toBeNull();
   });
 });

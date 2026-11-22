@@ -17,6 +17,7 @@ describe('Camera Store: useCameraStore.ts', () => {
     expect(state.savedGalaxyCamera).toBeNull();
     expect(state.lastGalaxySearch).toBe('');
     expect(state.pendingCenterSlug).toBeNull();
+    expect(state.pendingSearchFrame).toBeNull();
     expect(state.inFlightFocusSlug).toBeUndefined();
     expect(state.canvasFocusedSlugs.size).toBe(0);
   });
@@ -273,6 +274,35 @@ describe('Camera Store: useCameraStore.ts', () => {
 
       useCameraStore.getState().reset();
       expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
+    });
+
+    it('queues, increments tick, clears idempotently, and resets pendingSearchFrame', () => {
+      expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+
+      useCameraStore.getState().requestSearchFrame([12, -4, 6], 42);
+      const first = useCameraStore.getState().pendingSearchFrame;
+      expect(first).toEqual({
+        target: [12, -4, 6],
+        distance: 42,
+        tick: 1,
+      });
+
+      useCameraStore.getState().clearSearchFrame();
+      expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+
+      let notifications = 0;
+      const unsub = useCameraStore.subscribe(() => {
+        notifications++;
+      });
+      useCameraStore.getState().clearSearchFrame();
+      expect(notifications).toBe(0);
+      unsub();
+
+      useCameraStore.getState().requestSearchFrame([1, 2, 3], 18);
+      expect(useCameraStore.getState().pendingSearchFrame?.tick).toBe(2);
+
+      useCameraStore.getState().reset();
+      expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
     });
   });
 });

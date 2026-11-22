@@ -7,7 +7,6 @@ import { useOptionalRouter } from '../../../hooks/useSpaLocation';
 import { useOptionalSpatialEntityStoreApi } from '../entity/SpatialEntityContext';
 import {
   consumePendingCrossScaleArrival,
-  hasPendingCrossScaleArrival,
 } from '../instrument/crossScaleArrivalState';
 import { useCameraTransition } from '../instrument/useCameraTransition';
 import {
@@ -15,9 +14,10 @@ import {
   isOrbitControlsLike,
 } from './cameraControllerUtils';
 import {
+  bindGalacticControlsListeners,
   computeCameraPoseSnapshot,
+  dispatchPendingSearchFrame,
   formatCenterCoordString,
-  navigatePanCenterToRouter,
   persistCameraPoseToStore,
   syncCameraPoseSnapshotToStore,
 } from './galacticCameraHelpers';
@@ -52,6 +52,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   const outerStore = useOptionalSpatialEntityStoreApi();
   const { transitionTo, transitionToPose } = useCameraTransition();
   const recenterTick = useCameraStore((s) => s.recenterTick);
+  const pendingSearchFrame = useCameraStore((s) => s.pendingSearchFrame);
 
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevDistanceRef = useRef<number>(Number.NaN);
@@ -80,33 +81,35 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   );
 
   useEffect(() => {
-    if (!persistGalaxyPose) return;
-    if (!controls?.addEventListener || !controls?.removeEventListener) return;
-
-    const handleChange = () => {
-      if (useUIStore.getState().isCameraTransitioning) return;
-      saveCurrentGalaxyPose(false);
-    };
-
-    const handleEnd = () => {
-      if (useUIStore.getState().isCameraTransitioning) return;
-      saveCurrentGalaxyPose(true);
-      navigatePanCenterToRouter(router, controls, targetPosRef.current, pendingPanTargetRef);
-    };
-
-    controls.addEventListener('change', handleChange);
-    controls.addEventListener('end', handleEnd);
-    return () => {
-      if (
-        !useUIStore.getState().isCameraTransitioning &&
-        !hasPendingCrossScaleArrival()
-      ) {
-        saveCurrentGalaxyPose(true);
-      }
-      controls.removeEventListener?.('change', handleChange);
-      controls.removeEventListener?.('end', handleEnd);
-    };
+    return bindGalacticControlsListeners({
+      controls,
+      persistGalaxyPose,
+      router,
+      targetPosRef,
+      pendingPanTargetRef,
+      saveCurrentGalaxyPose,
+    });
   }, [controls, persistGalaxyPose, router, saveCurrentGalaxyPose]);
+
+  useEffect(() => {
+    if (!pendingSearchFrame || isArrivalInFlightRef.current) return;
+    const liveRequest = useCameraStore.getState().pendingSearchFrame;
+    if (!liveRequest) return;
+    useCameraStore.getState().clearSearchFrame();
+    dispatchPendingSearchFrame({
+      request: liveRequest,
+      camera,
+      controls,
+      transitionTo,
+      saveCurrentGalaxyPose,
+      invalidate,
+      onSettled: () => {
+        hasRestoredRef.current = true;
+      },
+      prevTargetRef,
+      prevDistanceRef,
+    });
+  }, [pendingSearchFrame, camera, controls, invalidate, saveCurrentGalaxyPose, transitionTo]);
 
   useIsomorphicLayoutEffect(() => {
     const prev = prevTargetRef.current;

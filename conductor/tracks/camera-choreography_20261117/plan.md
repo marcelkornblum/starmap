@@ -104,16 +104,15 @@
 ## Phase 4: Search Framing (`FS-003`)
 **Goal:** Auto-frame multi-result search sets at galactic scale and handle the single-result Solar System (*Sol*) exception cleanly without mid-typing whiplash.
 
-- [ ] **Task 4.0: Phase 4 Tune / Scope Check**
-  - Confirm framing trigger (explicit Enter/submit vs. settled search intent, avoiding 150ms typing-debounce whiplash) and framing padding.
-- [ ] **Task 4.1 (Red/Green/Refactor): Multi-Result Bounding-Sphere Framing Utility**
+- [x] **Task 4.0: Phase 4 Tune / Scope Check** *(ratified: settled typing pause `800ms`, no Enter required)*
+- [x] **Task 4.1 (Red/Green/Refactor): Multi-Result Bounding-Sphere Framing Utility**
   - Pure math utility computing target + dolly distance/orthoZoom from the full match set (not `limitPerCategory={3}` truncated groups), respecting Phase 3 safe-rect insets and `useGalacticCeilingDistance` / `maxSafeDistance` bounds.
   - Unit tests covering 2 results, colinear/co-located results, wide-spread results (ceiling clamp), and Sol (`[0,0,0]`) inclusion.
-- [ ] **Task 4.2 (Red/Green/Refactor): Search Framing Wiring & Sol Single-Result Exception**
+- [x] **Task 4.2 (Red/Green/Refactor): Search Framing Wiring & Sol Single-Result Exception**
   - Wire search submit/framing in `SearchPanel` / `SearchRoot` so `count > 1` stays at or transitions to galactic scale and glides to frame all matches; `count === 1` auto-enters `/system/sol` only for Solar System (*Sol*) bodies (`entry.h === 1`), while preserving DEC-038 result-link `href`s for explicit item clicks.
-- [ ] **Task 4.3: Quality Gate & Standards Cleanup**
+- [x] **Task 4.3: Quality Gate & Standards Cleanup**
   - Run `standards` cleanup; pass `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:r3f`, `npm run test:coverage`.
-- [ ] **Task 4.4: Phase 4 Verification, Demo Link & Checkpoint**
+- [x] **Task 4.4: Phase 4 Verification, Demo Link & Checkpoint**
   - Commit checkpoint; present clickable `<LAN_HOST>:5173` links + **"What to see & try"** search queries and HALT for review.
 
 ---

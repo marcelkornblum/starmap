@@ -28,6 +28,29 @@ export function resolveGalacticLandingPose(
   distance: number | undefined,
   hasExplicitCenter: boolean,
 ): GalacticLandingPose {
+  const pendingSearchFrame = useCameraStore.getState().pendingSearchFrame;
+  if (pendingSearchFrame) {
+    const frameTarget: [number, number, number] = [
+      pendingSearchFrame.target[0],
+      pendingSearchFrame.target[1],
+      pendingSearchFrame.target[2],
+    ];
+    useCameraStore.getState().clearSearchFrame();
+    const initialCam = getStandardInitialCamera(
+      pendingSearchFrame.distance,
+      frameTarget,
+      GALACTIC_FRAME.camera.baseFov,
+    );
+    return {
+      position: initialCam.position,
+      target: frameTarget,
+      up: initialCam.up,
+      zoom: 1,
+      fov: GALACTIC_FRAME.camera.baseFov,
+      isTransientZero: false,
+    };
+  }
+
   if (saved && distance === undefined) {
     const isMatch =
       Math.hypot(

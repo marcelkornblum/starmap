@@ -1,6 +1,13 @@
 import * as THREE from 'three';
-import { useCameraStore, type SavedGalaxyCameraPose } from '../../../stores/useCameraStore';
+import {
+  useCameraStore,
+  type SavedGalaxyCameraPose,
+  type SearchFrameRequest,
+} from '../../../stores/useCameraStore';
+import { useUIStore } from '../../../stores/useUIStore';
 import type { AppRouterAdapter, StarmapSearchParams } from '../../../hooks/useSpaLocation';
+import { hasPendingCrossScaleArrival } from '../instrument/crossScaleArrivalState';
+import type { CameraTransitionApi } from '../instrument/useCameraTransition';
 import {
   type OrbitControlsLike,
   applyCameraSavedZoom,
@@ -154,5 +161,90 @@ export function syncCameraPoseSnapshotToStore(
     up: snapshot.up,
     zoom: snapshot.zoom,
     focalDistance: snapshot.focalDistance,
+  });
+}
+
+export function bindGalacticControlsListeners(params: {
+  controls: OrbitControlsLike | undefined;
+  persistGalaxyPose: boolean;
+  router: AppRouterAdapter | undefined;
+  targetPosRef: { readonly current: { readonly x: number; readonly y: number; readonly z: number } };
+  pendingPanTargetRef: { current: string | null };
+  saveCurrentGalaxyPose: (force?: boolean) => void;
+}): (() => void) | undefined {
+  const {
+    controls,
+    persistGalaxyPose,
+    router,
+    targetPosRef,
+    pendingPanTargetRef,
+    saveCurrentGalaxyPose,
+  } = params;
+  if (!persistGalaxyPose) return undefined;
+  if (!controls?.addEventListener || !controls?.removeEventListener) return undefined;
+
+  const handleChange = () => {
+    if (useUIStore.getState().isCameraTransitioning) return;
+    saveCurrentGalaxyPose(false);
+  };
+
+  const handleEnd = () => {
+    if (useUIStore.getState().isCameraTransitioning) return;
+    saveCurrentGalaxyPose(true);
+    navigatePanCenterToRouter(router, controls, targetPosRef.current, pendingPanTargetRef);
+  };
+
+  controls.addEventListener('change', handleChange);
+  controls.addEventListener('end', handleEnd);
+  return () => {
+    if (
+      !useUIStore.getState().isCameraTransitioning &&
+      !hasPendingCrossScaleArrival()
+    ) {
+      saveCurrentGalaxyPose(true);
+    }
+    controls.removeEventListener?.('change', handleChange);
+    controls.removeEventListener?.('end', handleEnd);
+  };
+}
+
+export function dispatchPendingSearchFrame(params: {
+  request: SearchFrameRequest;
+  camera: THREE.Camera;
+  controls: OrbitControlsLike | undefined;
+  transitionTo: CameraTransitionApi['transitionTo'];
+  saveCurrentGalaxyPose: (force?: boolean) => void;
+  invalidate?: () => void;
+  onSettled: () => void;
+  prevTargetRef: { current: [number, number, number] };
+  prevDistanceRef: { current: number };
+}): void {
+  const {
+    request,
+    camera,
+    controls,
+    transitionTo,
+    saveCurrentGalaxyPose,
+    invalidate,
+    onSettled,
+    prevTargetRef,
+    prevDistanceRef,
+  } = params;
+  const frameTarget: [number, number, number] = [
+    request.target[0],
+    request.target[1],
+    request.target[2],
+  ];
+  prevTargetRef.current = frameTarget;
+  prevDistanceRef.current = request.distance;
+
+  transitionTo(frameTarget, {
+    targetDistance: request.distance,
+    onComplete: () => {
+      onSettled();
+      syncCameraPoseSnapshotToStore(camera, controls, frameTarget);
+      saveCurrentGalaxyPose(true);
+      invalidate?.();
+    },
   });
 }

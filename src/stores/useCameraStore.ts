@@ -12,6 +12,12 @@ export interface SavedGalaxyCameraPose {
   centerKey: string;
 }
 
+export interface SearchFrameRequest {
+  readonly target: readonly [number, number, number];
+  readonly distance: number;
+  readonly tick: number;
+}
+
 export interface CameraState {
   /** Current projection mode: 3D perspective or orthogonal flat cartography */
   mode: CameraProjectionMode;
@@ -39,6 +45,8 @@ export interface CameraState {
   lastGalaxySearch: string;
   /** Pending focus slug to center the camera upon (e.g. from search result selection) */
   pendingCenterSlug: string | null;
+  /** Pending galactic bounding-sphere framing request from settled search results */
+  pendingSearchFrame: SearchFrameRequest | null;
   /** Transient in-flight optimistic focus slug during navigation transitions */
   inFlightFocusSlug: string | null | undefined;
   /** Set of entity slugs focused directly via canvas interaction (prevents unwanted recentering) */
@@ -67,6 +75,8 @@ export interface CameraActions {
   setSavedGalaxyCamera: (pose: SavedGalaxyCameraPose | null) => void;
   setLastGalaxySearch: (search: string) => void;
   setPendingCenterSlug: (slug: string | null) => void;
+  requestSearchFrame: (target: readonly [number, number, number], distance: number) => void;
+  clearSearchFrame: () => void;
   setInFlightFocusSlug: (slug: string | null | undefined) => void;
   focusFromSearch: (pendingCenterSlug: string) => void;
   recordCanvasFocus: (slugOrSlugs: string | readonly string[]) => void;
@@ -99,9 +109,12 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   savedGalaxyCamera: null,
   lastGalaxySearch: '',
   pendingCenterSlug: null,
+  pendingSearchFrame: null,
   inFlightFocusSlug: undefined,
   canvasFocusedSlugs: new Set<string>(),
 };
+
+let nextSearchFrameTick = 0;
 
 export const useCameraStore = create<CameraStore>()((set) => ({
   ...INITIAL_CAMERA_STATE,
@@ -169,6 +182,21 @@ export const useCameraStore = create<CameraStore>()((set) => ({
         ? state
         : { pendingCenterSlug },
     ),
+  requestSearchFrame: (target: readonly [number, number, number], distance: number) => {
+    nextSearchFrameTick += 1;
+    const tick = nextSearchFrameTick;
+    set({
+      pendingSearchFrame: {
+        target: [target[0], target[1], target[2]],
+        distance,
+        tick,
+      },
+    });
+  },
+  clearSearchFrame: () =>
+    set((state) =>
+      state.pendingSearchFrame === null ? state : { pendingSearchFrame: null },
+    ),
   setInFlightFocusSlug: (inFlightFocusSlug: string | null | undefined) =>
     set((state) =>
       state.inFlightFocusSlug === inFlightFocusSlug
@@ -212,5 +240,8 @@ export const useCameraStore = create<CameraStore>()((set) => ({
   setOrbitalLockView: () => set({ pendingPresetRequest: 'orbital-lock' }),
   setRadialView: () => set({ pendingPresetRequest: 'radial' }),
   triggerRecenter: () => set((state) => ({ recenterTick: state.recenterTick + 1 })),
-  reset: () => set({ ...INITIAL_CAMERA_STATE }),
+  reset: () => {
+    nextSearchFrameTick = 0;
+    set({ ...INITIAL_CAMERA_STATE });
+  },
 }));

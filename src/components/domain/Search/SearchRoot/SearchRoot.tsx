@@ -10,7 +10,8 @@ import {
   useLayerIndex,
   useLoadedLayerManifests,
 } from '../../../../hooks/useLayerData';
-import { useSpaLocation } from '../../../../hooks/useSpaLocation';
+import { useOptionalRouter, useSpaLocation } from '../../../../hooks/useSpaLocation';
+import { isSpatialRoutePathname } from '../../../../utils/spatialRoute';
 import type { SearchCategoryFilter } from '../../../../types/search';
 import type { SearchResultItem } from '../../../../services/search/searchTypes';
 import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
@@ -26,6 +27,7 @@ import {
   resolveInitialQuery,
 } from '../searchUrlSync';
 import { useSearchExecution } from '../useSearchExecution';
+import { useSearchFraming } from '../useSearchFraming';
 import { useSearchUrlSyncEffect } from '../useSearchUrlSyncEffect';
 import styles from './SearchRoot.module.css';
 
@@ -60,6 +62,7 @@ export const SearchRoot = ({
   const searchRootRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState<boolean>(false);
 
+  const router = useOptionalRouter();
   const spaLocation = useSpaLocation(locationPathname, locationSearch, '/');
   const activePathname = spaLocation.pathname;
   const activeSearch = spaLocation.search;
@@ -72,6 +75,16 @@ export const SearchRoot = ({
 
   const resolvedInitialQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
   const resolvedInitialFilter = resolveInitialFilter(syncUrl, activeSearch, initialFilter);
+
+  const cancelFramingRef = useRef<() => void>(() => undefined);
+
+  const handleSelectResult = useCallback(
+    (item: SearchResultItem): void => {
+      cancelFramingRef.current();
+      onSelectResult?.(item);
+    },
+    [onSelectResult],
+  );
 
   const {
     query,
@@ -99,10 +112,56 @@ export const SearchRoot = ({
     store,
     layerIndex,
     loadedLayers,
-    onSelectResult,
+    onSelectResult: onSelectResult ? handleSelectResult : undefined,
     searchRootRef,
     setIsFocused,
   });
+
+  const { markUserSearchActivity, cancelSearchFraming } = useSearchFraming({
+    enabled: syncUrl && isSpatialRoutePathname(activePathname),
+    activePathname,
+    activeSearch,
+    query,
+    filter,
+    status,
+    results,
+    initialCorpus,
+    router,
+  });
+
+  useEffect(() => {
+    cancelFramingRef.current = cancelSearchFraming;
+  }, [cancelSearchFraming]);
+
+  const handleSetQuery = useCallback(
+    (nextQuery: string): void => {
+      cancelSearchFraming();
+      if (nextQuery.trim().length > 0) {
+        markUserSearchActivity();
+      }
+      setQuery(nextQuery);
+    },
+    [cancelSearchFraming, markUserSearchActivity, setQuery],
+  );
+
+  const handleSetFilter = useCallback(
+    (nextFilter: SearchCategoryFilter): void => {
+      cancelSearchFraming();
+      if (query.trim().length > 0) {
+        markUserSearchActivity();
+      }
+      setFilter(nextFilter);
+    },
+    [cancelSearchFraming, markUserSearchActivity, query, setFilter],
+  );
+
+  const handleDismissSearch = useCallback(
+    (item?: SearchResultItem): void => {
+      cancelSearchFraming();
+      dismissSearch(item);
+    },
+    [cancelSearchFraming, dismissSearch],
+  );
 
   useSearchUrlSyncEffect({
     activePathname,
@@ -164,11 +223,11 @@ export const SearchRoot = ({
     results,
     isFocused,
     setIsFocused,
-    dismissSearch,
-    setQuery,
-    setFilter,
+    dismissSearch: handleDismissSearch,
+    setQuery: handleSetQuery,
+    setFilter: handleSetFilter,
     submitSearch,
-    onSelectResult,
+    onSelectResult: onSelectResult ? handleSelectResult : undefined,
   };
 
   return (
