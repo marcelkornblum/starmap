@@ -1,6 +1,65 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
+import type { SpatialScale } from '../../../utils/referenceFrameOrientation';
+import {
+  getPendingSpatialRouteTarget,
+  parseSpatialRouteTarget,
+  setPendingSpatialNavigationHref,
+  subscribePendingSpatialRoute,
+} from '../../../utils/spatialRoute';
+import { isMatchingSceneTarget } from './crossScaleStageHelpers';
 
 const READY_SWAP_FALLBACK_TIMEOUT_MS = 800;
+
+export function useRequestedSpatialTarget(
+  fallbackScope: SpatialScale,
+  fallbackTargetId: string | undefined,
+  isSpatialSceneMounted: boolean,
+): {
+  readonly router: ReturnType<typeof useOptionalRouter>;
+  readonly requestedScope: SpatialScale;
+  readonly requestedTargetId: string | undefined;
+} {
+  const router = useOptionalRouter();
+  const location = useSpaLocation();
+  const pendingIntentTarget = useSyncExternalStore(
+    subscribePendingSpatialRoute,
+    getPendingSpatialRouteTarget,
+    getPendingSpatialRouteTarget,
+  );
+  const currentLocationTarget = parseSpatialRouteTarget(location.pathname);
+  const pendingLocationPathname = (
+    router?.state as { pendingLocation?: { pathname?: string } } | undefined
+  )?.pendingLocation?.pathname;
+  const pendingLocationTarget = pendingLocationPathname
+    ? parseSpatialRouteTarget(pendingLocationPathname)
+    : null;
+  const routeTarget =
+    router && isSpatialSceneMounted
+      ? (pendingIntentTarget ?? pendingLocationTarget ?? currentLocationTarget)
+      : null;
+
+  useEffect(() => {
+    if (
+      pendingIntentTarget &&
+      currentLocationTarget &&
+      isMatchingSceneTarget(
+        currentLocationTarget.scope,
+        currentLocationTarget.targetId,
+        pendingIntentTarget.scope,
+        pendingIntentTarget.targetId,
+      )
+    ) {
+      setPendingSpatialNavigationHref(null);
+    }
+  }, [pendingIntentTarget, currentLocationTarget]);
+
+  return {
+    router,
+    requestedScope: routeTarget?.scope ?? fallbackScope,
+    requestedTargetId: routeTarget ? routeTarget.targetId : fallbackTargetId,
+  };
+}
 
 export interface CrossScaleReadySwapController {
   readonly clearPendingReadySwap: () => void;

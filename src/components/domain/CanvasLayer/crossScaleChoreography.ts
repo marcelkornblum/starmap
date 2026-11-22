@@ -15,7 +15,6 @@ import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore'
 import { setPendingCrossScaleArrival } from '../../canvas/instrument/crossScaleArrivalState';
 import { setCrossScaleInstrumentFade } from '../../canvas/instrument/crossScaleFadeState';
 import {
-  resetCrossScaleSceneScale,
   setCrossScalePlanePreview,
   setCrossScaleSceneScale,
   startCrossScalePlanePreviewExpand,
@@ -44,7 +43,7 @@ export interface LaunchCrossScaleDepartureParams {
   readonly setBeat1Cleanup: (cleanup: (() => void) | null) => void;
   readonly resolveFinalScope: () => SpatialScale;
   readonly onBeforeSwap: () => void;
-  readonly onCommitFinal: () => void;
+  readonly onCommitFinal: (postCommitSceneScale: number) => void;
   readonly onAbortAndCommit: () => void;
   readonly isTargetPropsReady?: () => boolean;
   readonly scheduleReadySwap?: (commitSwap: () => void) => void;
@@ -131,7 +130,6 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
         mode: 'holding',
       });
       setCrossScaleInstrumentFade(0);
-      setCrossScaleSceneScale(config.minSceneScale);
       setPendingCrossScaleArrival({
         direction: 'in',
         targetScope: finalScope,
@@ -140,8 +138,8 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
         tiltAxis: plane.tiltAxis,
         config,
       });
+      onCommitFinal(config.minSceneScale);
     } else {
-      resetCrossScaleSceneScale();
       setCrossScaleInstrumentFade(0);
       setPendingCrossScaleArrival({
         direction: 'out',
@@ -154,8 +152,8 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
         planePreviewAscendingNodeRad: plane.ascendingNodeRad,
         config,
       });
+      onCommitFinal(1);
     }
-    onCommitFinal();
     invalidate?.();
   };
 

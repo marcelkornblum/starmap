@@ -1,24 +1,29 @@
 /* ui-audit-disable-next-line missing-component-quad -- Internal R3F scene stage host extracted from CanvasWebGLHost; tested via CrossScaleStageHost.test.tsx */
-import React, { Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import React, {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
 import { prefersReducedMotion } from '../../../utils/reducedMotion';
 import type { SpatialScale } from '../../../utils/referenceFrameOrientation';
-import {
-  getPendingSpatialRouteTarget,
-  parseSpatialRouteTarget,
-  setPendingSpatialNavigationHref,
-  subscribePendingSpatialRoute,
-} from '../../../utils/spatialRoute';
 import { useOptionalSpatialEntityStoreApi } from '../../canvas/entity/SpatialEntityContext';
 import { ORBIT_CONTROLS_PRIORITY } from '../../canvas/engineConfig';
 import { TargetReferencePlanePreview } from '../../canvas/instrument/TargetReferencePlanePreview';
-import { getCrossScaleSceneScale } from '../../canvas/instrument/crossScaleVisualState';
+import {
+  getCrossScaleSceneScale,
+  setCrossScaleSceneScale,
+} from '../../canvas/instrument/crossScaleVisualState';
 import { useCameraTransition } from '../../canvas/instrument/useCameraTransition';
 import { isOrbitControlsLike } from '../../canvas/scenes/cameraControllerUtils';
 import { launchCrossScaleDeparture } from './crossScaleChoreography';
-import { useCrossScaleReadySwap } from './useCrossScaleReadySwap';
+import {
+  useCrossScaleReadySwap,
+  useRequestedSpatialTarget,
+} from './useCrossScaleReadySwap';
 import {
   isMatchingSceneTarget,
   preloadTargetScaleEntry,
@@ -30,6 +35,9 @@ import {
 } from './crossScaleStageHelpers';
 
 export type CrossScaleStageHostProps = SpatialStageSceneProps;
+
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface InFlightCrossScaleTarget {
   readonly scope: SpatialScale;
@@ -48,16 +56,15 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
   const isDepartingRef = useRef<boolean>(false);
   const inFlightTargetRef = useRef<InFlightCrossScaleTarget | null>(null);
   const beat1CleanupRef = useRef<(() => void) | null>(null);
+  const pendingSwapScaleRef = useRef<number | null>(null);
   const sceneScaleGroupRef = useRef<THREE.Group>(null);
   const { clearPendingReadySwap, flushPendingReadySwap, scheduleReadySwap } =
     useCrossScaleReadySwap();
 
-  const router = useOptionalRouter();
-  const location = useSpaLocation();
-  const pendingIntentTarget = useSyncExternalStore(
-    subscribePendingSpatialRoute,
-    getPendingSpatialRouteTarget,
-    getPendingSpatialRouteTarget,
+  const { router, requestedScope, requestedTargetId } = useRequestedSpatialTarget(
+    props.scope,
+    props.targetId,
+    props.isSpatialSceneMounted,
   );
   const camera = useThree((s) => s.camera);
   const rawControls = useThree((s) => s.controls);
@@ -65,35 +72,6 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
   const get = useThree((s) => s.get);
   const outerStore = useOptionalSpatialEntityStoreApi();
   const { transitionToPose, cancelTransition } = useCameraTransition();
-
-  const currentLocationTarget = parseSpatialRouteTarget(location.pathname);
-  const pendingLocationPathname = (
-    router?.state as { pendingLocation?: { pathname?: string } } | undefined
-  )?.pendingLocation?.pathname;
-  const pendingLocationTarget = pendingLocationPathname
-    ? parseSpatialRouteTarget(pendingLocationPathname)
-    : null;
-  const routeTarget =
-    router && props.isSpatialSceneMounted
-      ? (pendingIntentTarget ?? pendingLocationTarget ?? currentLocationTarget)
-      : null;
-  const requestedScope = routeTarget?.scope ?? props.scope;
-  const requestedTargetId = routeTarget ? routeTarget.targetId : props.targetId;
-
-  useEffect(() => {
-    if (
-      pendingIntentTarget &&
-      currentLocationTarget &&
-      isMatchingSceneTarget(
-        currentLocationTarget.scope,
-        currentLocationTarget.targetId,
-        pendingIntentTarget.scope,
-        pendingIntentTarget.targetId,
-      )
-    ) {
-      setPendingSpatialNavigationHref(null);
-    }
-  }, [pendingIntentTarget, currentLocationTarget]);
 
   const isUnmountedBoundary = !props.isSpatialSceneMounted || !committedProps.isSpatialSceneMounted;
   const isSameAsCommitted = isMatchingSceneTarget(
@@ -116,6 +94,17 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
   ) {
     setCommittedProps(props);
   }
+
+  useIsomorphicLayoutEffect(() => {
+    if (pendingSwapScaleRef.current !== null) {
+      setCrossScaleSceneScale(pendingSwapScaleRef.current);
+      pendingSwapScaleRef.current = null;
+    }
+    const group = sceneScaleGroupRef.current;
+    if (group?.scale) {
+      group.scale.setScalar(getCrossScaleSceneScale());
+    }
+  }, [committedProps.scope, committedProps.targetId]);
 
   useFrame(() => {
     const group = sceneScaleGroupRef.current;
@@ -281,9 +270,10 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
           () => !isTargetPropsReady(),
           () => token === transitionTokenRef.current,
         ),
-      onCommitFinal: () => {
+      onCommitFinal: (postCommitSceneScale) => {
         const finalProps = resolveFinalProps();
         inFlightTargetRef.current = null;
+        pendingSwapScaleRef.current = postCommitSceneScale;
         setCommittedProps(finalProps);
       },
       onAbortAndCommit: () => {
