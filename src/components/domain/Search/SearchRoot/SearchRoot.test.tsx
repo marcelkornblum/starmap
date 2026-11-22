@@ -166,7 +166,7 @@ describe('<SearchRoot />', () => {
     expect(screen.queryByText('Tau Ceti')).toBeNull();
   });
 
-  it('triggers galactic search framing 800ms after typing settles on a spatial route when syncUrl is true and cancels on result click or clear', () => {
+  it('triggers galactic search framing 600ms after typing settles on a spatial route when syncUrl is true and cancels on result click or clear', () => {
     vi.useFakeTimers();
     useCameraStore.getState().reset();
     const store = createSpatialEntityStore();
@@ -215,11 +215,84 @@ describe('<SearchRoot />', () => {
     });
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
 
-    // Typing again and letting 800ms settle triggers requestSearchFrame
+    // Typing again and letting 600ms settle triggers requestSearchFrame
     fireEvent.change(input, { target: { value: 'Tau' } });
     act(() => {
       vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
     });
     expect(useCameraStore.getState().pendingSearchFrame).not.toBeNull();
+  });
+
+  it('restores pre-search pose on Clear search but discards it when selecting a search result', () => {
+    vi.useFakeTimers();
+    useCameraStore.getState().reset();
+    useCameraStore.getState().setCameraPose({
+      position: [5, -8, 16],
+      target: [1, 2, 3],
+      focalDistance: 15,
+    });
+    const store = createSpatialEntityStore();
+    const corpusWithPositions: readonly CompactSearchEntry[] = [
+      ...TEST_CORPUS,
+      {
+        i: 'tau-ceti-alt',
+        n: 'Tau Ceti',
+        p: [12, 4, -2],
+        m: [3.49, 'G8V', 4, 1],
+        a: 'tau ceti',
+      },
+    ];
+
+    render(
+      <SpatialEntityProvider store={store}>
+        <SearchRoot
+          initialCorpus={corpusWithPositions}
+          syncUrl={true}
+          syncMode={true}
+          locationPathname="/galaxy"
+          locationSearch=""
+        >
+          <SearchPanel>
+            <SearchInput />
+          </SearchPanel>
+          <SearchResults />
+        </SearchRoot>
+      </SpatialEntityProvider>,
+    );
+
+    const input = screen.getByRole('searchbox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'Tau' } });
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame?.target).toEqual([6, 2, -1]);
+
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+    });
+
+    // Clearing search restores the pre-search pose
+    fireEvent.click(screen.getByTestId('search-clear-button'));
+    expect(useCameraStore.getState().pendingSearchFrame).toMatchObject({
+      target: [1, 2, 3],
+      distance: 15,
+    });
+
+    // Search again, settle, then click a result link -> pre-search pose must be discarded
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+    });
+    fireEvent.change(input, { target: { value: 'Tau' } });
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame?.target).toEqual([6, 2, -1]);
+
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+    });
+    const link = screen.getAllByRole('link')[0];
+    fireEvent.click(link);
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
   });
 });

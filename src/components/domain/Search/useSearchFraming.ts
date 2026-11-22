@@ -17,6 +17,7 @@ import { useUIStore } from '../../../stores/useUIStore';
 import type { SearchCategoryFilter } from '../../../types/search';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import {
+  MIN_SEARCH_FRAMING_DISTANCE_PC,
   SEARCH_FRAMING_SETTLE_MS,
   resolveSearchFramingAction,
 } from '../../../utils/searchFraming';
@@ -54,6 +55,7 @@ export interface UseSearchFramingOptions {
 export interface UseSearchFramingReturn {
   readonly markUserSearchActivity: () => void;
   readonly cancelSearchFraming: () => void;
+  readonly discardPreSearchPose: () => void;
 }
 
 function collectSpatialItems(results: GroupedSearchResults): SearchResultItem[] {
@@ -105,7 +107,7 @@ function buildGalaxyReturnHref(
 }
 
 /**
- * Arms an 800ms settled-typing camera framing timer on spatial routes (`FS-003`),
+ * Arms a 600ms settled-typing camera framing timer on spatial routes (`FS-003`),
  * resolving the untruncated search match bounding sphere or single Solar System entry.
  */
 export const useSearchFraming = ({
@@ -122,6 +124,11 @@ export const useSearchFraming = ({
   const hasUserTypedRef = useRef<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const locationRef = useRef({ activePathname, activeSearch, router });
+  const preSearchPoseRef = useRef<{
+    readonly target: [number, number, number];
+    readonly distance: number;
+  } | null>(null);
+  const hasFramedCurrentSearchRef = useRef<boolean>(false);
 
   useEffect(() => {
     locationRef.current = { activePathname, activeSearch, router };
@@ -143,8 +150,32 @@ export const useSearchFraming = ({
     clearPendingTimer();
   }, [clearPendingTimer]);
 
+  const discardPreSearchPose = useCallback((): void => {
+    preSearchPoseRef.current = null;
+    hasFramedCurrentSearchRef.current = false;
+  }, []);
+
   useEffect(() => {
     clearPendingTimer();
+
+    if (
+      enabled &&
+      isSpatialRoutePathname(activePathname) &&
+      query.trim().length === 0 &&
+      hasFramedCurrentSearchRef.current
+    ) {
+      if (preSearchPoseRef.current !== null) {
+        useCameraStore
+          .getState()
+          .requestSearchFrame(
+            preSearchPoseRef.current.target,
+            preSearchPoseRef.current.distance,
+          );
+      }
+      preSearchPoseRef.current = null;
+      hasFramedCurrentSearchRef.current = false;
+      return;
+    }
 
     if (
       !enabled ||
@@ -208,8 +239,20 @@ export const useSearchFraming = ({
         router: currentRouter,
       } = locationRef.current;
 
+      const snapshotPreSearchPose = (): void => {
+        if (preSearchPoseRef.current === null) {
+          const cam = useCameraStore.getState();
+          preSearchPoseRef.current = {
+            target: [cam.target[0], cam.target[1], cam.target[2]],
+            distance: Math.max(cam.focalDistance, MIN_SEARCH_FRAMING_DISTANCE_PC),
+          };
+        }
+        hasFramedCurrentSearchRef.current = true;
+      };
+
       if (action.kind === 'enter-sol-system') {
         if (!isAlreadyAtTarget(currentPathname, currentSearch, action.href)) {
+          snapshotPreSearchPose();
           const resolvedHref = resolveAppHref(action.href) ?? action.href;
           setPendingSpatialNavigationHref(resolvedHref);
           void currentRouter?.navigate?.({ href: resolvedHref });
@@ -218,6 +261,7 @@ export const useSearchFraming = ({
       }
 
       if (action.kind === 'frame-galaxy') {
+        snapshotPreSearchPose();
         useCameraStore.getState().requestSearchFrame(action.target, action.distance);
         const currentScope = parseSpatialRouteTarget(currentPathname)?.scope;
         if (currentScope !== 'galaxy') {
@@ -248,5 +292,6 @@ export const useSearchFraming = ({
   return {
     markUserSearchActivity,
     cancelSearchFraming,
+    discardPreSearchPose,
   };
 };

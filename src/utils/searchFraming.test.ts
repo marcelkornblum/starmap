@@ -14,8 +14,8 @@ import {
 
 describe('searchFraming utility', () => {
   it('exports expected framing constants', () => {
-    expect(SEARCH_FRAMING_SETTLE_MS).toBe(800);
-    expect(DEFAULT_SEARCH_FRAMING_PADDING).toBe(1.35);
+    expect(SEARCH_FRAMING_SETTLE_MS).toBe(600);
+    expect(DEFAULT_SEARCH_FRAMING_PADDING).toBe(1.15);
     expect(MIN_SEARCH_FRAMING_DISTANCE_PC).toBe(8);
     expect(DEFAULT_SINGLE_RESULT_DISTANCE_PC).toBe(18);
   });
@@ -96,7 +96,7 @@ describe('searchFraming utility', () => {
       expect(result?.distance).toBeGreaterThan(MIN_SEARCH_FRAMING_DISTANCE_PC);
     });
 
-    it('clamps wide-spread results to maxDistance ceiling', () => {
+    it('anchors on the top match at maxDistance when wide-spread results exceed maxDistance', () => {
       const result = computeBoundingSphereFraming(
         [
           [-400, -400, 0],
@@ -105,8 +105,61 @@ describe('searchFraming utility', () => {
         { maxDistance: 120 },
       );
       expect(result).not.toBeNull();
-      expect(result?.target).toEqual([0, 0, 0]);
+      expect(result?.target).toEqual([-400, -400, 0]);
       expect(result?.distance).toBe(120);
+    });
+
+    it('anchors target on positions[0] instead of empty midpoint when outlier spread exceeds maxDistance', () => {
+      const result = computeBoundingSphereFraming(
+        [
+          [1, 2, 3],
+          [81, 2, 3],
+        ],
+        { maxDistance: 50 },
+      );
+      expect(result).not.toBeNull();
+      expect(result?.target).toEqual([1, 2, 3]);
+      expect(result?.distance).toBe(50);
+      expect(result?.radius).toBeCloseTo(40, 6);
+    });
+
+    it('frames multi-result cluster tightly inside active safeRect without double-dividing by visRatio', () => {
+      const clusterPositions: readonly [number, number, number][] = [
+        [-10, 0, 0],
+        [10, 0, 0],
+        [0, 5, 0],
+      ];
+      const safeRect: ViewportSafeRect = {
+        top: 64,
+        right: 340,
+        bottom: 120,
+        left: 340,
+        width: 760,
+        height: 716,
+        bypass: false,
+      };
+      const result = computeBoundingSphereFraming(clusterPositions, {
+        fovDeg: 45,
+        viewportWidth: 1440,
+        viewportHeight: 900,
+        safeRect,
+      });
+
+      expect(result).not.toBeNull();
+      if (!result) {
+        return;
+      }
+      const tanVHalf = Math.tan((45 * Math.PI) / 360);
+      const safeFullH = safeRect.height + safeRect.top + safeRect.bottom;
+      const expectedLimitingTan = Math.min(
+        tanVHalf * (safeRect.height / safeFullH),
+        tanVHalf * (safeRect.width / safeFullH),
+      );
+      const expectedDistance = (result.radius * 1.15) / expectedLimitingTan;
+      expect(result.distance).toBeCloseTo(expectedDistance, 5);
+
+      // Must NOT double-divide by visRatio (760/1440 ≈ 0.528 would push distance > 60 pc)
+      expect(result.distance).toBeLessThan(40);
     });
 
     it('widens framing distance when an active safeRect insets the visible viewport', () => {

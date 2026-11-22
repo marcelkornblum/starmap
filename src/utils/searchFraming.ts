@@ -3,16 +3,15 @@ import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import type { SearchCategoryKey } from '../types/search';
 import type { ViewportSafeRect } from './viewportSafeRect';
 
-export const SEARCH_FRAMING_SETTLE_MS = 800;
-export const DEFAULT_SEARCH_FRAMING_PADDING = 1.35;
+export const SEARCH_FRAMING_SETTLE_MS = 600;
+export const DEFAULT_SEARCH_FRAMING_PADDING = 1.15;
 export const MIN_SEARCH_FRAMING_DISTANCE_PC = 8;
 export const DEFAULT_SINGLE_RESULT_DISTANCE_PC = 18;
 
 const DEFAULT_VIEWPORT_WIDTH = 1440;
 const DEFAULT_VIEWPORT_HEIGHT = 900;
 const CO_LOCATED_EPSILON_PC = 1e-4;
-const MIN_LIMITING_SIN = 0.05;
-const MIN_VISIBLE_RATIO = 0.35;
+const MIN_LIMITING_TAN = 0.05;
 
 export interface SearchFramingBoundsOptions {
   readonly fovDeg?: number;
@@ -149,22 +148,35 @@ export function computeBoundingSphereFraming(
     };
   }
 
+  const vHalf = (fovDeg * Math.PI) / 360;
+  const tanVHalf = Math.tan(vHalf);
   const safeRect = options?.safeRect;
   const hasActiveSafeRect = Boolean(
     safeRect && !safeRect.bypass && safeRect.width > 0 && safeRect.height > 0,
   );
-  const visW = hasActiveSafeRect && safeRect ? safeRect.width : fullW;
-  const visH = hasActiveSafeRect && safeRect ? safeRect.height : fullH;
-  const visRatio = hasActiveSafeRect ? Math.min(visW / fullW, visH / fullH) : 1;
 
-  const vHalf = (fovDeg * Math.PI) / 360;
-  const hHalf = Math.atan(Math.tan(vHalf) * (visW / Math.max(visH, 1)));
-  const limitingHalfFov = Math.min(vHalf, hHalf);
+  let vTan: number;
+  let hTan: number;
+  if (hasActiveSafeRect && safeRect) {
+    const safeFullH = safeRect.height + safeRect.top + safeRect.bottom;
+    const denomH = Math.max(safeFullH, 1);
+    vTan = tanVHalf * (safeRect.height / denomH);
+    hTan = tanVHalf * (safeRect.width / denomH);
+  } else {
+    vTan = tanVHalf;
+    hTan = tanVHalf * (fullW / Math.max(fullH, 1));
+  }
 
-  const baseDistance = (radius * padding) / Math.max(Math.sin(limitingHalfFov), MIN_LIMITING_SIN);
-  const rawDistance = hasActiveSafeRect
-    ? baseDistance / Math.max(visRatio, MIN_VISIBLE_RATIO)
-    : baseDistance;
+  const limitingTan = Math.max(Math.min(vTan, hTan), MIN_LIMITING_TAN);
+  const rawDistance = (radius * padding) / limitingTan;
+
+  if (rawDistance > maxDistance) {
+    return {
+      target: [first[0], first[1], first[2]],
+      distance: maxDistance,
+      radius,
+    };
+  }
 
   return {
     target: center,

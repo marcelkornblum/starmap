@@ -77,10 +77,12 @@ export const SearchRoot = ({
   const resolvedInitialFilter = resolveInitialFilter(syncUrl, activeSearch, initialFilter);
 
   const cancelFramingRef = useRef<() => void>(() => undefined);
+  const discardPreSearchPoseRef = useRef<() => void>(() => undefined);
 
   const handleSelectResult = useCallback(
     (item: SearchResultItem): void => {
       cancelFramingRef.current();
+      discardPreSearchPoseRef.current();
       onSelectResult?.(item);
     },
     [onSelectResult],
@@ -117,21 +119,23 @@ export const SearchRoot = ({
     setIsFocused,
   });
 
-  const { markUserSearchActivity, cancelSearchFraming } = useSearchFraming({
-    enabled: syncUrl && isSpatialRoutePathname(activePathname),
-    activePathname,
-    activeSearch,
-    query,
-    filter,
-    status,
-    results,
-    initialCorpus,
-    router,
-  });
+  const { markUserSearchActivity, cancelSearchFraming, discardPreSearchPose } =
+    useSearchFraming({
+      enabled: syncUrl && isSpatialRoutePathname(activePathname),
+      activePathname,
+      activeSearch,
+      query,
+      filter,
+      status,
+      results,
+      initialCorpus,
+      router,
+    });
 
   useEffect(() => {
     cancelFramingRef.current = cancelSearchFraming;
-  }, [cancelSearchFraming]);
+    discardPreSearchPoseRef.current = discardPreSearchPose;
+  }, [cancelSearchFraming, discardPreSearchPose]);
 
   const handleSetQuery = useCallback(
     (nextQuery: string): void => {
@@ -158,9 +162,12 @@ export const SearchRoot = ({
   const handleDismissSearch = useCallback(
     (item?: SearchResultItem): void => {
       cancelSearchFraming();
+      if (item) {
+        discardPreSearchPose();
+      }
       dismissSearch(item);
     },
-    [cancelSearchFraming, dismissSearch],
+    [cancelSearchFraming, discardPreSearchPose, dismissSearch],
   );
 
   useSearchUrlSyncEffect({

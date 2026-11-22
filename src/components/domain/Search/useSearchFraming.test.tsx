@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
-import { SEARCH_FRAMING_SETTLE_MS } from '../../../utils/searchFraming';
+import {
+  MIN_SEARCH_FRAMING_DISTANCE_PC,
+  SEARCH_FRAMING_SETTLE_MS,
+} from '../../../utils/searchFraming';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
@@ -166,7 +169,8 @@ describe('useSearchFraming', () => {
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
   });
 
-  it('frames untruncated multi-results after 800ms and respects safeRect from useUIStore', () => {
+  it('frames untruncated multi-results after 600ms and respects safeRect from useUIStore', () => {
+    expect(SEARCH_FRAMING_SETTLE_MS).toBe(600);
     const { router, navigate } = createMockRouter('/galaxy', '');
     const truncatedResults = searchCatalog(FRAMING_CORPUS, {
       query: 'Kepler',
@@ -217,13 +221,13 @@ describe('useSearchFraming', () => {
       router,
     });
 
-    // Before 800ms elapses, nothing has fired
+    // Before 600ms elapses, nothing has fired
     act(() => {
       vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS - 50);
     });
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
 
-    // At 800ms, framing fires using all 4 Kepler stars (y up to +-20, so radius = 20)
+    // At 600ms, framing fires using all 4 Kepler stars (y up to +-20, so radius = 20)
     act(() => {
       vi.advanceTimersByTime(50);
     });
@@ -403,5 +407,237 @@ describe('useSearchFraming', () => {
     expect(navigate).toHaveBeenCalledWith({
       href: '/galaxy?q=Kepler&searchCategory=stars',
     });
+  });
+
+  it('restores pre-search camera pose via requestSearchFrame when search is cleared after framing', () => {
+    const { router } = createMockRouter('/galaxy', '');
+    useCameraStore.getState().setCameraPose({
+      position: [12, -10, 20],
+      target: [2, -3, 4],
+      focalDistance: 23,
+    });
+
+    const keplerResults = searchCatalog(FRAMING_CORPUS, {
+      query: 'Kepler',
+      filter: 'all',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: FRAMING_CORPUS,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=Kepler',
+      query: 'Kepler',
+      filter: 'all',
+      status: 'ready',
+      results: keplerResults,
+      initialCorpus: FRAMING_CORPUS,
+      router,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame?.target).toEqual([0, 0, 0]);
+
+    // Simulate camera controller consuming the search frame and moving away
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+      useCameraStore.getState().setCameraPose({
+        position: [0, 0, 60],
+        target: [0, 0, 0],
+        focalDistance: 60,
+      });
+    });
+
+    // Clear the search query
+    act(() => {
+      result.current.cancelSearchFraming();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '',
+      query: '',
+      filter: 'all',
+      status: 'idle',
+      results: searchCatalog([], { query: '', filter: 'all' }),
+      initialCorpus: FRAMING_CORPUS,
+      router,
+    });
+
+    const restoredFrame = useCameraStore.getState().pendingSearchFrame;
+    expect(restoredFrame).not.toBeNull();
+    expect(restoredFrame?.target).toEqual([2, -3, 4]);
+    expect(restoredFrame?.distance).toBe(23);
+
+    // Subsequent re-render with empty query does not re-dispatch
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '',
+      query: '',
+      filter: 'all',
+      status: 'idle',
+      results: searchCatalog([], { query: '', filter: 'all' }),
+      initialCorpus: FRAMING_CORPUS,
+      router,
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+  });
+
+  it('clamps restored pre-search distance to MIN_SEARCH_FRAMING_DISTANCE_PC', () => {
+    const { router } = createMockRouter('/galaxy', '');
+    useCameraStore.getState().setCameraPose({
+      position: [1, 1, 3],
+      target: [1, 1, 0],
+      focalDistance: 3,
+    });
+
+    const keplerResults = searchCatalog(FRAMING_CORPUS, {
+      query: 'Kepler',
+      filter: 'all',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: FRAMING_CORPUS,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=Kepler',
+      query: 'Kepler',
+      filter: 'all',
+      status: 'ready',
+      results: keplerResults,
+      initialCorpus: FRAMING_CORPUS,
+      router,
+    });
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+      useCameraStore.getState().clearSearchFrame();
+      result.current.cancelSearchFraming();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '',
+      query: '',
+      filter: 'all',
+      status: 'idle',
+      results: searchCatalog([], { query: '', filter: 'all' }),
+      initialCorpus: FRAMING_CORPUS,
+      router,
+    });
+
+    expect(useCameraStore.getState().pendingSearchFrame?.distance).toBe(
+      MIN_SEARCH_FRAMING_DISTANCE_PC,
+    );
+  });
+
+  it('discards saved pre-search pose when discardPreSearchPose is called on result selection', () => {
+    const { router } = createMockRouter('/galaxy', '');
+    useCameraStore.getState().setCameraPose({
+      position: [12, -10, 20],
+      target: [2, -3, 4],
+      focalDistance: 23,
+    });
+
+    const keplerResults = searchCatalog(FRAMING_CORPUS, {
+      query: 'Kepler',
+      filter: 'all',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: FRAMING_CORPUS,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=Kepler',
+      query: 'Kepler',
+      filter: 'all',
+      status: 'ready',
+      results: keplerResults,
+      initialCorpus: FRAMING_CORPUS,
+      router,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+      useCameraStore.getState().clearSearchFrame();
+      result.current.cancelSearchFraming();
+      result.current.discardPreSearchPose();
+    });
+
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '',
+      query: '',
+      filter: 'all',
+      status: 'idle',
+      results: searchCatalog([], { query: '', filter: 'all' }),
+      initialCorpus: FRAMING_CORPUS,
+      router,
+    });
+
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
   });
 });
