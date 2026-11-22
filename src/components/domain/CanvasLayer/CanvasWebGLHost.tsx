@@ -1,5 +1,5 @@
 /* ui-audit-disable-next-line missing-component-quad -- Lazy-loaded WebGL host extracted from CanvasLayer; styled via CanvasLayer.module.css and tested via CanvasLayer.test.tsx */
-import React, { Suspense, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Canvas, events as createDomEvents } from '@react-three/fiber';
 import {
   getStandardInitialCamera,
@@ -19,14 +19,7 @@ import {
   CanvasRouterBridgeContext,
   useOptionalRouter,
 } from '../../../hooks/useSpaLocation';
-import {
-  getLoadedGalacticScene,
-  getLoadedSystemScene,
-  getLoadedPlanetaryScene,
-  LazyGalacticSceneContent,
-  LazySystemSceneContent,
-  LazyPlanetarySceneContent,
-} from './sceneEntryLoader';
+import { CrossScaleStageHost } from './CrossScaleStageHost';
 import styles from './CanvasLayer.module.css';
 
 export interface CanvasWebGLHostProps {
@@ -83,9 +76,6 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
   const outerStore = useOptionalSpatialEntityStoreApi();
   const outerRouter = useOptionalRouter();
   const initialDpr = useMemo(() => getInitialCanvasDpr(), []);
-  const GalacticSceneComponent = getLoadedGalacticScene() ?? LazyGalacticSceneContent;
-  const SystemSceneComponent = getLoadedSystemScene() ?? LazySystemSceneContent;
-  const PlanetarySceneComponent = getLoadedPlanetaryScene() ?? LazyPlanetarySceneContent;
 
   return (
     <div className={styles.canvasWrapper}>
@@ -107,38 +97,18 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
             <CameraTransitionProvider>
               <SceneTokenBridge />
               <AdaptiveQualityMonitor />
-              <Suspense fallback={null}>
-                {isSpatialSceneMounted && scope === 'galaxy' && (
-                  <GalacticSceneComponent
-                    initialSelectedId={centerId ?? null}
-                    centerCoordinates={centerCoordinates}
-                    centerId={centerId}
-                    cameraDistance={cameraDistance}
-                    additionalEntities={selectedEntities}
-                    onInspectSystem={onInspect}
-                    onSelectSystem={onSelect}
-                    onFocusChange={onFocusChange}
-                  />
-                )}
-                {isSpatialSceneMounted && scope === 'system' && targetId && (
-                  <SystemSceneComponent
-                    systemId={targetId}
-                    centerId={centerId}
-                    centerCoordinates={centerCoordinates}
-                    onInspectPlanet={onInspect}
-                    onSelectEntity={onSelect}
-                  />
-                )}
-                {isSpatialSceneMounted && scope === 'planet' && targetId && (
-                  <PlanetarySceneComponent
-                    planetId={targetId}
-                    centerId={centerId}
-                    centerCoordinates={centerCoordinates}
-                    onInspectSatellite={onInspect}
-                    onSelectEntity={onSelect}
-                  />
-                )}
-              </Suspense>
+              <CrossScaleStageHost
+                scope={scope}
+                targetId={targetId}
+                centerId={centerId}
+                centerCoordinates={centerCoordinates}
+                selectedEntities={selectedEntities}
+                cameraDistance={cameraDistance}
+                isSpatialSceneMounted={isSpatialSceneMounted}
+                onInspect={onInspect}
+                onSelect={onSelect}
+                onFocusChange={onFocusChange}
+              />
             </CameraTransitionProvider>
           </SpatialEntityStoreContext.Provider>
         </CanvasRouterBridgeContext.Provider>

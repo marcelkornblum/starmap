@@ -3,6 +3,18 @@ import { createElement } from 'react';
 import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { GalacticCameraController } from './GalacticCameraController';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
+import {
+  clearPendingCrossScaleArrival,
+  computeCrossScaleArrivalEntryPosition,
+  hasPendingCrossScaleArrival,
+  setPendingCrossScaleArrival,
+} from '../instrument/crossScaleArrivalState';
+import {
+  getCrossScaleInstrumentFade,
+  resetCrossScaleInstrumentFade,
+} from '../instrument/crossScaleFadeState';
+import { computeCrossScaleArrivalFade } from '../../../utils/referenceFrameOrientation';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import { useOptionalRouter, type StarmapSearchParams } from '../../../hooks/useSpaLocation';
@@ -67,6 +79,8 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     frameCallbacks.length = 0;
     mockRouter = undefined;
     setMockReducedMotion(false);
+    clearPendingCrossScaleArrival();
+    resetCrossScaleInstrumentFade();
     useCameraStore.getState().reset();
     useUIStore.getState().resetUI();
     mockCamera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
@@ -91,6 +105,8 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    clearPendingCrossScaleArrival();
+    resetCrossScaleInstrumentFade();
     setMockReducedMotion(false);
   });
 
@@ -285,6 +301,101 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     useCameraStore.getState().setSavedGalaxyCamera(initialSaved);
     const { unmount } = render(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }));
     useUIStore.getState().setCameraTransitioning(true);
+    mockControls.target.set(7, 8, 9);
+    unmount();
+    expect(useCameraStore.getState().savedGalaxyCamera?.target).toEqual([0, 0, 0]);
+  });
+
+  it('consumes pending galaxy arrival on initial mount, glides from entryPos to savedGalaxyCamera, and fades in instruments', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(2000);
+    const savedPos: [number, number, number] = [10, -25, 15];
+    const savedTarget: [number, number, number] = [10, 5, 0];
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: savedPos,
+      target: savedTarget,
+      up: [0, 0, 1],
+      zoom: 1,
+      focalDistance: 30,
+      centerKey: '10,5,0',
+    });
+
+    mockCamera.fov = 35;
+    setPendingCrossScaleArrival({
+      direction: 'out',
+      targetScope: 'galaxy',
+      durationSec: 0.9,
+    });
+
+    render(
+      createElement(GalacticCameraController, {
+        target: [0, 0, 0],
+        hasExplicitCenter: false,
+      }),
+    );
+
+    expect(hasPendingCrossScaleArrival()).toBe(false);
+    expect(mockCamera.fov).toBe(GALACTIC_FRAME.camera.baseFov);
+    expect(getCrossScaleInstrumentFade()).toBe(0);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    const expectedEntry = computeCrossScaleArrivalEntryPosition(savedPos, savedTarget, 'out');
+    expect(mockCamera.position.x).toBeCloseTo(expectedEntry[0], 4);
+    expect(mockCamera.position.y).toBeCloseTo(expectedEntry[1], 4);
+    expect(mockCamera.position.z).toBeCloseTo(expectedEntry[2], 4);
+
+    act(() => {
+      advanceTransitionFrames([2000, 2450], nowSpy);
+    });
+    expect(getCrossScaleInstrumentFade()).toBeCloseTo(computeCrossScaleArrivalFade(0.5), 4);
+
+    act(() => {
+      advanceTransitionFrames([2900], nowSpy);
+    });
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(getCrossScaleInstrumentFade()).toBe(1);
+    expect(mockCamera.position.x).toBeCloseTo(savedPos[0], 4);
+    expect(mockCamera.position.y).toBeCloseTo(savedPos[1], 4);
+    expect(mockCamera.position.z).toBeCloseTo(savedPos[2], 4);
+  });
+
+  it('restores GALACTIC_FRAME.camera.baseFov (45) on normal initial mount after leaving System (35) or Planet (30)', () => {
+    mockCamera.fov = 35;
+    const updateProjSpy = vi.spyOn(mockCamera, 'updateProjectionMatrix');
+    render(createElement(GalacticCameraController, { target: [0, 0, 0] }));
+    expect(mockCamera.fov).toBe(GALACTIC_FRAME.camera.baseFov);
+    expect(updateProjSpy).toHaveBeenCalled();
+
+    useCameraStore.getState().reset();
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: [0, -35, 20],
+      target: [0, 0, 0],
+      up: [0, 0, 1],
+      zoom: 1,
+      focalDistance: 40,
+      centerKey: '0,0,0',
+    });
+    mockCamera.fov = 30;
+    render(createElement(GalacticCameraController, { target: [0, 0, 0] }));
+    expect(mockCamera.fov).toBe(GALACTIC_FRAME.camera.baseFov);
+  });
+
+  it('does not overwrite savedGalaxyCamera on unmount when a cross-scale arrival is pending', () => {
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: [0, -35, 20],
+      target: [0, 0, 0],
+      up: [0, 0, 1],
+      zoom: 1,
+      focalDistance: 40,
+      centerKey: '0,0,0',
+    });
+    const { unmount } = render(
+      createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }),
+    );
+    setPendingCrossScaleArrival({
+      direction: 'in',
+      targetScope: 'system',
+      durationSec: 0.9,
+    });
     mockControls.target.set(7, 8, 9);
     unmount();
     expect(useCameraStore.getState().savedGalaxyCamera?.target).toEqual([0, 0, 0]);

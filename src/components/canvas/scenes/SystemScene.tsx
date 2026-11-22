@@ -84,6 +84,7 @@ const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
       debugHitarea={debugHitarea}
     >
       <SystemCameraController
+        scope="system"
         position={standardCam.position}
         target={standardCam.target}
         up={standardCam.up}

@@ -62,6 +62,7 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = React
       />
 
       <SystemCameraController
+        scope="planet"
         position={standardCam.position}
         target={standardCam.target}
         up={standardCam.up}

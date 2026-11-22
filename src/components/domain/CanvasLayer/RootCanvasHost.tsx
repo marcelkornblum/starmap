@@ -12,6 +12,8 @@ import {
   subscribeStageCallbacks,
 } from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
+import { isSpatialRoutePathname } from '../../../utils/spatialRoute';
 import { CanvasLayer } from './CanvasLayer';
 import styles from './RootCanvasHost.module.css';
 
@@ -20,16 +22,23 @@ const useIsomorphicLayoutEffect =
 
 export const RootCanvasHost: React.FC = () => {
   const hostRef = useRef<HTMLDivElement>(null);
+  const router = useOptionalRouter();
+  const { pathname } = useSpaLocation();
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
-  const [hasActivatedSpatialCanvas, setHasActivatedSpatialCanvas] = useState(hasActiveSlot);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
+  const hasStageProps = stageProps !== null;
+  const isSpatialRoute = isSpatialRoutePathname(pathname);
+  const isStageActive = router
+    ? hasActiveSlot || (hasStageProps && isSpatialRoute)
+    : hasActiveSlot;
+  const [hasActivatedSpatialCanvas, setHasActivatedSpatialCanvas] = useState(isStageActive);
 
   useIsomorphicLayoutEffect(() => {
-    if (hasActiveSlot) {
+    if (isStageActive) {
       setHasActivatedSpatialCanvas(true);
     }
-  }, [hasActiveSlot]);
+  }, [isStageActive]);
   const { onInspect, onSelect, onFocusChange } = useSyncExternalStore(
     subscribeStageCallbacks,
     getStageCallbacks,
@@ -161,7 +170,7 @@ export const RootCanvasHost: React.FC = () => {
       ref={hostRef}
       className={styles.rootCanvasHost}
       data-testid="root-canvas-host"
-      data-stage-inactive={!hasActiveSlot ? 'true' : undefined}
+      data-stage-inactive={!isStageActive ? 'true' : undefined}
       data-camera-mode={initialCam.mode}
       data-camera-pos={initialCam.position.map((v) => v.toFixed(2)).join(',')}
       data-camera-target={initialCam.target.map((v) => v.toFixed(2)).join(',')}

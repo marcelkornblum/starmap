@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
+import { consumePendingCrossScaleArrival } from '../instrument/crossScaleArrivalState';
 import { useCameraTransition } from '../instrument/useCameraTransition';
 import {
   type OrbitControlsLike,
@@ -13,8 +14,10 @@ import {
   applyImmediateCameraPose,
   computeCameraPoseSnapshot,
 } from './galacticCameraHelpers';
+import { startCrossScaleArrivalGlide } from './crossScaleArrivalHelpers';
 
 export interface SystemCameraControllerProps {
+  readonly scope?: 'system' | 'planet';
   readonly position: readonly [number, number, number];
   readonly target: readonly [number, number, number];
   readonly up: readonly [number, number, number];
@@ -23,6 +26,7 @@ export interface SystemCameraControllerProps {
 }
 
 export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
+  scope = 'system',
   position,
   target,
   up,
@@ -33,7 +37,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   const invalidate = useThree((s) => s.invalidate);
   const rawControls = useThree((s) => s.controls);
   const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
-  const { transitionTo } = useCameraTransition();
+  const { transitionTo, transitionToPose } = useCameraTransition();
   const recenterTick = useCameraStore((s) => s.recenterTick);
 
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
@@ -115,9 +119,39 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
       return;
     }
 
+    const arrival = isInitialMount ? consumePendingCrossScaleArrival(scope) : null;
+    if (arrival) {
+      startCrossScaleArrivalGlide({
+        camera,
+        controls,
+        landingPosition: [posX, posY, posZ],
+        landingTarget: [tgtX, tgtY, tgtZ],
+        landingUp: [upX, upY, upZ],
+        landingZoom: 1,
+        landingFov: fov,
+        arrival,
+        transitionToPose,
+        invalidate,
+        onComplete: () => {
+          hasAppliedControlsRef.current = Boolean(controls);
+          syncPoseToStore([tgtX, tgtY, tgtZ]);
+        },
+      });
+      prevTargetRef.current = [tgtX, tgtY, tgtZ];
+      prevTickRef.current = recenterTick;
+      prevControlsRef.current = controls;
+      prevHasExplicitCenterRef.current = hasExplicitCenter;
+      invalidate?.();
+      return;
+    }
+
     if (
       isInitialMount ||
-      (!hasAppliedControlsRef.current && controls && isTargetSame && isTickSame)
+      (!hasAppliedControlsRef.current &&
+        !useUIStore.getState().isCameraTransitioning &&
+        controls &&
+        isTargetSame &&
+        isTickSame)
     ) {
       const applied = applyImmediateCameraPose(
         camera,
@@ -161,6 +195,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     upY,
     upZ,
     fov,
+    scope,
     hasExplicitCenter,
     recenterTick,
     camera,
@@ -168,6 +203,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     invalidate,
     syncPoseToStore,
     transitionTo,
+    transitionToPose,
   ]);
 
   return null;

@@ -66,7 +66,7 @@
 - **Translation onset (~20%):** Start the actual camera move toward the target after ~`20%` of the transition duration, easing cleanly along the single shared `easeOutCubic` curve.
 
 - [x] **Task 2.0: Phase 2 Tune / Scope Check** *(ratified: `1.5×` duration ~`1.5–2.0s`, `0%→50%` source-to-target orbital-plane orientation tilt, `~20%` translation onset along `easeOutCubic`; 3D HZ out of scope)*
-- [~] **Task 2.1 (Red/Green/Refactor): Persistent-Stage `<Suspense>` Guard & Sequential Two-Stage Handoff**
+- [x] **Task 2.1 (Red/Green/Refactor): Persistent-Stage `<Suspense>` Guard & Sequential Two-Stage Handoff**
   - Prevent `RootLayout` `<Suspense>` from dropping `activeSlotCount` to `0` during lazy route transitions (keep last `stageProps` active while the next route chunk + `preloadSceneEntry` + data shard load) so `RootCanvasHost` never flashes hidden or unmounts WebGL.
   - Implement a sequential two-stage cross-scale transition in `CanvasWebGLHost`: (1) departure glide toward target + fade out outgoing scale instruments while preloading target chunk/data → (2) atomic scene swap with coordinate-origin (`[0,0,0]`) and scale-appropriate FOV rebase (`GALACTIC_FRAME` / `SYSTEM_FRAME.baseFov = 35` / `PLANETARY_FRAME.baseFov = 30`) → (3) fade in incoming scale + arrival settle glide.
   - Support clean interruption and `prefers-reduced-motion` immediate swap.
@@ -74,9 +74,9 @@
   - Add an `instrumentFade` scalar to `SpatialFrameState` (`frameRef.current`) consumed directly in `useFrame` by existing cartographic primitives (`DropStalk`, `PlanarGrid`, `RangeRings`, `CoordinateFins`, `BearingVectors`, and `OrbitPath` including a material ref for `periapsisTick`) — zero React prop threading or per-frame allocations.
 - [x] **Task 2.3 (Red/Green/Refactor): Cross-Scale `<LayerCard />` Waypoint Routing**
   - Fix `resolveLayerItemTargetHref` (`src/services/layerCardNavigation.ts`) so stepping waypoints across scales (including from `/planet/...`) routes to the appropriate orbit context instead of pinning to the current path and triggering out-of-scope guards.
-- [ ] **Task 2.4: Quality Gate & Standards Cleanup**
+- [x] **Task 2.4: Quality Gate & Standards Cleanup**
   - Run `standards` cleanup; pass `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:r3f`, `npm run test:coverage`.
-- [ ] **Task 2.5: Phase 2 Verification, Demo Link & Checkpoint**
+- [x] **Task 2.5: Phase 2 Verification, Demo Link & Checkpoint**
   - Commit checkpoint; present clickable `<LAN_HOST>:5173` links + **"What to see & try"** cross-scale walkthrough and HALT for review.
 
 ---

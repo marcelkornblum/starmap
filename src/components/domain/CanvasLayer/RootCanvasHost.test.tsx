@@ -8,6 +8,10 @@ import { RootCanvasHost } from './RootCanvasHost';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { getStageCallbacks } from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import {
+  CanvasRouterBridgeContext,
+  type AppRouterAdapter,
+} from '../../../hooks/useSpaLocation';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -63,12 +67,15 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
       );
     },
     useFrame: vi.fn(),
-    useThree: () => ({
-      camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
-      gl: { setClearColor: vi.fn() },
-      scene: new THREE.Scene(),
-      controls: { target: new THREE.Vector3(), update: vi.fn() },
-    }),
+    useThree: (selector?: (s: unknown) => unknown) => {
+      const state = {
+        camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
+        gl: { setClearColor: vi.fn() },
+        scene: new THREE.Scene(),
+        controls: { target: new THREE.Vector3(), update: vi.fn() },
+      };
+      return selector ? selector(state) : state;
+    },
   };
 });
 
@@ -339,5 +346,68 @@ describe('RootCanvasHost Domain Component', () => {
     expect(screen.getByTestId('mock-canvas')).toBe(persistentCanvas);
     expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
     expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
+  });
+
+  it('keeps RootCanvasHost active during spatial-to-spatial Suspense transitions (activeSlotCount === 0 on /system/sol with stageProps), and deactivates on /guide', async () => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+      if (contextId === 'webgl2' || contextId === 'webgl') {
+        return {} as WebGLRenderingContext;
+      }
+      return null;
+    });
+    _resetWebGLSupportedForTesting();
+
+    let currentPathname = '/galaxy';
+    const historyListeners = new Set<() => void>();
+    const mockRouter: AppRouterAdapter = {
+      get state() {
+        return { location: { pathname: currentPathname, searchStr: '' } };
+      },
+      history: {
+        subscribe: (cb) => {
+          historyListeners.add(cb);
+          return () => historyListeners.delete(cb);
+        },
+      },
+    };
+
+    const { rerender } = render(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <RootCanvasHost />
+        <CanvasLayer scope="galaxy" centerId="sol" />
+      </CanvasRouterBridgeContext.Provider>,
+    );
+
+    const persistentCanvas = await screen.findByTestId('mock-canvas');
+    expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBeNull();
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
+
+    // Simulate Suspense suspending the outgoing GalaxyView slot while router has moved to /system/sol
+    act(() => {
+      currentPathname = '/system/sol';
+      for (const listener of historyListeners) listener();
+    });
+
+    rerender(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <RootCanvasHost />
+      </CanvasRouterBridgeContext.Provider>,
+    );
+
+    expect(useCanvasStageStore.getState().activeSlotCount).toBe(0);
+    expect(useCanvasStageStore.getState().stageProps).not.toBeNull();
+    expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBeNull();
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
+    expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+    // Navigating to a non-spatial route (/guide) marks stage inactive and pauses frameloop
+    act(() => {
+      currentPathname = '/guide';
+      for (const listener of historyListeners) listener();
+    });
+
+    expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBe('true');
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('never');
+    expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
   });
 });

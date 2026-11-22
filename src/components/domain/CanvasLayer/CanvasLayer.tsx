@@ -3,6 +3,8 @@ import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeome
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { setStageCallbacks } from '../../../stores/canvasStageCallbacks';
+import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
+import { isSpatialRoutePathname } from '../../../utils/spatialRoute';
 import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { canMountWebGLCanvas } from './webglSupport';
 import type { CanvasWebGLHostProps } from './CanvasWebGLHost';
@@ -73,6 +75,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     onFocusChange,
   } = props;
 
+  const router = useOptionalRouter();
+  const { pathname } = useSpaLocation();
   const isRootCanvasMounted = useCanvasStageStore((s) => s.isRootCanvasMounted);
   const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
   const hasStageProps = useCanvasStageStore((s) => s.stageProps !== null);
@@ -82,8 +86,12 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   const hasRootHostContext = React.useContext(RootCanvasStageContext);
 
   const isSlot = (isRootCanvasMounted || hasRootHostContext) && !isRootHost;
-  const frameloop = isRootHost ? (hasActiveSlot ? 'demand' : 'never') : 'demand';
-  const isSpatialSceneMounted = !isRootHost || (hasActiveSlot && hasStageProps);
+  const isSpatialRoute = isSpatialRoutePathname(pathname);
+  const isStageActive = router
+    ? hasActiveSlot || (hasStageProps && isSpatialRoute)
+    : hasActiveSlot;
+  const frameloop = isRootHost ? (isStageActive ? 'demand' : 'never') : 'demand';
+  const isSpatialSceneMounted = !isRootHost || (isStageActive && hasStageProps);
 
   useIsomorphicLayoutEffect(() => {
     if (!isRootHost) {

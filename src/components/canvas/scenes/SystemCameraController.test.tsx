@@ -3,6 +3,17 @@ import { createElement } from 'react';
 import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { SystemCameraController } from './SystemCameraController';
+import {
+  clearPendingCrossScaleArrival,
+  computeCrossScaleArrivalEntryPosition,
+  hasPendingCrossScaleArrival,
+  setPendingCrossScaleArrival,
+} from '../instrument/crossScaleArrivalState';
+import {
+  getCrossScaleInstrumentFade,
+  resetCrossScaleInstrumentFade,
+} from '../instrument/crossScaleFadeState';
+import { computeCrossScaleArrivalFade } from '../../../utils/referenceFrameOrientation';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 
@@ -56,6 +67,8 @@ describe('SystemCameraController Component', () => {
     vi.clearAllMocks();
     frameCallbacks.length = 0;
     setMockReducedMotion(false);
+    clearPendingCrossScaleArrival();
+    resetCrossScaleInstrumentFade();
     useCameraStore.getState().reset();
     useUIStore.getState().resetUI();
     mockCamera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
@@ -80,6 +93,8 @@ describe('SystemCameraController Component', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    clearPendingCrossScaleArrival();
+    resetCrossScaleInstrumentFade();
     setMockReducedMotion(false);
   });
 
@@ -237,5 +252,102 @@ describe('SystemCameraController Component', () => {
     rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }));
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(mockInvalidate).not.toHaveBeenCalled();
+  });
+
+  it('consumes pending system arrival on initial mount, glides from 1.9x entryPos to landing pose, and fades in instruments', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(3000);
+    const landingPos: [number, number, number] = [0, -20, 10];
+    const landingTarget: [number, number, number] = [0, 0, 0];
+    setPendingCrossScaleArrival({
+      direction: 'in',
+      targetScope: 'system',
+      durationSec: 0.9,
+    });
+
+    render(
+      createElement(SystemCameraController, {
+        scope: 'system',
+        position: landingPos,
+        target: landingTarget,
+        up: [0, 0, 1],
+        fov: 35,
+      }),
+    );
+
+    expect(hasPendingCrossScaleArrival()).toBe(false);
+    expect(mockCamera.fov).toBe(35);
+    expect(mockCamera.zoom).toBe(1);
+    expect(getCrossScaleInstrumentFade()).toBe(0);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    const expectedEntry = computeCrossScaleArrivalEntryPosition(landingPos, landingTarget, 'in');
+    expect(mockCamera.position.x).toBeCloseTo(expectedEntry[0], 4);
+    expect(mockCamera.position.y).toBeCloseTo(expectedEntry[1], 4);
+    expect(mockCamera.position.z).toBeCloseTo(expectedEntry[2], 4);
+
+    act(() => {
+      advanceTransitionFrames([3000, 3450], nowSpy);
+    });
+    expect(getCrossScaleInstrumentFade()).toBeCloseTo(computeCrossScaleArrivalFade(0.5), 4);
+
+    act(() => {
+      advanceTransitionFrames([3900], nowSpy);
+    });
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(getCrossScaleInstrumentFade()).toBe(1);
+    expect(mockCamera.position.x).toBeCloseTo(landingPos[0], 4);
+    expect(mockCamera.position.y).toBeCloseTo(landingPos[1], 4);
+    expect(mockCamera.position.z).toBeCloseTo(landingPos[2], 4);
+    expect(useCameraStore.getState().position[1]).toBeCloseTo(landingPos[1], 4);
+  });
+
+  it('consumes planet arrival only when scope="planet" and resets fade on cancel', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(4000);
+    setPendingCrossScaleArrival({
+      direction: 'in',
+      targetScope: 'planet',
+      durationSec: 0.9,
+    });
+
+    // scope="system" must not consume a planet arrival
+    const { unmount } = render(
+      createElement(SystemCameraController, {
+        scope: 'system',
+        position: [0, -20, 10],
+        target: [0, 0, 0],
+        up: [0, 0, 1],
+        fov: 35,
+      }),
+    );
+    expect(hasPendingCrossScaleArrival()).toBe(true);
+    expect(getCrossScaleInstrumentFade()).toBe(1);
+    unmount();
+
+    // scope="planet" consumes it and resets fade if interrupted via OrbitControls start
+    render(
+      createElement(SystemCameraController, {
+        scope: 'planet',
+        position: [0, -100, 60],
+        target: [0, 0, 0],
+        up: [0, 0, 1],
+        fov: 30,
+      }),
+    );
+    expect(hasPendingCrossScaleArrival()).toBe(false);
+    expect(mockCamera.fov).toBe(30);
+    expect(getCrossScaleInstrumentFade()).toBe(0);
+
+    act(() => {
+      advanceTransitionFrames([4000, 4450], nowSpy);
+    });
+    expect(getCrossScaleInstrumentFade()).toBeGreaterThan(0);
+
+    act(() => {
+      for (const listener of mockControls.listeners['start'] ?? []) {
+        listener();
+      }
+    });
+    expect(getCrossScaleInstrumentFade()).toBe(1);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
   });
 });

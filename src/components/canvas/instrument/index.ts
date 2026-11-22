@@ -3,6 +3,7 @@ export { GALACTIC_FRAME, PLANETARY_FRAME, SYSTEM_FRAME } from '../../../config/r
 export * from './spatialFrameContext';
 export * from './SpatialFrameProvider';
 export * from './crossScaleFadeState';
+export * from './crossScaleArrivalState';
 export * from './PlanarGrid';
 export * from './planarGridGeometry';
 export * from './usePlanarGridMaterials';

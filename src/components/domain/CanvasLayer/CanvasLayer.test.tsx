@@ -13,6 +13,10 @@ import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import {
+  CanvasRouterBridgeContext,
+  type AppRouterAdapter,
+} from '../../../hooks/useSpaLocation';
+import {
   SpatialEntityStoreContext,
   useOptionalSpatialEntityStoreApi,
 } from '../../canvas/entity/SpatialEntityContext';
@@ -87,12 +91,15 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
         children,
       ),
     useFrame: vi.fn(),
-    useThree: () => ({
-      camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
-      gl: { setClearColor: vi.fn() },
-      scene: new THREE.Scene(),
-      controls: { target: new THREE.Vector3(), update: vi.fn() },
-    }),
+    useThree: (selector?: (s: unknown) => unknown) => {
+      const state = {
+        camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
+        gl: { setClearColor: vi.fn() },
+        scene: new THREE.Scene(),
+        controls: { target: new THREE.Vector3(), update: vi.fn() },
+      };
+      return selector ? selector(state) : state;
+    },
   };
 });
 
@@ -406,6 +413,53 @@ describe('CanvasLayer Domain Component', () => {
       expect(screen.getByTestId('mock-canvas')).toBe(canvas);
       expect(canvas.getAttribute('data-frameloop')).toBe('never');
       expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+    });
+
+    it('keeps frameloop="demand" and spatial scene mounted when router is on a spatial route with stageProps even if activeSlotCount === 0, and pauses on /guide', async () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      let currentPathname = '/system/sol';
+      const historyListeners = new Set<() => void>();
+      const mockRouter: AppRouterAdapter = {
+        get state() {
+          return { location: { pathname: currentPathname, searchStr: '' } };
+        },
+        history: {
+          subscribe: (cb) => {
+            historyListeners.add(cb);
+            return () => historyListeners.delete(cb);
+          },
+        },
+      };
+
+      act(() => {
+        useCanvasStageStore.getState().setStageProps({ scope: 'galaxy', centerId: 'sol' });
+      });
+
+      render(
+        <CanvasRouterBridgeContext.Provider value={mockRouter}>
+          <CanvasLayer isRootHost scope="galaxy" centerId="sol" />
+        </CanvasRouterBridgeContext.Provider>,
+      );
+
+      const canvas = await screen.findByTestId('mock-canvas');
+      expect(useCanvasStageStore.getState().activeSlotCount).toBe(0);
+      expect(canvas.getAttribute('data-frameloop')).toBe('demand');
+      expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+      act(() => {
+        currentPathname = '/guide';
+        for (const listener of historyListeners) listener();
+      });
+
+      expect(canvas.getAttribute('data-frameloop')).toBe('never');
       expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
     });
   });
