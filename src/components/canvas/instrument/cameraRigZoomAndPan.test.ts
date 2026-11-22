@@ -4,6 +4,7 @@ import {
   applyOrthographicLock,
   releaseOrthographicLock,
   syncControlsDistance,
+  syncOrthographicControlsZoom,
   resetPerspectiveCamera,
   orientRadialPerspectiveCamera,
   type OrbitControlsLike,
@@ -122,6 +123,55 @@ describe('cameraRigZoomAndPan', () => {
 
     it('handles undefined controls safely', () => {
       expect(() => syncControlsDistance(undefined, 5, 250)).not.toThrow();
+    });
+  });
+
+  describe('syncOrthographicControlsZoom & releaseOrthographicLock zoom bounds reset', () => {
+    it('computes controls.minZoom and controls.maxZoom from orthoCam.top, baseFov, and distance bounds, clamping zoom', () => {
+      const orthoCam = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+      orthoCam.zoom = 0.05; // below minZoom
+      const baseFov = 45;
+      const halfFovTan = Math.tan((baseFov * Math.PI) / 360);
+
+      syncOrthographicControlsZoom(orthoCam, mockControls, baseFov, 2.5, 100);
+
+      const expectedMinZoom = 10 / (100 * halfFovTan);
+      const expectedMaxZoom = 10 / (2.5 * halfFovTan);
+      expect(mockControls.minZoom).toBeCloseTo(expectedMinZoom, 6);
+      expect(mockControls.maxZoom).toBeCloseTo(expectedMaxZoom, 6);
+      expect(orthoCam.zoom).toBeCloseTo(expectedMinZoom, 6);
+      expect(mockControls.update).toHaveBeenCalledTimes(1);
+
+      // Clamps above maxZoom
+      mockControls.update.mockClear();
+      orthoCam.zoom = expectedMaxZoom * 2;
+      syncOrthographicControlsZoom(orthoCam, mockControls, baseFov, 2.5, 100);
+      expect(orthoCam.zoom).toBeCloseTo(expectedMaxZoom, 6);
+      expect(mockControls.update).toHaveBeenCalledTimes(1);
+
+      // No update when zoom already in bounds
+      mockControls.update.mockClear();
+      syncOrthographicControlsZoom(orthoCam, mockControls, baseFov, 2.5, 100);
+      expect(mockControls.update).not.toHaveBeenCalled();
+    });
+
+    it('resets controls.minZoom = 0 and controls.maxZoom = Infinity on releaseOrthographicLock', () => {
+      const orthoCam = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+      applyOrthographicLock(camera, orthoCam, target, 16 / 9, mockControls);
+      syncOrthographicControlsZoom(orthoCam, mockControls, 45, 2.5, 100);
+      expect(mockControls.minZoom).toBeGreaterThan(0);
+      expect(Number.isFinite(mockControls.maxZoom)).toBe(true);
+
+      releaseOrthographicLock(orthoCam, camera, target, 45, mockControls);
+      expect(mockControls.minZoom).toBe(0);
+      expect(mockControls.maxZoom).toBe(Infinity);
+
+      // Legacy single-camera branch also resets minZoom/maxZoom
+      mockControls.minZoom = 0.5;
+      mockControls.maxZoom = 4;
+      releaseOrthographicLock(camera, mockControls, 45);
+      expect(mockControls.minZoom).toBe(0);
+      expect(mockControls.maxZoom).toBe(Infinity);
     });
   });
 

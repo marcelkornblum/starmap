@@ -15,6 +15,8 @@ export interface OrbitControlsLike extends TransitionControlsLike {
   touches?: { ONE: number; TWO?: number };
   minDistance?: number;
   maxDistance?: number;
+  minZoom?: number;
+  maxZoom?: number;
 }
 
 export function isOrbitControlsLike(value: unknown): value is OrbitControlsLike {
@@ -35,6 +37,52 @@ export function syncControlsDistance(
   }
   if (typeof maxDistance === 'number' && controls.maxDistance !== maxDistance) {
     controls.maxDistance = maxDistance;
+  }
+}
+
+/**
+ * Expands a perspective camera's far clipping plane when the active frame
+ * requires a deeper frustum.
+ */
+export function syncPerspectiveCameraFar(camera: THREE.Camera | null | undefined, far?: number): void {
+  if (camera instanceof THREE.PerspectiveCamera && typeof far === 'number' && camera.far < far) {
+    camera.far = far;
+    camera.updateProjectionMatrix();
+  }
+}
+
+/**
+ * Synchronises OrbitControls orthographic zoom bounds (minZoom/maxZoom) from
+ * perspective-equivalent distance limits and clamps orthoCam.zoom within them.
+ */
+export function syncOrthographicControlsZoom(
+  orthoCam: THREE.OrthographicCamera,
+  controls: OrbitControlsLike | undefined,
+  baseFov: number,
+  minDistance?: number,
+  maxDistance?: number,
+): void {
+  const halfFovTan = Math.tan((baseFov * Math.PI) / 360);
+  if (!(orthoCam.top > 0) || !(halfFovTan > 0)) return;
+
+  let minZoom = 1e-4;
+  let maxZoom = Infinity;
+
+  if (typeof maxDistance === 'number' && Number.isFinite(maxDistance) && maxDistance > 0) {
+    minZoom = orthoCam.top / (maxDistance * halfFovTan);
+    if (controls) controls.minZoom = minZoom;
+  }
+
+  if (typeof minDistance === 'number' && Number.isFinite(minDistance) && minDistance > 0) {
+    maxZoom = orthoCam.top / (minDistance * halfFovTan);
+    if (controls) controls.maxZoom = maxZoom;
+  }
+
+  const clampedZoom = Math.max(minZoom, Math.min(maxZoom, orthoCam.zoom));
+  if (clampedZoom !== orthoCam.zoom) {
+    orthoCam.zoom = clampedZoom;
+    orthoCam.updateProjectionMatrix();
+    controls?.update?.();
   }
 }
 
@@ -88,6 +136,8 @@ export function releaseOrthographicLock(
     controls.screenSpacePanning = true;
     if (controls.mouseButtons) controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
     if (controls.touches) controls.touches.ONE = THREE.TOUCH.ROTATE;
+    controls.minZoom = 0;
+    controls.maxZoom = Infinity;
     if ('enabled' in controls) controls.enabled = true;
     controls.update?.();
   }

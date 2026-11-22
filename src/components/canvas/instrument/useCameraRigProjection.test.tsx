@@ -227,4 +227,99 @@ describe('useCameraRigProjection', () => {
     expect(minVal).toBe(GALACTIC_FRAME.camera.minDistance);
     expect(maxVal).toBe(GALACTIC_FRAME.camera.maxDistance);
   });
+
+  it('initializes orthoCam far from frame.camera.far and expands PerspectiveCamera far when smaller', () => {
+    expect(camera.far).toBe(1000);
+    const updateProjSpy = vi.spyOn(camera, 'updateProjectionMatrix');
+
+    const { result } = renderHook(
+      () =>
+        useCameraRigProjection({
+          camera,
+          controls: mockControls,
+          sizeWidth: 1920,
+          sizeHeight: 1080,
+          get: threeGet,
+          frame: GALACTIC_FRAME,
+        }),
+      { wrapper },
+    );
+
+    expect(result.current.orthoCamRef.current.far).toBe(GALACTIC_FRAME.camera.far);
+    expect(camera.far).toBe(GALACTIC_FRAME.camera.far);
+    expect(updateProjSpy).toHaveBeenCalled();
+  });
+
+  it('allows upward frame.camera.maxDistance increases without clamping to stale controls.maxDistance or restoring prevMax on rerender', () => {
+    mockControls.maxDistance = 50;
+    const frame50 = {
+      ...GALACTIC_FRAME,
+      camera: { ...GALACTIC_FRAME.camera, minDistance: 2.5, maxDistance: 50 },
+    };
+    const frame120 = {
+      ...GALACTIC_FRAME,
+      camera: { ...GALACTIC_FRAME.camera, minDistance: 2.5, maxDistance: 120 },
+    };
+
+    const { rerender } = renderHook(
+      ({ frame }) =>
+        useCameraRigProjection({
+          camera,
+          controls: mockControls,
+          sizeWidth: 1920,
+          sizeHeight: 1080,
+          get: threeGet,
+          frame,
+        }),
+      { initialProps: { frame: frame50 }, wrapper },
+    );
+
+    expect(mockControls.minDistance).toBe(2.5);
+    expect(mockControls.maxDistance).toBe(50);
+
+    rerender({ frame: frame120 });
+    expect(mockControls.maxDistance).toBe(120);
+  });
+
+  it('syncs orthographic minZoom/maxZoom on lock and reactively updates them when distance bounds change while locked', () => {
+    const initialFrame = {
+      ...GALACTIC_FRAME,
+      camera: { ...GALACTIC_FRAME.camera, minDistance: 2.5, maxDistance: 80 },
+    };
+    const expandedFrame = {
+      ...GALACTIC_FRAME,
+      camera: { ...GALACTIC_FRAME.camera, minDistance: 2.5, maxDistance: 160 },
+    };
+
+    const { result, rerender } = renderHook(
+      ({ frame }) =>
+        useCameraRigProjection({
+          camera,
+          controls: mockControls,
+          sizeWidth: 1920,
+          sizeHeight: 1080,
+          get: threeGet,
+          frame,
+        }),
+      { initialProps: { frame: initialFrame }, wrapper },
+    );
+
+    act(() => {
+      result.current.lockToOrthographic('top');
+    });
+
+    const minZoomAt80 = mockControls.minZoom!;
+    expect(minZoomAt80).toBeGreaterThan(0);
+    expect(mockControls.maxZoom).toBeGreaterThan(minZoomAt80);
+
+    rerender({ frame: expandedFrame });
+    expect(mockControls.minZoom).toBeCloseTo(minZoomAt80 / 2, 6);
+    expect(threeGet().invalidate).toHaveBeenCalled();
+
+    act(() => {
+      result.current.unlockFromOrthographic();
+    });
+    expect(mockControls.minZoom).toBe(0);
+    expect(mockControls.maxZoom).toBe(Infinity);
+  });
 });

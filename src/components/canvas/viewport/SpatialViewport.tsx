@@ -36,6 +36,10 @@ export interface SpatialViewportProps {
   children?: React.ReactNode;
   /** Reference camera distance at which the instrument aperture equals the frame radius (screen-constant footprint calibration) */
   cameraDistance?: number;
+  /** Minimum OrbitControls camera distance override */
+  minCameraDistance?: number;
+  /** Maximum OrbitControls camera distance override */
+  maxCameraDistance?: number;
   /** Camera target focus point */
   cameraTarget?: [number, number, number] | THREE.Vector3;
   /** Whether to show the cartographic instrument (PlanarGrid, fins, bearings, rings) */
@@ -72,18 +76,33 @@ export interface SpatialViewportProps {
 const SpatialViewportComponent: React.FC<SpatialViewportProps> = (props) => {
   const contextStore = useOptionalSpatialEntityStoreApi();
   const effectiveOuterStore = props.outerStore ?? contextStore ?? undefined;
-  const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
+  const {
+    frame = GALACTIC_FRAME,
+    cameraDistance,
+    minCameraDistance,
+    maxCameraDistance,
+    initialSelectedId,
+  } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.
-  const resolvedFrame = useMemo(
-    () =>
-      cameraDistance
-        ? createCustomReferenceFrame(frame, {
-            referenceDistanceMultiplier: cameraDistance / frame.radius,
-          })
-        : frame,
-    [frame, cameraDistance],
-  );
+  const resolvedFrame = useMemo(() => {
+    const base = cameraDistance
+      ? createCustomReferenceFrame(frame, {
+          referenceDistanceMultiplier: cameraDistance / frame.radius,
+        })
+      : frame;
+    if (minCameraDistance === undefined && maxCameraDistance === undefined) {
+      return base;
+    }
+    return {
+      ...base,
+      camera: {
+        ...base.camera,
+        ...(minCameraDistance !== undefined ? { minDistance: minCameraDistance } : {}),
+        ...(maxCameraDistance !== undefined ? { maxDistance: maxCameraDistance } : {}),
+      },
+    };
+  }, [frame, cameraDistance, minCameraDistance, maxCameraDistance]);
 
   const [scopedStore] = React.useState(() => {
     const focusPoint = props.cameraTarget

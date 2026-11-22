@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
+import { useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { GalaxyScene } from './GalaxyScene';
 import { GalacticCameraController } from './GalacticCameraController';
@@ -24,7 +26,13 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = React.m
 }) => {
   const targetCoords = useMemo(() => resolveCenterCoords(centerCoordinates), [centerCoordinates]);
   const hasExplicitCenter = Boolean(centerCoordinates);
-  const [maxSafeDistance, setCeilingApertureRadiusPc] = useGalacticCeilingDistance();
+  const viewportAspect = useThree((s) =>
+    s.size ? Math.round((s.size.width / Math.max(1, s.size.height)) * 20) / 20 : undefined,
+  );
+  const [maxSafeDistance, setCeilingApertureRadiusPc] = useGalacticCeilingDistance({
+    viewportAspect,
+    minDistancePc: 2.5,
+  });
 
   return (
     <>
@@ -51,6 +59,8 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = React.m
         onFocusChange={onFocusChange}
         additionalEntities={additionalEntities}
         onCeilingApertureRadiusChange={setCeilingApertureRadiusPc}
+        minCameraDistance={2.5}
+        maxCameraDistance={maxSafeDistance}
       />
     </>
   );
@@ -63,7 +73,12 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = (props) => {
     <StandaloneSceneShell
       className={props.className}
       variant={props.variant}
-      camera={{ position: standardCam.position, up: standardCam.up, fov: standardCam.fov }}
+      camera={{
+        position: standardCam.position,
+        up: standardCam.up,
+        fov: standardCam.fov,
+        far: GALACTIC_FRAME.camera.far,
+      }}
     >
       <GalacticSceneContent {...props} />
     </StandaloneSceneShell>

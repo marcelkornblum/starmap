@@ -12,6 +12,7 @@ export const GALACTIC_FRAME: ReferenceFrame = {
     baseFov: 45,
     minDistance: 5,
     maxDistance: 500,
+    far: 25_000,
     defaultPosition: [0, -35, 20],
     defaultTarget: [0, 0, 0],
     thresholdStart: 0.94,

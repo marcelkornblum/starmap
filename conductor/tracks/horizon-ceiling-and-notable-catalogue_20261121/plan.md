@@ -16,12 +16,12 @@ Follow strict Red-Green-Refactor TDD per [`conductor/workflow.md`](../../workflo
   - **Green:** Extend `computeCeilingMaxCameraDistancePc` in `src/services/deviceTierService.ts` with `denseCatalogRadiusPc`, `targetDistFromSolPc`, and `edgeMarginPc` inputs; preserve the `0.45` `radialFalloff` shader floor untouched.
   - **Refactor:** Extract pure horizon-to-camera-distance math helpers with zero frame-loop allocations.
 
-- [ ] **Task 1.3: Reactive `subscribeDeviceTier` wiring, Orthographic zoom sync & `useCameraRigProjection` fix**
+- [x] **Task 1.3: Reactive `subscribeDeviceTier` wiring, Orthographic zoom sync & `useCameraRigProjection` fix** *(Shipped: reactive `subscribeDeviceTier` in `SectorStreamingManager`, `GalaxyScene`, `useGalacticCeilingDistance`; authoritative `SpatialViewport` frame distance overrides; Orthographic `minZoom`/`maxZoom` sync; `GALACTIC_FRAME.camera.far = 25_000`; soft pan bounds deferred pending live zoom-ceiling review)*
   - **Red:** Add tests for `useGalacticCeilingDistance.test.tsx`, `GalaxyScene.test.tsx`, `SectorPointCloud`, and `useCameraRigProjection.test.tsx` verifying: (a) post-mount `registerWebGLGpuTelemetry` updates ceiling/budgets across all three consumers, (b) `isLocked` Orthographic mode syncs `minZoom`/`maxZoom` to the ceiling, (c) upward ceiling changes are not clobbered by stale `prevMax`, and (d) `camera.far >= 20_000 pc` in `GALACTIC_FRAME`.
   - **Green:** Subscribe `useGalacticCeilingDistance`, `GalaxyScene`, and `SectorStreamingManager` to `subscribeDeviceTier`; remove render-time `controls.maxDistance` read-back/clobber in `useCameraRigProjection.ts`; sync Orthographic `minZoom`/`maxZoom`; raise `camera.far` in `CanvasWebGLHost.tsx` and orthographic camera ref; coordinate soft pan bounds with `GalacticCameraController` and `useCameraTransition`.
   - **Refactor:** Ensure zero unnecessary re-renders or R3F hot-path allocations (`npm run audit:r3f`).
 
-- [ ] **Phase 1 Checkpoint:** Run `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:r3f`, `npm run test:coverage`, and multi-viewport visual review (`npm run capture:views`) checking max-zoom near Sol and a distant target.
+- [x] **Phase 1 Checkpoint:** Run `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:r3f`, `npm run test:coverage`, and multi-viewport visual review (`npm run capture:views`) checking max-zoom near Sol and a distant target. *(All 6 checks passed; 339 test files; 5-viewport capture verified on port 5174)*
 
 ---
 

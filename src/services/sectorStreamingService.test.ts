@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SectorStreamingManager } from './sectorStreamingService';
 import type { DisposableGpuResource } from './sectorSelection';
-import { DEVICE_TIER_BUDGETS } from './deviceTierService';
+import {
+  DEVICE_TIER_BUDGETS,
+  registerWebGLGpuTelemetry,
+  resetDeviceTierRuntimeState,
+} from './deviceTierService';
 import { encodeBinarySector } from '../utils/binarySectorCodec';
 import type { SectorPartitionManifest } from '../types/astroCoordinates';
 
@@ -50,6 +54,8 @@ describe('SectorStreamingManager', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
+    resetDeviceTierRuntimeState();
     vi.restoreAllMocks();
   });
 
@@ -431,5 +437,155 @@ describe('SectorStreamingManager', () => {
     expect(finalTelemetry.pendingUploadCount).toBe(0);
 
     manager.dispose();
+  });
+
+  describe('Reactive Device Tier Subscription', () => {
+    it('expands activeSet to 64 sectors and notifies listeners on tier2 -> tier3 upgrade when options.budget is omitted', async () => {
+      vi.stubGlobal('navigator', { hardwareConcurrency: 6, deviceMemory: 8 });
+      const fetcher = createMockFetcher();
+      const manager = new SectorStreamingManager({
+        fetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+
+      const initialPlan = await manager.updateCameraPosition([0, 0, 0]);
+      expect(initialPlan.activeSectorIds.length).toBe(27);
+      expect(manager.getTelemetry().tier).toBe('tier2');
+
+      const listener = vi.fn();
+      manager.subscribe(listener);
+
+      registerWebGLGpuTelemetry({
+        gpuRenderer: 'NVIDIA GeForce RTX 4090',
+        maxTextureSize: 16384,
+        maxVertexAttribs: 16,
+      });
+
+      await vi.waitFor(() => {
+        expect(listener).toHaveBeenCalled();
+      });
+
+      const upgraded = manager.getTelemetry();
+      expect(upgraded.tier).toBe('tier3');
+      expect(upgraded.activeSectorCount).toBe(64);
+      expect(upgraded.pendingUploadCount).toBe(64);
+      expect(listener).toHaveBeenCalled();
+
+      manager.dispose();
+    });
+
+    it('shrinks activeSet to 12, demotes departed/excess uploaded sectors, and enforces LRU capacity on tier2 -> tier1 downgrade', async () => {
+      vi.stubGlobal('navigator', { hardwareConcurrency: 6, deviceMemory: 8 });
+      const fetcher = createMockFetcher();
+      const manager = new SectorStreamingManager({
+        fetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+
+      await manager.updateCameraPosition([0, 0, 0]);
+      while (manager.hasPendingUploads()) {
+        manager.processFrameUploads(10);
+      }
+      expect(manager.getTelemetry().uploadedSectorCount).toBe(27);
+      expect(manager.getTelemetry().cachedSectorCount).toBe(40);
+
+      registerWebGLGpuTelemetry({ gpuRenderer: 'SwiftShader' });
+
+      // Immediate synchronous downgrade trimming
+      const immediateTelemetry = manager.getTelemetry();
+      expect(immediateTelemetry.tier).toBe('tier1');
+      expect(immediateTelemetry.uploadedSectorCount).toBeLessThanOrEqual(
+        DEVICE_TIER_BUDGETS.tier1.maxActiveSectors,
+      );
+      expect(immediateTelemetry.allocatedGpuBytes).toBeLessThanOrEqual(
+        DEVICE_TIER_BUDGETS.tier1.maxBufferBytes,
+      );
+      expect(immediateTelemetry.activePointCount).toBeLessThanOrEqual(
+        DEVICE_TIER_BUDGETS.tier1.maxActivePoints,
+      );
+
+      await vi.waitFor(() => {
+        expect(manager.getTelemetry().activeSectorCount).toBe(12);
+        expect(manager.getTelemetry().cachedSectorCount).toBeLessThanOrEqual(
+          DEVICE_TIER_BUDGETS.tier1.lruCacheMaxSectors,
+        );
+      });
+
+      expect(customDisposedIds.length).toBeGreaterThanOrEqual(15);
+
+      manager.dispose();
+    });
+
+    it('demotes farthest uploaded sectors by distanceSq when active points exceed downgraded budget', async () => {
+      vi.stubGlobal('navigator', { hardwareConcurrency: 6, deviceMemory: 8 });
+      // 10,000 stars per sector: 8 sectors = 80,000 pts (> tier1 75,000 maxActivePoints, <= tier2 200,000)
+      const denseFetcher = vi.fn(async (sectorId: string, priority: 'high' | 'low') => {
+        fetchCalls.push({ sectorId, priority });
+        let buf = mockBuffers.get(sectorId);
+        if (!buf) {
+          buf = createMockSectorBuffer(sectorId, [0, 0, 0], 10_000);
+          mockBuffers.set(sectorId, buf);
+        }
+        return buf;
+      });
+
+      const manager = new SectorStreamingManager({
+        fetcher: denseFetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+
+      await manager.updateCameraPosition([0, 0, 0]);
+      manager.processFrameUploads(8);
+      expect(manager.getTelemetry().uploadedSectorCount).toBe(8);
+      expect(manager.getTelemetry().activePointCount).toBe(80_000);
+
+      registerWebGLGpuTelemetry({ gpuRenderer: 'SwiftShader' });
+
+      const afterDowngrade = manager.getTelemetry();
+      expect(afterDowngrade.uploadedSectorCount).toBe(7);
+      expect(afterDowngrade.activePointCount).toBe(70_000);
+      expect(afterDowngrade.activePointCount).toBeLessThanOrEqual(
+        DEVICE_TIER_BUDGETS.tier1.maxActivePoints,
+      );
+      expect(customDisposedIds.length).toBe(1);
+
+      await vi.waitFor(() => {
+        expect(manager.getTelemetry().activeSectorCount).toBe(12);
+      });
+
+      manager.dispose();
+    });
+
+    it('does not react to tier changes when options.budget is explicitly pinned or after dispose()', async () => {
+      vi.stubGlobal('navigator', { hardwareConcurrency: 6, deviceMemory: 8 });
+      const fetcher = createMockFetcher();
+      const pinnedManager = new SectorStreamingManager({
+        budget: DEVICE_TIER_BUDGETS.tier2,
+        fetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+
+      await pinnedManager.updateCameraPosition([0, 0, 0]);
+      registerWebGLGpuTelemetry({ gpuRenderer: 'SwiftShader' });
+      expect(pinnedManager.getTelemetry().tier).toBe('tier2');
+      expect(pinnedManager.getTelemetry().activeSectorCount).toBe(27);
+      pinnedManager.dispose();
+
+      resetDeviceTierRuntimeState();
+      const unpinnedManager = new SectorStreamingManager({
+        fetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+      await unpinnedManager.updateCameraPosition([0, 0, 0]);
+      unpinnedManager.dispose();
+
+      const callsAtDispose = fetchCalls.length;
+      registerWebGLGpuTelemetry({
+        gpuRenderer: 'NVIDIA GeForce RTX 4090',
+        maxTextureSize: 16384,
+        maxVertexAttribs: 16,
+      });
+      expect(fetchCalls.length).toBe(callsAtDispose);
+    });
   });
 });

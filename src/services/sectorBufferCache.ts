@@ -75,6 +75,16 @@ export class SectorBufferCache {
     }
   }
 
+  demoteUploadedSector(sectorId: string): boolean {
+    const entry = this.cache.get(sectorId);
+    if (!entry || entry.state !== 'uploaded') return false;
+    entry.gpuResource?.dispose();
+    entry.gpuResource = null;
+    entry.state = 'decoded';
+    this.disposedGpuCount++;
+    return true;
+  }
+
   async fetchAndCacheSector(
     sectorId: string,
     priority: 'high' | 'low',

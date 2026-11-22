@@ -148,6 +148,7 @@ export interface CameraRigConfig {
   baseFov: number;
   minDistance: number;
   maxDistance: number;
+  far?: number;
   defaultPosition: [number, number, number];
   defaultTarget: [number, number, number];
   thresholdStart?: number;

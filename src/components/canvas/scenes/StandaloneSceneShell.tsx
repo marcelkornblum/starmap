@@ -24,6 +24,7 @@ export interface StandaloneSceneShellProps {
     readonly position?: readonly [number, number, number];
     readonly up?: readonly [number, number, number];
     readonly fov?: number;
+    readonly far?: number;
   };
   readonly children: React.ReactNode;
 }

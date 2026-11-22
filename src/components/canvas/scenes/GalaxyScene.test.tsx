@@ -1,16 +1,36 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, act } from '@testing-library/react';
 import type { SpatialEntityDefinition } from '../entity';
 import type { SystemSummaryNode } from '../../../types/astro';
-import { getDeviceTierBudget } from '../../../services/deviceTierService';
+import {
+  getDeviceTierBudget,
+  registerWebGLGpuTelemetry,
+  resetDeviceTierRuntimeState,
+  setRuntimeCutoffMultiplier,
+} from '../../../services/deviceTierService';
 
 let capturedEntities: SpatialEntityDefinition[] = [];
+let capturedViewportProps: {
+  minCameraDistance?: number;
+  maxCameraDistance?: number;
+} = {};
 let triggerHydration: ((summaries: readonly SystemSummaryNode[]) => void) | undefined;
 
 vi.mock('../viewport/SpatialViewport', () => ({
-  SpatialViewport: ({ entities, children }: { entities: SpatialEntityDefinition[]; children: React.ReactNode }) => {
+  SpatialViewport: ({
+    entities,
+    children,
+    minCameraDistance,
+    maxCameraDistance,
+  }: {
+    entities: SpatialEntityDefinition[];
+    children: React.ReactNode;
+    minCameraDistance?: number;
+    maxCameraDistance?: number;
+  }) => {
     capturedEntities = entities;
+    capturedViewportProps = { minCameraDistance, maxCameraDistance };
     return <div data-testid="spatial-viewport">{children}</div>;
   },
 }));
@@ -31,7 +51,13 @@ import { GalaxyScene, GALAXY_SCENE_MAX_STREAMED_ENTITIES } from './GalaxyScene';
 describe('GalaxyScene - Streamed Stars Deduplication & Classification Derivation', () => {
   beforeEach(() => {
     capturedEntities = [];
+    capturedViewportProps = {};
     triggerHydration = undefined;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetDeviceTierRuntimeState();
   });
 
   const baseEntity: SpatialEntityDefinition = {
@@ -243,5 +269,53 @@ describe('GalaxyScene - Streamed Stars Deduplication & Classification Derivation
     const ids = new Set(capturedEntities.map((e) => e.id));
     expect(ids.has('bulk-0')).toBe(true);
     expect(ids.has('bulk-24')).toBe(false);
+  });
+
+  it('forwards minCameraDistance and maxCameraDistance to SpatialViewport', () => {
+    render(<GalaxyScene additionalEntities={[]} minCameraDistance={2.5} maxCameraDistance={142} />);
+    expect(capturedViewportProps.minCameraDistance).toBe(2.5);
+    expect(capturedViewportProps.maxCameraDistance).toBe(142);
+  });
+
+  it('reactively updates activeCutoff and device tier budget when setRuntimeCutoffMultiplier or registerWebGLGpuTelemetry fires post-mount', () => {
+    vi.stubGlobal('innerWidth', 1440);
+    vi.stubGlobal('navigator', { hardwareConcurrency: 8, deviceMemory: 16 });
+    const onCeilingApertureRadiusChange = vi.fn();
+
+    // 60 stars: <= 96 desktop cutoff (renders reticles), > 48 when multiplier=0.5 (hides reticles)
+    const summaries = Array.from({ length: 60 }, (_, idx) =>
+      makeStreamedSummary(`hip-${idx}`, `Star ${idx}`, idx + 1, 0, 0),
+    );
+
+    render(
+      <GalaxyScene
+        additionalEntities={[]}
+        onCeilingApertureRadiusChange={onCeilingApertureRadiusChange}
+      />,
+    );
+
+    act(() => {
+      triggerHydration?.(summaries);
+    });
+    expect(capturedEntities).toHaveLength(60);
+
+    act(() => {
+      setRuntimeCutoffMultiplier(0.5);
+    });
+    expect(capturedEntities).toHaveLength(0);
+
+    // Hydrate 500 stars: below tier3/tier2 maxActiveEntities (1200/750), above tier1 (450)
+    const denseSummaries = Array.from({ length: 500 }, (_, idx) =>
+      makeStreamedSummary(`dense-${idx}`, `Dense ${idx}`, idx + 1, 0, 0),
+    );
+    act(() => {
+      triggerHydration?.(denseSummaries);
+    });
+    expect(onCeilingApertureRadiusChange).not.toHaveBeenCalled();
+
+    act(() => {
+      registerWebGLGpuTelemetry({ gpuRenderer: 'SwiftShader' });
+    });
+    expect(onCeilingApertureRadiusChange).toHaveBeenLastCalledWith(450);
   });
 });

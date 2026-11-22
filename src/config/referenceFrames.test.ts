@@ -14,6 +14,7 @@ describe('referenceFrames config', () => {
     expect(GALACTIC_FRAME.radius).toBe(10);
     expect(GALACTIC_FRAME.camera.minDistance).toBe(5);
     expect(GALACTIC_FRAME.camera.maxDistance).toBe(500);
+    expect(GALACTIC_FRAME.camera.far).toBe(25_000);
     expect(GALACTIC_FRAME.camera.baseFov).toBe(45);
     expect(GALACTIC_FRAME.screenConstant).toBe(true);
     expect(GALACTIC_FRAME.referenceDistanceMultiplier).toBe(3.49);

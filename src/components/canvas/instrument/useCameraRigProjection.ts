@@ -11,11 +11,14 @@ import {
   isOrbitControlsLike,
   releaseOrthographicLock,
   syncControlsDistance,
+  syncOrthographicControlsZoom,
+  syncPerspectiveCameraFar,
   type OrbitControlsLike,
 } from './cameraRigZoomAndPan';
 import { useCameraTransition } from './useCameraTransition';
 import {
   DEFAULT_BASE_FOV_DEG,
+  DEFAULT_CAMERA_FAR,
   DEFAULT_VIEWPORT_WIDTH_PX,
   DEFAULT_VIEWPORT_HEIGHT_PX,
 } from './instrumentDefaults';
@@ -65,27 +68,19 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
   useEffect(() => {
     if (camera instanceof THREE.PerspectiveCamera) perspCamRef.current = camera;
   }, [camera]);
-  const orthoCamRef = useLazyRef(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 2000));
-
-  const controlsMax = controls?.maxDistance;
-  const frameMax = frame.camera.maxDistance;
-  const hasStricterMax =
-    typeof controlsMax === 'number' && Number.isFinite(controlsMax) && controlsMax > 0 &&
-    typeof frameMax === 'number' && controlsMax < frameMax;
-
-  const resolvedMaxDistance = hasStricterMax && typeof controlsMax === 'number' && typeof frameMax === 'number'
-    ? Math.min(controlsMax, frameMax)
-    : frameMax;
-  const resolvedMinDistance = hasStricterMax
-    ? Math.max(controls?.minDistance ?? 0, frame.camera.minDistance ?? 0)
-    : frame.camera.minDistance;
+  const orthoCamRef = useLazyRef(
+    () => new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, frame.camera.far ?? DEFAULT_CAMERA_FAR),
+  );
 
   useEffect(() => {
-    if (!controls) return;
-    const prevMin = controls.minDistance;
-    const prevMax = controls.maxDistance;
+    syncPerspectiveCameraFar(camera, frame.camera.far);
+  }, [camera, frame.camera.far]);
+
+  const resolvedMinDistance = frame.camera.minDistance;
+  const resolvedMaxDistance = frame.camera.maxDistance;
+
+  useEffect(() => {
     syncControlsDistance(controls, resolvedMinDistance, resolvedMaxDistance);
-    return () => { syncControlsDistance(controls, prevMin, prevMax); };
   }, [controls, resolvedMinDistance, resolvedMaxDistance]);
 
   const persistentTargetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
@@ -112,6 +107,13 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
       const aspect = width / Math.max(height, 1);
 
       applyOrthographicLock(perspCam, orthoCam, target, aspect, currentControls);
+      syncOrthographicControlsZoom(
+        orthoCam,
+        currentControls,
+        configuredBaseFov,
+        resolvedMinDistance,
+        resolvedMaxDistance,
+      );
       state.set?.({ camera: orthoCam });
       useCameraStore.getState().setLocked(true);
       useCameraStore.getState().setMode('orthographic');
@@ -121,7 +123,14 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
       useCameraStore.getState().setActiveCardinal(effectiveCardinal);
       state.invalidate?.();
     },
-    [get, isOrthoAllowed, orthoCamRef],
+    [
+      get,
+      isOrthoAllowed,
+      orthoCamRef,
+      configuredBaseFov,
+      resolvedMinDistance,
+      resolvedMaxDistance,
+    ],
   );
 
   const unlockFromOrthographic = useCallback(() => {
@@ -203,6 +212,29 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
     orthoCam.updateProjectionMatrix();
     get().invalidate?.();
   }, [sizeWidth, sizeHeight, get, orthoCamRef]);
+
+  useEffect(() => {
+    if (!useCameraStore.getState().isLocked) return;
+    const orthoCam = orthoCamRef.current;
+    if (!orthoCam) return;
+    syncOrthographicControlsZoom(
+      orthoCam,
+      controls,
+      configuredBaseFov,
+      resolvedMinDistance,
+      resolvedMaxDistance,
+    );
+    get().invalidate?.();
+  }, [
+    controls,
+    configuredBaseFov,
+    resolvedMinDistance,
+    resolvedMaxDistance,
+    sizeWidth,
+    sizeHeight,
+    get,
+    orthoCamRef,
+  ]);
 
   return {
     configuredBaseFov,
