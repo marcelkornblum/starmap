@@ -157,4 +157,67 @@ describe('useGalaxyFocusAndSelection', () => {
     rerender({ selectQuery: '' });
     expect(result.current.canvasEntities).toBe(firstCanvasEntities);
   });
+
+  it('refreshes placeholder [0, 0, 0] position to realEntry.p once apertureCorpus populates', () => {
+    const placeholderEntity: SpatialEntityDefinition = {
+      id: 'hip-27989',
+      name: 'Betelgeuse',
+      classification: 'stellar-system',
+      position: [0, 0, 0],
+    };
+
+    const { result, rerender } = renderHook(
+      ({ activeAperture }: { activeAperture: readonly CompactSearchEntry[] }) =>
+        useGalaxyFocusAndSelection({
+          urlFocusSlug: 'hip-27989',
+          storeFocusedEntity: placeholderEntity,
+          apertureCorpus: activeAperture,
+          activeCorpus: activeAperture,
+          storeSelected: [],
+          layerIndex: [],
+          loadedLayers: [],
+          selectQuery: '',
+        }),
+      { initialProps: { activeAperture: [] as readonly CompactSearchEntry[] } },
+    );
+
+    expect(result.current.focusedEntity?.position).toEqual([0, 0, 0]);
+
+    const populatedCorpus: CompactSearchEntry[] = [
+      {
+        i: 'hip-27989',
+        n: 'Betelgeuse',
+        p: [-23.4, 148.2, 20.1],
+        m: [0.45, 'M1-2Ia-ab', 0],
+      },
+    ];
+
+    rerender({ activeAperture: populatedCorpus });
+    expect(result.current.focusedEntity?.position).toEqual([-23.4, 148.2, 20.1]);
+    expect(result.current.focusedEntity?.spectralType).toBe('M1-2Ia-ab');
+  });
+
+  it('keeps [0, 0, 0] position for Sol even when corpus populates', () => {
+    const solPlaceholder: SpatialEntityDefinition = {
+      id: 'sol',
+      name: 'Sol',
+      classification: 'stellar-system',
+      position: [0, 0, 0],
+    };
+
+    const { result } = renderHook(() =>
+      useGalaxyFocusAndSelection({
+        urlFocusSlug: 'sol',
+        storeFocusedEntity: solPlaceholder,
+        apertureCorpus: corpus,
+        activeCorpus: corpus,
+        storeSelected: [],
+        layerIndex: [],
+        loadedLayers: [],
+        selectQuery: '',
+      }),
+    );
+
+    expect(result.current.focusedEntity?.position).toEqual([0, 0, 0]);
+  });
 });

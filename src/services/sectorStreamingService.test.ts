@@ -588,4 +588,143 @@ describe('SectorStreamingManager', () => {
       expect(fetchCalls.length).toBe(callsAtDispose);
     });
   });
+
+  describe('C-2: GPU budget deferral and re-promotion', () => {
+    it('moves budget-blocked active sectors out of pendingUploadQueue so hasPendingUploads() stops spinning', async () => {
+      // Each sector has 10,000 points; tier1 maxActivePoints is 75,000 -> at most 7 sectors fit.
+      // 12 active sectors are fetched; 5 cannot fit in GPU point budget.
+      const denseFetcher = vi.fn(async (sectorId: string, priority: 'high' | 'low') => {
+        fetchCalls.push({ sectorId, priority });
+        let buf = mockBuffers.get(sectorId);
+        if (!buf) {
+          buf = createMockSectorBuffer(sectorId, [0, 0, 0], 10_000);
+          mockBuffers.set(sectorId, buf);
+        }
+        return buf;
+      });
+
+      const manager = new SectorStreamingManager({
+        budget: DEVICE_TIER_BUDGETS.tier1,
+        fetcher: denseFetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+
+      await manager.updateCameraPosition([10, 10, 10]);
+      expect(manager.hasPendingUploads()).toBe(true);
+
+      // Process uploads frame by frame (maxGpuUploadsPerFrame = 1 on tier1)
+      let frames = 0;
+      while (manager.hasPendingUploads() && frames < 20) {
+        manager.processFrameUploads();
+        frames++;
+      }
+
+      expect(frames).toBeLessThan(20);
+      expect(manager.hasPendingUploads()).toBe(false);
+      expect(manager.getTelemetry().uploadedSectorCount).toBe(7);
+      expect(manager.getTelemetry().pendingUploadCount).toBe(0);
+
+      // Calling updateCameraPosition with the same activeSet and no freed space must NOT re-queue deferred sectors
+      await manager.updateCameraPosition([10.1, 10.1, 10.1]);
+      expect(manager.hasPendingUploads()).toBe(false);
+
+      manager.dispose();
+    });
+
+    it('re-promotes budget-deferred active sectors when departed uploaded sectors are demoted or budget upgrades', async () => {
+      const denseFetcher = vi.fn(async (sectorId: string, priority: 'high' | 'low') => {
+        fetchCalls.push({ sectorId, priority });
+        let buf = mockBuffers.get(sectorId);
+        if (!buf) {
+          buf = createMockSectorBuffer(sectorId, [0, 0, 0], 10_000);
+          mockBuffers.set(sectorId, buf);
+        }
+        return buf;
+      });
+
+      vi.stubGlobal('navigator', { hardwareConcurrency: 6, deviceMemory: 8 });
+      registerWebGLGpuTelemetry({ gpuRenderer: 'SwiftShader' });
+      const manager = new SectorStreamingManager({
+        fetcher: denseFetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+
+      // tier1: 12 active sectors of 10k pts each, maxActivePoints = 75k -> 7 upload, 5 deferred
+      await manager.updateCameraPosition([0, 0, 0]);
+      while (manager.hasPendingUploads()) {
+        manager.processFrameUploads(10);
+      }
+      expect(manager.getTelemetry().uploadedSectorCount).toBe(7);
+      expect(manager.hasPendingUploads()).toBe(false);
+
+      // Move camera so some uploaded sectors depart and space frees up for deferred active sectors
+      await manager.updateCameraPosition([25, 0, 0]);
+      expect(manager.hasPendingUploads()).toBe(true);
+      while (manager.hasPendingUploads()) {
+        manager.processFrameUploads(10);
+      }
+      expect(manager.getTelemetry().uploadedSectorCount).toBe(7);
+      expect(manager.hasPendingUploads()).toBe(false);
+
+      // Upgrade tier1 -> tier3 (maxActivePoints: 350_000): deferred sectors must be promoted and uploaded
+      const listener = vi.fn();
+      manager.subscribe(listener);
+      registerWebGLGpuTelemetry({
+        gpuRenderer: 'NVIDIA GeForce RTX 4090',
+        maxTextureSize: 16384,
+        maxVertexAttribs: 16,
+      });
+
+      await vi.waitFor(() => {
+        expect(manager.getTelemetry().tier).toBe('tier3');
+      });
+      expect(manager.hasPendingUploads()).toBe(true);
+      while (manager.hasPendingUploads()) {
+        manager.processFrameUploads(20);
+      }
+      expect(manager.getTelemetry().uploadedSectorCount).toBe(35);
+      expect(manager.hasPendingUploads()).toBe(false);
+
+      manager.dispose();
+    });
+  });
+
+  describe('H-4a: Concurrent updateCameraPosition sequencing', () => {
+    it('suppresses stale notifyListeners() when an earlier updateCameraPosition settles after a newer one', async () => {
+      let resolveSlowFirst: (buf: ArrayBuffer | null) => void = () => {};
+      const slowFirstPromise = new Promise<ArrayBuffer | null>((resolve) => {
+        resolveSlowFirst = resolve;
+      });
+
+      let firstCall = true;
+      const fetcher = vi.fn(async (sectorId: string) => {
+        if (firstCall && sectorId === 'sector_+000_+000_+000') {
+          firstCall = false;
+          return slowFirstPromise;
+        }
+        return createMockSectorBuffer(sectorId);
+      });
+
+      const manager = new SectorStreamingManager({
+        budget: DEVICE_TIER_BUDGETS.tier1,
+        fetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+
+      const listener = vi.fn();
+      manager.subscribe(listener);
+
+      const p1 = manager.updateCameraPosition([0, 0, 0]);
+      const p2 = manager.updateCameraPosition([100, 100, 100]);
+
+      await p2;
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      resolveSlowFirst(createMockSectorBuffer('sector_+000_+000_+000'));
+      await p1;
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      manager.dispose();
+    });
+  });
 });

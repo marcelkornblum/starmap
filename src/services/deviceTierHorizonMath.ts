@@ -5,6 +5,7 @@
  * catalog boundary and active sector coverage while permitting distant-target bypass.
  */
 
+import { DEFAULT_SECTOR_SIZE_PC } from '../utils/sectorMath';
 import type { DeviceTierProfileRecord } from './deviceTierProfiles';
 
 export const DEFAULT_REFERENCE_APERTURE_RADIUS_PC = 10;
@@ -13,9 +14,14 @@ export const DEFAULT_DENSE_CATALOG_RADIUS_PC = 100;
 export const DEFAULT_DENSE_EDGE_MARGIN_PC = 8;
 export const DEFAULT_HORIZON_APERTURE_RATIO = 2.4;
 export const DEFAULT_GALACTIC_FOV_DEG = 45;
+export const DEFAULT_AVG_BYTES_PER_SECTOR = 12_024;
+export const DEFAULT_GALACTIC_REFERENCE_CAMERA_DISTANCE_PC = 28;
+export const DEFAULT_GALACTIC_MIN_CAMERA_DISTANCE_PC = 2.5;
 
-const DEFAULT_AVG_BYTES_PER_SECTOR = 12_024;
-const DEFAULT_SECTOR_SIZE_PC = 25;
+export const ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER = 2.25;
+export const MEAN_CATALOG_STARS_PER_CUBIC_PC =
+  751.5 / (DEFAULT_SECTOR_SIZE_PC * DEFAULT_SECTOR_SIZE_PC * DEFAULT_SECTOR_SIZE_PC);
+export const DEFAULT_MIN_CAMERA_DISTANCE_PC = 1;
 
 export interface HorizonReachOptions {
   readonly referenceApertureRadiusPc?: number;
@@ -35,6 +41,27 @@ export interface DenseHorizonCeilingClampOptions extends HorizonReachOptions {
   readonly targetDistFromSolPc?: number;
   readonly edgeMarginPc?: number;
   readonly enforceActiveSectorCoverage?: boolean;
+}
+
+export interface CameraDistanceBudgetOptions {
+  readonly avgBytesPerSector?: number;
+  readonly sectorSizePc?: number;
+  readonly minDistancePc?: number;
+}
+
+export interface CeilingCameraDistanceOptions extends DenseHorizonCeilingClampOptions {
+  readonly ceilingApertureRadiusPc?: number | null;
+  readonly zoomOutMultiplier?: number;
+  readonly minDistancePc?: number;
+}
+
+export interface GalacticCeilingDistanceOptions {
+  readonly ceilingApertureRadiusPc?: number | null;
+  readonly targetCoords?: readonly [number, number, number];
+  readonly targetDistFromSolPc?: number;
+  readonly viewportAspect?: number;
+  readonly minDistancePc?: number;
+  readonly referenceCameraDistancePc?: number;
 }
 
 /**
@@ -149,4 +176,118 @@ export function clampDenseVolumeCeilingDistancePc(
   const horizonClampedDistPc = effectiveRadiusLimitPc / Math.max(1e-4, reachPerCamDist);
 
   return Math.min(hardwareCeilingDistPc, Math.max(minDistancePc, horizonClampedDistPc));
+}
+
+/**
+ * Computes the maximum safe camera distance (pc) permitted by the tier's active sector
+ * and memory budget.
+ */
+export function computeMaxSafeCameraDistancePc(
+  budget: Pick<DeviceTierProfileRecord, 'maxBufferBytes' | 'maxActiveSectors' | 'maxCameraDistancePc'>,
+  options?: CameraDistanceBudgetOptions,
+): number {
+  const rawAvgBytes = options?.avgBytesPerSector;
+  const avgBytesPerSector =
+    rawAvgBytes !== undefined && Number.isFinite(rawAvgBytes) && rawAvgBytes > 0
+      ? rawAvgBytes
+      : DEFAULT_AVG_BYTES_PER_SECTOR;
+
+  const rawSectorSize = options?.sectorSizePc;
+  const sectorSizePc =
+    rawSectorSize !== undefined && Number.isFinite(rawSectorSize) && rawSectorSize > 0
+      ? rawSectorSize
+      : DEFAULT_SECTOR_SIZE_PC;
+
+  const rawMinDist = options?.minDistancePc;
+  const minDistancePc =
+    rawMinDist !== undefined && Number.isFinite(rawMinDist) && rawMinDist > 0
+      ? rawMinDist
+      : DEFAULT_MIN_CAMERA_DISTANCE_PC;
+
+  const maxSectorsFromMemory = Math.floor(budget.maxBufferBytes / avgBytesPerSector);
+  const maxSectors = Math.max(1, Math.min(budget.maxActiveSectors, maxSectorsFromMemory));
+
+  const rawDist = sectorSizePc * Math.cbrt((3 * maxSectors) / (4 * Math.PI)) * 3.3;
+  return Math.min(budget.maxCameraDistancePc, Math.max(minDistancePc, rawDist));
+}
+
+/**
+ * Computes the ceiling camera distance (pc) bounded by hardware active-item limits and
+ * optional dense-volume horizon clamping.
+ */
+export function computeCeilingMaxCameraDistancePc(
+  budget: Pick<
+    DeviceTierProfileRecord,
+    'maxBufferBytes' | 'maxActiveSectors' | 'maxCameraDistancePc' | 'maxActiveEntities'
+  >,
+  options?: CeilingCameraDistanceOptions,
+): number {
+  const refApertureRadius = options?.referenceApertureRadiusPc ?? DEFAULT_REFERENCE_APERTURE_RADIUS_PC;
+  const refCameraDist = options?.referenceCameraDistancePc ?? DEFAULT_REFERENCE_CAMERA_DISTANCE_PC;
+  const zoomMultiplier = options?.zoomOutMultiplier ?? ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER;
+  const minDistancePc = options?.minDistancePc ?? DEFAULT_MIN_CAMERA_DISTANCE_PC;
+
+  const maxSafe = computeMaxSafeCameraDistancePc(budget, { minDistancePc: options?.minDistancePc });
+
+  let effectiveCeilingRadiusPc: number;
+  if (
+    options?.ceilingApertureRadiusPc !== undefined &&
+    options.ceilingApertureRadiusPc !== null &&
+    Number.isFinite(options.ceilingApertureRadiusPc) &&
+    options.ceilingApertureRadiusPc > 0
+  ) {
+    effectiveCeilingRadiusPc = options.ceilingApertureRadiusPc;
+  } else {
+    effectiveCeilingRadiusPc = Math.cbrt(
+      (3 * budget.maxActiveEntities) / (4 * Math.PI * MEAN_CATALOG_STARS_PER_CUBIC_PC),
+    );
+  }
+
+  const ceilingCameraDist = effectiveCeilingRadiusPc * (refCameraDist / refApertureRadius);
+  const cappedDist = ceilingCameraDist * zoomMultiplier;
+  const hardwareCeilingDistPc = Math.min(maxSafe, Math.max(minDistancePc, cappedDist));
+
+  return clampDenseVolumeCeilingDistancePc(budget, hardwareCeilingDistPc, minDistancePc, options);
+}
+
+/**
+ * Computes the unified Galactic camera ceiling distance (pc) for both scene controls and
+ * search framing, applying the dense-catalogue horizon edge clamp and distant-target bypass.
+ */
+export function computeGalacticCeilingDistancePc(
+  budget: Pick<
+    DeviceTierProfileRecord,
+    'maxBufferBytes' | 'maxActiveSectors' | 'maxCameraDistancePc' | 'maxActiveEntities'
+  >,
+  options?: GalacticCeilingDistanceOptions,
+): number {
+  let targetDistFromSolPc = 0;
+  if (
+    options?.targetDistFromSolPc !== undefined &&
+    Number.isFinite(options.targetDistFromSolPc) &&
+    options.targetDistFromSolPc >= 0
+  ) {
+    targetDistFromSolPc = options.targetDistFromSolPc;
+  } else if (
+    options?.targetCoords &&
+    Number.isFinite(options.targetCoords[0]) &&
+    Number.isFinite(options.targetCoords[1]) &&
+    Number.isFinite(options.targetCoords[2])
+  ) {
+    targetDistFromSolPc = Math.hypot(
+      options.targetCoords[0],
+      options.targetCoords[1],
+      options.targetCoords[2],
+    );
+  }
+
+  return computeCeilingMaxCameraDistancePc(budget, {
+    ceilingApertureRadiusPc: options?.ceilingApertureRadiusPc,
+    denseCatalogRadiusPc: DEFAULT_DENSE_CATALOG_RADIUS_PC,
+    referenceCameraDistancePc:
+      options?.referenceCameraDistancePc ?? DEFAULT_GALACTIC_REFERENCE_CAMERA_DISTANCE_PC,
+    minDistancePc: options?.minDistancePc ?? DEFAULT_GALACTIC_MIN_CAMERA_DISTANCE_PC,
+    targetDistFromSolPc,
+    viewportAspect: options?.viewportAspect,
+  });
 }

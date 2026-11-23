@@ -116,14 +116,14 @@ export function ingestReconsSupplement(params: {
     if (recons.dist <= 10) { local10pcSystems.push(rSummary); addedLocal10pc++; }
     if (matchedPlanets.length > 0) exoplanetHostSummaries.push(rSummary);
     if (recons.dist <= maxPartitionDist) {
-      let b = sectorMap.get(rSectorId);
-      if (!b) sectorMap.set(rSectorId, (b = []));
-      b.push(rSummary);
+      let sectorBucket = sectorMap.get(rSectorId);
+      if (!sectorBucket) sectorMap.set(rSectorId, (sectorBucket = []));
+      sectorBucket.push(rSummary);
     }
     if (includeDetails) {
-      let mb = sectorManifestsMap.get(rSectorId);
-      if (!mb) sectorManifestsMap.set(rSectorId, (mb = []));
-      mb.push({
+      let sectorManifests = sectorManifestsMap.get(rSectorId);
+      if (!sectorManifests) sectorManifestsMap.set(rSectorId, (sectorManifests = []));
+      const manifest: SystemManifest = {
         id: recons.id, name: recons.name, properName: recons.properName,
         x: rx, y: ry, z: rz, dist: round3(recons.dist),
         velocity: { vx: 0, vy: 0, vz: 0, speed: 0 }, sectorId: rSectorId,
@@ -135,8 +135,9 @@ export function ingestReconsSupplement(params: {
         planetCompositionCounts: computePlanetCompositionCounts(matchedPlanets), hasHabitableCandidate,
         ...(rTags.length > 0 ? { tags: rTags } : {}),
         ...(rHazardMask > 0 ? { hazardMask: rHazardMask } : {}),
-      });
-      allSystemManifests.push(mb[mb.length - 1]!);
+      };
+      sectorManifests.push(manifest);
+      allSystemManifests.push(manifest);
     }
     onEmitNode(JSON.stringify({
       id: getTotalStars(), name: recons.name, properName: recons.properName, ra: round3(recons.ra), dec: round3(recons.dec),

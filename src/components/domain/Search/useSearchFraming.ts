@@ -5,9 +5,10 @@ import {
 } from '../../../data/searchRepository';
 import type { AppRouterAdapter } from '../../../hooks/useSpaLocation';
 import {
-  computeCeilingMaxCameraDistancePc,
+  computeGalacticCeilingDistancePc,
   getDeviceTierBudget,
 } from '../../../services/deviceTierService';
+import { STANDARD_CAMERA_DISTANCES } from '../../canvas/cartography/cartographyCamera';
 import type { GroupedSearchResults } from '../../../services/search/searchTypes';
 import { resolveSearchFramingAction } from '../../../services/search/searchFramingPolicy';
 import { useCameraStore } from '../../../stores/useCameraStore';
@@ -168,7 +169,6 @@ export const useSearchFraming = ({
       }
 
       const safeRect = useUIStore.getState().viewportSafeRect;
-      const maxDistance = computeCeilingMaxCameraDistancePc(getDeviceTierBudget());
       const viewportWidth =
         typeof window !== 'undefined' ? window.innerWidth : FALLBACK_VIEWPORT_WIDTH;
       const viewportHeight =
@@ -181,13 +181,34 @@ export const useSearchFraming = ({
       } = locationRef.current;
       const currentScope = parseSpatialRouteTarget(currentPathname)?.scope;
 
-      const action = resolveSearchFramingAction(framedItems, {
+      const preliminaryAction = resolveSearchFramingAction(framedItems, {
         viewportWidth,
         viewportHeight,
         safeRect,
-        maxDistance,
+        maxDistance: Number.MAX_SAFE_INTEGER,
         currentScope,
       });
+
+      const action =
+        preliminaryAction.kind === 'frame-galaxy'
+          ? {
+              ...preliminaryAction,
+              distance: Math.max(
+                MIN_SEARCH_FRAMING_DISTANCE_PC,
+                Math.min(
+                  preliminaryAction.distance,
+                  computeGalacticCeilingDistancePc(getDeviceTierBudget(), {
+                    targetCoords: preliminaryAction.target,
+                    referenceCameraDistancePc: STANDARD_CAMERA_DISTANCES.galactic,
+                    viewportAspect:
+                      typeof window !== 'undefined' && window.innerHeight > 0
+                        ? window.innerWidth / window.innerHeight
+                        : undefined,
+                  }),
+                ),
+              ),
+            }
+          : preliminaryAction;
 
       const snapshotPreSearchPose = (): void => {
         const cam = useCameraStore.getState();

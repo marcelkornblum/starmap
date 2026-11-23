@@ -11,7 +11,7 @@ export * from './pipeline/guideAndBaselinesEmitter';
 export * from './pipeline/gaiaArtifactWriter';
 export * from './pipeline/gaiaPipeline';
 
-import { buildStarDataPipeline } from './pipeline/gaiaPipeline';
+import { buildGaiaDataPipeline } from './pipeline/gaiaPipeline';
 
 // CLI entrypoint
 const isDirectExecution = process.argv[1]?.endsWith('build-data.ts');
@@ -28,7 +28,7 @@ if (isDirectExecution) {
   console.log(`Starting Data Pipeline: Ingesting Gaia DR3 GCNS from ${gcnsGz}...`);
   const startTime = Date.now();
 
-  buildStarDataPipeline(gcnsGz, outputJson, {
+  buildGaiaDataPipeline(gcnsGz, outputJson, {
     dataDir,
     partitionsDir,
     overlaysDir,

@@ -68,14 +68,6 @@ export function loadAllExoplanetCatalogsWithHosts(
   return { hostMap, canonicalHosts: buildCanonicalHosts() };
 }
 
-export function loadAllExoplanetCatalogs(
-  oecCsv: string,
-  nasaCsv: string,
-  euCsv: string,
-): Map<string, ExoplanetRecord[]> {
-  return loadAllExoplanetCatalogsWithHosts(oecCsv, nasaCsv, euCsv).hostMap;
-}
-
 export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetRecord[]> {
   const hostMap = new Map<string, ExoplanetRecord[]>();
   const resolved = path.resolve(csvPath);

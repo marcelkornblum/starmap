@@ -17,31 +17,31 @@ export interface StreamedEntitiesIndex {
   readonly summaryBySlug: ReadonlyMap<string, SystemSummaryNode>;
 }
 
-const resolveSummaryPlanets = (s: SystemSummaryNode): PlanetCensusEntry[] | undefined =>
-  s.planetCensus?.map((cat, idx) => ({
-    id: `${s.id}-planet-${idx}`,
-    name: `Planet ${idx + 1}`,
-    classification: cat,
+const resolveSummaryPlanets = (summary: SystemSummaryNode): PlanetCensusEntry[] | undefined =>
+  summary.planetCensus?.map((category, index) => ({
+    id: `${summary.id}-planet-${index}`,
+    name: `Planet ${index + 1}`,
+    classification: category,
   }));
 
 const SUMMARY_ENTITY_CACHE = new WeakMap<SystemSummaryNode, SpatialEntityDefinition>();
 
-export function summaryToEntityDefinition(s: SystemSummaryNode): SpatialEntityDefinition {
-  const cached = SUMMARY_ENTITY_CACHE.get(s);
+export function summaryToEntityDefinition(summary: SystemSummaryNode): SpatialEntityDefinition {
+  const cached = SUMMARY_ENTITY_CACHE.get(summary);
   if (cached) return cached;
-  const classification = s.classification ?? 'star';
-  const planets = resolveSummaryPlanets(s);
-  const def: SpatialEntityDefinition = {
-    id: s.id,
-    name: s.name,
-    position: [s.x, s.y, s.z],
+  const classification = summary.classification ?? 'star';
+  const planets = resolveSummaryPlanets(summary);
+  const definition: SpatialEntityDefinition = {
+    id: summary.id,
+    name: summary.name,
+    position: [summary.x, summary.y, summary.z],
     classification,
-    spectralType: s.spect,
-    multiplicity: s.starCount,
+    spectralType: summary.spect,
+    multiplicity: summary.starCount,
     ...(planets && planets.length > 0 ? { planets } : {}),
   };
-  SUMMARY_ENTITY_CACHE.set(s, def);
-  return def;
+  SUMMARY_ENTITY_CACHE.set(summary, definition);
+  return definition;
 }
 
 export function buildStreamedEntitiesIndex(
@@ -52,52 +52,53 @@ export function buildStreamedEntitiesIndex(
   prevStreamedEntitiesRef: { current: SpatialEntityDefinition[] },
 ): StreamedEntitiesIndex {
   const maxActive = Math.min(maxActiveEntities, GALAXY_SCENE_MAX_STREAMED_ENTITIES);
-  const sMap = new Map<string, SystemSummaryNode>();
-  const sSlugMap = new Map<string, SystemSummaryNode>();
-  for (const s of streamedSummaries) {
-    sMap.set(s.id, s);
-    const idSlug = toUrlSlug(s.id);
-    if (idSlug) sSlugMap.set(idSlug, s);
-    if (s.name) {
-      const nameSlug = toUrlSlug(s.name);
-      if (nameSlug && !sSlugMap.has(nameSlug)) sSlugMap.set(nameSlug, s);
+  const summaryById = new Map<string, SystemSummaryNode>();
+  const summaryBySlug = new Map<string, SystemSummaryNode>();
+  for (const summary of streamedSummaries) {
+    summaryById.set(summary.id, summary);
+    const idSlug = toUrlSlug(summary.id);
+    if (idSlug) summaryBySlug.set(idSlug, summary);
+    if (summary.name) {
+      const nameSlug = toUrlSlug(summary.name);
+      if (nameSlug && !summaryBySlug.has(nameSlug)) summaryBySlug.set(nameSlug, summary);
     }
   }
 
   const list: SpatialEntityDefinition[] = [];
-  const eMap = new Map<string, SpatialEntityDefinition>();
-  const eSlugMap = new Map<string, SpatialEntityDefinition>();
+  const entityById = new Map<string, SpatialEntityDefinition>();
+  const entityBySlug = new Map<string, SpatialEntityDefinition>();
 
   if (hasHydrated && streamedSummaries.length > 0 && streamedSummaries.length <= activeCutoff) {
     const limit = Math.min(streamedSummaries.length, maxActive);
     for (let i = 0; i < limit; i++) {
-      const s = streamedSummaries[i];
-      if (!s || eMap.has(s.id)) continue;
-      const def = summaryToEntityDefinition(s);
-      list.push(def);
-      eMap.set(s.id, def);
-      const idSlug = toUrlSlug(s.id);
-      if (idSlug) eSlugMap.set(idSlug, def);
-      if (s.name) {
-        const nameSlug = toUrlSlug(s.name);
-        if (nameSlug && !eSlugMap.has(nameSlug)) eSlugMap.set(nameSlug, def);
+      const summary = streamedSummaries[i];
+      if (!summary || entityById.has(summary.id)) continue;
+      const definition = summaryToEntityDefinition(summary);
+      list.push(definition);
+      entityById.set(summary.id, definition);
+      const idSlug = toUrlSlug(summary.id);
+      if (idSlug) entityBySlug.set(idSlug, definition);
+      if (summary.name) {
+        const nameSlug = toUrlSlug(summary.name);
+        if (nameSlug && !entityBySlug.has(nameSlug)) entityBySlug.set(nameSlug, definition);
       }
     }
     list.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   }
 
-  const prev = prevStreamedEntitiesRef.current;
+  const previousEntities = prevStreamedEntitiesRef.current;
   const finalStreamedEntities =
-    list.length === prev.length && list.every((ent, idx) => ent === prev[idx])
-      ? prev
+    list.length === previousEntities.length &&
+    list.every((entity, index) => entity === previousEntities[index])
+      ? previousEntities
       : (prevStreamedEntitiesRef.current = list);
 
   return {
     streamedEntities: finalStreamedEntities,
-    streamedEntityById: eMap,
-    streamedEntityBySlug: eSlugMap,
-    summaryById: sMap,
-    summaryBySlug: sSlugMap,
+    streamedEntityById: entityById,
+    streamedEntityBySlug: entityBySlug,
+    summaryById,
+    summaryBySlug,
   };
 }
 
@@ -121,10 +122,10 @@ export function mergeGalaxyEntities(
     (!additionalEntities ||
       additionalEntities.length === 0 ||
       additionalEntities.every(
-        (ent) =>
-          streamedEntityById.has(ent.id) ||
-          streamedEntityBySlug.has(toUrlSlug(ent.id)) ||
-          (ent.name ? streamedEntityBySlug.has(toUrlSlug(ent.name)) : false),
+        (entity) =>
+          streamedEntityById.has(entity.id) ||
+          streamedEntityBySlug.has(toUrlSlug(entity.id)) ||
+          (entity.name ? streamedEntityBySlug.has(toUrlSlug(entity.name)) : false),
       ))
   ) {
     return streamedEntities;
@@ -143,13 +144,13 @@ export function mergeGalaxyEntities(
   const baseEntities: SpatialEntityDefinition[] = [];
 
   if (additionalEntities) {
-    for (const ent of additionalEntities) {
-      const entIdSlug = toUrlSlug(ent.id);
-      const entNameSlug = ent.name ? toUrlSlug(ent.name) : undefined;
+    for (const entity of additionalEntities) {
+      const entityIdSlug = toUrlSlug(entity.id);
+      const entityNameSlug = entity.name ? toUrlSlug(entity.name) : undefined;
       const streamedDef =
-        streamedEntityById.get(ent.id) ??
-        streamedEntityBySlug.get(entIdSlug) ??
-        (entNameSlug ? streamedEntityBySlug.get(entNameSlug) : undefined);
+        streamedEntityById.get(entity.id) ??
+        streamedEntityBySlug.get(entityIdSlug) ??
+        (entityNameSlug ? streamedEntityBySlug.get(entityNameSlug) : undefined);
 
       if (streamedDef) {
         if (!existingIds.has(streamedDef.id)) {
@@ -159,18 +160,18 @@ export function mergeGalaxyEntities(
         continue;
       }
 
-      if (existingIds.has(ent.id)) {
+      if (existingIds.has(entity.id)) {
         continue;
       }
 
       const matchedSummary =
-        summaryById.get(ent.id) ??
-        summaryBySlug.get(entIdSlug) ??
-        (entNameSlug ? summaryBySlug.get(entNameSlug) : undefined);
+        summaryById.get(entity.id) ??
+        summaryBySlug.get(entityIdSlug) ??
+        (entityNameSlug ? summaryBySlug.get(entityNameSlug) : undefined);
 
-      const effectivePos = matchedSummary
-        ? ([matchedSummary.x, matchedSummary.y, matchedSummary.z] as [number, number, number])
-        : ent.position;
+      const effectivePos: SpatialEntityDefinition['position'] = matchedSummary
+        ? [matchedSummary.x, matchedSummary.y, matchedSummary.z]
+        : entity.position;
 
       if (hasReachedCeiling && additionalEntities.length > 24 && Array.isArray(effectivePos)) {
         const dx = effectivePos[0] - focusPointPc[0];
@@ -178,30 +179,30 @@ export function mergeGalaxyEntities(
         const dz = effectivePos[2] - focusPointPc[2];
         if (dx * dx + dy * dy + dz * dz > ceilingRadiusSq) continue;
       }
-      existingIds.add(ent.id);
-      if (matchedSummary && ent.id === matchedSummary.id) {
+      existingIds.add(entity.id);
+      if (matchedSummary && entity.id === matchedSummary.id) {
         baseEntities.push(summaryToEntityDefinition(matchedSummary));
       } else if (matchedSummary) {
-        const planets = resolveSummaryPlanets(matchedSummary) ?? ent.planets;
+        const planets = resolveSummaryPlanets(matchedSummary) ?? entity.planets;
         baseEntities.push({
-          ...ent,
-          name: ent.name || matchedSummary.name,
+          ...entity,
+          name: entity.name || matchedSummary.name,
           position: effectivePos,
-          classification: matchedSummary.classification ?? ent.classification ?? 'star',
-          spectralType: matchedSummary.spect || ent.spectralType,
-          multiplicity: matchedSummary.starCount ?? ent.multiplicity,
+          classification: matchedSummary.classification ?? entity.classification ?? 'star',
+          spectralType: matchedSummary.spect || entity.spectralType,
+          multiplicity: matchedSummary.starCount ?? entity.multiplicity,
           ...(planets && planets.length > 0 ? { planets } : {}),
         });
       } else {
-        baseEntities.push(ent);
+        baseEntities.push(entity);
       }
     }
   }
 
-  for (const def of streamedEntities) {
-    if (!existingIds.has(def.id)) {
-      existingIds.add(def.id);
-      baseEntities.push(def);
+  for (const definition of streamedEntities) {
+    if (!existingIds.has(definition.id)) {
+      existingIds.add(definition.id);
+      baseEntities.push(definition);
     }
   }
 

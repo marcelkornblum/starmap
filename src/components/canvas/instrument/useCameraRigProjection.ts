@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import * as THREE from 'three';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
@@ -11,6 +12,7 @@ import {
   isOrbitControlsLike,
   releaseOrthographicLock,
   syncControlsDistance,
+  syncOrthographicCameraFar,
   syncOrthographicControlsZoom,
   syncPerspectiveCameraFar,
   type OrbitControlsLike,
@@ -72,9 +74,10 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
     () => new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, frame.camera.far ?? DEFAULT_CAMERA_FAR),
   );
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     syncPerspectiveCameraFar(camera, frame.camera.far);
-  }, [camera, frame.camera.far]);
+    syncOrthographicCameraFar(orthoCamRef.current, frame.camera.far);
+  }, [camera, frame.camera.far, orthoCamRef]);
 
   const resolvedMinDistance = frame.camera.minDistance;
   const resolvedMaxDistance = frame.camera.maxDistance;

@@ -22,12 +22,14 @@ import {
   getRuntimeCutoffMultiplier,
   setRuntimeCutoffMultiplier,
   getInitialCanvasDpr,
+  DEFAULT_AVG_BYTES_PER_SECTOR,
   DEFAULT_DENSE_CATALOG_RADIUS_PC,
   DEFAULT_DENSE_EDGE_MARGIN_PC,
   DEFAULT_HORIZON_APERTURE_RATIO,
   DEFAULT_GALACTIC_FOV_DEG,
   computeHorizonReachPerCameraDist,
   computeActiveSectorHorizonCoverPc,
+  computeGalacticCeilingDistancePc,
   type DevicePerformanceTier,
   type DeviceTierBudget,
 } from './deviceTierService';
@@ -619,10 +621,12 @@ describe('deviceTierService', () => {
 
   describe('Horizon-aware dense-catalogue edge clamp & distant-target bypass', () => {
     it('exports expected horizon math defaults', () => {
+      expect(DEFAULT_AVG_BYTES_PER_SECTOR).toBe(12_024);
       expect(DEFAULT_DENSE_CATALOG_RADIUS_PC).toBe(100);
       expect(DEFAULT_DENSE_EDGE_MARGIN_PC).toBe(8);
       expect(DEFAULT_HORIZON_APERTURE_RATIO).toBe(2.4);
       expect(DEFAULT_GALACTIC_FOV_DEG).toBe(45);
+      expect(typeof computeGalacticCeilingDistancePc).toBe('function');
     });
 
     it('computes horizon reach per camera distance across mobile portrait and wide/ultrawide aspects', () => {

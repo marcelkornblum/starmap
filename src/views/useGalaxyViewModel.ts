@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSpatialEntityStore, useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
 import type { SpatialEntityDefinition } from '../types/spatial';
-import { scheduleSearchBackgroundWarmup } from '../data/searchBackgroundWarmup';
+import {
+  escalateSearchBackgroundWarmup,
+  scheduleSearchBackgroundWarmup,
+} from '../data/searchBackgroundWarmup';
 import { getCachedCorpusForFilter, subscribeSearchRepository } from '../data/searchRepository';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
@@ -25,6 +28,11 @@ import { useGalaxyFocusAndSelection } from './useGalaxyFocusAndSelection';
 import { useGalaxyPanels } from './useGalaxyPanels';
 import { useGalaxyStoreSync } from './useGalaxyStoreSync';
 import { useScaleCenterResolution } from './useColdLoadCenterId';
+import {
+  collectUnresolvedUrlSlugs,
+  mergeFallbackEntriesIntoCorpus,
+  useRoutingSummaryFallback,
+} from './useRoutingSummaryFallback';
 
 export interface UseGalaxyViewModelParams {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -33,6 +41,7 @@ export interface UseGalaxyViewModelParams {
 }
 
 const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
+const EMPTY_SLUGS: readonly string[] = [];
 const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
 const COORD_TUPLE_CACHE = new BoundedLruCache<string, readonly [number, number, number]>(256);
 
@@ -74,7 +83,7 @@ export function useGalaxyViewModel({
     }),
   );
 
-  const { corpus: startupCorpus } = useSearchCorpus('startup', initialCorpus);
+  const { corpus: startupCorpus, isLoading: isStartupLoading } = useSearchCorpus('startup', initialCorpus);
   const cachedAllCorpus = useSyncExternalStore(
     subscribeSearchRepository,
     () => getCachedCorpusForFilter('all'),
@@ -126,7 +135,7 @@ export function useGalaxyViewModel({
   }, [isExplicitLocation, optimisticFocusSlug, urlFocusSlug, search]);
 
   const activeStars = useActiveStarsStore((state) => state.summaries);
-  const apertureCorpus = useMemo(
+  const baseApertureCorpus = useMemo(
     () => mergeActiveStarsIntoCorpus(activeCorpus, activeStars),
     [activeCorpus, activeStars],
   );
@@ -148,6 +157,38 @@ export function useGalaxyViewModel({
     ? `?${effectiveSelectValues.map((v) => `select=${encodeURIComponent(v)}`).join('&')}`.replace(/%3A/gi, ':').replace(/%2C/gi, ',')
     : '';
 
+  const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
+  const rawCenter = center ?? cameraState.center;
+  const centerId = rawCenter && !parseCenterCoordinatesString(rawCenter)
+    ? toUrlSlug(rawCenter)
+    : undefined;
+
+  const unresolvedUrlSlugs = useMemo(
+    () =>
+      initialCorpus || isStartupLoading
+        ? EMPTY_SLUGS
+        : collectUnresolvedUrlSlugs({
+            centerId,
+            optimisticFocusSlug,
+            selectQuery,
+            layerIndex,
+            corpus: baseApertureCorpus,
+          }),
+    [initialCorpus, isStartupLoading, centerId, optimisticFocusSlug, selectQuery, layerIndex, baseApertureCorpus],
+  );
+
+  useEffect(() => {
+    if (!initialCorpus && unresolvedUrlSlugs.length > 0) {
+      escalateSearchBackgroundWarmup();
+    }
+  }, [initialCorpus, unresolvedUrlSlugs]);
+
+  const routingFallbackEntries = useRoutingSummaryFallback(unresolvedUrlSlugs);
+  const apertureCorpus = useMemo(
+    () => mergeFallbackEntriesIntoCorpus(baseApertureCorpus, routingFallbackEntries),
+    [baseApertureCorpus, routingFallbackEntries],
+  );
+
   const {
     focusedEntity, urlSelectedEntities, selectedEntities, canvasEntities, targetSystemId,
   } = useGalaxyFocusAndSelection({
@@ -160,7 +201,6 @@ export function useGalaxyViewModel({
     !isSearchSelectionSentinel &&
     Boolean(select !== undefined || searchParams.has('select'));
 
-  const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
   const {
     isColdLoadFocus,
     pendingCenterSlug,
@@ -257,11 +297,6 @@ export function useGalaxyViewModel({
     },
     [router],
   );
-
-  const rawCenter = center ?? cameraState.center;
-  const centerId = rawCenter && !parseCenterCoordinatesString(rawCenter)
-    ? toUrlSlug(rawCenter)
-    : undefined;
 
   return {
     pathname, search, canvasEntities, cameraState, centerId, resolvedCenterCoordinates,

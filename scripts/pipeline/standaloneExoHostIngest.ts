@@ -35,13 +35,13 @@ export interface ExoHostIngestOverride {
   aliases: string[];
 }
 
-export function findOfficialStarName(h?: HygCrossMatch) {
-  if (!h) return undefined;
-  if (h.hip && OFFICIAL_IAU_STAR_NAMES[`hip-${h.hip}`]) return OFFICIAL_IAU_STAR_NAMES[`hip-${h.hip}`];
-  if (h.gl) {
-    if (OFFICIAL_IAU_STAR_NAMES[`gl-${h.gl}`]) return OFFICIAL_IAU_STAR_NAMES[`gl-${h.gl}`];
-    const k = `gl-${h.gl.toLowerCase().replace(/^(?:gl|gj|gliese)\s*/i, '').replace(/\s+/g, '')}`;
-    if (OFFICIAL_IAU_STAR_NAMES[k]) return OFFICIAL_IAU_STAR_NAMES[k];
+export function findOfficialStarName(hyg?: HygCrossMatch) {
+  if (!hyg) return undefined;
+  if (hyg.hip && OFFICIAL_IAU_STAR_NAMES[`hip-${hyg.hip}`]) return OFFICIAL_IAU_STAR_NAMES[`hip-${hyg.hip}`];
+  if (hyg.gl) {
+    if (OFFICIAL_IAU_STAR_NAMES[`gl-${hyg.gl}`]) return OFFICIAL_IAU_STAR_NAMES[`gl-${hyg.gl}`];
+    const glKey = `gl-${hyg.gl.toLowerCase().replace(/^(?:gl|gj|gliese)\s*/i, '').replace(/\s+/g, '')}`;
+    if (OFFICIAL_IAU_STAR_NAMES[glKey]) return OFFICIAL_IAU_STAR_NAMES[glKey];
   }
   return undefined;
 }
@@ -429,9 +429,9 @@ export function attachPlanetsToCataloguedSystem(params: {
       };
       allSystemManifests.push(manifest);
       manifestById.set(manifest.id, manifest);
-      let mb = sectorManifestsMap.get(existingSummary.sectorId);
-      if (!mb) sectorManifestsMap.set(existingSummary.sectorId, (mb = []));
-      mb.push(manifest);
+      let sectorManifests = sectorManifestsMap.get(existingSummary.sectorId);
+      if (!sectorManifests) sectorManifestsMap.set(existingSummary.sectorId, (sectorManifests = []));
+      sectorManifests.push(manifest);
     }
   }
 

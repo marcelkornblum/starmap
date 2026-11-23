@@ -6,13 +6,20 @@ import {
   resetDeviceTierRuntimeState,
 } from '../../../services/deviceTierService';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useUIStore } from '../../../stores/useUIStore';
+import {
+  clearPendingCrossScaleArrival,
+  setPendingCrossScaleArrival,
+} from '../instrument/crossScaleArrivalState';
 
 describe('useGalacticCeilingDistance hook', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     resetDeviceTierRuntimeState();
+    clearPendingCrossScaleArrival();
     act(() => {
       useCameraStore.getState().reset();
+      useUIStore.getState().resetUI();
     });
   });
 
@@ -84,5 +91,60 @@ describe('useGalacticCeilingDistance hook', () => {
     });
     const [distAtBoundary] = result.current;
     expect(distAtBoundary).toBeGreaterThan(distAtSol);
+  });
+
+  it('ignores AU/km useCameraStore.target during cross-scale transition or pending arrival and falls back to savedGalaxyCamera.target or targetCoords', () => {
+    vi.stubGlobal('navigator', { hardwareConcurrency: 8, deviceMemory: 16 });
+    const { result, rerender } = renderHook(
+      ({ targetCoords }: { targetCoords?: readonly [number, number, number] }) =>
+        useGalacticCeilingDistance({
+          viewportAspect: 16 / 9,
+          minDistancePc: 2.5,
+          targetCoords,
+        }),
+      { initialProps: { targetCoords: [0, 0, 0] as readonly [number, number, number] } },
+    );
+    const [solCeiling] = result.current;
+
+    // Simulate System/Planet AU/km target polluting useCameraStore.target while transitioning back to Galaxy
+    act(() => {
+      useUIStore.getState().setCameraTransitioning(true);
+      useCameraStore.getState().setCameraTransform([250, 0, 50], [250, 0, 0]);
+    });
+    expect(result.current[0]).toBe(solCeiling);
+
+    // Saved galaxy target overrides targetCoords while transitioning
+    act(() => {
+      useCameraStore.getState().setSavedGalaxyCamera({
+        position: [95, -20, 20],
+        target: [95, 0, 0],
+        up: [0, 0, 1],
+        zoom: 1,
+        focalDistance: 28,
+        centerKey: 'distant-star',
+      });
+    });
+    const [distantSavedCeiling] = result.current;
+    expect(distantSavedCeiling).toBeGreaterThan(solCeiling);
+
+    // Pending cross-scale arrival without isCameraTransitioning also guards against live AU/km target
+    act(() => {
+      useCameraStore.getState().setSavedGalaxyCamera(null);
+      useUIStore.getState().setCameraTransitioning(false);
+      setPendingCrossScaleArrival({
+        direction: 'out',
+        targetScope: 'galaxy',
+        durationSec: 0.9,
+      });
+    });
+    rerender({ targetCoords: [0, 0, 0] });
+    expect(result.current[0]).toBe(solCeiling);
+
+    // Once pending arrival clears and not transitioning, live target is used again
+    act(() => {
+      clearPendingCrossScaleArrival();
+    });
+    rerender({ targetCoords: [0, 0, 0] });
+    expect(result.current[0]).toBeGreaterThan(solCeiling);
   });
 });

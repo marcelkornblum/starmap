@@ -296,4 +296,106 @@ describe('useGalaxyViewModel', () => {
       clearSearchRepositoryCache();
     });
   });
+
+  it('escalates search background warmup immediately and resolves cold deep-link coordinates via routing summary fallback', async () => {
+    clearSearchRepositoryCache();
+    const { clearDetailsRepositoryCache } = await import('../data/detailsRepository');
+    const { clearDataManifestCache, seedDataManifest } = await import('../data/dataManifestRepository');
+    const warmupModule = await import('../data/searchBackgroundWarmup');
+    warmupModule.resetSearchBackgroundWarmup();
+    clearDetailsRepositoryCache();
+    clearDataManifestCache();
+
+    seedDataManifest({
+      v: 1,
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      files: {
+        'search/startup.json': 'search/startup.json',
+        'details/routing.json': 'details/routing.json',
+        'summaries/sector_+050_-150_+075.json': 'summaries/sector_+050_-150_+075.json',
+      },
+    });
+
+    const escalateSpy = vi.spyOn(warmupModule, 'escalateSearchBackgroundWarmup');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('search/startup.json')) {
+        return new Response(
+          JSON.stringify({
+            v: 1,
+            i: 'search-startup',
+            n: 'Startup',
+            c: 1,
+            t: '2026-01-01T00:00:00.000Z',
+            d: [{ i: 'sol', n: 'Sol', h: 1 }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.includes('details/routing.json')) {
+        return new Response(
+          JSON.stringify({
+            v: 1,
+            k: ['sector_+050_-150_+075'],
+            s: { 'exo-kepler-186': 0 },
+            d: { 'exo-kepler-186': 0 },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.includes('summaries/sector_+050_-150_+075.json')) {
+        return new Response(
+          JSON.stringify({
+            v: 1,
+            i: 'sector_+050_-150_+075',
+            c: 1,
+            d: {
+              'exo-kepler-186': {
+                i: 'exo-kepler-186',
+                n: 'Kepler-186',
+                p: [61.5, -112.4, 123.7],
+                m: 14.62,
+                M: 8.36,
+                s: 'M1V',
+                c: 1,
+                e: 5,
+                h: 1,
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response(
+        JSON.stringify({ v: 1, i: url, n: url, c: 0, t: '2026-01-01T00:00:00.000Z', d: [] }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+
+    const store = createSpatialEntityStore();
+    const { waitFor } = await import('@testing-library/react');
+    const hookResult = renderHook(
+      () =>
+        useGalaxyViewModel({
+          locationPathname: '/galaxy',
+          locationSearch: '?center=exo-kepler-186',
+        }),
+      { wrapper: createWrapper(store) },
+    );
+
+    await waitFor(() => {
+      expect(hookResult.result.current.resolvedCenterCoordinates).toEqual([61.5, -112.4, 123.7]);
+    });
+    expect(escalateSpy).toHaveBeenCalled();
+
+    await act(async () => {
+      hookResult.unmount();
+      escalateSpy.mockRestore();
+      fetchSpy.mockRestore();
+      clearSearchRepositoryCache();
+      clearDetailsRepositoryCache();
+      clearDataManifestCache();
+      warmupModule.resetSearchBackgroundWarmup();
+    });
+  });
 });

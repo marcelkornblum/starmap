@@ -6,7 +6,7 @@ import { useFrame } from '@react-three/fiber';
 import { useCameraRigProjection, type CameraRigThreeState } from './useCameraRigProjection';
 import type { OrbitControlsLike } from './cameraRigZoomAndPan';
 import { CameraTransitionProvider } from './useCameraTransition';
-import { GALACTIC_FRAME } from '../../../config/referenceFrames';
+import { GALACTIC_FRAME, SYSTEM_FRAME } from '../../../config/referenceFrames';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useUIStore } from '../../../stores/useUIStore';
@@ -248,6 +248,35 @@ describe('useCameraRigProjection', () => {
     expect(result.current.orthoCamRef.current.far).toBe(GALACTIC_FRAME.camera.far);
     expect(camera.far).toBe(GALACTIC_FRAME.camera.far);
     expect(updateProjSpy).toHaveBeenCalled();
+  });
+
+  it('syncs both perspective and orthographic camera far bidirectionally across frame transitions without snapping fov', () => {
+    camera.fov = 62;
+    const { result, rerender } = renderHook(
+      ({ frame }) =>
+        useCameraRigProjection({
+          camera,
+          controls: mockControls,
+          sizeWidth: 1920,
+          sizeHeight: 1080,
+          get: threeGet,
+          frame,
+        }),
+      { initialProps: { frame: SYSTEM_FRAME }, wrapper },
+    );
+
+    expect(camera.far).toBe(SYSTEM_FRAME.camera.far);
+    expect(result.current.orthoCamRef.current.far).toBe(SYSTEM_FRAME.camera.far);
+    expect(camera.fov).toBe(62);
+
+    rerender({ frame: GALACTIC_FRAME });
+    expect(camera.far).toBe(GALACTIC_FRAME.camera.far);
+    expect(result.current.orthoCamRef.current.far).toBe(GALACTIC_FRAME.camera.far);
+    expect(camera.fov).toBe(62);
+
+    rerender({ frame: SYSTEM_FRAME });
+    expect(camera.far).toBe(SYSTEM_FRAME.camera.far);
+    expect(result.current.orthoCamRef.current.far).toBe(SYSTEM_FRAME.camera.far);
   });
 
   it('allows upward frame.camera.maxDistance increases without clamping to stale controls.maxDistance or restoring prevMax on rerender', () => {

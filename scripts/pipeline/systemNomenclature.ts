@@ -68,17 +68,40 @@ export function addKeyVariants(set: Set<string>, raw: string | undefined): void 
 }
 
 export function isDuplicateCatalogRecord(c: SystemSummaryNode, other: SystemSummaryNode): boolean {
+  const isCatalogId = (id: string): boolean =>
+    id.startsWith('gaia-') || id.startsWith('hyg-') || id.startsWith('hip-');
   const isOneGaiaOneHyg =
     (c.id.startsWith('gaia-') && (other.id.startsWith('hyg-') || other.id.startsWith('hip-'))) ||
     ((c.id.startsWith('hyg-') || c.id.startsWith('hip-')) && other.id.startsWith('gaia-'));
-  if (!isOneGaiaOneHyg) return false;
+  const isOneExoOneCatalog =
+    (c.id.startsWith('exo-') && isCatalogId(other.id)) ||
+    (other.id.startsWith('exo-') && isCatalogId(c.id));
+
+  if (!isOneGaiaOneHyg && !isOneExoOneCatalog) return false;
 
   const componentRegex = /(?:(?<=\d)|\s+)[A-E]{1,2}(?:\s*\(.*\))?$/i;
   const cLower = c.name.toLowerCase().trim();
   const otherLower = other.name.toLowerCase().trim();
   const hasCompC = componentRegex.test(c.name) || Boolean(SPECIAL_SYSTEM_NAME_MAP[cLower]);
   const hasCompOther = componentRegex.test(other.name) || Boolean(SPECIAL_SYSTEM_NAME_MAP[otherLower]);
-  return !hasCompC && !hasCompOther;
+  if (hasCompC || hasCompOther) return false;
+
+  if (isOneExoOneCatalog) {
+    const distSq = (c.x - other.x) ** 2 + (c.y - other.y) ** 2 + (c.z - other.z) ** 2;
+    const samePosition = distSq <= 0.08 * 0.08;
+    const normalizeBase = (raw: string): string =>
+      getStrippedSystemBaseName(raw).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const baseC = normalizeBase(c.name);
+    const baseOther = normalizeBase(other.name);
+    const properC = c.properName ? normalizeBase(c.properName) : '';
+    const properOther = other.properName ? normalizeBase(other.properName) : '';
+    const sameName =
+      (baseC.length > 0 && (baseC === baseOther || baseC === properOther)) ||
+      (properC.length > 0 && (properC === baseOther || properC === properOther));
+    return samePosition || sameName;
+  }
+
+  return true;
 }
 
 export function pruneAbsorbedCollections(params: ConsolidateMultiStarSystemsParams, absorbed: Set<string>): void {

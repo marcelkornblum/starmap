@@ -11,6 +11,7 @@ import type {
   CompactSearchEntry,
   SearchIndexEnvelope,
 } from '../../src/utils/compactDataTypes';
+import { toUrlSlug } from '../../src/utils/datasetLayerSlugs';
 import {
   indexExoplanets,
   indexStarSystems,
@@ -87,26 +88,42 @@ export function buildSearchIndices(
     startupEntries.push(stripSearchAliases(entry));
   };
 
+  const isReferencedByLayer = (entry: CompactSearchEntry): boolean => {
+    const refs = input.referencedLayerIds;
+    if (!refs || refs.size === 0) return false;
+    if (refs.has(entry.i)) return true;
+    const idSlug = toUrlSlug(entry.i);
+    if (idSlug && refs.has(idSlug)) return true;
+    const nameSlug = toUrlSlug(entry.n);
+    if (nameSlug && refs.has(nameSlug)) return true;
+    if (entry.a) {
+      for (const token of entry.a.split(' ')) {
+        if (token && refs.has(token)) return true;
+      }
+    }
+    return false;
+  };
+
   for (const entry of starsEntries) {
-    if (entry.h === 1 || input.referencedLayerIds?.has(entry.i)) {
+    if (entry.h === 1 || isReferencedByLayer(entry)) {
       addStartupEntry(entry);
     }
   }
   for (const entry of planetsEntries) {
-    if (entry.h === 1 || input.referencedLayerIds?.has(entry.i)) {
+    if (entry.h === 1 || isReferencedByLayer(entry)) {
       addStartupEntry(entry);
     }
   }
   for (const entry of minorBodiesEntries) {
     if (
       (entry.h === 1 && (Boolean(entry.o) || entry.u === 'construct')) ||
-      input.referencedLayerIds?.has(entry.i)
+      isReferencedByLayer(entry)
     ) {
       addStartupEntry(entry);
     }
   }
   for (const entry of structuresEntries) {
-    if (input.referencedLayerIds?.has(entry.i)) {
+    if (isReferencedByLayer(entry)) {
       addStartupEntry(entry);
     }
   }

@@ -3,6 +3,7 @@ import { useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
+import { DEFAULT_GALACTIC_MIN_DISTANCE_PC } from '../instrument/instrumentDefaults';
 import { GalaxyScene } from './GalaxyScene';
 import { GalacticCameraController } from './GalacticCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
@@ -31,7 +32,8 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = React.m
   );
   const [maxSafeDistance, setCeilingApertureRadiusPc] = useGalacticCeilingDistance({
     viewportAspect,
-    minDistancePc: 2.5,
+    minDistancePc: DEFAULT_GALACTIC_MIN_DISTANCE_PC,
+    targetCoords,
   });
 
   return (
@@ -42,7 +44,7 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = React.m
         makeDefault
         enableDamping
         dampingFactor={CONTROLS_DAMPING_FACTOR}
-        minDistance={2.5}
+        minDistance={DEFAULT_GALACTIC_MIN_DISTANCE_PC}
         maxDistance={maxSafeDistance}
       />
 
@@ -59,7 +61,7 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = React.m
         onFocusChange={onFocusChange}
         additionalEntities={additionalEntities}
         onCeilingApertureRadiusChange={setCeilingApertureRadiusPc}
-        minCameraDistance={2.5}
+        minCameraDistance={DEFAULT_GALACTIC_MIN_DISTANCE_PC}
         maxCameraDistance={maxSafeDistance}
       />
     </>

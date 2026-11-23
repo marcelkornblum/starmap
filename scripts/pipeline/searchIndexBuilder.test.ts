@@ -252,4 +252,80 @@ describe('searchIndexBuilder', () => {
     const crab = indices.structures.d.find((e) => e.i === 'crab-nebula');
     expect(crab?.u).toBe('hazard');
   });
+
+  it('matches referencedLayerIds against entry.i, toUrlSlug(entry.i), toUrlSlug(entry.n), and raw alias tokens before stripping', () => {
+    const systems: SystemSummaryNode[] = [
+      {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        properName: 'Tau Ceti',
+        x: 3.156,
+        y: 1.54,
+        z: -1.003,
+        dist: 3.652,
+        mag: 3.5,
+        absmag: 5.69,
+        spect: 'G8V',
+        starCount: 1,
+        planetCount: 2,
+        hasHabitableCandidate: true,
+        sectorId: 'sector_+000_+000_-025',
+      },
+      {
+        id: 'gaia-999999999999999999',
+        name: 'Vega',
+        properName: 'Vega',
+        x: 2.3,
+        y: -5.5,
+        z: 4.8,
+        dist: 7.68,
+        mag: 0.03,
+        absmag: 0.58,
+        spect: 'A0Va',
+        starCount: 1,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        sectorId: 'sector_+000_-025_+000',
+      },
+      {
+        id: 'HYG_1234',
+        name: 'Alias Matched Star',
+        x: 10,
+        y: 10,
+        z: 10,
+        dist: 17.32,
+        mag: 5.5,
+        absmag: 4.3,
+        spect: 'G2V',
+        starCount: 1,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        sectorId: 'sector_+000_+000_+000',
+      },
+    ];
+
+    const starAliasesById = new Map<string, string[]>([
+      ['gaia-2452378776434477184', ['Tau Ceti', 'HIP 8102', 'HD 10700']],
+      ['gaia-999999999999999999', ['Vega', 'Alpha Lyrae', 'HIP 91262']],
+      ['HYG_1234', ['custom-canon-alias', 'Another Alias']],
+    ]);
+
+    const indices = buildSearchIndices({
+      systems,
+      manifests: [],
+      structures: [],
+      solarBodies: [],
+      starAliasesById,
+      referencedLayerIds: new Set(['tau-ceti', 'alphalyrae', 'hyg-1234']),
+    });
+
+    // Matched via toUrlSlug(entry.n) === 'tau-ceti'
+    expect(indices.startup.d.some((e) => e.i === 'gaia-2452378776434477184')).toBe(true);
+    // Matched via raw alias token 'alphalyrae' before stripSearchAliases
+    expect(indices.startup.d.some((e) => e.i === 'gaia-999999999999999999')).toBe(true);
+    // Matched via toUrlSlug(entry.i) === 'hyg-1234'
+    expect(indices.startup.d.some((e) => e.i === 'HYG_1234')).toBe(true);
+    // Startup entries still strip raw aliases
+    expect(indices.startup.d.every((e) => e.a === undefined)).toBe(true);
+  });
 });

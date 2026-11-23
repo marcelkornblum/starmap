@@ -13,6 +13,9 @@ import {
   type SourceHostMeta,
 } from './exoplanetHosts';
 
+export const EARTH_MASSES_PER_JUPITER = 317.828;
+export const EARTH_RADII_PER_JUPITER = 11.209;
+
 export type RegisterExoplanetFn = (
   rawName: string,
   expName: string,
@@ -57,13 +60,13 @@ export function makeOrbit(
 export function parseOecCatalog(oecCsv: string, hasNasaCatalog: boolean, registerEntry: RegisterExoplanetFn): void {
   if (!oecCsv || !fs.existsSync(oecCsv)) return;
   const rows = parseCsvRowsSync(fs.readFileSync(oecCsv, 'utf-8'));
-  const h = buildCsvHeaderIndex(rows[0]);
-  const usePos = !h.has('system_rightascension') && (rows[0]?.length ?? 0) >= 24;
-  const col = (name: string, pos: number) => h.get(name) ?? (usePos ? pos : undefined);
+  const headerIndex = buildCsvHeaderIndex(rows[0]);
+  const usePos = !headerIndex.has('system_rightascension') && (rows[0]?.length ?? 0) >= 24;
+  const col = (name: string, pos: number) => headerIndex.get(name) ?? (usePos ? pos : undefined);
   for (let i = 1; i < rows.length; i++) {
     const parts = rows[i];
     if (!parts) continue;
-    const rawName = strAt(parts, h.get('name') ?? 0);
+    const rawName = strAt(parts, headerIndex.get('name') ?? 0);
     const parsed = splitPlanetName(rawName);
     if (!parsed || !rawName) continue;
     const [mass, radius, period, semimajoraxis, eccentricity] = [
@@ -79,8 +82,8 @@ export function parseOecCatalog(oecCsv: string, hasNasaCatalog: boolean, registe
       temperature = Math.round(hostTempK * Math.pow(0.7, 0.25) * Math.sqrt((hostRadiusRsun * 0.00465047) / (2 * semimajoraxis)) * 100) / 100;
       derivedTemp = true;
     }
-    const mEarth = !isNaN(mass) ? Math.round(mass * 317.828 * 100) / 100 : undefined;
-    const rEarth = !isNaN(radius) ? Math.round(radius * 11.209 * 100) / 100 : undefined;
+    const mEarth = !isNaN(mass) ? Math.round(mass * EARTH_MASSES_PER_JUPITER * 100) / 100 : undefined;
+    const rEarth = !isNaN(radius) ? Math.round(radius * EARTH_RADII_PER_JUPITER * 100) / 100 : undefined;
     const esi = computeEsi(rEarth, temperature);
     const theoreticalFlags = derivedTemp ? 1 | (esi !== undefined ? 8 : 0) : 0;
     const expName = expandGouldOrConstellationSuffix(rawName);
@@ -109,35 +112,35 @@ export function parseOecCatalog(oecCsv: string, hasNasaCatalog: boolean, registe
 export function parseNasaCatalog(nasaCsv: string, registerEntry: RegisterExoplanetFn): void {
   if (!nasaCsv || !fs.existsSync(nasaCsv)) return;
   const rows = parseCsvRowsSync(fs.readFileSync(nasaCsv, 'utf-8'));
-  const h = buildCsvHeaderIndex(rows[0]);
+  const headerIndex = buildCsvHeaderIndex(rows[0]);
   for (let i = 1; i < rows.length; i++) {
     const parts = rows[i];
     if (!parts) continue;
-    const planetName = strAt(parts, h.get('pl_name'));
-    const hostName = strAt(parts, h.get('hostname'));
+    const planetName = strAt(parts, headerIndex.get('pl_name'));
+    const hostName = strAt(parts, headerIndex.get('hostname'));
     if (!planetName || !hostName) continue;
     const [period, semimajoraxis, massEarth, radiusEarth, temperature] = [
-      numAt(parts, h.get('pl_orbper')), numAt(parts, h.get('pl_orbsmax')),
-      numAt(parts, h.get('pl_bmasse')), numAt(parts, h.get('pl_rade')), numAt(parts, h.get('pl_eqt')),
+      numAt(parts, headerIndex.get('pl_orbper')), numAt(parts, headerIndex.get('pl_orbsmax')),
+      numAt(parts, headerIndex.get('pl_bmasse')), numAt(parts, headerIndex.get('pl_rade')), numAt(parts, headerIndex.get('pl_eqt')),
     ];
-    const stLumLog = numAt(parts, h.get('st_lum'));
+    const stLumLog = numAt(parts, headerIndex.get('st_lum'));
     const expName = expandGouldOrConstellationSuffix(planetName);
 
     registerEntry(planetName, expName, {
       id: expName.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: expName, letter: planetName.split(' ').pop() || 'b',
-      discoveryYear: parseInt(strAt(parts, h.get('disc_year')), 10) || undefined,
-      discoveryMethod: strAt(parts, h.get('discoverymethod')) || undefined,
-      massMearth: finiteOrUndefined(massEarth), massMjup: Number.isFinite(massEarth) ? massEarth / 317.828 : undefined,
-      radiusRearth: finiteOrUndefined(radiusEarth), radiusRjup: Number.isFinite(radiusEarth) ? radiusEarth / 11.209 : undefined,
+      discoveryYear: parseInt(strAt(parts, headerIndex.get('disc_year')), 10) || undefined,
+      discoveryMethod: strAt(parts, headerIndex.get('discoverymethod')) || undefined,
+      massMearth: finiteOrUndefined(massEarth), massMjup: Number.isFinite(massEarth) ? massEarth / EARTH_MASSES_PER_JUPITER : undefined,
+      radiusRearth: finiteOrUndefined(radiusEarth), radiusRjup: Number.isFinite(radiusEarth) ? radiusEarth / EARTH_RADII_PER_JUPITER : undefined,
       equilibriumTempK: finiteOrUndefined(temperature), esi: computeEsi(finiteOrUndefined(radiusEarth), finiteOrUndefined(temperature)),
       orbit: makeOrbit(semimajoraxis, 0, 0, 0, 0, period), confidence: 'confirmed',
     }, hostName, 'nasa', {
       hostName,
-      raDeg: finiteOrUndefined(numAt(parts, h.get('ra'))), decDeg: finiteOrUndefined(numAt(parts, h.get('dec'))),
-      distPc: finiteOrUndefined(numAt(parts, h.get('sy_dist'))),
-      mag: finiteOrUndefined(numAt(parts, h.get('sy_vmag'))), spect: strAt(parts, h.get('st_spectype')) || undefined,
-      teffK: finiteOrUndefined(numAt(parts, h.get('st_teff'))), radiusRsun: finiteOrUndefined(numAt(parts, h.get('st_rad'))),
-      massMsun: finiteOrUndefined(numAt(parts, h.get('st_mass'))),
+      raDeg: finiteOrUndefined(numAt(parts, headerIndex.get('ra'))), decDeg: finiteOrUndefined(numAt(parts, headerIndex.get('dec'))),
+      distPc: finiteOrUndefined(numAt(parts, headerIndex.get('sy_dist'))),
+      mag: finiteOrUndefined(numAt(parts, headerIndex.get('sy_vmag'))), spect: strAt(parts, headerIndex.get('st_spectype')) || undefined,
+      teffK: finiteOrUndefined(numAt(parts, headerIndex.get('st_teff'))), radiusRsun: finiteOrUndefined(numAt(parts, headerIndex.get('st_rad'))),
+      massMsun: finiteOrUndefined(numAt(parts, headerIndex.get('st_mass'))),
       lumLsun: Number.isFinite(stLumLog) ? Math.pow(10, stLumLog) : undefined,
     }, true);
   }
@@ -146,17 +149,17 @@ export function parseNasaCatalog(nasaCsv: string, registerEntry: RegisterExoplan
 export function parseEuCatalog(euCsv: string, hasNasaCatalog: boolean, registerEntry: RegisterExoplanetFn): void {
   if (!euCsv || !fs.existsSync(euCsv)) return;
   const rows = parseCsvRowsSync(fs.readFileSync(euCsv, 'utf-8'));
-  const h = buildCsvHeaderIndex(rows[0]);
-  const isLegacyPos = (rows[0]?.length ?? 0) >= 64 && !h.has('orbital_period');
-  const col = (name: string, pos: number) => h.get(name) ?? (isLegacyPos ? pos : undefined);
+  const headerIndex = buildCsvHeaderIndex(rows[0]);
+  const isLegacyPos = (rows[0]?.length ?? 0) >= 64 && !headerIndex.has('orbital_period');
+  const col = (name: string, pos: number) => headerIndex.get(name) ?? (isLegacyPos ? pos : undefined);
   for (let i = 1; i < rows.length; i++) {
     const parts = rows[i];
     if (!parts) continue;
-    const rawName = strAt(parts, h.get('name') ?? 0);
+    const rawName = strAt(parts, headerIndex.get('name') ?? 0);
     const parsed = splitPlanetName(rawName);
     if (!parsed || !rawName) continue;
-    const hostName = strAt(parts, h.get('star_name')) || parsed.hostName;
-    const status = strAt(parts, h.get('planet_status')).toLowerCase();
+    const hostName = strAt(parts, headerIndex.get('star_name')) || parsed.hostName;
+    const status = strAt(parts, headerIndex.get('planet_status')).toLowerCase();
     const isConfirmedEu = status === '' || status === 'confirmed';
     const [mass, radius, period, semimajoraxis, eccentricity, inclination] = [
       numAt(parts, col('mass', 2)), numAt(parts, col('radius', 8)), numAt(parts, col('orbital_period', 11)),
@@ -168,16 +171,16 @@ export function parseEuCatalog(euCsv: string, hasNasaCatalog: boolean, registerE
       id: expName.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: expName, letter: parsed.letter,
       discoveryYear: parseInt(strAt(parts, col('discovered', 24)), 10) || undefined,
       discoveryMethod: strAt(parts, col('detection_type', 63)) || undefined,
-      massMjup: finiteOrUndefined(mass), massMearth: Number.isFinite(mass) ? Math.round(mass * 317.828 * 100) / 100 : undefined,
-      radiusRjup: finiteOrUndefined(radius), radiusRearth: Number.isFinite(radius) ? Math.round(radius * 11.209 * 100) / 100 : undefined,
+      massMjup: finiteOrUndefined(mass), massMearth: Number.isFinite(mass) ? Math.round(mass * EARTH_MASSES_PER_JUPITER * 100) / 100 : undefined,
+      radiusRjup: finiteOrUndefined(radius), radiusRearth: Number.isFinite(radius) ? Math.round(radius * EARTH_RADII_PER_JUPITER * 100) / 100 : undefined,
       orbit: makeOrbit(semimajoraxis, eccentricity, inclination, 0, 0, period),
       confidence: status === 'confirmed' || (status === '' && !hasNasaCatalog) ? 'confirmed' : 'candidate',
     }, hostName, 'eu', {
       hostName,
-      raDeg: finiteOrUndefined(numAt(parts, h.get('ra'))), decDeg: finiteOrUndefined(numAt(parts, h.get('dec'))),
-      distPc: finiteOrUndefined(numAt(parts, h.get('star_distance'))),
-      mag: finiteOrUndefined(numAt(parts, h.get('mag_v'))), spect: strAt(parts, h.get('star_sp_type')) || undefined,
-      teffK: finiteOrUndefined(numAt(parts, h.get('star_teff'))),
+      raDeg: finiteOrUndefined(numAt(parts, headerIndex.get('ra'))), decDeg: finiteOrUndefined(numAt(parts, headerIndex.get('dec'))),
+      distPc: finiteOrUndefined(numAt(parts, headerIndex.get('star_distance'))),
+      mag: finiteOrUndefined(numAt(parts, headerIndex.get('mag_v'))), spect: strAt(parts, headerIndex.get('star_sp_type')) || undefined,
+      teffK: finiteOrUndefined(numAt(parts, headerIndex.get('star_teff'))),
     }, isConfirmedEu);
   }
 }

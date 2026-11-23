@@ -94,6 +94,38 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
         { signal: controller.signal },
       );
     });
+
+    it('removes abort event listener in finally() once fetchSearchShard settles without aborting', async () => {
+      const controller = new AbortController();
+      const addSpy = vi.spyOn(controller.signal, 'addEventListener');
+      const removeSpy = vi.spyOn(controller.signal, 'removeEventListener');
+      const fetchMock = vi.fn(async () => makeShardResponse('stars') as unknown as Response);
+
+      await fetchSearchShard('stars', fetchMock as unknown as typeof fetch, controller.signal);
+
+      expect(addSpy).toHaveBeenCalledWith('abort', expect.any(Function), { once: true });
+      const registeredHandler = addSpy.mock.calls[0]?.[1];
+      expect(removeSpy).toHaveBeenCalledWith('abort', registeredHandler);
+    });
+
+    it('removes abort event listener in finally() even when fetchSearchShard rejects with HTTP error', async () => {
+      const controller = new AbortController();
+      const addSpy = vi.spyOn(controller.signal, 'addEventListener');
+      const removeSpy = vi.spyOn(controller.signal, 'removeEventListener');
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      });
+
+      await expect(
+        fetchSearchShard('layers', fetchMock as unknown as typeof fetch, controller.signal),
+      ).rejects.toThrow(/Failed to load search shard "layers"/);
+
+      expect(addSpy).toHaveBeenCalledWith('abort', expect.any(Function), { once: true });
+      const registeredHandler = addSpy.mock.calls[0]?.[1];
+      expect(removeSpy).toHaveBeenCalledWith('abort', registeredHandler);
+    });
   });
 
   describe('Bounded LRU cache', () => {

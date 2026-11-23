@@ -5,6 +5,7 @@
  * based on device capabilities (CPU cores, memory, WebGL constraints, saveData).
  */
 
+import { DEFAULT_SECTOR_SIZE_PC } from '../utils/sectorMath';
 import {
   TIER_PROFILE_RECORDS,
   resolveApertureCutoffForViewportWidth,
@@ -14,10 +15,8 @@ import {
   type WebGLGpuTelemetry,
 } from './deviceTierProfiles';
 import {
-  DEFAULT_REFERENCE_APERTURE_RADIUS_PC,
-  DEFAULT_REFERENCE_CAMERA_DISTANCE_PC,
-  clampDenseVolumeCeilingDistancePc,
-  type DenseHorizonCeilingClampOptions,
+  DEFAULT_MIN_CAMERA_DISTANCE_PC,
+  computeMaxSafeCameraDistancePc,
 } from './deviceTierHorizonMath';
 
 export {
@@ -27,12 +26,24 @@ export {
   DEFAULT_DENSE_EDGE_MARGIN_PC,
   DEFAULT_HORIZON_APERTURE_RATIO,
   DEFAULT_GALACTIC_FOV_DEG,
+  DEFAULT_AVG_BYTES_PER_SECTOR,
+  DEFAULT_GALACTIC_REFERENCE_CAMERA_DISTANCE_PC,
+  DEFAULT_GALACTIC_MIN_CAMERA_DISTANCE_PC,
+  ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER,
+  MEAN_CATALOG_STARS_PER_CUBIC_PC,
+  DEFAULT_MIN_CAMERA_DISTANCE_PC,
   computeHorizonReachPerCameraDist,
   computeActiveSectorHorizonCoverPc,
   clampDenseVolumeCeilingDistancePc,
+  computeMaxSafeCameraDistancePc,
+  computeCeilingMaxCameraDistancePc,
+  computeGalacticCeilingDistancePc,
   type HorizonReachOptions,
   type ActiveSectorHorizonCoverOptions,
   type DenseHorizonCeilingClampOptions,
+  type CameraDistanceBudgetOptions,
+  type CeilingCameraDistanceOptions,
+  type GalacticCeilingDistanceOptions,
 } from './deviceTierHorizonMath';
 
 export type DevicePerformanceTier = 'tier1' | 'tier2' | 'tier3';
@@ -58,27 +69,13 @@ export interface DeviceTierBudget {
   readonly maxGpuUploadsPerFrame: number;
 }
 
-export interface CameraDistanceBudgetOptions {
+export interface ClampCameraDistanceOptions {
   readonly avgBytesPerSector?: number;
   readonly sectorSizePc?: number;
   readonly minDistancePc?: number;
-}
-
-export interface ClampCameraDistanceOptions extends CameraDistanceBudgetOptions {
   readonly currentAllocatedBytes?: number;
   readonly currentDistancePc?: number;
 }
-
-export interface CeilingCameraDistanceOptions extends DenseHorizonCeilingClampOptions {
-  readonly ceilingApertureRadiusPc?: number | null;
-  readonly zoomOutMultiplier?: number;
-  readonly minDistancePc?: number;
-}
-
-export const ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER = 2.25;
-export const MEAN_CATALOG_STARS_PER_CUBIC_PC = 751.5 / (25 * 25 * 25);
-
-export const DEFAULT_MIN_CAMERA_DISTANCE_PC = 1;
 
 export const APERTURE_ACTIVE_CUTOFF_MOBILE = 40;
 export const APERTURE_ACTIVE_CUTOFF_TABLET = 60;
@@ -216,77 +213,17 @@ export function getDeviceTierBudget(
 
 export function estimateRequiredSectorsForDistance(
   cameraDistancePc: number,
-  sectorSizePc = 25,
+  sectorSizePc = DEFAULT_SECTOR_SIZE_PC,
 ): number {
   if (!Number.isFinite(cameraDistancePc) || cameraDistancePc <= 0) {
     return 1;
   }
 
-  const effectiveSectorSize = Number.isFinite(sectorSizePc) && sectorSizePc > 0 ? sectorSizePc : 25;
+  const effectiveSectorSize =
+    Number.isFinite(sectorSizePc) && sectorSizePc > 0 ? sectorSizePc : DEFAULT_SECTOR_SIZE_PC;
   const sphericalVolume = (4 / 3) * Math.PI * cameraDistancePc ** 3;
   const sectorVolume = effectiveSectorSize ** 3;
   return Math.max(1, Math.ceil(sphericalVolume / sectorVolume));
-}
-
-export function computeMaxSafeCameraDistancePc(
-  budget: DeviceTierBudget,
-  options?: CameraDistanceBudgetOptions,
-): number {
-  const rawAvgBytes = options?.avgBytesPerSector;
-  const avgBytesPerSector =
-    rawAvgBytes !== undefined && Number.isFinite(rawAvgBytes) && rawAvgBytes > 0
-      ? rawAvgBytes
-      : 12_024;
-
-  const rawSectorSize = options?.sectorSizePc;
-  const sectorSizePc =
-    rawSectorSize !== undefined && Number.isFinite(rawSectorSize) && rawSectorSize > 0
-      ? rawSectorSize
-      : 25;
-
-  const rawMinDist = options?.minDistancePc;
-  const minDistancePc =
-    rawMinDist !== undefined && Number.isFinite(rawMinDist) && rawMinDist > 0
-      ? rawMinDist
-      : DEFAULT_MIN_CAMERA_DISTANCE_PC;
-
-  const maxSectorsFromMemory = Math.floor(budget.maxBufferBytes / avgBytesPerSector);
-  const maxSectors = Math.max(1, Math.min(budget.maxActiveSectors, maxSectorsFromMemory));
-
-  const rawDist = sectorSizePc * Math.cbrt((3 * maxSectors) / (4 * Math.PI)) * 3.3;
-  return Math.min(budget.maxCameraDistancePc, Math.max(minDistancePc, rawDist));
-}
-
-export function computeCeilingMaxCameraDistancePc(
-  budget: DeviceTierBudget,
-  options?: CeilingCameraDistanceOptions,
-): number {
-  const refApertureRadius = options?.referenceApertureRadiusPc ?? DEFAULT_REFERENCE_APERTURE_RADIUS_PC;
-  const refCameraDist = options?.referenceCameraDistancePc ?? DEFAULT_REFERENCE_CAMERA_DISTANCE_PC;
-  const zoomMultiplier = options?.zoomOutMultiplier ?? ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER;
-  const minDistancePc = options?.minDistancePc ?? DEFAULT_MIN_CAMERA_DISTANCE_PC;
-
-  const maxSafe = computeMaxSafeCameraDistancePc(budget, { minDistancePc: options?.minDistancePc });
-
-  let effectiveCeilingRadiusPc: number;
-  if (
-    options?.ceilingApertureRadiusPc !== undefined &&
-    options.ceilingApertureRadiusPc !== null &&
-    Number.isFinite(options.ceilingApertureRadiusPc) &&
-    options.ceilingApertureRadiusPc > 0
-  ) {
-    effectiveCeilingRadiusPc = options.ceilingApertureRadiusPc;
-  } else {
-    effectiveCeilingRadiusPc = Math.cbrt(
-      (3 * budget.maxActiveEntities) / (4 * Math.PI * MEAN_CATALOG_STARS_PER_CUBIC_PC),
-    );
-  }
-
-  const ceilingCameraDist = effectiveCeilingRadiusPc * (refCameraDist / refApertureRadius);
-  const cappedDist = ceilingCameraDist * zoomMultiplier;
-  const hardwareCeilingDistPc = Math.min(maxSafe, Math.max(minDistancePc, cappedDist));
-
-  return clampDenseVolumeCeilingDistancePc(budget, hardwareCeilingDistPc, minDistancePc, options);
 }
 
 export function clampCameraDistanceToMemoryBudget(

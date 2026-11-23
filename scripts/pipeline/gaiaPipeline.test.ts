@@ -5,7 +5,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import type { StarmapNode } from '../../src/types/astro';
 import { decodeBinarySector, BINARY_SECTOR_MAGIC } from '../../src/utils/binarySectorCodec';
-import { buildStarDataPipeline } from './gaiaPipeline';
+import { buildGaiaDataPipeline } from './gaiaPipeline';
 
 function makeGcnsLine(f: {
   sourceId: string;
@@ -38,7 +38,7 @@ function makeGcnsLine(f: {
   return chars.join('');
 }
 
-describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', () => {
+describe('Data Pipeline - buildGaiaDataPipeline (Streaming & Active Shards)', () => {
   let tempRoot: string;
   let tempGcnsGzPath: string;
   let tempJsonPath: string;
@@ -100,7 +100,7 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
   it('ingests gzipped GCNS fixture and produces active shards without unreferenced legacy outputs', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      const summary = await buildStarDataPipeline(tempGcnsGzPath, tempJsonPath, {
+      const summary = await buildGaiaDataPipeline(tempGcnsGzPath, tempJsonPath, {
         partitionsDir: tempPartitionsDir,
         summariesDir: tempSummariesDir,
         detailsDir: tempDetailsDir,
@@ -147,7 +147,7 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
       expect(firstRunData.v).toBe(1);
       expect(firstRunData.t).toBe('2026-01-01T00:00:00.000Z');
 
-      await buildStarDataPipeline(tempGcnsGzPath, tempJsonPath, {
+      await buildGaiaDataPipeline(tempGcnsGzPath, tempJsonPath, {
         partitionsDir: tempPartitionsDir,
         summariesDir: tempSummariesDir,
         detailsDir: tempDetailsDir,
@@ -196,7 +196,7 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
       const partitionsDir = path.join(dataDir, 'partitions');
       fs.writeFileSync(gcnsPath, zlib.gzipSync(`${posBoundary}\n${negBoundary}\n`));
 
-      await buildStarDataPipeline(gcnsPath, jsonPath, {
+      await buildGaiaDataPipeline(gcnsPath, jsonPath, {
         partitionsDir,
         summariesDir: path.join(dataDir, 'summaries'),
         detailsDir: path.join(dataDir, 'details'),
@@ -289,7 +289,7 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
       const jsonPath = path.join(exoRoot, 'stars.json');
       const dataDir = path.join(exoRoot, 'data');
 
-      await buildStarDataPipeline(gcnsPath, jsonPath, {
+      await buildGaiaDataPipeline(gcnsPath, jsonPath, {
         partitionsDir: path.join(dataDir, 'partitions'),
         summariesDir: path.join(dataDir, 'summaries'),
         detailsDir: path.join(dataDir, 'details'),
@@ -395,7 +395,7 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
       const jsonPath = path.join(hygRoot, 'stars.json');
       const dataDir = path.join(hygRoot, 'data');
 
-      await buildStarDataPipeline(gcnsPath, jsonPath, {
+      await buildGaiaDataPipeline(gcnsPath, jsonPath, {
         partitionsDir: path.join(dataDir, 'partitions'),
         summariesDir: path.join(dataDir, 'summaries'),
         detailsDir: path.join(dataDir, 'details'),
@@ -467,7 +467,7 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
       const jsonPath = path.join(dedupRoot, 'stars.json');
       const dataDir = path.join(dedupRoot, 'data');
 
-      const summary = await buildStarDataPipeline(gcnsPath, jsonPath, {
+      const summary = await buildGaiaDataPipeline(gcnsPath, jsonPath, {
         partitionsDir: path.join(dataDir, 'partitions'),
         summariesDir: path.join(dataDir, 'summaries'),
         detailsDir: path.join(dataDir, 'details'),
@@ -515,4 +515,23 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
       fs.rmSync(dedupRoot, { recursive: true, force: true });
     }
   }, 10000);
+
+  it('rejects cleanly when GCNS input file does not exist', async () => {
+    const missingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-missing-'));
+    try {
+      const missingGcns = path.join(missingRoot, 'nonexistent_gcns.dat.gz');
+      const jsonPath = path.join(missingRoot, 'stars.json');
+      await expect(
+        buildGaiaDataPipeline(missingGcns, jsonPath, {
+          hygCsvPath: '',
+          iauCsvPath: '',
+          oecCsvPath: '',
+          nasaCsvPath: '',
+          euCsvPath: '',
+        }),
+      ).rejects.toThrow();
+    } finally {
+      fs.rmSync(missingRoot, { recursive: true, force: true });
+    }
+  });
 });

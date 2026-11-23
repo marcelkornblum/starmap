@@ -143,6 +143,7 @@ export const fetchSearchShard = async (
     });
   }
 
+  let abortCleanup: (() => void) | undefined;
   const loadPromise: Promise<readonly CompactSearchEntry[]> = (async (): Promise<
     readonly CompactSearchEntry[]
   > => {
@@ -167,21 +168,30 @@ export const fetchSearchShard = async (
     resolvedShardCache.set(shard, payload.d);
     resolvedFilterCache.delete('startup');
     resolvedFilterCache.delete('all');
+    if (shard !== 'core') {
+      resolvedFilterCache.delete(shard);
+    }
     notifySearchListeners();
     return payload.d;
-  })().catch((err: unknown) => {
-    shardCache.delete(shard);
-    throw err;
-  });
+  })()
+    .catch((err: unknown) => {
+      shardCache.delete(shard);
+      throw err;
+    })
+    .finally(() => {
+      abortCleanup?.();
+    });
 
   if (signal) {
     const onAbort = () => {
-      signal.removeEventListener('abort', onAbort);
       if (shardCache.get(shard) === loadPromise) {
         shardCache.delete(shard);
       }
     };
-    signal.addEventListener('abort', onAbort);
+    signal.addEventListener('abort', onAbort, { once: true });
+    abortCleanup = () => {
+      signal.removeEventListener('abort', onAbort);
+    };
   }
 
   shardCache.set(shard, loadPromise);

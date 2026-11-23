@@ -160,9 +160,9 @@ export async function buildGaiaDataPipeline(
       bucket.push(summary);
 
       if ((options?.detailsDir || options?.searchDir || options?.dataDir) && (matchedPlanets.length > 0 || matchedDisks.length > 0 || mag <= 4.0)) {
-        let mb = sectorManifestsMap.get(sectorId);
-        if (!mb) sectorManifestsMap.set(sectorId, (mb = []));
-        mb.push({
+        let sectorManifests = sectorManifestsMap.get(sectorId);
+        if (!sectorManifests) sectorManifestsMap.set(sectorId, (sectorManifests = []));
+        const manifest: SystemManifest = {
           id: sysId, name, properName, x, y, z, dist: round3(dist),
           velocity: { vx: round2(velocity.vx), vy: round2(velocity.vy), vz: round2(velocity.vz), speed: round2(velocity.speed) },
           sectorId,
@@ -176,8 +176,9 @@ export async function buildGaiaDataPipeline(
           }],
           planets: matchedPlanets, ...(matchedDisks.length > 0 ? { disks: matchedDisks } : {}),
           planetCompositionCounts, hasHabitableCandidate, ...(tags.length > 0 ? { tags } : {}), ...(hazardMask > 0 ? { hazardMask } : {}),
-        });
-        allSystemManifests.push(mb[mb.length - 1]!);
+        };
+        sectorManifests.push(manifest);
+        allSystemManifests.push(manifest);
       }
 
       writeStream.write(`,${JSON.stringify({
@@ -190,8 +191,20 @@ export async function buildGaiaDataPipeline(
       totalStars++;
     }
 
+    let settled = false;
+    const failPipeline = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      writeStream.destroy();
+      reject(err);
+    };
+
     let multiStarConsolidationResult: ReturnType<typeof consolidateMultiStarSystems> | null = null;
-    const rl = readline.createInterface({ input: fs.createReadStream(resolvedGcns).pipe(zlib.createGunzip()), crlfDelay: Infinity });
+    const readStream = fs.createReadStream(resolvedGcns);
+    const gunzipStream = zlib.createGunzip();
+    readStream.on('error', failPipeline);
+    gunzipStream.on('error', failPipeline);
+    const rl = readline.createInterface({ input: readStream.pipe(gunzipStream), crlfDelay: Infinity });
 
     rl.on('line', (line: string) => {
       if (line.length < 130) return;
@@ -262,11 +275,13 @@ export async function buildGaiaDataPipeline(
     });
 
     writeStream.on('finish', () => {
+      if (settled) return;
       try {
         const { galacticCount, solarBodiesCount } = writePipelineArtifacts({
           options, sectorMap, cataloguedSummaries, allSystemManifests, starAliasesById,
           multiStarConsolidationResult: multiStarConsolidationResult ?? undefined,
         });
+        settled = true;
         resolve({
           totalStars, totalRows: totalStars, validStars: totalStars, skippedRows: 0,
           kinematicCount: totalKinematics, totalKinematics, localVolume10pcCount: local10pcCount, local10pcCount,
@@ -275,19 +290,12 @@ export async function buildGaiaDataPipeline(
           galacticStructuresCount: galacticCount, solarSystemBodiesCount: solarBodiesCount, outputPath: resolvedOutput,
         });
       } catch (err) {
+        settled = true;
         reject(err);
       }
     });
 
-    writeStream.on('error', reject);
-    rl.on('error', reject);
+    writeStream.on('error', failPipeline);
+    rl.on('error', failPipeline);
   });
-}
-
-export async function buildStarDataPipeline(
-  inputPath: string,
-  outputJsonPath: string,
-  options?: BuildPipelineOptions,
-): Promise<PipelineSummary> {
-  return buildGaiaDataPipeline(path.resolve(inputPath), outputJsonPath, options);
 }

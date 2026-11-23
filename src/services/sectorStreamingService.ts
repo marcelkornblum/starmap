@@ -37,9 +37,11 @@ export class SectorStreamingManager {
   private readonly onSectorsLoadedListeners = new Set<() => void>();
   private activeSet = new Set<string>();
   private prefetchSet = new Set<string>();
+  private budgetDeferredSet = new Set<string>();
   private pendingUploadQueue: string[] = [];
   private isUploadQueueDirty = false;
   private tick = 0;
+  private updateRequestSeq = 0;
   private isDisposed = false;
   private lastPositionPc: [number, number, number] | null = null;
   private unsubscribeDeviceTier: (() => void) | null = null;
@@ -54,9 +56,17 @@ export class SectorStreamingManager {
     if (!options?.budget) {
       this.unsubscribeDeviceTier = subscribeDeviceTier(() => {
         if (this.isDisposed) return;
+        const prevBudget = this.budget;
         const nextBudget = getDeviceTierBudget();
-        if (nextBudget === this.budget) return;
+        if (nextBudget === prevBudget) return;
         this.budget = nextBudget;
+        const isBudgetUpgrade =
+          nextBudget.maxActivePoints > prevBudget.maxActivePoints ||
+          nextBudget.maxBufferBytes > prevBudget.maxBufferBytes ||
+          nextBudget.maxActiveSectors > prevBudget.maxActiveSectors;
+        if (isBudgetUpgrade) {
+          this.promoteBudgetDeferred();
+        }
         this.trimUploadedToBudget();
         if (this.lastPositionPc) {
           void this.updateCameraPosition(this.lastPositionPc);
@@ -67,6 +77,7 @@ export class SectorStreamingManager {
 
   async updateCameraPosition(positionPc: readonly [number, number, number]): Promise<SectorRingPlan> {
     if (this.isDisposed) throw new Error('SectorStreamingManager has been disposed');
+    const requestSeq = ++this.updateRequestSeq;
 
     const posX = Number.isFinite(positionPc?.[0]) ? positionPc[0] : 0;
     const posY = Number.isFinite(positionPc?.[1]) ? positionPc[1] : 0;
@@ -81,22 +92,31 @@ export class SectorStreamingManager {
 
     this.activeSet = new Set(plan.activeSectorIds);
     this.prefetchSet = new Set(plan.prefetchSectorIds);
-    this.bufferCache.demoteDepartedActive(this.activeSet);
+    for (const sectorId of this.budgetDeferredSet) {
+      if (!this.activeSet.has(sectorId)) {
+        this.budgetDeferredSet.delete(sectorId);
+      }
+    }
+    const demotedDeparted = this.bufferCache.demoteDepartedActive(this.activeSet);
     this.trimUploadedToBudget();
     this.bufferCache.clearDistances();
     this.pendingUploadQueue = this.pendingUploadQueue.filter((id) => this.activeSet.has(id));
+    if (demotedDeparted) {
+      this.promoteBudgetDeferred();
+    }
 
     const fetchPromises: Promise<DecodedBinarySector | null>[] = [];
     const onNewlyCached = (sectorId: string) => {
-      if (this.activeSet.has(sectorId) && !this.pendingUploadQueue.includes(sectorId)) {
+      if (this.isDisposed) return;
+      if (
+        this.activeSet.has(sectorId) &&
+        !this.budgetDeferredSet.has(sectorId) &&
+        !this.pendingUploadQueue.includes(sectorId)
+      ) {
         this.pendingUploadQueue.push(sectorId);
         this.isUploadQueueDirty = true;
       }
-      const evicted = this.bufferCache.enforceLruCapacity(this.budget.lruCacheMaxSectors, this.activeSet);
-      for (const ev of evicted) {
-        const qIdx = this.pendingUploadQueue.indexOf(ev);
-        if (qIdx !== -1) this.pendingUploadQueue.splice(qIdx, 1);
-      }
+      this.enforceCacheCapacityAndRePromote();
     };
 
     const processRing = (sectorIds: readonly string[], priority: 'high' | 'low') => {
@@ -109,7 +129,12 @@ export class SectorStreamingManager {
         if (cached) {
           cached.lastAccessedTick = this.tick;
           cached.distanceSq = distSq;
-          if (priority === 'high' && cached.state === 'decoded' && !this.pendingUploadQueue.includes(sectorId)) {
+          if (
+            priority === 'high' &&
+            cached.state === 'decoded' &&
+            !this.budgetDeferredSet.has(sectorId) &&
+            !this.pendingUploadQueue.includes(sectorId)
+          ) {
             this.pendingUploadQueue.push(sectorId);
           }
         } else if (!this.bufferCache.isMissing(sectorId)) {
@@ -130,21 +155,19 @@ export class SectorStreamingManager {
 
     processRing(plan.activeSectorIds, 'high');
     processRing(plan.prefetchSectorIds, 'low');
-    const evicted = this.bufferCache.enforceLruCapacity(this.budget.lruCacheMaxSectors, this.activeSet);
-    for (const ev of evicted) {
-      const qIdx = this.pendingUploadQueue.indexOf(ev);
-      if (qIdx !== -1) this.pendingUploadQueue.splice(qIdx, 1);
-    }
+    this.enforceCacheCapacityAndRePromote();
     this.isUploadQueueDirty = true;
 
     await Promise.allSettled(fetchPromises);
-    if (!this.isDisposed) this.notifyListeners();
+    if (!this.isDisposed && requestSeq === this.updateRequestSeq) {
+      this.notifyListeners();
+    }
     return plan;
   }
 
-  processFrameUploads(maxUploads = this.budget.maxGpuUploadsPerFrame): string[] {
+  processFrameUploads(maxUploads = this.budget.maxGpuUploadsPerFrame): readonly string[] {
     if (this.isDisposed || maxUploads <= 0 || this.pendingUploadQueue.length === 0) {
-      return EMPTY_UPLOADS as string[];
+      return EMPTY_UPLOADS;
     }
 
     if (this.isUploadQueueDirty) {
@@ -177,12 +200,13 @@ export class SectorStreamingManager {
       if (fitsPoints && canAllocate) {
         entry.gpuResource = this.gpuResourceFactory(entry.decoded, entry.sectorId);
         entry.state = 'uploaded';
+        this.budgetDeferredSet.delete(sectorId);
         currentActivePoints += entry.decoded.header.count;
         currentUploadedSectors++;
         currentGpuBytes += entry.byteLength;
         uploadedThisFrame.push(sectorId);
       } else {
-        remainingQueue.push(sectorId);
+        this.budgetDeferredSet.add(sectorId);
       }
     }
 
@@ -269,6 +293,32 @@ export class SectorStreamingManager {
     }
   }
 
+  private enforceCacheCapacityAndRePromote(): void {
+    const disposedBefore = this.bufferCache.totalDisposedGpuCount;
+    const evicted = this.bufferCache.enforceLruCapacity(this.budget.lruCacheMaxSectors, this.activeSet);
+    for (const ev of evicted) {
+      this.budgetDeferredSet.delete(ev);
+      const qIdx = this.pendingUploadQueue.indexOf(ev);
+      if (qIdx !== -1) this.pendingUploadQueue.splice(qIdx, 1);
+    }
+    if (this.bufferCache.totalDisposedGpuCount > disposedBefore) {
+      this.promoteBudgetDeferred();
+    }
+  }
+
+  private promoteBudgetDeferred(): void {
+    if (this.budgetDeferredSet.size === 0) return;
+    for (const sectorId of this.budgetDeferredSet) {
+      if (!this.activeSet.has(sectorId)) continue;
+      const cached = this.bufferCache.get(sectorId);
+      if (cached?.state === 'decoded' && !this.pendingUploadQueue.includes(sectorId)) {
+        this.pendingUploadQueue.push(sectorId);
+        this.isUploadQueueDirty = true;
+      }
+    }
+    this.budgetDeferredSet.clear();
+  }
+
   private notifyListeners(): void {
     for (const listener of this.onSectorsLoadedListeners) {
       try {
@@ -287,6 +337,7 @@ export class SectorStreamingManager {
     this.bufferCache.dispose();
     this.activeSet.clear();
     this.prefetchSet.clear();
+    this.budgetDeferredSet.clear();
     this.pendingUploadQueue = [];
     this.isUploadQueueDirty = false;
   }

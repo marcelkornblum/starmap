@@ -30,6 +30,7 @@ describe('referenceFrames config', () => {
     expect(SYSTEM_FRAME.radius).toBe(6);
     expect(SYSTEM_FRAME.camera.minDistance).toBe(2);
     expect(SYSTEM_FRAME.camera.maxDistance).toBe(150);
+    expect(SYSTEM_FRAME.camera.far).toBe(2_500);
     expect(SYSTEM_FRAME.camera.baseFov).toBe(35);
     expect(SYSTEM_FRAME.screenConstant).toBe(true);
     expect(SYSTEM_FRAME.referenceDistanceMultiplier).toBe(3.49);
@@ -45,6 +46,7 @@ describe('referenceFrames config', () => {
     expect(PLANETARY_FRAME.radius).toBe(65);
     expect(PLANETARY_FRAME.camera.minDistance).toBe(1.5);
     expect(PLANETARY_FRAME.camera.maxDistance).toBe(350);
+    expect(PLANETARY_FRAME.camera.far).toBe(2_500);
     expect(PLANETARY_FRAME.camera.baseFov).toBe(30);
     expect(PLANETARY_FRAME.screenConstant).toBe(true);
     expect(PLANETARY_FRAME.referenceDistanceMultiplier).toBe(3.49);

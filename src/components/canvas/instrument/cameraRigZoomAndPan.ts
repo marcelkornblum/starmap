@@ -41,13 +41,39 @@ export function syncControlsDistance(
 }
 
 /**
- * Expands a perspective camera's far clipping plane when the active frame
- * requires a deeper frustum.
+ * Synchronises a perspective camera's far clipping plane with the active frame
+ * when it differs.
  */
 export function syncPerspectiveCameraFar(camera: THREE.Camera | null | undefined, far?: number): void {
-  if (camera instanceof THREE.PerspectiveCamera && typeof far === 'number' && camera.far < far) {
+  if (
+    camera instanceof THREE.PerspectiveCamera &&
+    typeof far === 'number' &&
+    Number.isFinite(far) &&
+    far > 0 &&
+    camera.far !== far
+  ) {
     camera.far = far;
     camera.updateProjectionMatrix();
+  }
+}
+
+/**
+ * Synchronises an orthographic camera's far clipping plane with the active frame
+ * when it differs.
+ */
+export function syncOrthographicCameraFar(
+  orthoCam: THREE.OrthographicCamera | null | undefined,
+  far?: number,
+): void {
+  if (
+    orthoCam instanceof THREE.OrthographicCamera &&
+    typeof far === 'number' &&
+    Number.isFinite(far) &&
+    far > 0 &&
+    orthoCam.far !== far
+  ) {
+    orthoCam.far = far;
+    orthoCam.updateProjectionMatrix();
   }
 }
 

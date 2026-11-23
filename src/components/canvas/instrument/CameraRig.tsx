@@ -83,17 +83,23 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     const perspCam = projection.perspCamRef;
 
     return () => {
-      if (useCameraStore.getState().isLocked && perspCam.current) {
-        const state = get();
-        const activeControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
-        releaseOrthographicLock(
-          orthoCam,
-          perspCam.current,
-          FALLBACK_TARGET,
-          baseFov,
-          activeControls,
-        );
-        state.set?.({ camera: perspCam.current });
+      const cameraStore = useCameraStore.getState();
+      if (cameraStore.isLocked) {
+        if (perspCam.current) {
+          const state = get();
+          const activeControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
+          releaseOrthographicLock(
+            orthoCam,
+            perspCam.current,
+            FALLBACK_TARGET,
+            baseFov,
+            activeControls,
+          );
+          state.set?.({ camera: perspCam.current });
+        }
+        cameraStore.setLocked(false);
+        cameraStore.setActiveCardinal(null);
+        cameraStore.setMode('perspective');
       }
     };
   }, [get, projection.configuredBaseFov, projection.orthoCamRef, projection.perspCamRef]);
