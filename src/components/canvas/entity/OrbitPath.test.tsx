@@ -189,4 +189,23 @@ describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
     resSpy.mockRestore();
     await renderer.unmount();
   });
+
+  it('defaults to 64 orbit segments to keep instanced Line2 vertex load bounded', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath id="orbit-segments" semiMajorAxis={2.0} state="passive" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const lineGroup = renderer.scene.find((node) => node.props.name === 'orbit-path-line');
+    const line2 = lineGroup.children.find(
+      (child) => child.instance instanceof Line2 || (child.instance && 'isLine2' in child.instance),
+    )?.instance as Line2;
+
+    expect(line2.geometry.attributes.instanceStart.count).toBe(64);
+
+    await renderer.unmount();
+  });
 });

@@ -74,4 +74,44 @@ describe('searchBackgroundWarmup', () => {
     expect(fetchShardSpy).toHaveBeenCalledWith('planets');
     expect(fetchShardSpy).toHaveBeenCalledWith('minor-bodies');
   });
+
+  it('defers requestIdleCallback until delayMs elapses instead of firing immediately on mount', async () => {
+    const fetchShardSpy = vi
+      .spyOn(searchRepo, 'fetchSearchShard')
+      .mockResolvedValue([]);
+
+    const ricSpy = vi.fn((cb: IdleRequestCallback) => {
+      cb({ didTimeout: false, timeRemaining: () => 50 });
+      return 1;
+    });
+    vi.stubGlobal('requestIdleCallback', ricSpy);
+
+    scheduleSearchBackgroundWarmup(2000);
+    expect(ricSpy).not.toHaveBeenCalled();
+    expect(fetchShardSpy).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(ricSpy).not.toHaveBeenCalled();
+    expect(fetchShardSpy).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(ricSpy).toHaveBeenCalledTimes(1);
+    expect(ricSpy).toHaveBeenCalledWith(expect.any(Function));
+    expect(fetchShardSpy).toHaveBeenCalledWith('stars');
+  });
+
+  it('defaults delayMs to 8000ms before triggering background warm-up', async () => {
+    const fetchShardSpy = vi
+      .spyOn(searchRepo, 'fetchSearchShard')
+      .mockResolvedValue([]);
+
+    vi.stubGlobal('requestIdleCallback', undefined);
+
+    scheduleSearchBackgroundWarmup();
+    await vi.advanceTimersByTimeAsync(7999);
+    expect(fetchShardSpy).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchShardSpy).toHaveBeenCalledWith('stars');
+  });
 });

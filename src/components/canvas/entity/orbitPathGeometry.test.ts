@@ -63,6 +63,17 @@ describe('orbitPathGeometry', () => {
     noExtras.orbitGeometry.dispose();
   });
 
+  it('honors requested segment counts below 256 instead of forcing 256 segments', () => {
+    const res = buildOrbitGeometries({
+      semiMajorAxis: 5,
+      segments: 96,
+      showPeriapsisTick: false,
+      showDirectionIndicator: false,
+    });
+    expect(res.orbitGeometry.attributes.instanceStart.count).toBe(96);
+    res.orbitGeometry.dispose();
+  });
+
   it('clamps invalid eccentricity and handles non-positive semiMajorAxis', () => {
     const clamped = buildOrbitGeometries({
       semiMajorAxis: -5,

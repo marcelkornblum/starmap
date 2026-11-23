@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSpatialEntityStore } from '../../canvas/entity/SpatialEntityContext';
 import { buildPlanetaryOrbitalSchematic } from '../../../services/details/planetaryOrbitalSchematic';
 import { buildSystemOrbitalSchematic } from '../../../services/details/systemOrbitalSchematic';
@@ -10,11 +10,16 @@ import type {
   SystemBodiesSummary,
   SystemElementBodyItem,
 } from '../../../services/details/detailsHierarchyTypes';
-import { DataTable, Heading } from '../../interface';
+import { Button, DataTable, Heading } from '../../interface';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
 import { BodiesGalaxySystemRow } from './BodiesGalaxySystemRow';
 import { BodiesMinorBodyRow } from './BodiesMinorBodyRow';
+import {
+  INITIAL_MINOR_BODIES_LIMIT,
+  MINOR_BODIES_PAGE_STEP,
+  resolveMinorBodiesWindow,
+} from './minorBodiesWindow';
 import styles from './BodiesPanel.module.css';
 
 export interface BodiesPanelProps {
@@ -114,9 +119,20 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
   focusedMinorBodyId,
   selectedMinorKey,
 }: BodiesMinorBodiesSectionProps) {
+  const [visibleLimit, setVisibleLimit] = useState(INITIAL_MINOR_BODIES_LIMIT);
   const selectedSet = useMemo(
     () => (selectedMinorKey ? new Set(selectedMinorKey.split('\0')) : null),
     [selectedMinorKey],
+  );
+  const { visibleItems, remainingCount } = useMemo(
+    () =>
+      resolveMinorBodiesWindow(
+        minorBodiesAndSpacecraft,
+        visibleLimit,
+        focusedMinorBodyId,
+        selectedSet,
+      ),
+    [minorBodiesAndSpacecraft, visibleLimit, focusedMinorBodyId, selectedSet],
   );
 
   return (
@@ -135,7 +151,7 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
           </DataTable.Row>
         </DataTable.Head>
         <DataTable.Body>
-          {minorBodiesAndSpacecraft.map((body) => (
+          {visibleItems.map((body) => (
             <BodiesMinorBodyRow
               key={body.id}
               body={body}
@@ -145,6 +161,16 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
           ))}
         </DataTable.Body>
       </DataTable>
+      {remainingCount > 0 ? (
+        <Button
+          variant="subtle"
+          size="sm"
+          onClick={() => setVisibleLimit((prev) => prev + MINOR_BODIES_PAGE_STEP)}
+          data-testid="bodies-minor-bodies-show-more"
+        >
+          {`Show ${Math.min(MINOR_BODIES_PAGE_STEP, remainingCount)} more (${remainingCount.toLocaleString()} remaining)`}
+        </Button>
+      ) : null}
     </section>
   );
 });
@@ -211,6 +237,7 @@ const BodiesSystemOrPlanetView = React.memo(function BodiesSystemOrPlanetView({
 
       {minorBodiesAndSpacecraft.length > 0 ? (
         <BodiesMinorBodiesSection
+          key={`${scope}:${systemId}:${scope === 'planet' ? elements.planetId : ''}`}
           minorBodiesAndSpacecraft={minorBodiesAndSpacecraft}
           focusedMinorBodyId={focusedMinorBodyId}
           selectedMinorKey={selectedMinorKey}

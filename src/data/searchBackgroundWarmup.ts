@@ -45,7 +45,7 @@ async function runWarmup(includeMinorBodies: boolean): Promise<void> {
  * Schedules post-idle background loading of `stars`, `planets`, and (unless
  * `navigator.connection.saveData` is true) `minor-bodies` after initial hydration settles.
  */
-export function scheduleSearchBackgroundWarmup(delayMs = 1500): void {
+export function scheduleSearchBackgroundWarmup(delayMs = 8000): void {
   if (hasScheduled || hasStartedPrimaryWarmup) {
     return;
   }
@@ -57,11 +57,14 @@ export function scheduleSearchBackgroundWarmup(delayMs = 1500): void {
     void runWarmup(!isSaveDataEnabled());
   };
 
-  if (typeof globalThis.requestIdleCallback === 'function') {
-    scheduledIdleId = globalThis.requestIdleCallback(trigger, { timeout: delayMs });
-  } else {
-    scheduledTimeoutId = setTimeout(trigger, delayMs);
-  }
+  scheduledTimeoutId = setTimeout(() => {
+    scheduledTimeoutId = null;
+    if (typeof globalThis.requestIdleCallback === 'function') {
+      scheduledIdleId = globalThis.requestIdleCallback(trigger);
+    } else {
+      trigger();
+    }
+  }, delayMs);
 }
 
 /**

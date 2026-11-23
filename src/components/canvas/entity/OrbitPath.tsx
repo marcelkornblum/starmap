@@ -46,7 +46,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   lineStyle,
   showPeriapsisTick = true,
   showDirectionIndicator = true,
-  segments = 96,
+  segments = 64,
   position = [0, 0, 0],
 }) => {
   const orbitColor = useThreeTokenStore((s) => s.tokens.orbitColor);

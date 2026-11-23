@@ -257,4 +257,38 @@ describe('<BodiesPanel />', () => {
       ),
     ).toBe(false);
   });
+
+  it('paginates large minor-body lists initially and reveals more on button click', () => {
+    const manyMinorBodies = Array.from({ length: 120 }, (_, idx) => ({
+      id: `asteroid-${idx}`,
+      name: `Asteroid ${idx}`,
+      href: `/system/sol?focus=asteroid-${idx}`,
+      categoryKey: 'asteroid' as const,
+      categoryLabel: 'Minor Body',
+    }));
+
+    renderWithProvider(
+      <BodiesPanel
+        elements={{
+          ...mockSystemFixture,
+          focusedEntityId: 'asteroid-99',
+          minorBodiesAndSpacecraft: manyMinorBodies,
+        }}
+      />,
+    );
+
+    expect(screen.getAllByTestId('bodies-minor-body-item')).toHaveLength(51);
+    expect(screen.getByText('Asteroid 99')).toBeInTheDocument();
+
+    const showMoreBtn = screen.getByTestId('bodies-minor-bodies-show-more');
+    expect(showMoreBtn).toBeInTheDocument();
+
+    fireEvent.click(showMoreBtn);
+    expect(screen.getAllByTestId('bodies-minor-body-item')).toHaveLength(100);
+    expect(screen.getByTestId('bodies-minor-bodies-show-more')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('bodies-minor-bodies-show-more'));
+    expect(screen.getAllByTestId('bodies-minor-body-item')).toHaveLength(120);
+    expect(screen.queryByTestId('bodies-minor-bodies-show-more')).toBeNull();
+  });
 });

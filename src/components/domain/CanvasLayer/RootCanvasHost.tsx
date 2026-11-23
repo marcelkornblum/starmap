@@ -59,11 +59,11 @@ export const RootCanvasHost: React.FC = () => {
         void preloadTargetScaleEntry('planet');
       };
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        idleHandle = window.requestIdleCallback(runPreload, { timeout: 1000 });
+        idleHandle = window.requestIdleCallback(runPreload);
       } else {
         runPreload();
       }
-    }, 2500);
+    }, 5000);
     return () => {
       clearTimeout(idleTimer);
       if (idleHandle !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {

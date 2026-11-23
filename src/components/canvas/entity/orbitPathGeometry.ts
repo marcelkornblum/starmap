@@ -136,7 +136,7 @@ export function buildOrbitGeometries(options: OrbitGeometryOptions): OrbitGeomet
     inclination = 0,
     ascendingNode = 0,
     argumentOfPeriapsis = 0,
-    segments = 256,
+    segments = 96,
     showPeriapsisTick = true,
     showDirectionIndicator = true,
   } = options;
@@ -144,7 +144,7 @@ export function buildOrbitGeometries(options: OrbitGeometryOptions): OrbitGeomet
   const a = Number.isFinite(semiMajorAxis) && semiMajorAxis > 0 ? semiMajorAxis : 0.001;
   const e = Number.isFinite(eccentricity) ? Math.max(0, Math.min(0.99, eccentricity)) : 0;
   const omegaRad = argumentOfPeriapsis * DEG_TO_RADIANS;
-  const sampleCount = Math.max(256, segments);
+  const sampleCount = Math.max(16, segments);
 
   const orbitLineGeom = buildOrbitPathLineGeometry(a, e, omegaRad, sampleCount, inclination, ascendingNode);
 
