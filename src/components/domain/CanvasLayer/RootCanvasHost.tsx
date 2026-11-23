@@ -14,7 +14,8 @@ import {
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
 import { isSpatialRoutePathname, parseSpatialRouteTarget } from '../../../utils/spatialRoute';
-import { CanvasLayer, preloadWebGLHost } from './CanvasLayer';
+import { CanvasLayer } from './CanvasLayer';
+import { preloadWebGLHost } from './canvasWebGLHostLoader';
 import { preloadTargetScaleEntry } from '../../../services/navigation/scalePreloader';
 import styles from './RootCanvasHost.module.css';
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
-import { CrossScaleStageHost } from './CrossScaleStageHost';
+import { CrossScaleStageHost } from './CanvasLayerStageContent';
 import * as crossScaleStageHelpers from './crossScaleStageHelpers';
 const { resolveTargetPlaneMetadata } = crossScaleStageHelpers;
 import {

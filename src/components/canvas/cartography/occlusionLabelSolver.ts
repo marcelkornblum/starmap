@@ -132,6 +132,7 @@ export function solveLabelOcclusion(
       continue;
     }
 
+    _scratchNearby.length = 0;
     result.visible = true;
     result.behindCanvas = true;
     result.displacementX = dx;
@@ -140,6 +141,7 @@ export function solveLabelOcclusion(
     return result;
   }
 
+  _scratchNearby.length = 0;
   result.visible = target.state === 'selected' || target.state === 'focused';
   result.behindCanvas = true;
   result.displacementX = 0;

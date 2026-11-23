@@ -20,7 +20,7 @@ import {
   CanvasRouterBridgeContext,
   useOptionalRouter,
 } from '../../../hooks/useSpaLocation';
-import { CrossScaleStageHost } from './CrossScaleStageHost';
+import { CrossScaleStageHost } from './CanvasLayerStageContent';
 import styles from './CanvasLayer.module.css';
 
 export interface CanvasWebGLHostProps {

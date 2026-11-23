@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
+import React, { Suspense, useEffect, useLayoutEffect } from 'react';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
@@ -7,42 +7,9 @@ import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation
 import { isSpatialRoutePathname } from '../../../utils/spatialRoute';
 import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { canMountWebGLCanvas } from './webglSupport';
-import type { CanvasWebGLHostProps } from './CanvasWebGLHost';
-import {
-  preloadSceneEntry,
-  type SpatialCanvasScope,
-} from '../../../services/navigation/scalePreloader';
+import { getWebGLHostLazy } from './canvasWebGLHostLoader';
 import './sceneEntryLoader';
 import styles from './CanvasLayer.module.css';
-
-let cachedHostLazy: React.LazyExoticComponent<React.ComponentType<CanvasWebGLHostProps>> | null =
-  null;
-
-function getWebGLHostLazy(
-  initialScope: SpatialCanvasScope,
-): React.LazyExoticComponent<React.ComponentType<CanvasWebGLHostProps>> {
-  if (!cachedHostLazy) {
-    cachedHostLazy = lazy(async () => {
-      const [hostMod] = await Promise.all([
-        import('./CanvasWebGLHost'),
-        preloadSceneEntry(initialScope),
-      ]);
-      return hostMod;
-    });
-  }
-  return cachedHostLazy;
-}
-
-/**
- * Eagerly warms the lazy WebGL host and initial scene chunks in parallel with route views.
- */
-// oxlint-disable-next-line react/only-export-components -- Co-located host chunk preloader shares cachedHostLazy with CanvasLayer
-export function preloadWebGLHost(initialScope: SpatialCanvasScope): void {
-  if (!canMountWebGLCanvas()) return;
-  getWebGLHostLazy(initialScope);
-  void import('./CanvasWebGLHost');
-  void preloadSceneEntry(initialScope);
-}
 
 export interface CanvasLayerProps {
   readonly scope: 'galaxy' | 'system' | 'planet';
