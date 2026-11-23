@@ -8,7 +8,7 @@ vi.mock('@tanstack/react-router', () => ({
   useSearch: vi.fn(() => ({})),
   useRouter: vi.fn(() => undefined),
 }));
-import { useRouter } from '@tanstack/react-router';
+import { useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import {
@@ -71,7 +71,7 @@ describe('usePlanetViewModel', () => {
     seedSummaryNode('sol', SOL_SUMMARY);
     seedDetailRecord('earth', { kind: 'system', record: SOL_FIXTURE });
     useUIStore.setState({ detailsDetent: 'collapsed' });
-    useCameraStore.setState({ lastGalaxySearch: '' });
+    useCameraStore.getState().reset();
   });
 
   const createWrapper = (store: ReturnType<typeof createSpatialEntityStore>) => {
@@ -192,6 +192,91 @@ describe('usePlanetViewModel', () => {
       );
     } finally {
       vi.mocked(useRouter).mockReturnValue(undefined as never);
+    }
+  });
+
+  it('centres on ?focus= on cold load, but clears effectiveCenterId when ?focus= changes subsequently without ?center=', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof usePlanetViewModel>, { search: string }>>;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ search }) =>
+          usePlanetViewModel({
+            planetId: 'earth',
+            locationPathname: '/planet/earth',
+            locationSearch: search,
+          }),
+        {
+          wrapper: createWrapper(store),
+          initialProps: { search: '?focus=moon' },
+        },
+      );
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBe('moon');
+
+    await act(async () => {
+      hookResult.rerender({ search: '?focus=earth' });
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
+
+  it('sets effectiveCenterId on intra-view focusFromSearch and records canvas focus without setting effectiveCenterId on handleSelectEntity', async () => {
+    useCameraStore.getState().reset();
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof usePlanetViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          usePlanetViewModel({
+            planetId: 'saturn',
+            locationPathname: '/planet/saturn',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+
+    act(() => {
+      useCameraStore.getState().focusFromSearch('titan');
+    });
+    expect(hookResult.result.current.effectiveCenterId).toBe('titan');
+
+    act(() => {
+      hookResult.result.current.handleSelectEntity('mars');
+    });
+    expect(useCameraStore.getState().canvasFocusedSlugs.has('mars')).toBe(true);
+    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
+
+  it('does not allow live router state to override explicit locationPathname and locationSearch props', async () => {
+    vi.mocked(useParams).mockReturnValue({ planetId: 'jupiter' });
+    vi.mocked(useSearch).mockReturnValue({ focus: 'europa', center: 'europa', route: 'earth,jupiter' });
+    const store = createSpatialEntityStore();
+    try {
+      let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof usePlanetViewModel>, unknown>>;
+      await act(async () => {
+        hookResult = renderHook(
+          () =>
+            usePlanetViewModel({
+              planetId: 'earth',
+              locationPathname: '/planet/earth',
+              locationSearch: '?focus=moon&center=moon',
+            }),
+          { wrapper: createWrapper(store) },
+        );
+      });
+
+      expect(hookResult.result.current.targetId).toBe('earth');
+      expect(hookResult.result.current.effectiveCenterId).toBe('moon');
+      expect(hookResult.result.current.routeStops).toBeNull();
+    } finally {
+      vi.mocked(useParams).mockReturnValue({});
+      vi.mocked(useSearch).mockReturnValue({});
     }
   });
 });

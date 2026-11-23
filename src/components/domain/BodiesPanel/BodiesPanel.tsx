@@ -1,19 +1,25 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSpatialEntityStore } from '../../canvas/entity/SpatialEntityContext';
 import { buildPlanetaryOrbitalSchematic } from '../../../services/details/planetaryOrbitalSchematic';
 import { buildSystemOrbitalSchematic } from '../../../services/details/systemOrbitalSchematic';
 import type {
   BodiesPanelSummary,
+  GalaxyBodiesSummary,
   OrbitalSchematicSummary,
+  PlanetaryBodiesSummary,
+  SystemBodiesSummary,
+  SystemElementBodyItem,
 } from '../../../services/details/detailsHierarchyTypes';
-import {
-  CelestialTitle,
-  DataTable,
-  Heading,
-} from '../../interface';
+import { Button, DataTable, Heading } from '../../interface';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
 import { BodiesGalaxySystemRow } from './BodiesGalaxySystemRow';
+import { BodiesMinorBodyRow } from './BodiesMinorBodyRow';
+import {
+  INITIAL_MINOR_BODIES_LIMIT,
+  MINOR_BODIES_PAGE_STEP,
+  resolveMinorBodiesWindow,
+} from './minorBodiesWindow';
 import styles from './BodiesPanel.module.css';
 
 export interface BodiesPanelProps {
@@ -23,70 +29,174 @@ export interface BodiesPanelProps {
   readonly onHoverEntity?: (entityId: string | null) => void;
 }
 
-const BodiesPanelInner = React.memo(function BodiesPanelInner({
+interface BodiesGalaxyViewProps {
+  readonly elements: GalaxyBodiesSummary;
+  readonly hoveredEntityId?: string | null;
+  readonly onHoverEntity?: (entityId: string | null) => void;
+}
+
+const BodiesGalaxyView = React.memo(function BodiesGalaxyView({
   elements,
-  schematic,
   hoveredEntityId,
   onHoverEntity,
-}: BodiesPanelProps) {
+}: BodiesGalaxyViewProps) {
   const storeHoveredId = useSpatialEntityStore((state) => state.hoveredId);
   const activeHoveredId = hoveredEntityId !== undefined ? hoveredEntityId : storeHoveredId;
-  const selectedEntityIds = elements?.selectedEntityIds;
+  const selectedEntityIds = elements.selectedEntityIds;
   const selectedSet = useMemo(() => new Set(selectedEntityIds ?? []), [selectedEntityIds]);
-  const galaxySystems = elements?.scope === 'galaxy' ? elements.systems : [];
+  const { centerId, apertureRadiusPc, focusedSystemId, focusedSystemName, systems } = elements;
 
-  if (!elements) return null;
+  return (
+    <section
+      aria-labelledby="bodies-panel-heading"
+      data-testid="bodies-panel"
+      data-scope="galaxy"
+      data-center-id={centerId}
+      data-aperture-radius-pc={apertureRadiusPc}
+      className={styles.root}
+    >
+      <Heading as="h2" id="bodies-panel-heading" visuallyHidden>
+        Galactic Systems
+      </Heading>
 
-  if (elements.scope === 'galaxy') {
-    const { centerId, apertureRadiusPc, focusedSystemId, focusedSystemName } = elements;
+      {focusedSystemId && focusedSystemName ? (
+        <p data-testid="bodies-distance-caption" className={styles.distanceCaption}>
+          Distances from {focusedSystemName}
+        </p>
+      ) : null}
 
-    return (
-      <section
-        aria-labelledby="bodies-panel-heading"
-        data-testid="bodies-panel"
-        data-scope="galaxy"
-        data-center-id={centerId}
-        data-aperture-radius-pc={apertureRadiusPc}
-        className={styles.root}
-      >
-        <Heading as="h2" id="bodies-panel-heading" visuallyHidden>
-          Galactic Systems
-        </Heading>
+      <DataTable data-testid="bodies-galaxy-systems-list">
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeaderCell>System</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Class</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Planets</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Status</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Distance</DataTable.HeaderCell>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
+          {systems.map((sys) => (
+            <BodiesGalaxySystemRow
+              key={sys.id}
+              sys={sys}
+              isItemFocused={sys.tier === 'focused'}
+              isItemSelected={sys.tier === 'selected' || selectedSet.has(sys.id)}
+              isItemHovered={(activeHoveredId ?? elements.hoveredEntityId) === sys.id}
+              onHoverEntity={onHoverEntity}
+            />
+          ))}
+        </DataTable.Body>
+      </DataTable>
+    </section>
+  );
+});
 
-        {focusedSystemId && focusedSystemName ? (
-          <p data-testid="bodies-distance-caption" className={styles.distanceCaption}>
-            Distances from {focusedSystemName}
-          </p>
-        ) : null}
+const minorBodyIdSetCache = new WeakMap<
+  readonly SystemElementBodyItem[],
+  ReadonlySet<string>
+>();
 
-        <DataTable data-testid="bodies-galaxy-systems-list">
-          <DataTable.Head>
-            <DataTable.Row>
-              <DataTable.HeaderCell>System</DataTable.HeaderCell>
-              <DataTable.HeaderCell>Class</DataTable.HeaderCell>
-              <DataTable.HeaderCell align="end">Planets</DataTable.HeaderCell>
-              <DataTable.HeaderCell>Status</DataTable.HeaderCell>
-              <DataTable.HeaderCell align="end">Distance</DataTable.HeaderCell>
-            </DataTable.Row>
-          </DataTable.Head>
-          <DataTable.Body>
-            {galaxySystems.map((sys) => (
-              <BodiesGalaxySystemRow
-                key={sys.id}
-                sys={sys}
-                isItemFocused={sys.tier === 'focused'}
-                isItemSelected={sys.tier === 'selected' || selectedSet.has(sys.id)}
-                isItemHovered={(activeHoveredId ?? elements.hoveredEntityId) === sys.id}
-                onHoverEntity={onHoverEntity}
-              />
-            ))}
-          </DataTable.Body>
-        </DataTable>
-      </section>
-    );
+function getMinorBodyIdSet(
+  list: readonly SystemElementBodyItem[],
+): ReadonlySet<string> {
+  let cached = minorBodyIdSetCache.get(list);
+  if (!cached) {
+    cached = new Set(list.map((b) => b.id));
+    minorBodyIdSetCache.set(list, cached);
   }
+  return cached;
+}
 
-  const { scope, systemId, focusedEntityId, minorBodiesAndSpacecraft } = elements;
+interface BodiesMinorBodiesSectionProps {
+  readonly minorBodiesAndSpacecraft: readonly SystemElementBodyItem[];
+  readonly focusedMinorBodyId: string | undefined;
+  readonly selectedMinorKey: string;
+}
+
+const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
+  minorBodiesAndSpacecraft,
+  focusedMinorBodyId,
+  selectedMinorKey,
+}: BodiesMinorBodiesSectionProps) {
+  const [visibleLimit, setVisibleLimit] = useState(INITIAL_MINOR_BODIES_LIMIT);
+  const selectedSet = useMemo(
+    () => (selectedMinorKey ? new Set(selectedMinorKey.split('\0')) : null),
+    [selectedMinorKey],
+  );
+  const { visibleItems, remainingCount } = useMemo(
+    () =>
+      resolveMinorBodiesWindow(
+        minorBodiesAndSpacecraft,
+        visibleLimit,
+        focusedMinorBodyId,
+        selectedSet,
+      ),
+    [minorBodiesAndSpacecraft, visibleLimit, focusedMinorBodyId, selectedSet],
+  );
+
+  return (
+    <section
+      aria-labelledby="bodies-minor-bodies-heading"
+      data-testid="bodies-minor-bodies-section"
+      className={styles.section}
+    >
+      <Heading as="h3" size="eyebrow" id="bodies-minor-bodies-heading">
+        Minor Bodies &amp; Spacecraft
+      </Heading>
+      <DataTable data-testid="bodies-minor-bodies-list">
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeaderCell>Body</DataTable.HeaderCell>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
+          {visibleItems.map((body) => (
+            <BodiesMinorBodyRow
+              key={body.id}
+              body={body}
+              isFocused={focusedMinorBodyId === body.id}
+              isSelected={selectedSet ? selectedSet.has(body.id) : false}
+            />
+          ))}
+        </DataTable.Body>
+      </DataTable>
+      {remainingCount > 0 ? (
+        <Button
+          variant="subtle"
+          size="sm"
+          onClick={() => setVisibleLimit((prev) => prev + MINOR_BODIES_PAGE_STEP)}
+          data-testid="bodies-minor-bodies-show-more"
+        >
+          {`Show ${Math.min(MINOR_BODIES_PAGE_STEP, remainingCount)} more (${remainingCount.toLocaleString()} remaining)`}
+        </Button>
+      ) : null}
+    </section>
+  );
+});
+
+interface BodiesSystemOrPlanetViewProps {
+  readonly elements: SystemBodiesSummary | PlanetaryBodiesSummary;
+  readonly schematic?: OrbitalSchematicSummary | null;
+}
+
+const BodiesSystemOrPlanetView = React.memo(function BodiesSystemOrPlanetView({
+  elements,
+  schematic,
+}: BodiesSystemOrPlanetViewProps) {
+  const { scope, systemId, focusedEntityId, minorBodiesAndSpacecraft, selectedEntityIds } = elements;
+  const minorIdSet = useMemo(
+    () => getMinorBodyIdSet(minorBodiesAndSpacecraft),
+    [minorBodiesAndSpacecraft],
+  );
+  const focusedMinorBodyId =
+    focusedEntityId && minorIdSet.has(focusedEntityId) ? focusedEntityId : undefined;
+  const selectedMinorKey = useMemo(() => {
+    if (!selectedEntityIds || selectedEntityIds.length === 0 || minorIdSet.size === 0) {
+      return '';
+    }
+    return selectedEntityIds.filter((id) => minorIdSet.has(id)).join('\0');
+  }, [selectedEntityIds, minorIdSet]);
 
   const resolvedSchematic =
     schematic ??
@@ -126,48 +236,40 @@ const BodiesPanelInner = React.memo(function BodiesPanelInner({
       </section>
 
       {minorBodiesAndSpacecraft.length > 0 ? (
-        <section
-          aria-labelledby="bodies-minor-bodies-heading"
-          data-testid="bodies-minor-bodies-section"
-          className={styles.section}
-        >
-          <Heading as="h3" size="eyebrow" id="bodies-minor-bodies-heading">
-            Minor Bodies &amp; Spacecraft
-          </Heading>
-          <DataTable data-testid="bodies-minor-bodies-list">
-            <DataTable.Head>
-              <DataTable.Row>
-                <DataTable.HeaderCell>Body</DataTable.HeaderCell>
-              </DataTable.Row>
-            </DataTable.Head>
-            <DataTable.Body>
-              {minorBodiesAndSpacecraft.map((body) => (
-                <DataTable.Row
-                  key={body.id}
-                  data-testid="bodies-minor-body-item"
-                  data-body-id={body.id}
-                  data-focused={focusedEntityId === body.id ? 'true' : undefined}
-                  data-selected={selectedSet.has(body.id) ? 'true' : undefined}
-                >
-                  <DataTable.Cell>
-                    <CelestialTitle
-                      type={
-                        body.categoryKey === 'spacecraft'
-                          ? 'construct'
-                          : (body.categoryKey ?? 'asteroid')
-                      }
-                      title={body.name}
-                      href={body.href}
-                      titleTestId="bodies-minor-body-link"
-                    />
-                  </DataTable.Cell>
-                </DataTable.Row>
-              ))}
-            </DataTable.Body>
-          </DataTable>
-        </section>
+        <BodiesMinorBodiesSection
+          key={`${scope}:${systemId}:${scope === 'planet' ? elements.planetId : ''}`}
+          minorBodiesAndSpacecraft={minorBodiesAndSpacecraft}
+          focusedMinorBodyId={focusedMinorBodyId}
+          selectedMinorKey={selectedMinorKey}
+        />
       ) : null}
     </section>
+  );
+});
+
+const BodiesPanelInner = React.memo(function BodiesPanelInner({
+  elements,
+  schematic,
+  hoveredEntityId,
+  onHoverEntity,
+}: BodiesPanelProps) {
+  if (!elements) return null;
+
+  if (elements.scope === 'galaxy') {
+    return (
+      <BodiesGalaxyView
+        elements={elements}
+        hoveredEntityId={hoveredEntityId}
+        onHoverEntity={onHoverEntity}
+      />
+    );
+  }
+
+  return (
+    <BodiesSystemOrPlanetView
+      elements={elements}
+      schematic={schematic}
+    />
   );
 });
 

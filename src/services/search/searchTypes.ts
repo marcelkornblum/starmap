@@ -41,6 +41,7 @@ export interface SearchResultItem {
   readonly href: string;
   readonly systemId?: string;
   readonly systemName?: string;
+  readonly parentBodyId?: string;
   readonly position?: readonly [number, number, number];
   readonly distancePc?: number;
   readonly magnitude?: number;

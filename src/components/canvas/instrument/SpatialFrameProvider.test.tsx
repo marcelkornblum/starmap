@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import ReactThreeTest from '@react-three/test-renderer';
 import {
@@ -10,6 +10,10 @@ import {
   CartographicInstrument,
   CartographicLighting,
 } from './index';
+import {
+  setCrossScaleInstrumentFade,
+  resetCrossScaleInstrumentFade,
+} from './crossScaleFadeState';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import {
   FRAME_PRIORITY,
@@ -29,6 +33,11 @@ import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 describe('Spatial frame ownership (one provider per viewport)', () => {
   beforeEach(() => {
     useActiveStarsStore.getState().clear();
+    resetCrossScaleInstrumentFade();
+  });
+
+  afterEach(() => {
+    resetCrossScaleInstrumentFade();
   });
 
   it('throws when a frame consumer is rendered outside a SpatialFrameProvider', () => {
@@ -83,6 +92,15 @@ describe('Spatial frame ownership (one provider per viewport)', () => {
     expect(s.screenHeightReferenceScale).toBe(SCREEN_HEIGHT_REFERENCE_SCALE);
     expect(s.fovFactor).toBe(1.0);
     expect(s.screenScale).toBeGreaterThan(0);
+    expect(s.instrumentFade).toBe(1.0);
+
+    setCrossScaleInstrumentFade(0.35);
+    await renderer.advanceFrames(1, 0.016);
+    expect(s.instrumentFade).toBeCloseTo(0.35);
+
+    resetCrossScaleInstrumentFade();
+    await renderer.advanceFrames(1, 0.016);
+    expect(s.instrumentFade).toBe(1.0);
 
     await renderer.unmount();
   });

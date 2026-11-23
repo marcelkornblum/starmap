@@ -1,6 +1,9 @@
 import type { FormEvent, ReactNode } from 'react';
-import { useRouter } from '@tanstack/react-router';
 import { useLayerIndex } from '../../../../hooks/useLayerData';
+import {
+  useOptionalRouter,
+  type StarmapSearchParams,
+} from '../../../../hooks/useSpaLocation';
 import { pickRandomLayerOverviewHref } from '../../../../services/layerCardService';
 import { parseLayerQueryParam } from '../../../../utils/url';
 import { Button, Heading } from '../../../interface';
@@ -22,7 +25,7 @@ export const SearchPanel = ({
 }: SearchPanelProps) => {
   const { isFocused, setIsFocused } = useSearchContext();
   const layerIndex = useLayerIndex();
-  const router = useRouter({ warn: false });
+  const router = useOptionalRouter();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -38,7 +41,8 @@ export const SearchPanel = ({
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    const currentLayer = new URLSearchParams(window.location.search).get('layer');
+    const routerSearch = router?.state?.location?.search as StarmapSearchParams | undefined;
+    const currentLayer = routerSearch?.layer ?? null;
     const nextHref = pickRandomLayerOverviewHref(
       currentLayer,
       Math.random,
@@ -47,7 +51,7 @@ export const SearchPanel = ({
     const parsedNext = parseLayerQueryParam(
       new URLSearchParams(nextHref.split('?')[1] ?? '').get('layer'),
     );
-    if (router?.state && parsedNext?.layerSlug) {
+    if (router?.state && typeof router.navigate === 'function' && parsedNext?.layerSlug) {
       void router.navigate({
         to: '/galaxy',
         search: (prev) => ({

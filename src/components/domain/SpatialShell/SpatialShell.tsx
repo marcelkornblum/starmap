@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { Button } from '../../interface';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { useUIStore } from '../../../stores/useUIStore';
 import { resolvePrimaryPanels, useIsWideViewport } from './spatialShellHelpers';
+import { useViewportSafeRectObserver } from './useViewportSafeRectObserver';
 import styles from './SpatialShell.module.css';
-
-export type { ResolvePrimaryPanelsOptions } from './spatialShellHelpers';
 
 export interface SpatialShellProps {
   readonly testId?: string;
-  readonly className?: string;
   readonly canvas?: React.ReactNode;
   readonly breadcrumbs?: React.ReactNode;
   readonly search?: React.ReactNode;
@@ -25,11 +25,8 @@ export interface SpatialShellProps {
   readonly children?: React.ReactNode;
 }
 
-
-
-export const SpatialShell: React.FC<SpatialShellProps> = ({
+export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialShell({
   testId = 'spatial-shell-root',
-  className,
   canvas,
   breadcrumbs,
   search,
@@ -44,7 +41,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   isBodiesDrawerOpen: controlledBodiesOpen,
   onBodiesDrawerOpenChange,
   children,
-}) => {
+}) {
   const activeDrawer = useUIStore((s) => s.activeDrawer);
   const isStoreBodiesOpen = activeDrawer === 'bodies';
   const setActiveDrawer = useUIStore((s) => s.setActiveDrawer);
@@ -53,12 +50,36 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const isDirectionsOpen = useUIStore((s) => s.isDirectionsOpen);
   const primaryPanelPriority = useUIStore((s) => s.primaryPanelPriority);
   const dualPanelPolicy = useUIStore((s) => s.dualPanelPolicy);
+  const prefersReducedMotion = useReducedMotion();
   const isWideViewport = useIsWideViewport();
+
+  const shellRef = useRef<HTMLElement>(null);
+  const topBarRef = useRef<HTMLElement>(null);
+  const floatingLeftRef = useRef<HTMLDivElement>(null);
+  const minimapRegionRef = useRef<HTMLDivElement>(null);
+  const bodiesRegionRef = useRef<HTMLElement>(null);
+  const controlsRegionRef = useRef<HTMLDivElement>(null);
+
+  useIsomorphicLayoutEffect(() => {
+    const applyInFlightAttr = (inFlight: boolean) => {
+      const attrValue = inFlight && !prefersReducedMotion ? 'true' : 'false';
+      shellRef.current?.setAttribute('data-camera-in-flight', attrValue);
+      floatingLeftRef.current?.setAttribute('data-camera-retracted', attrValue);
+      minimapRegionRef.current?.setAttribute('data-camera-retracted', attrValue);
+    };
+    applyInFlightAttr(useUIStore.getState().isCameraTransitioning);
+    let prev = useUIStore.getState().isCameraTransitioning;
+    return useUIStore.subscribe((state) => {
+      if (state.isCameraTransitioning !== prev) {
+        prev = state.isCameraTransitioning;
+        applyInFlightAttr(state.isCameraTransitioning);
+      }
+    });
+  }, [prefersReducedMotion]);
 
   const [isLocallyOverridden, setIsLocallyOverridden] = useState(false);
   const [initialStoreDrawer] = useState(activeDrawer);
 
-  // Synchronise store on mount if an initial uncontrolled drawer state was provided
   useEffect(() => {
     if (controlledBodiesOpen === undefined && initialBodiesDrawerOpen !== undefined && !isLocallyOverridden) {
       setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
@@ -71,6 +92,17 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
       : initialBodiesDrawerOpen !== undefined && !isLocallyOverridden && activeDrawer === initialStoreDrawer
         ? initialBodiesDrawerOpen
         : isStoreBodiesOpen;
+
+  useViewportSafeRectObserver(
+    {
+      shellRef,
+      topBarRef,
+      floatingLeftRef,
+      bodiesRegionRef,
+      controlsRegionRef,
+    },
+    isBodiesDrawerOpen,
+  );
 
   const setDrawerState = (next: boolean) => {
     setIsLocallyOverridden(true);
@@ -89,10 +121,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const handleClose = () => {
     setDrawerState(false);
   };
-
-  const combinedClassName = className
-    ? `${styles.spatialShell} ${className}`
-    : styles.spatialShell;
 
   const resolvedPrimaryFloat = resolvePrimaryPanels({
     detailsPanel,
@@ -114,38 +142,43 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
 
   const resolvedPreview = isShowingDetails ? null : preview;
 
+  const ssrInFlightAttr =
+    typeof window === 'undefined'
+      ? useUIStore.getState().isCameraTransitioning && !prefersReducedMotion
+        ? 'true'
+        : 'false'
+      : undefined;
+
   return (
     <main
-      className={combinedClassName}
+      ref={shellRef}
+      className={styles.spatialShell}
       data-spatial-shell
       data-testid={testId}
       data-bodies-drawer-open={isBodiesDrawerOpen ? 'true' : 'false'}
+      data-camera-in-flight={ssrInFlightAttr}
     >
       <div className={styles.stage}>
         <div className={styles.canvasRegion} data-spatial-region="canvas">
           {canvas}
         </div>
         <div className={styles.leftColumn}>
-          <header className={styles.topBar} data-spatial-region="top-bar">
-            <div
-              className={styles.breadcrumbsRegion}
-              data-spatial-region="breadcrumbs"
-            >
+          <header ref={topBarRef} className={styles.topBar} data-spatial-region="top-bar">
+            <div className={styles.breadcrumbsRegion} data-spatial-region="breadcrumbs">
               {breadcrumbs}
             </div>
             <div className={styles.searchRegion} data-spatial-region="search">
               {search}
             </div>
-            <div
-              className={styles.layerCardRegion}
-              data-spatial-region="layer-card"
-            >
+            <div className={styles.layerCardRegion} data-spatial-region="layer-card">
               {layerCard}
             </div>
           </header>
           <div
+            ref={floatingLeftRef}
             className={styles.floatingLeft}
             data-spatial-region="floating-left"
+            data-camera-retracted={ssrInFlightAttr}
           >
             {resolvedPrimaryFloat}
             {resolvedPreview}
@@ -162,10 +195,15 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
             {isBodiesDrawerOpen ? 'Close Bodies' : 'Bodies'}
           </Button>
         </div>
-        <div className={styles.minimapRegion} data-spatial-region="minimap">
+        <div
+          ref={minimapRegionRef}
+          className={styles.minimapRegion}
+          data-spatial-region="minimap"
+          data-camera-retracted={ssrInFlightAttr}
+        >
           {minimap}
         </div>
-        <div className={styles.controlsRegion} data-spatial-region="controls">
+        <div ref={controlsRegionRef} className={styles.controlsRegion} data-spatial-region="controls">
           {controls}
         </div>
       </div>
@@ -177,6 +215,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
         aria-hidden="true"
       />
       <aside
+        ref={bodiesRegionRef}
         className={styles.bodiesRegion}
         data-spatial-region="bodies"
         data-bodies-drawer-open={isBodiesDrawerOpen ? 'true' : 'false'}
@@ -186,4 +225,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
       {children}
     </main>
   );
-};
+});
+
+SpatialShell.displayName = 'SpatialShell';

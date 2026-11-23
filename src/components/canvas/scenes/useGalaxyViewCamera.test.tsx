@@ -1,17 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useGalaxyViewCamera, resolveCenterCoords } from './useGalaxyViewCamera';
+import { useGalaxyViewCamera } from './useGalaxyViewCamera';
 import { useCameraStore } from '../../../stores/useCameraStore';
 
-describe('useGalaxyViewCamera hook and resolveCenterCoords utility', () => {
+describe('useGalaxyViewCamera hook', () => {
   beforeEach(() => {
     useCameraStore.getState().reset();
-  });
-
-  it('resolves coordinates correctly from array, object, or undefined', () => {
-    expect(resolveCenterCoords()).toEqual([0, 0, 0]);
-    expect(resolveCenterCoords([1, 2, 3])).toEqual([1, 2, 3]);
-    expect(resolveCenterCoords({ x: 4, y: 5, z: 6 })).toEqual([4, 5, 6]);
   });
 
   it('computes standard camera configuration for galactic scene', () => {

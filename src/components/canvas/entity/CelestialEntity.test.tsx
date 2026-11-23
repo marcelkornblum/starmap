@@ -1,11 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
 import { screen, render, act } from '@testing-library/react';
+import * as THREE from 'three';
 import { CelestialEntity } from './CelestialEntity';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { createSpatialEntityStore } from './SpatialEntityStore';
 import { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
+import {
+  setCrossScaleSceneScale,
+  resetCrossScaleSceneScale,
+} from '../instrument/crossScaleVisualState';
 
 const { mockInvalidate, wrappedInvalidateCache } = vi.hoisted(() => ({
   mockInvalidate: vi.fn(),
@@ -190,6 +195,11 @@ describe('CelestialEntity - Active Label Density Suppression Rule', () => {
 describe('CelestialEntity - Occlusion Lifecycle & Frame Loop Purity (AUD-103, AUD-105)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetCrossScaleSceneScale();
+  });
+
+  afterEach(() => {
+    resetCrossScaleSceneScale();
   });
 
   it('registers footprint on mount and does NOT call register() per frame in useFrame (AUD-103)', async () => {
@@ -243,5 +253,38 @@ describe('CelestialEntity - Occlusion Lifecycle & Frame Loop Purity (AUD-103, AU
 
     await renderer.unmount();
     vi.useRealTimers();
+  });
+
+  it('scales bodyRadius by getCrossScaleSceneScale() during cross-scale body crossfade', async () => {
+    const store = createSpatialEntityStore();
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider store={store}>
+        <CelestialEntity
+          id="body-star"
+          name="Body Star"
+          position={[0, 0, 0]}
+          bodyRadius={1}
+          bodyMinPixelSize={24}
+          bodyFadeRange={16}
+        />
+      </SpatialEntityProvider>,
+      { width: 1280, height: 800 },
+    );
+
+    const nodeGroup = renderer.scene.find((node) => node.props.name === 'node-representation-body-star');
+    expect(nodeGroup.instance).toBeInstanceOf(THREE.Group);
+
+    await renderer.advanceFrames(1, 0.016);
+    if (nodeGroup.instance instanceof THREE.Group) {
+      expect(nodeGroup.instance.visible).toBe(false);
+    }
+
+    setCrossScaleSceneScale(0.04);
+    await renderer.advanceFrames(1, 0.016);
+    if (nodeGroup.instance instanceof THREE.Group) {
+      expect(nodeGroup.instance.visible).toBe(true);
+    }
+
+    await renderer.unmount();
   });
 });

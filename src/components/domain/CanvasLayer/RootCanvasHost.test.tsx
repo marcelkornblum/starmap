@@ -3,11 +3,17 @@ import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { CanvasLayer } from './CanvasLayer';
+import * as scalePreloader from '../../../services/navigation/scalePreloader';
 import { _resetWebGLSupportedForTesting } from './webglSupport.testing';
 import { RootCanvasHost } from './RootCanvasHost';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { getStageCallbacks } from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useUIStore } from '../../../stores/useUIStore';
+import {
+  CanvasRouterBridgeContext,
+  type AppRouterAdapter,
+} from '../../../hooks/useSpaLocation';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -63,12 +69,15 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
       );
     },
     useFrame: vi.fn(),
-    useThree: () => ({
-      camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
-      gl: { setClearColor: vi.fn() },
-      scene: new THREE.Scene(),
-      controls: { target: new THREE.Vector3(), update: vi.fn() },
-    }),
+    useThree: (selector?: (s: unknown) => unknown) => {
+      const state = {
+        camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
+        gl: { setClearColor: vi.fn() },
+        scene: new THREE.Scene(),
+        controls: { target: new THREE.Vector3(), update: vi.fn() },
+      };
+      return selector ? selector(state) : state;
+    },
   };
 });
 
@@ -339,5 +348,175 @@ describe('RootCanvasHost Domain Component', () => {
     expect(screen.getByTestId('mock-canvas')).toBe(persistentCanvas);
     expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
     expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
+  });
+
+  it('keeps RootCanvasHost active during spatial-to-spatial Suspense transitions (activeSlotCount === 0 on /system/sol with stageProps), and deactivates on /guide', async () => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+      if (contextId === 'webgl2' || contextId === 'webgl') {
+        return {} as WebGLRenderingContext;
+      }
+      return null;
+    });
+    _resetWebGLSupportedForTesting();
+
+    let currentPathname = '/galaxy';
+    const historyListeners = new Set<() => void>();
+    const mockRouter: AppRouterAdapter = {
+      get state() {
+        return { location: { pathname: currentPathname, searchStr: '' } };
+      },
+      history: {
+        subscribe: (cb) => {
+          historyListeners.add(cb);
+          return () => historyListeners.delete(cb);
+        },
+      },
+    };
+
+    const { rerender } = render(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <RootCanvasHost />
+        <CanvasLayer scope="galaxy" centerId="sol" />
+      </CanvasRouterBridgeContext.Provider>,
+    );
+
+    const persistentCanvas = await screen.findByTestId('mock-canvas');
+    expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBeNull();
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
+
+    // Simulate Suspense suspending the outgoing GalaxyView slot while router has moved to /system/sol
+    act(() => {
+      currentPathname = '/system/sol';
+      for (const listener of historyListeners) listener();
+    });
+
+    rerender(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <RootCanvasHost />
+      </CanvasRouterBridgeContext.Provider>,
+    );
+
+    expect(useCanvasStageStore.getState().activeSlotCount).toBe(0);
+    expect(useCanvasStageStore.getState().stageProps).not.toBeNull();
+    expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBeNull();
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
+    expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+    // Navigating to a non-spatial route (/guide) marks stage inactive and pauses frameloop
+    act(() => {
+      currentPathname = '/guide';
+      for (const listener of historyListeners) listener();
+    });
+
+    expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBe('true');
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('never');
+    expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+  });
+
+  it('eagerly mounts CanvasLayer and preloads WebGLHost + scene entry on cold spatial route load when router.state is present, while staying unmounted on /guide', async () => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+      if (contextId === 'webgl2' || contextId === 'webgl') {
+        return {} as WebGLRenderingContext;
+      }
+      return null;
+    });
+    _resetWebGLSupportedForTesting();
+    const preloadSpy = vi
+      .spyOn(scalePreloader, 'preloadSceneEntry')
+      .mockResolvedValue(undefined);
+
+    const guideRouter: AppRouterAdapter = {
+      state: { location: { pathname: '/guide', searchStr: '' } },
+    };
+    const guideRender = render(
+      <CanvasRouterBridgeContext.Provider value={guideRouter}>
+        <RootCanvasHost />
+      </CanvasRouterBridgeContext.Provider>,
+    );
+    expect(screen.queryByTestId('canvas-layer')).toBeNull();
+    expect(preloadSpy).not.toHaveBeenCalled();
+    guideRender.unmount();
+
+    const spatialRouter: AppRouterAdapter = {
+      state: { location: { pathname: '/system/alpha-centauri', searchStr: '' } },
+    };
+    render(
+      <CanvasRouterBridgeContext.Provider value={spatialRouter}>
+        <RootCanvasHost />
+      </CanvasRouterBridgeContext.Provider>,
+    );
+
+    const layer = screen.getByTestId('canvas-layer');
+    expect(layer.getAttribute('data-scope')).toBe('system');
+    expect(layer.getAttribute('data-target-id')).toBe('alpha-centauri');
+    expect(preloadSpy).toHaveBeenCalledWith('system');
+    expect(await screen.findByTestId('mock-canvas')).toBeInTheDocument();
+  });
+
+  it('preserves imperative data-camera-* telemetry attributes across RootCanvasHost re-renders', async () => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+      if (contextId === 'webgl2' || contextId === 'webgl') {
+        return {} as WebGLRenderingContext;
+      }
+      return null;
+    });
+    _resetWebGLSupportedForTesting();
+
+    act(() => {
+      useCanvasStageStore.getState().mountSlot();
+      useCanvasStageStore.getState().setStageProps({ scope: 'galaxy', centerId: 'sol' });
+    });
+
+    render(<RootCanvasHost />);
+    const host = screen.getByTestId('root-canvas-host');
+    await screen.findByTestId('mock-canvas');
+
+    act(() => {
+      useCameraStore.getState().setCameraPose({
+        position: [5, 6, 7],
+        target: [1, 2, 3],
+        up: [0, 1, 0],
+        zoom: 1,
+        focalDistance: 9.5,
+      });
+    });
+
+    expect(host.getAttribute('data-camera-pos')).toBe('5.00,6.00,7.00');
+    expect(host.getAttribute('data-camera-target')).toBe('1.00,2.00,3.00');
+    expect(host.getAttribute('data-camera-dist')).toBe('9.50');
+
+    act(() => {
+      useCanvasStageStore.getState().setStageProps({ scope: 'galaxy', centerId: 'sirius' });
+    });
+
+    expect(host.getAttribute('data-camera-pos')).toBe('5.00,6.00,7.00');
+    expect(host.getAttribute('data-camera-target')).toBe('1.00,2.00,3.00');
+    expect(host.getAttribute('data-camera-dist')).toBe('9.50');
+  });
+
+  it('publishes data-view-offset and data-safe-center from useUIStore.viewportSafeRect', () => {
+    act(() => {
+      useUIStore.getState().resetUI();
+    });
+
+    render(<RootCanvasHost />);
+    const host = screen.getByTestId('root-canvas-host');
+
+    expect(host.getAttribute('data-view-offset')).toBe('0.00,0.00');
+
+    act(() => {
+      useUIStore.getState().setViewportSafeRect({
+        top: 0,
+        right: 384,
+        bottom: 56,
+        left: 0,
+        width: 896,
+        height: 664,
+        bypass: false,
+      });
+    });
+
+    expect(host.getAttribute('data-view-offset')).toBe('192.00,28.00');
+    expect(host.getAttribute('data-safe-center')).toBe('448.00,332.00');
   });
 });

@@ -25,15 +25,15 @@ export function setPortalEntry(portalId: string, portal: React.ReactPortal): voi
   portalMap.set(portalId, portal);
   if (isNew) {
     emitPortalIdChange();
-  } else {
-    emitPortalSlotChange(portalId);
   }
+  emitPortalSlotChange(portalId);
 }
 
 export function deletePortalEntry(portalId: string): void {
   if (!portalMap.has(portalId)) return;
   portalMap.delete(portalId);
   emitPortalIdChange();
+  emitPortalSlotChange(portalId);
 }
 
 export function subscribePortalIds(listener: () => void): () => void {

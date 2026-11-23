@@ -3,6 +3,8 @@ import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { CanvasLayer } from './CanvasLayer';
+import { preloadWebGLHost } from './canvasWebGLHostLoader';
+import * as scalePreloader from '../../../services/navigation/scalePreloader';
 import { canMountWebGLCanvas } from './webglSupport';
 import { _resetWebGLSupportedForTesting } from './webglSupport.testing';
 import {
@@ -13,10 +15,20 @@ import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import {
+  CanvasRouterBridgeContext,
+  type AppRouterAdapter,
+} from '../../../hooks/useSpaLocation';
+import {
   SpatialEntityStoreContext,
   useOptionalSpatialEntityStoreApi,
 } from '../../canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
+import {
+  CrossScaleChoreographyController,
+  useCrossScaleChoreography,
+} from '../../canvas/instrument/CrossScaleChoreographyContext';
+
+const observedChoreographyControllers: CrossScaleChoreographyController[] = [];
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -43,15 +55,21 @@ vi.mock('../../canvas/scenes/SystemSceneEntry', () => ({
 vi.mock('../../canvas/scenes/PlanetarySceneEntry', () => {
   const MockPlanetarySceneContent = (props: {
     planetId?: string;
+    centerId?: string;
+    centerCoordinates?: readonly [number, number, number];
     onInspectSatellite?: (id: string) => void;
     onSelectEntity?: (id: string | null) => void;
   }) => {
     const store = useOptionalSpatialEntityStoreApi();
+    const choreographyController = useCrossScaleChoreography();
+    observedChoreographyControllers.push(choreographyController);
     return createElement('div', {
       'data-testid': 'mock-planetary-scene',
       'data-has-inspect': String(Boolean(props.onInspectSatellite)),
       'data-has-select': String(Boolean(props.onSelectEntity)),
       'data-has-bridged-store': String(Boolean(store)),
+      'data-center-id': props.centerId,
+      'data-center-coords': props.centerCoordinates?.join(','),
     });
   };
   return {
@@ -83,12 +101,15 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
         children,
       ),
     useFrame: vi.fn(),
-    useThree: () => ({
-      camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
-      gl: { setClearColor: vi.fn() },
-      scene: new THREE.Scene(),
-      controls: { target: new THREE.Vector3(), update: vi.fn() },
-    }),
+    useThree: (selector?: (s: unknown) => unknown) => {
+      const state = {
+        camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
+        gl: { setClearColor: vi.fn() },
+        scene: new THREE.Scene(),
+        controls: { target: new THREE.Vector3(), update: vi.fn() },
+      };
+      return selector ? selector(state) : state;
+    },
   };
 });
 
@@ -96,6 +117,7 @@ describe('CanvasLayer Domain Component', () => {
   let originalGetContext: typeof HTMLCanvasElement.prototype.getContext;
 
   beforeEach(() => {
+    observedChoreographyControllers.length = 0;
     originalGetContext = HTMLCanvasElement.prototype.getContext;
     act(() => {
       useCanvasStageStore.getState().resetCanvasStageStore();
@@ -336,6 +358,8 @@ describe('CanvasLayer Domain Component', () => {
           <CanvasLayer
             scope="planet"
             targetId="earth"
+            centerId="moon"
+            centerCoordinates={[10, 2, -1]}
             onInspect={onInspect}
             onSelect={onSelect}
           />
@@ -346,6 +370,8 @@ describe('CanvasLayer Domain Component', () => {
       expect(planetScene.getAttribute('data-has-inspect')).toBe('true');
       expect(planetScene.getAttribute('data-has-select')).toBe('true');
       expect(planetScene.getAttribute('data-has-bridged-store')).toBe('true');
+      expect(planetScene.getAttribute('data-center-id')).toBe('moon');
+      expect(planetScene.getAttribute('data-center-coords')).toBe('10,2,-1');
     });
 
     it('uses frameloop="demand" in standalone direct mode', async () => {
@@ -399,6 +425,95 @@ describe('CanvasLayer Domain Component', () => {
       expect(canvas.getAttribute('data-frameloop')).toBe('never');
       expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
       expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+    });
+
+    it('keeps frameloop="demand" and spatial scene mounted when router is on a spatial route with stageProps even if activeSlotCount === 0, and pauses on /guide', async () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      let currentPathname = '/system/sol';
+      const historyListeners = new Set<() => void>();
+      const mockRouter: AppRouterAdapter = {
+        get state() {
+          return { location: { pathname: currentPathname, searchStr: '' } };
+        },
+        history: {
+          subscribe: (cb) => {
+            historyListeners.add(cb);
+            return () => historyListeners.delete(cb);
+          },
+        },
+      };
+
+      act(() => {
+        useCanvasStageStore.getState().setStageProps({ scope: 'galaxy', centerId: 'sol' });
+      });
+
+      render(
+        <CanvasRouterBridgeContext.Provider value={mockRouter}>
+          <CanvasLayer isRootHost scope="galaxy" centerId="sol" />
+        </CanvasRouterBridgeContext.Provider>,
+      );
+
+      const canvas = await screen.findByTestId('mock-canvas');
+      expect(useCanvasStageStore.getState().activeSlotCount).toBe(0);
+      expect(canvas.getAttribute('data-frameloop')).toBe('demand');
+      expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+      act(() => {
+        currentPathname = '/guide';
+        for (const listener of historyListeners) listener();
+      });
+
+      expect(canvas.getAttribute('data-frameloop')).toBe('never');
+      expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+    });
+
+    it('preloadWebGLHost eagerly preloads CanvasWebGLHost and scene entry only when WebGL is supported', () => {
+      const preloadSpy = vi
+        .spyOn(scalePreloader, 'preloadSceneEntry')
+        .mockResolvedValue(undefined);
+
+      preloadWebGLHost('system');
+      expect(preloadSpy).not.toHaveBeenCalled();
+
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      preloadWebGLHost('system');
+      expect(preloadSpy).toHaveBeenCalledWith('system');
+    });
+
+    it('provides an isolated CrossScaleChoreographyController per CanvasWebGLHost instance', async () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      render(
+        <div>
+          <CanvasLayer scope="planet" targetId="earth" testId="canvas-one" />
+          <CanvasLayer scope="planet" targetId="mars" testId="canvas-two" />
+        </div>,
+      );
+
+      const scenes = await screen.findAllByTestId('mock-planetary-scene');
+      expect(scenes).toHaveLength(2);
+      expect(observedChoreographyControllers).toHaveLength(2);
+      expect(observedChoreographyControllers[0]).not.toBe(observedChoreographyControllers[1]);
     });
   });
 });

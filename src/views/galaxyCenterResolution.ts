@@ -4,7 +4,9 @@ import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
 import { getMergedCorpusParts } from '../services/details/activeStarsCorpus';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import { parseCenterCoordinatesString } from '../utils/url';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { resolveEffectiveScaleCenterSlug } from './useColdLoadCenterId';
 
 export const corpusSystemFirstChildCache = new WeakMap<
   readonly CompactSearchEntry[],
@@ -64,6 +66,7 @@ export interface ResolveGalaxyCenterCoordinatesParams {
     readonly center?: string;
   };
   readonly urlFocusSlug: string | null;
+  readonly isColdLoadFocus?: boolean;
   readonly canvasFocusedSlugs: ReadonlySet<string>;
   readonly pendingCenterSlug: string | null;
   readonly center?: string;
@@ -79,9 +82,22 @@ function extractPositionCoords(
   return p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
 }
 
+function hasNonOriginOrSolCoords(
+  slug: string | undefined,
+  coords: readonly [number, number, number],
+): boolean {
+  return (
+    slug === SOL_REFERENCE_TARGET.id ||
+    coords[0] !== 0 ||
+    coords[1] !== 0 ||
+    coords[2] !== 0
+  );
+}
+
 export function resolveGalaxyCenterCoordinates({
   cameraState,
   urlFocusSlug,
+  isColdLoadFocus = true,
   canvasFocusedSlugs,
   pendingCenterSlug,
   center,
@@ -98,18 +114,19 @@ export function resolveGalaxyCenterCoordinates({
     return [cameraState.x, cameraState.y, cameraState.z];
   }
 
-  const isCanvasClickFocus =
-    urlFocusSlug !== null &&
-    (canvasFocusedSlugs.has(urlFocusSlug) ||
-      canvasFocusedSlugs.has(toUrlSlug(urlFocusSlug))) &&
-    pendingCenterSlug !== urlFocusSlug;
+  const parsedCenterCoords = parseCenterCoordinatesString(center ?? cameraState.center);
+  if (parsedCenterCoords) {
+    return parsedCenterCoords;
+  }
 
-  const effectiveCenterSlug =
-    (center ? toUrlSlug(center) : undefined) ??
-    cameraState.center ??
-    pendingCenterSlug ??
-    (!isCanvasClickFocus && urlFocusSlug ? toUrlSlug(urlFocusSlug) : undefined) ??
-    undefined;
+  const effectiveCenterSlug = resolveEffectiveScaleCenterSlug({
+    center,
+    cameraCenter: cameraState.center,
+    pendingCenterSlug,
+    urlFocusSlug,
+    isColdLoadFocus,
+    canvasFocusedSlugs,
+  });
 
   if (
     effectiveCenterSlug &&
@@ -123,24 +140,14 @@ export function resolveGalaxyCenterCoordinates({
       toUrlSlug(focusedEntity.name) === effectiveCenterSlug)
   ) {
     const coords = extractPositionCoords(focusedEntity.position);
-    if (
-      effectiveCenterSlug === SOL_REFERENCE_TARGET.id ||
-      coords[0] !== 0 ||
-      coords[1] !== 0 ||
-      coords[2] !== 0
-    ) {
+    if (hasNonOriginOrSolCoords(effectiveCenterSlug, coords)) {
       return coords;
     }
   }
 
   if (centerEntity?.position) {
     const coords = extractPositionCoords(centerEntity.position);
-    if (
-      effectiveCenterSlug === SOL_REFERENCE_TARGET.id ||
-      coords[0] !== 0 ||
-      coords[1] !== 0 ||
-      coords[2] !== 0
-    ) {
+    if (hasNonOriginOrSolCoords(effectiveCenterSlug, coords)) {
       return coords;
     }
   }
@@ -156,36 +163,19 @@ export function resolveGalaxyCenterCoordinates({
     );
     if (selectedMatch?.position) {
       const coords = extractPositionCoords(selectedMatch.position);
-      if (
-        centerSlug === SOL_REFERENCE_TARGET.id ||
-        coords[0] !== 0 ||
-        coords[1] !== 0 ||
-        coords[2] !== 0
-      ) {
+      if (hasNonOriginOrSolCoords(centerSlug, coords)) {
         return coords;
       }
     }
 
     const directCorpusMatch = findFocusedEntryInCorpus(centerSlug, apertureCorpus);
     if (directCorpusMatch) {
-      if (
-        directCorpusMatch.p &&
-        (centerSlug === SOL_REFERENCE_TARGET.id ||
-          directCorpusMatch.p[0] !== 0 ||
-          directCorpusMatch.p[1] !== 0 ||
-          directCorpusMatch.p[2] !== 0)
-      ) {
+      if (directCorpusMatch.p && hasNonOriginOrSolCoords(centerSlug, directCorpusMatch.p)) {
         return [directCorpusMatch.p[0], directCorpusMatch.p[1], directCorpusMatch.p[2]];
       }
       if (directCorpusMatch.s) {
         const host = findFocusedEntryInCorpus(directCorpusMatch.s, apertureCorpus);
-        if (
-          host?.p &&
-          (centerSlug === SOL_REFERENCE_TARGET.id ||
-            host.p[0] !== 0 ||
-            host.p[1] !== 0 ||
-            host.p[2] !== 0)
-        ) {
+        if (host?.p && hasNonOriginOrSolCoords(centerSlug, host.p)) {
           return [host.p[0], host.p[1], host.p[2]];
         }
       }
@@ -194,13 +184,7 @@ export function resolveGalaxyCenterCoordinates({
     const childCorpusMatch = getCorpusSystemFirstChildMap(apertureCorpus).get(centerSlug);
     if (childCorpusMatch?.s) {
       const host = findFocusedEntryInCorpus(childCorpusMatch.s, apertureCorpus);
-      if (
-        host?.p &&
-        (centerSlug === SOL_REFERENCE_TARGET.id ||
-          host.p[0] !== 0 ||
-          host.p[1] !== 0 ||
-          host.p[2] !== 0)
-      ) {
+      if (host?.p && hasNonOriginOrSolCoords(centerSlug, host.p)) {
         return [host.p[0], host.p[1], host.p[2]];
       }
     }

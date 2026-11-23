@@ -191,6 +191,10 @@ export interface ReferenceFrame {
   centerDistance?: number;
   extent?: number;
   orientation?: THREE.Quaternion | [number, number, number, number] | THREE.Euler | [number, number, number];
+  /** Default reference plane inclination relative to its parent scale in degrees. */
+  readonly planeInclinationDeg?: number;
+  /** Default reference plane longitude of ascending node in degrees. */
+  readonly planeAscendingNodeDeg?: number;
 }
 
 export type Vec3Tuple = readonly [number, number, number] | [number, number, number];

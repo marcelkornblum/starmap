@@ -2,10 +2,12 @@ import React, { Suspense, lazy, useCallback } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { RootCanvasStageContext } from '../components/domain/CanvasLayer/RootCanvasStageContext';
+import { preloadTargetScaleEntry } from '../services/navigation/scalePreloader';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
 import { handleSpaNavigation } from '../hooks/spaNavigation';
 import { useOptionalRouter, useSpaLocation } from '../hooks/useSpaLocation';
+import { parseSpatialRouteTarget } from '../utils/spatialRoute';
 
 const LazyGalaxyView = lazy(() =>
   import('../views/GalaxyView').then((m) => ({ default: m.GalaxyView })),
@@ -13,13 +15,14 @@ const LazyGalaxyView = lazy(() =>
 
 export const RootLayout: React.FC = () => {
   const router = useOptionalRouter();
-  const { pathname } = useSpaLocation(undefined, undefined, '');
+  const { pathname } = useSpaLocation(undefined, undefined, '', false);
 
   const handleRootClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.defaultPrevented) return;
-      const target = event.target as Element | null;
-      const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+      const target = event.target instanceof Element ? event.target : null;
+      const anchorEl = target?.closest('a[href]');
+      const anchor = anchorEl instanceof HTMLAnchorElement ? anchorEl : null;
       if (!anchor) return;
       if (anchor.target && anchor.target !== '_self') return;
       if (anchor.hasAttribute('download')) return;
@@ -30,13 +33,33 @@ export const RootLayout: React.FC = () => {
     [router],
   );
 
+  const handleRootIntentPreload = useCallback(
+    (event: React.SyntheticEvent<HTMLDivElement>) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const anchorEl = target?.closest('a[href]');
+      const anchor = anchorEl instanceof HTMLAnchorElement ? anchorEl : null;
+      const href = anchor?.getAttribute('href');
+      if (!href) return;
+      const routeTarget = parseSpatialRouteTarget(href);
+      if (routeTarget) {
+        void preloadTargetScaleEntry(routeTarget.scope, routeTarget.targetId);
+      }
+    },
+    [],
+  );
+
   const hasRegisteredRouter = router?.state !== undefined;
   const isPersistentGalaxyRoute =
     hasRegisteredRouter && (pathname === '/' || pathname === '/galaxy');
 
   return (
     <SpatialEntityProvider>
-      <div id="starmap-app-root" onClick={handleRootClick}>
+      <div
+        id="starmap-app-root"
+        onClick={handleRootClick}
+        onMouseOver={handleRootIntentPreload}
+        onPointerDown={handleRootIntentPreload}
+      >
         <ThemeTokenBridge />
         <RootCanvasStageContext.Provider value={true}>
           <RootCanvasHost />

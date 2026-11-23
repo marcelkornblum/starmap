@@ -65,8 +65,8 @@ export const RangeRings: React.FC<RangeRingsProps> = React.memo(({
   }, [rangeRingColor]);
 
   useFrame(() => {
-    const { apertureRadius, focusPoint, planeWeights, cardinalAlignment } = frameRef.current;
-    const fadeXY = planeWeights?.fadeXY ?? Math.max(0, 1.0 - Math.max(cardinalAlignment.alphaX, cardinalAlignment.alphaY));
+    const { apertureRadius, focusPoint, planeWeights, cardinalAlignment, instrumentFade } = frameRef.current;
+    const fadeXY = (planeWeights?.fadeXY ?? Math.max(0, 1.0 - Math.max(cardinalAlignment.alphaX, cardinalAlignment.alphaY))) * instrumentFade;
 
     if (groupRef.current?.position && lockToFocusPoint && !position) {
       groupRef.current.position.set(focusPoint.x, focusPoint.y, 0);
@@ -89,6 +89,7 @@ export const RangeRings: React.FC<RangeRingsProps> = React.memo(({
           mat.opacity = baseAlpha * ring.fade * fadeXY;
         } else {
           mesh.visible = false;
+          mat.opacity = 0;
         }
       }
     } else {
@@ -106,6 +107,7 @@ export const RangeRings: React.FC<RangeRingsProps> = React.memo(({
           mat.opacity = (isMajor ? ringMajorAlpha : ringMinorAlpha) * fadeXY;
         } else {
           mesh.visible = false;
+          mat.opacity = 0;
         }
       }
     }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildResultTargetLink,
   resolveFocusedEntityFromCorpus,
+  resolveSelectedEntitiesForScope,
   resolveSelectedSystemsFromSearchResults,
   toSearchResultItem,
 } from './searchSelection';
@@ -32,6 +33,17 @@ describe('searchSelection', () => {
     expect(item.targetView).toBe('galaxy');
     expect(item.href).toBe('/galaxy?focus=tau-ceti&select=tag:habitable-candidate');
     expect(item.hasHabitableCandidate).toBe(true);
+
+    const moonEntry: CompactSearchEntry = {
+      i: 'titan',
+      k: 3,
+      n: 'Titan',
+      s: 'sol',
+      o: 'saturn',
+      h: 1,
+    };
+    const moonItem = toSearchResultItem(moonEntry, 900, 'Sol');
+    expect(moonItem.parentBodyId).toBe('saturn');
   });
 
   it('resolves selected systems from search results', () => {
@@ -85,5 +97,153 @@ describe('searchSelection', () => {
       position: [0, 0, 0],
       classification: 'stellar-system',
     });
+  });
+
+  it('resolves scope-aware entity IDs across galaxy, system, and planet scopes', () => {
+    const scopeCorpus: readonly CompactSearchEntry[] = [
+      ...SAMPLE_CORPUS,
+      {
+        i: 'titan',
+        n: 'Titan',
+        s: 'sol',
+        o: 'saturn',
+        k: 3,
+        h: 1,
+        a: 'titan',
+      },
+      {
+        i: 'titania',
+        n: 'Titania',
+        s: 'sol',
+        o: 'uranus',
+        k: 3,
+        h: 1,
+        a: 'titania',
+      },
+      {
+        i: 'canon-test',
+        n: 'Titan Canon Layer',
+        k: 7,
+        w: 'canon-test',
+        a: 'titan',
+      },
+    ];
+
+    const titanResults = executeCatalogSearch(scopeCorpus, {
+      query: 'titan',
+      filter: 'all',
+    });
+
+    expect(resolveSelectedEntitiesForScope(titanResults, 'galaxy')).toEqual(['sol']);
+    expect(resolveSelectedEntitiesForScope(titanResults, 'system')).toEqual([
+      'saturn',
+      'uranus',
+    ]);
+    expect(resolveSelectedEntitiesForScope(titanResults, 'planet')).toEqual([
+      'titan',
+      'titania',
+    ]);
+
+    const earthResults = executeCatalogSearch(scopeCorpus, {
+      query: 'Earth',
+      filter: 'all',
+    });
+    expect(resolveSelectedEntitiesForScope(earthResults, 'system')).toEqual(['earth']);
+  });
+
+  it('includes galactic-structure items with position and reticleType in resolveSelectedSystemsFromSearchResults', () => {
+    const structureCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'sagittarius-a-star',
+        k: 5,
+        n: 'Sagittarius A*',
+        p: [0, 0, -8178],
+        u: 'black-hole',
+      },
+    ];
+    const results = executeCatalogSearch(structureCorpus, {
+      query: 'Sagittarius',
+      filter: 'all',
+    });
+    expect(resolveSelectedSystemsFromSearchResults(results)).toEqual([
+      {
+        id: 'sagittarius-a-star',
+        name: 'Sagittarius A*',
+        position: [0, 0, -8178],
+        classification: 'black-hole',
+      },
+    ]);
+  });
+
+  it('does not duplicate systems when a child planet systemId slug matches an already-matched star name or ID', () => {
+    const slugCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'HYG-10847',
+        k: 1,
+        n: 'Epsilon Eridani',
+        p: [-3.2, 0.1, -0.5],
+        m: [3.73, 'K2V', 1],
+      },
+      {
+        i: 'epsilon-eridani-b',
+        k: 2,
+        n: 'Epsilon Eridani b',
+        s: 'epsilon-eridani',
+        p: [-3.2, 0.1, -0.5],
+      },
+    ];
+    const results = executeCatalogSearch(slugCorpus, {
+      query: 'Epsilon Eridani',
+      filter: 'all',
+    });
+    expect(resolveSelectedSystemsFromSearchResults(results)).toEqual([
+      {
+        id: 'HYG-10847',
+        name: 'Epsilon Eridani',
+        position: [-3.2, 0.1, -0.5],
+        classification: 'stellar-system',
+        spectralType: 'K2V',
+      },
+    ]);
+  });
+
+  it('includes fictional-entry items in groups.layers for system and planet scopes while excluding entityKind layer items', () => {
+    const fictionalCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'canon-alpha',
+        k: 7,
+        n: 'Canon Alpha Layer',
+        w: 'canon-alpha',
+        a: 'station',
+      },
+      {
+        i: 'station-orbital',
+        k: 7,
+        n: 'Orbital Station Alpha',
+        s: 'sol',
+        o: 'earth',
+        w: 'canon-alpha',
+        a: 'station',
+      },
+      {
+        i: 'outpost-deep',
+        k: 7,
+        n: 'Deep Outpost Station',
+        s: 'sol',
+        w: 'canon-alpha',
+        a: 'station',
+      },
+    ];
+    const results = executeCatalogSearch(fictionalCorpus, {
+      query: 'station',
+      filter: 'all',
+    });
+
+    expect(new Set(resolveSelectedEntitiesForScope(results, 'system'))).toEqual(
+      new Set(['earth', 'outpost-deep']),
+    );
+    expect(new Set(resolveSelectedEntitiesForScope(results, 'planet'))).toEqual(
+      new Set(['station-orbital', 'outpost-deep']),
+    );
   });
 });

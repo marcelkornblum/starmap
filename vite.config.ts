@@ -26,6 +26,18 @@ export default defineConfig(({ mode }) => {
   const base = process.env.BASE_PATH ?? (isProduction ? '/starmap/' : '/');
 
   return {
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        'zustand',
+        '@tanstack/react-router',
+        'three',
+        '@react-three/fiber',
+        '@react-three/drei',
+      ],
+    },
     resolve: {
       // Exact-boundary ESM alias prevents CJS require('three') ([THREE_CJS_DEPRECATED]) in Vitest.
       alias: [

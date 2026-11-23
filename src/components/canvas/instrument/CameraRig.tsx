@@ -4,11 +4,12 @@ import { useThree } from '@react-three/fiber';
 import { useSpatialFrame } from './spatialFrameContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import {
+  isOrbitControlsLike,
   releaseOrthographicLock,
-  type OrbitControlsLike,
 } from './cameraRigZoomAndPan';
 import { useCameraRigProjection } from './useCameraRigProjection';
 import { useCameraRigStoreSync } from './useCameraRigStoreSync';
+import { useCameraRigViewOffset } from './useCameraRigViewOffset';
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 
@@ -23,13 +24,6 @@ export interface CameraRigProps {
   snapDuration?: number;
 }
 
-type CameraRigControls = OrbitControlsLike & {
-  minDistance?: number;
-  maxDistance?: number;
-  addEventListener?: (type: string, listener: () => void) => void;
-  removeEventListener?: (type: string, listener: () => void) => void;
-};
-
 export const CameraRig: React.FC<CameraRigProps> = ({
   baseFov: explicitBaseFov,
   snapOnRelease = true,
@@ -37,9 +31,11 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   snapDuration = 0.35,
 }) => {
   const camera = useThree((s) => s.camera);
-  const controls = useThree((s) => (s as unknown as { controls?: CameraRigControls }).controls);
+  const rawControls = useThree((s) => s.controls);
+  const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
   const sizeWidth = useThree((s) => s.size?.width);
   const sizeHeight = useThree((s) => s.size?.height);
+  const invalidate = useThree((s) => s.invalidate);
   const get = useThree((s) => s.get);
   const { frame } = useSpatialFrame();
 
@@ -63,7 +59,6 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     configuredBaseFov: projection.configuredBaseFov,
     snapOnRelease,
     snapThresholdRad: projection.snapThresholdRad,
-    controllerRef: projection.controllerRef,
     perspCamRef: projection.perspCamRef,
     orthoCamRef: projection.orthoCamRef,
     persistentTargetRef: projection.persistentTargetRef,
@@ -74,17 +69,23 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     glideToCardinal: projection.glideToCardinal,
   });
 
+  useCameraRigViewOffset({
+    perspCamRef: projection.perspCamRef,
+    orthoCamRef: projection.orthoCamRef,
+    sizeWidth,
+    sizeHeight,
+    invalidate,
+  });
+
   useEffect(() => {
-    const controller = projection.controllerRef.current;
     const orthoCam = projection.orthoCamRef.current;
     const baseFov = projection.configuredBaseFov;
     const perspCam = projection.perspCamRef;
 
     return () => {
-      controller.cancel();
       if (useCameraStore.getState().isLocked && perspCam.current) {
         const state = get();
-        const activeControls = (state as { controls?: OrbitControlsLike }).controls;
+        const activeControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
         releaseOrthographicLock(
           orthoCam,
           perspCam.current,
@@ -95,7 +96,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
         state.set?.({ camera: perspCam.current });
       }
     };
-  }, [get, projection.configuredBaseFov, projection.controllerRef, projection.orthoCamRef, projection.perspCamRef]);
+  }, [get, projection.configuredBaseFov, projection.orthoCamRef, projection.perspCamRef]);
 
   return null;
 };

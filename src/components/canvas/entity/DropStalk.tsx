@@ -5,6 +5,7 @@ import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
+import { getCrossScaleSceneScale } from '../instrument/crossScaleVisualState';
 import type { CelestialClassification } from '../../../types/spatial';
 import {
   createReticleGeometry,
@@ -52,7 +53,6 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   const stalkExtendDuration = useThreeTokenStore((s) => s.tokens.stalkExtendDuration);
   const stalkRetractDuration = useThreeTokenStore((s) => s.tokens.stalkRetractDuration);
 
-  // Single-Stalk Rule: Only render in selected or focused tiers
   const isStalkTier = state === 'selected' || state === 'focused';
 
   const [posX, posY, posZ] = useMemo(() => {
@@ -73,18 +73,17 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   const isDashed = deltaZ < 0;
   const hemisphere = isDashed ? 'south' : 'north';
 
-  // Animation progress: 0 (retracted) -> 1 (fully extended)
-  // In SSR / node tests without useFrame, initialize directly to 1.0 for stalk tiers so renderToString succeeds.
-  // In browser, initialize to 0.0 so extension animates smoothly upon selection.
   const progressRef = useRef(
     typeof window === 'undefined' ? (isStalkTier ? 1.0 : 0.0) : 0.0,
   );
   const lastProgressRef = useRef<number>(Number.NaN);
   const lastFootprintOpacityRef = useRef<number>(Number.NaN);
+  const lastStalkOpacityRef = useRef<number>(Number.NaN);
+  const lastResolutionRef = useRef({ height: -1, proj11: Number.NaN });
   const lineMeshRef = useRef<THREE.LineSegments>(null);
   const footprintRef = useLazyRef(() => {
     const g = new THREE.Group();
-    g.position.set(x, y, targetZ);
+    g.position.set(x, y, targetZ + 0.002);
     return g;
   });
   const footprintMatRef = useRef<THREE.LineBasicMaterial>(null);
@@ -93,7 +92,6 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   const frameCtx = useSpatialFrameSafe();
   const invalidate = useThree((s) => s.invalidate);
 
-  // Stalk vertical line remains neutral / monochrome; datum reticle adopts state color
   const stalkColor = state === 'focused' ? stalkFocusedColor : stalkSelectedColor;
   const stalkOpacity = state === 'focused' ? stalkFocusedAlpha : stalkSelectedAlpha;
 
@@ -104,7 +102,6 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
     ? footprintFocusedAlpha
     : (state === 'selected' ? footprintSelectedAlpha : footprintAlpha);
 
-  // Stalk line geometry: 2 vertices (entity position -> datum projection)
   const lineGeom = useMemo(() => {
     const geom = new THREE.BufferGeometry();
     const positions = new Float32Array([
@@ -122,29 +119,28 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
     return geom;
   }, [x, y, startZ, targetZ]);
 
-  // Footprint reticle geometry at base on datum plane
   const footprintGeom = useMemo(() => {
     return createReticleGeometry(classification, footprintSize);
   }, [classification, footprintSize]);
 
   const lineMaterial = useMemo(() => {
     return new CartoHairlineMaterial({
-      color: stalkColor,
-      opacity: stalkOpacity,
       lineStyle: isDashed ? 'dashed' : 'solid',
       transparent: true,
       depthWrite: false,
     });
-    // Keep material instance stable; mutate color/opacity in useEffect below
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDashed]);
 
   useEffect(() => {
     lineMaterial.setColor(stalkColor);
-    lineMaterial.setOpacity(stalkOpacity);
-  }, [lineMaterial, stalkColor, stalkOpacity]);
+    const initialFade = frameCtx?.frameRef?.current?.instrumentFade ?? 1.0;
+    const initialOpacity = stalkOpacity * initialFade;
+    lineMaterial.setOpacity(initialOpacity);
+    lastStalkOpacityRef.current = initialOpacity;
+  }, [lineMaterial, stalkColor, stalkOpacity, frameCtx]);
 
   useEffect(() => {
+    lastProgressRef.current = Number.NaN;
     return () => {
       lineGeom.dispose();
     };
@@ -163,17 +159,20 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   }, [resolvedFootprintColor]);
 
   useEffect(() => {
+    if (Math.abs(deltaZ) <= 1e-4) return;
     invalidate();
-  }, [invalidate, isStalkTier, stalkColor, stalkOpacity, resolvedFootprintColor, resolvedFootprintAlpha]);
+  }, [invalidate, isStalkTier, deltaZ, stalkColor, stalkOpacity, resolvedFootprintColor, resolvedFootprintAlpha]);
 
   useFrame(({ camera, size }, delta) => {
+    if (!isStalkTier && progressRef.current <= 0) return;
+    const clampedDelta = Math.min(delta, 0.1);
     const target = isStalkTier ? 1.0 : 0.0;
     const dur = target > progressRef.current ? stalkExtendDuration : stalkRetractDuration;
 
     if (dur <= 0) {
       progressRef.current = target;
     } else {
-      const step = delta / dur;
+      const step = clampedDelta / dur;
       if (target > progressRef.current) {
         progressRef.current = Math.min(target, progressRef.current + step);
       } else {
@@ -183,19 +182,21 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
     const p = progressRef.current;
 
-    // Mutate stalk line vertex 2 in-place: current tip Z = startZ + p * (targetZ - startZ)
-    const geom = lineMeshRef.current?.geometry as THREE.BufferGeometry | undefined;
-    if (geom && Math.abs(p - lastProgressRef.current) > 1e-5) {
+    const geom = lineMeshRef.current?.geometry;
+    if (
+      geom instanceof THREE.BufferGeometry &&
+      (Number.isNaN(lastProgressRef.current) || Math.abs(p - lastProgressRef.current) > 1e-5)
+    ) {
       lastProgressRef.current = p;
-      const posAttr = geom.getAttribute('position') as THREE.BufferAttribute;
-      const arr = posAttr.array as Float32Array;
-      arr[5] = startZ + p * (targetZ - startZ);
-      posAttr.needsUpdate = true;
+      const posAttr = geom.getAttribute('position');
+      if (posAttr instanceof THREE.BufferAttribute && posAttr.array instanceof Float32Array) {
+        posAttr.array[5] = startZ + p * (targetZ - startZ);
+        posAttr.needsUpdate = true;
+      }
 
-      const distAttr = geom.getAttribute('lineDistance') as THREE.BufferAttribute | undefined;
-      if (distAttr) {
-        const dArr = distAttr.array as Float32Array;
-        dArr[1] = p * Math.abs(targetZ - startZ);
+      const distAttr = geom.getAttribute('lineDistance');
+      if (distAttr instanceof THREE.BufferAttribute && distAttr.array instanceof Float32Array) {
+        distAttr.array[1] = p * Math.abs(targetZ - startZ);
         distAttr.needsUpdate = true;
       }
     }
@@ -207,12 +208,12 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
     const frameState = frameCtx?.frameRef?.current;
     const planeWeights = frameState?.planeWeights;
+    const instrumentFade = frameState?.instrumentFade ?? 1.0;
     const fadePlanar = planeWeights ? Math.max(0, 1.0 - planeWeights.maxAlpha) : 1.0;
 
-    // Footprint visibility & invariant screen-space scaling (stamps as stalk reaches datum)
     if (footprintRef.current) {
-      footprintRef.current.position.set(x, y, targetZ);
-      footprintRef.current.visible = (p > 0.85) && (fadePlanar > 1e-4) && Math.abs(deltaZ) > 1e-4;
+      footprintRef.current.position.set(x, y, targetZ + 0.002);
+      footprintRef.current.visible = (p > 0.85) && (fadePlanar * instrumentFade > 1e-4) && Math.abs(deltaZ) > 1e-4;
       if (footprintRef.current.visible) {
         footprintRef.current.getWorldPosition(scratchWorldPos.current);
         const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
@@ -221,27 +222,45 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
           camera,
           frameState,
         );
-        footprintRef.current.scale.set(invScale, invScale, 1);
+        const localInvScale = invScale / getCrossScaleSceneScale();
+        footprintRef.current.scale.set(localInvScale, localInvScale, 1);
       }
     }
 
-    const nextOpacity = resolvedFootprintAlpha * fadePlanar;
-    if (footprintMatRef.current && Math.abs(nextOpacity - lastFootprintOpacityRef.current) > 1e-4) {
+    const nextOpacity = resolvedFootprintAlpha * fadePlanar * instrumentFade;
+    if (
+      footprintMatRef.current &&
+      (Number.isNaN(lastFootprintOpacityRef.current) || Math.abs(nextOpacity - lastFootprintOpacityRef.current) > 1e-4)
+    ) {
       footprintMatRef.current.opacity = nextOpacity;
       lastFootprintOpacityRef.current = nextOpacity;
     }
 
-    lineMaterial.updateResolution(camera, size.height);
+    const nextStalkOpacity = stalkOpacity * instrumentFade;
+    if (Number.isNaN(lastStalkOpacityRef.current) || Math.abs(nextStalkOpacity - lastStalkOpacityRef.current) > 1e-4) {
+      lineMaterial.setOpacity(nextStalkOpacity);
+      lastStalkOpacityRef.current = nextStalkOpacity;
+    }
 
-    if (Math.abs(target - p) > 1e-4) {
+    const proj11 = camera.projectionMatrix.elements[5];
+    const lastRes = lastResolutionRef.current;
+    if (lastRes.height !== size.height || lastRes.proj11 !== proj11) {
+      lineMaterial.updateResolution(camera, size.height);
+      lastRes.height = size.height;
+      lastRes.proj11 = proj11;
+    }
+
+    if (Math.abs(deltaZ) > 1e-4 && Math.abs(target - p) > 1e-4) {
       invalidate();
     }
   });
 
+  const groupUserData = useMemo(() => ({ hemisphere }), [hemisphere]);
+
   if (!isStalkTier && progressRef.current <= 0.001) return null;
 
   return (
-    <group name={`drop-stalk-${id}`} userData={{ hemisphere }}>
+    <group name={`drop-stalk-${id}`} userData={groupUserData}>
       {/* Vertical Stalk Line */}
       <lineSegments ref={lineMeshRef} name="stalk-line" material={lineMaterial} frustumCulled={false} raycast={NOOP_RAYCAST}>
         <primitive object={lineGeom} attach="geometry" />

@@ -1,237 +1,299 @@
-import { useEffect, useCallback } from 'react';
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useUIStore } from '../../../stores/useUIStore';
 import { FRAME_PRIORITY } from '../engineConfig';
-import { criticallyDamped, interpolateLogarithmicDistance } from '../math/cameraFrustumMath';
-import { DEFAULT_TRANSITION_DURATION_SEC } from './instrumentDefaults';
+import { CameraTransitionController } from './cameraTransitionEngine';
+import { hasPendingCrossScaleArrival } from './crossScaleArrivalState';
+import {
+  createTransitionFrameScheduler,
+  type TransitionFrameScheduler,
+} from './transitionFrameScheduler';
+import {
+  isTransitionControlsLike,
+  type CameraTransitionApi,
+  type CameraTransitionOptions,
+} from './cameraTransitionPoseMath';
 
-export type CameraTransitionEasing = 'easeInOutCubic' | 'criticallyDamped' | ((t: number) => number);
+export type {
+  Vector3Input,
+  CameraTransitionEasing,
+  CameraTransitionOptions,
+  CameraTransitionPose,
+  TransitionControlsLike,
+  CameraTransitionApi,
+} from './cameraTransitionPoseMath';
 
-export interface CameraTransitionOptions {
-  duration?: number;
-  targetDistance?: number;
-  easing?: CameraTransitionEasing;
-  logarithmicDistance?: boolean;
-  onComplete?: () => void;
-  onCancel?: () => void;
+interface ThreeStateSnapshot {
+  readonly camera?: THREE.Camera;
+  readonly controls?: unknown;
+  readonly invalidate?: () => void;
 }
 
-export interface CameraTransitionApi {
-  transitionTo: (target: THREE.Vector3 | [number, number, number], options?: CameraTransitionOptions) => void;
-  cancelTransition: () => void;
-  isTransitioning: () => boolean;
+interface HudRetractState {
+  active: boolean;
 }
 
-export function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const CameraTransitionContext = createContext<CameraTransitionApi | null>(null);
+
+function createTransitionOptionsWrapper(
+  controller: CameraTransitionController,
+  hudRetractState: HudRetractState,
+  scheduler: TransitionFrameScheduler,
+  options?: CameraTransitionOptions,
+): CameraTransitionOptions {
+  return {
+    ...options,
+    onComplete: () => {
+      scheduler.cancelPending();
+      const didRetractHud = hudRetractState.active;
+      hudRetractState.active = false;
+      options?.onComplete?.();
+      if (
+        didRetractHud &&
+        !controller.isTransitioning() &&
+        !hasPendingCrossScaleArrival()
+      ) {
+        useUIStore.getState().setCameraTransitioning(false);
+      }
+    },
+    onCancel: () => {
+      scheduler.cancelPending();
+      const didRetractHud = hudRetractState.active;
+      hudRetractState.active = false;
+      options?.onCancel?.();
+      if (
+        didRetractHud &&
+        !controller.isTransitioning() &&
+        !hasPendingCrossScaleArrival()
+      ) {
+        useUIStore.getState().setCameraTransitioning(false);
+      }
+    },
+  };
 }
 
-/**
- * Pure Three.js camera transition controller.
- * Operates zero-allocation frame updates for smooth camera & instrument centering.
- */
-export class CameraTransitionController {
-  private isTransitioningState = false;
-  private startTime = 0;
-  private duration = DEFAULT_TRANSITION_DURATION_SEC;
-  private options?: CameraTransitionOptions;
+function createCameraTransitionApi(
+  controller: CameraTransitionController,
+  getState: () => ThreeStateSnapshot | undefined,
+  hudRetractState: HudRetractState,
+  scheduler: TransitionFrameScheduler,
+): CameraTransitionApi {
+  const resolveThree = () => {
+    const liveState = getState();
+    const activeControls = isTransitionControlsLike(liveState?.controls)
+      ? liveState.controls
+      : undefined;
+    return {
+      activeCamera: liveState?.camera,
+      activeControls,
+      invalidate: liveState?.invalidate,
+    };
+  };
 
-  private startTarget = new THREE.Vector3();
-  private endTarget = new THREE.Vector3();
-  private startCamPos = new THREE.Vector3();
-  private endCamPos = new THREE.Vector3();
-  private startDist = 0;
-  private endDist = 0;
-  private useLogDist = false;
-
-  private scratchOffset = new THREE.Vector3();
-  private scratchDir = new THREE.Vector3();
-  private scratchCurrentTarget = new THREE.Vector3();
-  private scratchCurrentCamPos = new THREE.Vector3();
-
-  public isTransitioning(): boolean {
-    return this.isTransitioningState;
-  }
-
-  public cancel(): void {
-    if (this.isTransitioningState) {
-      this.isTransitioningState = false;
-      const onCancel = this.options?.onCancel;
-      this.options = undefined;
-      onCancel?.();
+  const beginHudRetractionIfNeeded = (options?: CameraTransitionOptions) => {
+    if (!controller.isTransitioning()) return;
+    const shouldRetractHud = options?.retractHud !== false;
+    hudRetractState.active = shouldRetractHud;
+    if (shouldRetractHud) {
+      useUIStore.getState().setCameraTransitioning(true);
     }
-  }
+  };
 
-  public start(
-    camera: THREE.Camera,
-    target: THREE.Vector3 | [number, number, number],
-    controlsTarget?: THREE.Vector3,
-    options?: CameraTransitionOptions,
-    now: number = performance.now(),
-  ): void {
-    if (target instanceof THREE.Vector3) {
-      this.endTarget.copy(target);
-    } else {
-      this.endTarget.set(target[0], target[1], target[2]);
-    }
-
-    if (controlsTarget) {
-      this.startTarget.copy(controlsTarget);
-    } else {
-      camera.getWorldDirection(this.scratchDir);
-      const camDist = Math.max(camera.position.length(), 1.0);
-      this.startTarget.copy(camera.position).addScaledVector(this.scratchDir, camDist);
-    }
-
-    this.scratchOffset.copy(camera.position).sub(this.startTarget);
-    const currentDist = this.scratchOffset.length();
-    if (currentDist > 1e-4) {
-      this.scratchDir.copy(this.scratchOffset).divideScalar(currentDist);
-    } else {
-      this.scratchDir.set(0, 0, 1);
-    }
-
-    const targetDist = options?.targetDistance ?? currentDist;
-    this.startDist = currentDist;
-    this.endDist = targetDist;
-    this.useLogDist =
-      (options?.logarithmicDistance ?? true) &&
-      this.startDist > 1e-3 &&
-      this.endDist > 1e-3 &&
-      Math.abs(Math.log10(this.endDist / this.startDist)) > 0.05;
-
-    if (options?.targetDistance !== undefined && currentDist > 1e-4) {
-      this.scratchOffset.copy(this.scratchDir).multiplyScalar(targetDist);
-    }
-
-    this.startCamPos.copy(camera.position);
-    this.endCamPos.copy(this.endTarget).add(this.scratchOffset);
-    this.duration = options?.duration ?? DEFAULT_TRANSITION_DURATION_SEC;
-    this.options = options;
-    this.startTime = now;
-    this.isTransitioningState = true;
-  }
-
-  public update(
-    camera: THREE.Camera,
-    controls?: { target?: THREE.Vector3; update?: () => void },
-    now: number = performance.now(),
-  ): boolean {
-    if (!this.isTransitioningState) return false;
-
-    const elapsed = (now - this.startTime) / 1000;
-    const dur = Math.max(this.duration, 0.001);
-    const progress = Math.min(elapsed / dur, 1.0);
-
-    let t: number;
-    const easing = this.options?.easing ?? 'easeInOutCubic';
-    if (typeof easing === 'function') {
-      t = easing(progress);
-    } else if (easing === 'criticallyDamped') {
-      t = criticallyDamped(progress);
-    } else {
-      t = easeInOutCubic(progress);
-    }
-
-    this.scratchCurrentTarget.lerpVectors(this.startTarget, this.endTarget, t);
-    if (this.useLogDist) {
-      const d = interpolateLogarithmicDistance(this.startDist, this.endDist, t);
-      this.scratchCurrentCamPos.copy(this.scratchCurrentTarget).addScaledVector(this.scratchDir, d);
-    } else {
-      this.scratchCurrentCamPos.lerpVectors(this.startCamPos, this.endCamPos, t);
-    }
-
-    if (controls && controls.target instanceof THREE.Vector3) {
-      controls.target.copy(this.scratchCurrentTarget);
-      camera.position.copy(this.scratchCurrentCamPos);
-      if (typeof controls.update === 'function') controls.update();
-    } else {
-      camera.position.copy(this.scratchCurrentCamPos);
-      camera.lookAt(this.scratchCurrentTarget);
-    }
-
-    if (progress >= 1.0) {
-      this.isTransitioningState = false;
-      const onComplete = this.options?.onComplete;
-      this.options = undefined;
-      onComplete?.();
-    }
-    return true;
-  }
+  return {
+    transitionTo: (target, options) => {
+      const { activeCamera, activeControls, invalidate } = resolveThree();
+      if (!activeCamera) return;
+      controller.start(
+        activeCamera,
+        target,
+        activeControls?.target,
+        createTransitionOptionsWrapper(controller, hudRetractState, scheduler, options),
+        undefined,
+        activeControls,
+      );
+      beginHudRetractionIfNeeded(options);
+      scheduler.requestInitial(invalidate);
+    },
+    transitionToPose: (endPose, options) => {
+      const { activeCamera, activeControls, invalidate } = resolveThree();
+      if (!activeCamera) return;
+      controller.startPose(
+        activeCamera,
+        endPose,
+        activeControls,
+        createTransitionOptionsWrapper(controller, hudRetractState, scheduler, options),
+      );
+      beginHudRetractionIfNeeded(options);
+      scheduler.requestInitial(invalidate);
+    },
+    cancelTransition: () => {
+      scheduler.cancelPending();
+      const didRetractHud = hudRetractState.active;
+      controller.cancel();
+      hudRetractState.active = false;
+      if (didRetractHud && !hasPendingCrossScaleArrival()) {
+        useUIStore.getState().setCameraTransitioning(false);
+      }
+    },
+    isTransitioning: () => controller.isTransitioning(),
+  };
 }
 
-/**
- * Hook providing smooth, zero-allocation camera and instrument focal transitions.
- */
-export function useCameraTransition(): CameraTransitionApi {
+function useCameraTransitionEngine(): CameraTransitionApi {
   const camera = useThree((s) => s.camera);
   const invalidate = useThree((s) => s.invalidate);
-  const controls = useThree(
-    (s) =>
-      (
-        s as unknown as {
-          controls?: {
-            target?: THREE.Vector3;
-            update?: () => void;
-            addEventListener?: (type: string, listener: () => void) => void;
-            removeEventListener?: (type: string, listener: () => void) => void;
-          };
-        }
-      ).controls,
-  );
+  const rawControls = useThree((s) => s.controls);
+  const controls = isTransitionControlsLike(rawControls) ? rawControls : undefined;
+  const get = useThree((s) => s.get);
 
-  const controllerRef = useLazyRef(() => new CameraTransitionController());
+  const [controller] = useState(() => new CameraTransitionController());
+  const [hudRetractState] = useState<HudRetractState>(() => ({ active: false }));
+  const [scheduler] = useState(() => createTransitionFrameScheduler());
 
-  const cancelTransition = useCallback(() => {
-    controllerRef.current.cancel();
-    useUIStore.getState().setCameraTransitioning(false);
-  }, [controllerRef]);
+  const getLiveSnapshot = useCallback((): ThreeStateSnapshot => {
+    const liveState = typeof get === 'function' ? get() : undefined;
+    return {
+      camera: liveState?.camera ?? camera,
+      controls: liveState?.controls ?? controls,
+      invalidate: liveState?.invalidate ?? invalidate,
+    };
+  }, [camera, controls, get, invalidate]);
 
-  const transitionTo = useCallback(
-    (target: THREE.Vector3 | [number, number, number], options?: CameraTransitionOptions) => {
-      useUIStore.getState().setCameraTransitioning(true);
-      const wrappedOptions: CameraTransitionOptions = {
-        ...options,
-        onComplete: () => {
-          useUIStore.getState().setCameraTransitioning(false);
-          options?.onComplete?.();
-        },
-        onCancel: () => {
-          useUIStore.getState().setCameraTransitioning(false);
-          options?.onCancel?.();
-        },
-      };
-
-      controllerRef.current.start(camera, target, controls?.target, wrappedOptions);
-      invalidate();
-    },
-    [camera, controls, invalidate, controllerRef],
+  const api = useMemo<CameraTransitionApi>(
+    () =>
+      createCameraTransitionApi(
+        controller,
+        getLiveSnapshot,
+        hudRetractState,
+        scheduler,
+      ),
+    [controller, getLiveSnapshot, hudRetractState, scheduler],
   );
 
   useEffect(() => {
     if (!controls || typeof controls.addEventListener !== 'function') return;
-    const handleUserInteract = () => { cancelTransition(); };
+    const handleUserInteract = () => {
+      api.cancelTransition();
+    };
     controls.addEventListener('start', handleUserInteract);
     return () => {
       controls.removeEventListener?.('start', handleUserInteract);
     };
-  }, [controls, cancelTransition]);
+  }, [controls, api]);
 
   useEffect(() => {
-    const controller = controllerRef.current;
     return () => {
+      scheduler.cancelPending();
+      const didRetractHud = hudRetractState.active;
       if (controller.isTransitioning()) {
-        useUIStore.getState().setCameraTransitioning(false);
+        controller.cancel();
+        hudRetractState.active = false;
+        if (didRetractHud) {
+          useUIStore.getState().setCameraTransitioning(false);
+        }
       }
     };
-  }, [controllerRef]);
+  }, [controller, hudRetractState, scheduler]);
+
+  const isStillTransitioning = useCallback(
+    () => controller.isTransitioning(),
+    [controller],
+  );
 
   useFrame(() => {
-    const updated = controllerRef.current.update(camera, controls);
-    if (updated) invalidate();
+    const snapshot = getLiveSnapshot();
+    const activeCamera = snapshot.camera;
+    if (!activeCamera) return;
+    const activeControls = isTransitionControlsLike(snapshot.controls)
+      ? snapshot.controls
+      : undefined;
+    const updated = controller.update(activeCamera, activeControls);
+    if (updated) {
+      scheduler.requestNext(snapshot.invalidate, isStillTransitioning);
+    }
   }, FRAME_PRIORITY.cameraTransition);
 
-  return { transitionTo, cancelTransition, isTransitioning: () => controllerRef.current.isTransitioning() };
+  return api;
+}
+
+export interface CameraTransitionProviderProps {
+  readonly children: ReactNode;
+}
+
+/**
+ * Single canvas-level provider owning the authoritative CameraTransitionController,
+ * its priority -2 useFrame loop, and its OrbitControls 'start' cancellation listener.
+ */
+export function CameraTransitionProvider({ children }: CameraTransitionProviderProps) {
+  const api = useCameraTransitionEngine();
+  return createElement(CameraTransitionContext.Provider, { value: api }, children);
+}
+
+const NOOP_CAMERA_TRANSITION_API: CameraTransitionApi = {
+  transitionTo: () => {},
+  transitionToPose: () => {},
+  cancelTransition: () => {},
+  isTransitioning: () => false,
+};
+
+const selectNoop = (): undefined => undefined;
+
+/**
+ * Hook providing smooth, zero-allocation camera and instrument focal transitions.
+ * Consumes the enclosing `CameraTransitionProvider` with zero extra allocations or `useFrame`
+ * registrations, falling back to a lazy non-`useFrame` controller only when mounted outside a provider.
+ */
+export function useCameraTransition(): CameraTransitionApi {
+  const contextApi = useContext(CameraTransitionContext);
+  const get = useThree(contextApi ? selectNoop : (s) => s.get);
+  const camera = useThree(contextApi ? selectNoop : (s) => s.camera);
+  const rawControls = useThree(contextApi ? selectNoop : (s) => s.controls);
+  const invalidate = useThree(contextApi ? selectNoop : (s) => s.invalidate);
+  const [fallbackState] = useState<{
+    readonly controller: CameraTransitionController;
+    readonly hudRetractState: HudRetractState;
+    readonly scheduler: TransitionFrameScheduler;
+  } | null>(() =>
+    contextApi
+      ? null
+      : {
+          controller: new CameraTransitionController(),
+          hudRetractState: { active: false },
+          scheduler: createTransitionFrameScheduler(),
+        },
+  );
+
+  const getFallbackSnapshot = useCallback((): ThreeStateSnapshot => {
+    const liveState = typeof get === 'function' ? get() : undefined;
+    return {
+      camera: liveState?.camera ?? camera,
+      controls: liveState?.controls ?? rawControls,
+      invalidate: liveState?.invalidate ?? invalidate,
+    };
+  }, [camera, get, invalidate, rawControls]);
+
+  const fallbackApi = useMemo<CameraTransitionApi | null>(
+    () =>
+      fallbackState
+        ? createCameraTransitionApi(
+            fallbackState.controller,
+            getFallbackSnapshot,
+            fallbackState.hudRetractState,
+            fallbackState.scheduler,
+          )
+        : null,
+    [fallbackState, getFallbackSnapshot],
+  );
+
+  return contextApi ?? fallbackApi ?? NOOP_CAMERA_TRANSITION_API;
 }

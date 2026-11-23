@@ -9,6 +9,7 @@ import {
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
   hasExplicitFocusParam,
+  parseCenterCoordinatesString,
   parseLayerQueryParam,
   resolveAppHref,
   resolveDataUrl,
@@ -128,6 +129,20 @@ describe('url utils', () => {
       expect(hasExplicitFocusParam('?focus=sol')).toBe(true);
       expect(hasExplicitFocusParam('?focus=')).toBe(false);
       expect(hasExplicitFocusParam('')).toBe(false);
+    });
+
+    it('parseCenterCoordinatesString parses finite 3D tuples and rejects slugs or malformed values', () => {
+      expect(parseCenterCoordinatesString('10,20,-30')).toEqual([10, 20, -30]);
+      expect(parseCenterCoordinatesString(' 1.5 , -2.25 , 0 ')).toEqual([1.5, -2.25, 0]);
+      expect(parseCenterCoordinatesString('sol')).toBeUndefined();
+      expect(parseCenterCoordinatesString(null)).toBeUndefined();
+      expect(parseCenterCoordinatesString('')).toBeUndefined();
+      expect(parseCenterCoordinatesString('1,2')).toBeUndefined();
+      expect(parseCenterCoordinatesString('1,2,3,4')).toBeUndefined();
+      expect(parseCenterCoordinatesString('1,,3')).toBeUndefined();
+      expect(parseCenterCoordinatesString('1,NaN,3')).toBeUndefined();
+      expect(parseCenterCoordinatesString('1,Infinity,3')).toBeUndefined();
+      expect(parseCenterCoordinatesString('1,abc,3')).toBeUndefined();
     });
   });
 });

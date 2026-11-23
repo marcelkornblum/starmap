@@ -134,4 +134,107 @@ describe('cartographyMath - calculateScreenEdgeBearing', () => {
 
     expect(res.visible).toBe(false);
   });
+
+  it('clamps attached and detached edge cues inside safeInsets without overlapping HUD panels', () => {
+    const cam = new THREE.PerspectiveCamera(45, 1440 / 900, 0.1, 1000);
+    cam.position.set(0, -25, 10);
+    cam.up.set(0, 0, 1);
+    cam.lookAt(0, 0, 0);
+    cam.updateMatrixWorld();
+    cam.updateProjectionMatrix();
+
+    const safeInsets = { top: 64, right: 320, bottom: 120, left: 280 };
+
+    // Attached Core bearing (+X) clamps to width - right - margin = 1440 - 320 - 28 = 1092
+    const resCore = calculateScreenEdgeBearing(
+      cam,
+      { width: 1440, height: 900 },
+      28,
+      'core',
+      new THREE.Vector3(0, 0, 0),
+      2000,
+      2000,
+      undefined,
+      40,
+      undefined,
+      safeInsets,
+    );
+    expect(resCore.visible).toBe(true);
+    expect(resCore.isAttached).toBe(true);
+    expect(resCore.edge).toBe('right');
+    expect(resCore.x).toBeCloseTo(1092, 0);
+
+    // Attached Orbital bearing (+Y) clamps to top + margin = 64 + 28 = 92
+    const resOrbital = calculateScreenEdgeBearing(
+      cam,
+      { width: 1440, height: 900 },
+      28,
+      'orbital',
+      new THREE.Vector3(0, 0, 0),
+      2000,
+      2000,
+      undefined,
+      40,
+      undefined,
+      safeInsets,
+    );
+    expect(resOrbital.visible).toBe(true);
+    expect(resOrbital.isAttached).toBe(true);
+    expect(resOrbital.edge).toBe('top');
+    expect(resOrbital.y).toBeCloseTo(92, 0);
+
+    // Detached Core bearing pointing left clamps to left + margin = 280 + 28 = 308
+    cam.position.set(0, 0, 10);
+    cam.lookAt(0, -50, 10);
+    cam.updateMatrixWorld();
+    cam.updateProjectionMatrix();
+
+    const resDetachedLeft = calculateScreenEdgeBearing(
+      cam,
+      { width: 1440, height: 900 },
+      28,
+      'core',
+      new THREE.Vector3(0, 0, 0),
+      2000,
+      2000,
+      undefined,
+      40,
+      undefined,
+      safeInsets,
+    );
+    expect(resDetachedLeft.visible).toBe(true);
+    expect(resDetachedLeft.isAttached).toBe(false);
+    expect(resDetachedLeft.edge).toBe('left');
+    expect(resDetachedLeft.x).toBeCloseTo(308, 0);
+  });
+
+  it('falls back cleanly to midpoint when safeInsets invert clamped bounds', () => {
+    const cam = new THREE.PerspectiveCamera(45, 400 / 300, 0.1, 1000);
+    cam.position.set(0, -25, 10);
+    cam.up.set(0, 0, 1);
+    cam.lookAt(0, 0, 0);
+    cam.updateMatrixWorld();
+    cam.updateProjectionMatrix();
+
+    // left(200) + margin(28) = 228 > width(400) - right(200) - margin(28) = 172
+    const res = calculateScreenEdgeBearing(
+      cam,
+      { width: 400, height: 300 },
+      28,
+      'core',
+      new THREE.Vector3(0, 0, 0),
+      2000,
+      2000,
+      undefined,
+      40,
+      undefined,
+      { top: 150, right: 200, bottom: 150, left: 200 },
+    );
+
+    expect(res.visible).toBe(true);
+    expect(Number.isFinite(res.x)).toBe(true);
+    expect(Number.isFinite(res.y)).toBe(true);
+    expect(res.x).toBeCloseTo(200, 0);
+    expect(res.y).toBeCloseTo(150, 0);
+  });
 });

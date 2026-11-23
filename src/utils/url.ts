@@ -139,6 +139,27 @@ export function parseLayerQueryParam(
 }
 
 /**
+ * Parses a `"x,y,z"` coordinate string (per DEC-R014a) into a 3D tuple.
+ * Returns `undefined` for entity slugs or malformed strings.
+ */
+export function parseCenterCoordinatesString(
+  value?: string | null,
+): [number, number, number] | undefined {
+  if (!value || typeof value !== 'string') return undefined;
+  const parts = value.split(',');
+  if (parts.length !== 3) return undefined;
+  const rawX = parts[0]?.trim();
+  const rawY = parts[1]?.trim();
+  const rawZ = parts[2]?.trim();
+  if (!rawX || !rawY || !rawZ) return undefined;
+  const x = Number(rawX);
+  const y = Number(rawY);
+  const z = Number(rawZ);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return undefined;
+  return [x, y, z];
+}
+
+/**
  * Pure predicate checking whether a URL search string contains an explicit single-entity `?focus=<slug>` parameter.
  */
 export const hasExplicitFocusParam = (searchString: string): boolean => {

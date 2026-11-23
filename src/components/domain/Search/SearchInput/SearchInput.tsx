@@ -13,7 +13,7 @@ export const SearchInput = ({
   id = 'starmap-search-input',
   label = 'Search query',
 }: SearchInputProps) => {
-  const { query, setQuery, isFocused, setIsFocused } = useSearchContext();
+  const { query, setQuery, isFocused, setIsFocused, searchInputRef } = useSearchContext();
 
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>): void => {
     setIsFocused?.(true);
@@ -42,6 +42,7 @@ export const SearchInput = ({
       </label>
       <div className={styles.inputWrapper}>
         <Input
+          ref={searchInputRef}
           id={id}
           name="query"
           type="search"

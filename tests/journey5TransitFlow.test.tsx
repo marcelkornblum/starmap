@@ -202,10 +202,8 @@ describe('Journey 5: Transit Flow - 3D View Reference Point, Camera URL State & 
     expect(buildCenterEntityHref('planet', 'earth', 'moon')).toBe(
       '/planet/earth?center=moon&focus=moon',
     );
-    // Fallback if scopeTargetId is omitted in system/planet scopes
-    expect(buildCenterEntityHref('system', undefined, 'tau-ceti')).toBe(
-      '/galaxy?center=tau-ceti&focus=tau-ceti',
-    );
+    expect(buildCenterEntityHref('system', undefined, 'tau-ceti')).toBeUndefined();
+    expect(buildCenterEntityHref('planet', undefined, 'moon')).toBeUndefined();
   });
 
   it('DEC-021: buildFocusedEntityDetails populates centerHref', () => {

@@ -24,6 +24,8 @@ export interface SpatialFrameState {
   fovFactor: number;
   /** Centralised screen-invariant scaling factor at the focus point */
   screenScale: number;
+  /** Cross-scale instrument fade scalar in [0, 1] */
+  instrumentFade: number;
 }
 
 export interface SpatialFrameContextValue {

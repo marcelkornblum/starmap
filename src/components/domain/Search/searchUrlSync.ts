@@ -2,6 +2,13 @@ import { parseSearchUrlParams } from '../../../services/search/searchUrls';
 import type { SearchCategoryFilter } from '../../../types/search';
 import type { AppRouterAdapter, StarmapSearchParams } from '../../../hooks/useSpaLocation';
 
+export interface SelfWrittenSearchParams {
+  readonly pathname: string;
+  readonly q: string;
+  readonly cat: string;
+  readonly layer: string;
+}
+
 export const resolveInitialQuery = (
   syncUrl: boolean,
   searchString: string,
@@ -28,9 +35,21 @@ export const syncSearchUrlParams = (
   nextQuery: string,
   nextFilter: SearchCategoryFilter,
   router?: AppRouterAdapter | null,
+  activePathname = '',
+  activeSearch = '',
+  lastSelfWrittenSearchRef?: { current: SelfWrittenSearchParams | null },
 ): void => {
   if (router && typeof router.navigate === 'function' && router.state !== undefined) {
     const qTrimmed = nextQuery.trim();
+    const currentLayer = new URLSearchParams(activeSearch).getAll('layer').join(',');
+    if (lastSelfWrittenSearchRef) {
+      lastSelfWrittenSearchRef.current = {
+        pathname: activePathname,
+        q: qTrimmed,
+        cat: nextFilter !== 'all' ? nextFilter : '',
+        layer: currentLayer,
+      };
+    }
     void router.navigate({
       to: '.',
       search: (prev: StarmapSearchParams = {}) => {

@@ -1,42 +1,81 @@
 import React, {
   useSyncExternalStore,
-  useLayoutEffect,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import {
   getStageCallbacks,
   subscribeStageCallbacks,
 } from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useUIStore } from '../../../stores/useUIStore';
+import { computeOpticalCenterOffsetPx } from '../../../utils/viewportSafeRect';
+import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
+import { isSpatialRoutePathname, parseSpatialRouteTarget } from '../../../utils/spatialRoute';
 import { CanvasLayer } from './CanvasLayer';
+import { preloadWebGLHost } from './canvasWebGLHostLoader';
+import { preloadTargetScaleEntry } from '../../../services/navigation/scalePreloader';
 import styles from './RootCanvasHost.module.css';
-
-const useIsomorphicLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export const RootCanvasHost: React.FC = () => {
   const hostRef = useRef<HTMLDivElement>(null);
+  const router = useOptionalRouter();
+  const { pathname } = useSpaLocation(undefined, undefined, '/galaxy', false);
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
-  const [hasActivatedSpatialCanvas, setHasActivatedSpatialCanvas] = useState(hasActiveSlot);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
+  const hasStageProps = stageProps !== null;
+  const hasRegisteredRouter = router?.state !== undefined;
+  const isSpatialRoute = isSpatialRoutePathname(pathname);
+  const initialRouteTarget = hasRegisteredRouter ? parseSpatialRouteTarget(pathname) : null;
+  const isStageActive = router
+    ? hasActiveSlot || ((hasStageProps || hasRegisteredRouter) && isSpatialRoute)
+    : hasActiveSlot;
+  const resolvedInitialScope = stageProps?.scope ?? initialRouteTarget?.scope ?? 'galaxy';
+  const resolvedInitialTargetId = stageProps
+    ? stageProps.targetId
+    : initialRouteTarget?.targetId;
+  const shouldActivateCanvas = isStageActive || initialRouteTarget !== null;
+  const [hasActivatedSpatialCanvas, setHasActivatedSpatialCanvas] =
+    useState(shouldActivateCanvas);
 
   useIsomorphicLayoutEffect(() => {
-    if (hasActiveSlot) {
+    if (shouldActivateCanvas) {
       setHasActivatedSpatialCanvas(true);
+      preloadWebGLHost(resolvedInitialScope);
     }
-  }, [hasActiveSlot]);
+  }, [shouldActivateCanvas, resolvedInitialScope]);
+
+  useEffect(() => {
+    if (!hasActivatedSpatialCanvas || import.meta.env.MODE === 'test') return;
+    let idleHandle: number | null = null;
+    const idleTimer = setTimeout(() => {
+      const runPreload = () => {
+        void preloadTargetScaleEntry('system');
+        void preloadTargetScaleEntry('planet');
+      };
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(runPreload);
+      } else {
+        runPreload();
+      }
+    }, 5000);
+    return () => {
+      clearTimeout(idleTimer);
+      if (idleHandle !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleHandle);
+      }
+    };
+  }, [hasActivatedSpatialCanvas]);
   const { onInspect, onSelect, onFocusChange } = useSyncExternalStore(
     subscribeStageCallbacks,
     getStageCallbacks,
     getStageCallbacks,
   );
-
-  const initialCam = useCameraStore.getState();
 
   useIsomorphicLayoutEffect(() => {
     setRootCanvasMounted(true);
@@ -74,6 +113,8 @@ export const RootCanvasHost: React.FC = () => {
         el.setAttribute('data-camera-dist', state.focalDistance.toFixed(2));
       }
     };
+
+    applyTelemetry(useCameraStore.getState(), null);
 
     const unsubscribe = useCameraStore.subscribe((state, prevState) => {
       if (isInitialMount) {
@@ -114,12 +155,30 @@ export const RootCanvasHost: React.FC = () => {
     };
   }, []);
 
+  const viewportSafeRect = useUIStore((s) => s.viewportSafeRect);
+
+  useIsomorphicLayoutEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    const fullW = viewportSafeRect
+      ? viewportSafeRect.left + viewportSafeRect.width + viewportSafeRect.right
+      : el.clientWidth;
+    const fullH = viewportSafeRect
+      ? viewportSafeRect.top + viewportSafeRect.height + viewportSafeRect.bottom
+      : el.clientHeight;
+    const { offsetX, offsetY } = computeOpticalCenterOffsetPx(viewportSafeRect);
+    const safeCenterX = fullW > 0 ? fullW / 2 - offsetX : 0;
+    const safeCenterY = fullH > 0 ? fullH / 2 - offsetY : 0;
+    el.setAttribute('data-view-offset', `${offsetX.toFixed(2)},${offsetY.toFixed(2)}`);
+    el.setAttribute('data-safe-center', `${safeCenterX.toFixed(2)},${safeCenterY.toFixed(2)}`);
+  }, [viewportSafeRect]);
+
   const canvasLayerContent = useMemo(
     () => (
       <CanvasLayer
         isRootHost
-        scope={stageProps?.scope ?? 'galaxy'}
-        targetId={stageProps?.targetId}
+        scope={resolvedInitialScope}
+        targetId={resolvedInitialTargetId}
         centerId={stageProps?.centerId}
         centerCoordinates={stageProps?.centerCoordinates}
         selectedEntities={stageProps?.selectedEntities}
@@ -137,8 +196,8 @@ export const RootCanvasHost: React.FC = () => {
       />
     ),
     [
-      stageProps?.scope,
-      stageProps?.targetId,
+      resolvedInitialScope,
+      resolvedInitialTargetId,
       stageProps?.centerId,
       stageProps?.centerCoordinates,
       stageProps?.selectedEntities,
@@ -161,11 +220,7 @@ export const RootCanvasHost: React.FC = () => {
       ref={hostRef}
       className={styles.rootCanvasHost}
       data-testid="root-canvas-host"
-      data-stage-inactive={!hasActiveSlot ? 'true' : undefined}
-      data-camera-mode={initialCam.mode}
-      data-camera-pos={initialCam.position.map((v) => v.toFixed(2)).join(',')}
-      data-camera-target={initialCam.target.map((v) => v.toFixed(2)).join(',')}
-      data-camera-dist={initialCam.focalDistance.toFixed(2)}
+      data-stage-inactive={!isStageActive ? 'true' : undefined}
       aria-hidden="true"
     >
       {hasActivatedSpatialCanvas ? canvasLayerContent : null}

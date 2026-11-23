@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useUIStore, INITIAL_UI_STATE } from './useUIStore';
+import type { ViewportSafeRect } from '../utils/viewportSafeRect';
 
 describe('useUIStore (Ephemeral)', () => {
   beforeEach(() => {
@@ -16,6 +17,7 @@ describe('useUIStore (Ephemeral)', () => {
     expect(state.detailsDetent).toBe('peek');
     expect(state.activeDrawer).toBeNull();
     expect(state.isLayerCardOpen).toBe(true);
+    expect(state.viewportSafeRect).toBeNull();
   });
 
   it('handles audio toggle and explicit setter', () => {
@@ -89,6 +91,45 @@ describe('useUIStore (Ephemeral)', () => {
     expect(useUIStore.getState().isLayerCardOpen).toBe(true);
   });
 
+  it('updates viewportSafeRect and deduplicates sub-pixel updates', () => {
+    const listener = vi.fn();
+    const unsubscribe = useUIStore.subscribe(listener);
+
+    const rect: ViewportSafeRect = {
+      top: 0,
+      right: 320,
+      bottom: 56,
+      left: 385,
+      width: 735,
+      height: 844,
+      bypass: false,
+    };
+
+    useUIStore.getState().setViewportSafeRect(rect);
+    expect(useUIStore.getState().viewportSafeRect).toEqual(rect);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    // Sub-pixel jitter within 1px epsilon must not notify subscribers
+    useUIStore.getState().setViewportSafeRect({ ...rect, left: 385.5, width: 734.5 });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    // Meaningful change > 1px must notify subscribers
+    const updatedRect: ViewportSafeRect = { ...rect, left: 400, width: 720 };
+    useUIStore.getState().setViewportSafeRect(updatedRect);
+    expect(useUIStore.getState().viewportSafeRect).toEqual(updatedRect);
+    expect(listener).toHaveBeenCalledTimes(2);
+
+    // Clearing to null notifies, and setting null again is deduplicated
+    useUIStore.getState().setViewportSafeRect(null);
+    expect(useUIStore.getState().viewportSafeRect).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(3);
+
+    useUIStore.getState().setViewportSafeRect(null);
+    expect(listener).toHaveBeenCalledTimes(3);
+
+    unsubscribe();
+  });
+
   it('resets to initial UI state and does not touch localStorage', () => {
     localStorage.clear();
     useUIStore.getState().setActivePanel('settings');
@@ -96,10 +137,20 @@ describe('useUIStore (Ephemeral)', () => {
     useUIStore.getState().setDetailsDetent('full');
     useUIStore.getState().setActiveDrawer('bodies');
     useUIStore.getState().setLayerCardOpen(false);
+    useUIStore.getState().setViewportSafeRect({
+      top: 0,
+      right: 0,
+      bottom: 56,
+      left: 385,
+      width: 1055,
+      height: 844,
+      bypass: false,
+    });
 
     useUIStore.getState().resetUI();
 
     expect(useUIStore.getState()).toMatchObject(INITIAL_UI_STATE);
+    expect(useUIStore.getState().viewportSafeRect).toBeNull();
     expect(localStorage.getItem('starmap-ui')).toBeNull();
   });
 });

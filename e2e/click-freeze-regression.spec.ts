@@ -1,4 +1,5 @@
 import { test, expect } from 'playwright/test';
+import { panCanvasOffCenter } from './helpers/safeCanvasCenter';
 
 test.describe('Click freeze & anchor navigation regression', () => {
   test('internal anchor clicks preserve query parameters without stripping them', async ({ page }) => {
@@ -80,11 +81,13 @@ test.describe('Click freeze & anchor navigation regression', () => {
     await marsLink.click();
     await marsLink.click();
 
-    // C. Click "Centre" twice in a row in Details panel
+    // C. FS-013 hides "Centre" while Sol is already centred; pan off-centre to reveal it and click "Centre"
     const centreLink = detailsPane.getByTestId('details-button-center');
-    await expect(centreLink).toBeVisible();
+    await expect(centreLink).toHaveCount(0);
+    await panCanvasOffCenter(page);
+    await expect(centreLink).toBeVisible({ timeout: 5_000 });
     await centreLink.click();
-    await centreLink.click();
+    await expect(centreLink).toHaveCount(0, { timeout: 5_000 });
 
     // 4. Type "Sol" again in the searchbox and click "Sol" a second time (re-selecting already focused system)
     await searchbox.fill('Sol');

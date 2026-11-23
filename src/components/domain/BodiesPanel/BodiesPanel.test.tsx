@@ -1,7 +1,11 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BodiesPanel } from './BodiesPanel';
+import { BodiesMinorBodyRow, type BodiesMinorBodyRowProps } from './BodiesMinorBodyRow';
 import { SpatialEntityProvider } from '../../canvas/entity/SpatialEntityProvider';
+import { SpatialEntityStoreContext } from '../../canvas/entity/SpatialEntityContext';
+import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 
 const renderWithProvider = (ui: React.ReactElement) =>
   render(<SpatialEntityProvider>{ui}</SpatialEntityProvider>);
@@ -200,5 +204,91 @@ describe('<BodiesPanel />', () => {
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('planet');
     expect(panel.getAttribute('data-planet-id')).toBe('earth');
+  });
+
+  it('does not re-render system-scope BodiesPanel when store hoveredId changes', () => {
+    const store = createSpatialEntityStore();
+    const onRender = vi.fn();
+
+    render(
+      <SpatialEntityStoreContext.Provider value={store}>
+        <React.Profiler id="bodies-panel-system" onRender={onRender}>
+          <BodiesPanel elements={mockSystemFixture} />
+        </React.Profiler>
+      </SpatialEntityStoreContext.Provider>,
+    );
+
+    expect(onRender).toHaveBeenCalled();
+    onRender.mockClear();
+
+    act(() => {
+      store.getState().setHovered('earth');
+    });
+
+    expect(onRender).not.toHaveBeenCalled();
+  });
+
+  it('compares minor-body rows structurally via BodiesMinorBodyRow memo comparator', () => {
+    const compare = (
+      BodiesMinorBodyRow as unknown as {
+        compare?: (prev: BodiesMinorBodyRowProps, next: BodiesMinorBodyRowProps) => boolean;
+      }
+    ).compare;
+    const baseBody = {
+      id: 'ceres',
+      name: 'Ceres',
+      href: '/system/sol?focus=ceres',
+      categoryKey: 'asteroid' as const,
+      categoryLabel: 'Minor Body',
+    };
+
+    expect(compare).toBeTypeOf('function');
+    expect(
+      compare?.(
+        { body: baseBody, isFocused: false, isSelected: false },
+        { body: { ...baseBody }, isFocused: false, isSelected: false },
+      ),
+    ).toBe(true);
+
+    expect(
+      compare?.(
+        { body: baseBody, isFocused: false, isSelected: false },
+        { body: { ...baseBody }, isFocused: true, isSelected: false },
+      ),
+    ).toBe(false);
+  });
+
+  it('paginates large minor-body lists initially and reveals more on button click', () => {
+    const manyMinorBodies = Array.from({ length: 120 }, (_, idx) => ({
+      id: `asteroid-${idx}`,
+      name: `Asteroid ${idx}`,
+      href: `/system/sol?focus=asteroid-${idx}`,
+      categoryKey: 'asteroid' as const,
+      categoryLabel: 'Minor Body',
+    }));
+
+    renderWithProvider(
+      <BodiesPanel
+        elements={{
+          ...mockSystemFixture,
+          focusedEntityId: 'asteroid-99',
+          minorBodiesAndSpacecraft: manyMinorBodies,
+        }}
+      />,
+    );
+
+    expect(screen.getAllByTestId('bodies-minor-body-item')).toHaveLength(51);
+    expect(screen.getByText('Asteroid 99')).toBeInTheDocument();
+
+    const showMoreBtn = screen.getByTestId('bodies-minor-bodies-show-more');
+    expect(showMoreBtn).toBeInTheDocument();
+
+    fireEvent.click(showMoreBtn);
+    expect(screen.getAllByTestId('bodies-minor-body-item')).toHaveLength(100);
+    expect(screen.getByTestId('bodies-minor-bodies-show-more')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('bodies-minor-bodies-show-more'));
+    expect(screen.getAllByTestId('bodies-minor-body-item')).toHaveLength(120);
+    expect(screen.queryByTestId('bodies-minor-bodies-show-more')).toBeNull();
   });
 });

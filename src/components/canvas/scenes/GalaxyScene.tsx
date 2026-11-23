@@ -6,10 +6,7 @@ import { SectorPointCloud, type SpatialEntityDefinition } from '../entity';
 import type { PlanetCensusEntry } from '../../../types/spatial';
 import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
-import {
-  getApertureActiveCutoffForViewportWidth,
-  getDeviceTierBudget,
-} from '../../../services/deviceTierService';
+import { getApertureActiveCutoffForViewportWidth, getDeviceTierBudget } from '../../../services/deviceTierService';
 import type { SystemSummaryNode } from '../../../types/astro';
 
 /**
@@ -39,6 +36,33 @@ const summaryToEntityDefinition = (s: SystemSummaryNode): SpatialEntityDefinitio
   };
   SUMMARY_ENTITY_CACHE.set(s, def);
   return def;
+};
+
+const addSlugEntries = <T,>(map: Map<string, T>, id: string, name: string | undefined, value: T): void => {
+  const idSlug = toUrlSlug(id);
+  if (idSlug) map.set(idSlug, value);
+  if (name) {
+    const nameSlug = toUrlSlug(name);
+    if (nameSlug && !map.has(nameSlug)) map.set(nameSlug, value);
+  }
+};
+
+const mergeEntityWithSummary = (
+  ent: SpatialEntityDefinition,
+  matchedSummary: SystemSummaryNode,
+  effectivePos: SpatialEntityDefinition['position'],
+): SpatialEntityDefinition => {
+  if (ent.id === matchedSummary.id) return summaryToEntityDefinition(matchedSummary);
+  const planets = resolveSummaryPlanets(matchedSummary) ?? ent.planets;
+  return {
+    ...ent,
+    name: ent.name || matchedSummary.name,
+    position: effectivePos,
+    classification: matchedSummary.classification ?? ent.classification ?? 'star',
+    spectralType: matchedSummary.spect || ent.spectralType,
+    multiplicity: matchedSummary.starCount ?? ent.multiplicity,
+    ...(planets && planets.length > 0 ? { planets } : {}),
+  };
 };
 
 export interface GalaxySceneProps {
@@ -89,22 +113,18 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
           const summariesUnchanged =
             prev.streamedSummaries.length === summaries.length &&
             prev.streamedSummaries.every((s, idx) => s.id === summaries[idx]?.id);
-          const focusUnchanged =
-            !nextFocusPointPc ||
-            (prev.focusPointPc[0] === nextFocusPointPc[0] &&
-              prev.focusPointPc[1] === nextFocusPointPc[1] &&
-              prev.focusPointPc[2] === nextFocusPointPc[2]);
+          const focusUnchanged = !nextFocusPointPc || (
+            prev.focusPointPc[0] === nextFocusPointPc[0] &&
+            prev.focusPointPc[1] === nextFocusPointPc[1] &&
+            prev.focusPointPc[2] === nextFocusPointPc[2]
+          );
 
-          if (prev.hasHydrated && summariesUnchanged && focusUnchanged) {
-            return prev;
-          }
+          if (prev.hasHydrated && summariesUnchanged && focusUnchanged) return prev;
 
           return {
             hasHydrated: true,
             streamedSummaries: summariesUnchanged ? prev.streamedSummaries : summaries,
-            focusPointPc: focusUnchanged
-              ? prev.focusPointPc
-              : [nextFocusPointPc[0], nextFocusPointPc[1], nextFocusPointPc[2]],
+            focusPointPc: focusUnchanged ? prev.focusPointPc : [nextFocusPointPc[0], nextFocusPointPc[1], nextFocusPointPc[2]],
           };
         });
       };
@@ -134,25 +154,14 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
     }
   }, [streamedSummaries, focusPointPc, budget.maxActiveEntities, onCeilingApertureRadiusChange]);
 
-  const {
-    streamedEntities,
-    streamedEntityById,
-    streamedEntityBySlug,
-    summaryById,
-    summaryBySlug,
-  } = useMemo(() => {
+  const { streamedEntities, streamedEntityById, streamedEntityBySlug, summaryById, summaryBySlug } = useMemo(() => {
     const maxActive = Math.min(budget.maxActiveEntities, GALAXY_SCENE_MAX_STREAMED_ENTITIES);
     const activeCutoff = getApertureActiveCutoffForViewportWidth();
     const sMap = new Map<string, SystemSummaryNode>();
     const sSlugMap = new Map<string, SystemSummaryNode>();
     for (const s of streamedSummaries) {
       sMap.set(s.id, s);
-      const idSlug = toUrlSlug(s.id);
-      if (idSlug) sSlugMap.set(idSlug, s);
-      if (s.name) {
-        const nameSlug = toUrlSlug(s.name);
-        if (nameSlug && !sSlugMap.has(nameSlug)) sSlugMap.set(nameSlug, s);
-      }
+      addSlugEntries(sSlugMap, s.id, s.name, s);
     }
 
     const list: SpatialEntityDefinition[] = [];
@@ -167,12 +176,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
         const def = summaryToEntityDefinition(s);
         list.push(def);
         eMap.set(s.id, def);
-        const idSlug = toUrlSlug(s.id);
-        if (idSlug) eSlugMap.set(idSlug, def);
-        if (s.name) {
-          const nameSlug = toUrlSlug(s.name);
-          if (nameSlug && !eSlugMap.has(nameSlug)) eSlugMap.set(nameSlug, def);
-        }
+        addSlugEntries(eSlugMap, s.id, s.name, def);
       }
       list.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     }
@@ -183,29 +187,20 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
         ? prev
         : (prevStreamedEntitiesRef.current = list);
 
-    return {
-      streamedEntities: finalStreamedEntities,
-      streamedEntityById: eMap,
-      streamedEntityBySlug: eSlugMap,
-      summaryById: sMap,
-      summaryBySlug: sSlugMap,
-    };
+    return { streamedEntities: finalStreamedEntities, streamedEntityById: eMap, streamedEntityBySlug: eSlugMap, summaryById: sMap, summaryBySlug: sSlugMap };
   }, [streamedSummaries, hasHydrated, budget.maxActiveEntities]);
 
   const entities = useMemo<SpatialEntityDefinition[]>(() => {
-    if (
-      streamedEntities.length > 0 &&
-      (!additionalEntities ||
-        additionalEntities.length === 0 ||
-        additionalEntities.every(
-          (ent) =>
-            streamedEntityById.has(ent.id) ||
-            streamedEntityBySlug.has(toUrlSlug(ent.id)) ||
-            (ent.name ? streamedEntityBySlug.has(toUrlSlug(ent.name)) : false),
-        ))
-    ) {
-      return streamedEntities;
-    }
+    const allAdditionalStreamed =
+      !additionalEntities ||
+      additionalEntities.length === 0 ||
+      additionalEntities.every(
+        (ent) =>
+          streamedEntityById.has(ent.id) ||
+          streamedEntityBySlug.has(toUrlSlug(ent.id)) ||
+          (ent.name ? streamedEntityBySlug.has(toUrlSlug(ent.name)) : false),
+      );
+    if (streamedEntities.length > 0 && allAdditionalStreamed) return streamedEntities;
 
     const maxActive = Math.min(budget.maxActiveEntities, GALAXY_SCENE_MAX_STREAMED_ENTITIES);
     const hasReachedCeiling = streamedSummaries.length >= maxActive && maxActive > 0;
@@ -235,10 +230,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
           }
           continue;
         }
-
-        if (existingIds.has(ent.id)) {
-          continue;
-        }
+        if (existingIds.has(ent.id)) continue;
 
         const matchedSummary =
           summaryById.get(ent.id) ??
@@ -249,29 +241,16 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
           ? ([matchedSummary.x, matchedSummary.y, matchedSummary.z] as [number, number, number])
           : ent.position;
 
-        if (hasReachedCeiling && additionalEntities.length > 1 && Array.isArray(effectivePos)) {
+        if (hasReachedCeiling && additionalEntities.length > 24 && Array.isArray(effectivePos)) {
           const dx = effectivePos[0] - focusPointPc[0];
           const dy = effectivePos[1] - focusPointPc[1];
           const dz = effectivePos[2] - focusPointPc[2];
           if (dx * dx + dy * dy + dz * dz > ceilingRadiusSq) continue;
         }
         existingIds.add(ent.id);
-        if (matchedSummary && ent.id === matchedSummary.id) {
-          baseEntities.push(summaryToEntityDefinition(matchedSummary));
-        } else if (matchedSummary) {
-          const planets = resolveSummaryPlanets(matchedSummary) ?? ent.planets;
-          baseEntities.push({
-            ...ent,
-            name: ent.name || matchedSummary.name,
-            position: effectivePos,
-            classification: matchedSummary.classification ?? ent.classification ?? 'star',
-            spectralType: matchedSummary.spect || ent.spectralType,
-            multiplicity: matchedSummary.starCount ?? ent.multiplicity,
-            ...(planets && planets.length > 0 ? { planets } : {}),
-          });
-        } else {
-          baseEntities.push(ent);
-        }
+        baseEntities.push(
+          matchedSummary ? mergeEntityWithSummary(ent, matchedSummary, effectivePos) : ent,
+        );
       }
     }
 
@@ -281,7 +260,6 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
         baseEntities.push(def);
       }
     }
-
     return baseEntities;
   }, [
     additionalEntities, streamedEntities, streamedEntityById, streamedEntityBySlug,

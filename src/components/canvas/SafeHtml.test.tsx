@@ -1,10 +1,15 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { describe, it, expect, vi } from 'vitest';
+import * as THREE from 'three';
+import { useThree } from '@react-three/fiber';
 import ReactThreeTest from '@react-three/test-renderer';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { SafeHtml, SafeHtmlPortalOutlet } from './SafeHtml';
 import {
+  deletePortalEntry,
   getPortalIdsSnapshot,
+  setPortalEntry,
   subscribePortalIds,
   subscribePortalSlot,
 } from './safeHtmlPortalStore';
@@ -22,7 +27,6 @@ describe('SafeHtml & View Lifecycle Safeguards', () => {
     expect(renderer.scene.children).toHaveLength(1);
     expect(renderer.scene.children[0].type).toBe('Group');
 
-    // SafeHtml renders portal through SafeHtmlPortalOutlet to DOM
     expect(screen.getByTestId('safe-html-overlay')).toBeInTheDocument();
     expect(screen.getByText('Overlay Content')).toBeInTheDocument();
 
@@ -120,6 +124,123 @@ describe('SafeHtml & View Lifecycle Safeguards', () => {
     unsubSlotA();
     unsubSlotB();
     await renderer.unmount();
+    unmountOutlet();
+  });
+
+  it('hides container behind camera by default but keeps it visible when frustumCulled={false}', async () => {
+    let activeCamera: THREE.Camera | null = null;
+    const CameraCapturer: React.FC = () => {
+      activeCamera = useThree((s) => s.camera);
+      return null;
+    };
+
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+
+    const renderer = await ReactThreeTest.create(
+      <>
+        <CameraCapturer />
+        <SafeHtml data-testid="culled-html" position={[0, 0, 0]}>
+          <span>Culled</span>
+        </SafeHtml>
+        <SafeHtml data-testid="unculled-html" position={[0, 0, 0]} frustumCulled={false}>
+          <span>Unculled</span>
+        </SafeHtml>
+      </>,
+    );
+
+    expect(activeCamera).not.toBeNull();
+    activeCamera!.position.set(0, 0, -10);
+    activeCamera!.lookAt(0, 0, -20);
+    activeCamera!.updateMatrixWorld(true);
+
+    await renderer.advanceFrames(1, 16);
+
+    const culledWrapper = screen.getByTestId('culled-html').parentElement;
+    const unculledWrapper = screen.getByTestId('unculled-html').parentElement;
+    expect(culledWrapper?.style.display).toBe('none');
+    expect(unculledWrapper?.style.display).toBe('');
+
+    await renderer.unmount();
+    unmountOutlet();
+  });
+
+  it('assigns distinct portal IDs across dynamically mounted sibling subtrees and preserves surviving portals on sibling unmount', async () => {
+    let setMountedIds: ((ids: string[]) => void) | null = null;
+
+    const DynamicSiblings: React.FC = () => {
+      const [ids, setIds] = React.useState<string[]>(['alpha']);
+      setMountedIds = setIds;
+      return (
+        <>
+          {ids.map((id, index) => (
+            <group key={id} position={[index, 0, 0]}>
+              <SafeHtml data-testid={`dynamic-label-${id}`} position={[0, 0, 0]}>
+                <span>{`Label ${id}`}</span>
+              </SafeHtml>
+            </group>
+          ))}
+        </>
+      );
+    };
+
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+    const renderer = await ReactThreeTest.create(<DynamicSiblings />);
+
+    expect(screen.getByTestId('dynamic-label-alpha')).toBeInTheDocument();
+
+    await ReactThreeTest.act(async () => {
+      setMountedIds?.(['alpha', 'beta', 'gamma', 'delta', 'epsilon']);
+    });
+
+    expect(getPortalIdsSnapshot()).toHaveLength(5);
+    expect(new Set(getPortalIdsSnapshot()).size).toBe(5);
+    for (const id of ['alpha', 'beta', 'gamma', 'delta', 'epsilon']) {
+      expect(screen.getByTestId(`dynamic-label-${id}`)).toBeInTheDocument();
+    }
+
+    await ReactThreeTest.act(async () => {
+      setMountedIds?.(['beta', 'gamma', 'delta', 'epsilon']);
+    });
+
+    expect(getPortalIdsSnapshot()).toHaveLength(4);
+    expect(screen.queryByTestId('dynamic-label-alpha')).toBeNull();
+    for (const id of ['beta', 'gamma', 'delta', 'epsilon']) {
+      expect(screen.getByTestId(`dynamic-label-${id}`)).toBeInTheDocument();
+    }
+
+    await renderer.unmount();
+    unmountOutlet();
+  });
+
+  it('re-mounts portal content into a replacement container when deletePortalEntry and setPortalEntry occur synchronously for an existing slot', () => {
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+    const containerOne = document.createElement('div');
+    const containerTwo = document.createElement('div');
+    document.body.appendChild(containerOne);
+    document.body.appendChild(containerTwo);
+
+    act(() => {
+      setPortalEntry(
+        'slot-remount-test',
+        createPortal(<span>Mounted Label</span>, containerOne, 'slot-remount-test'),
+      );
+    });
+    expect(containerOne.textContent).toContain('Mounted Label');
+
+    act(() => {
+      deletePortalEntry('slot-remount-test');
+      setPortalEntry(
+        'slot-remount-test',
+        createPortal(<span>Mounted Label</span>, containerTwo, 'slot-remount-test'),
+      );
+    });
+    expect(containerTwo.textContent).toContain('Mounted Label');
+
+    act(() => {
+      deletePortalEntry('slot-remount-test');
+    });
+    containerOne.remove();
+    containerTwo.remove();
     unmountOutlet();
   });
 });

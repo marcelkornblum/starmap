@@ -1,18 +1,48 @@
 import { useCallback } from 'react';
 import type React from 'react';
 import { useCameraStore } from '../stores/useCameraStore';
-import { resolveAppHref } from '../utils/url';
+import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import { setPendingSpatialNavigationHref } from '../utils/spatialRoute';
+import { parseCenterCoordinatesString, resolveAppHref } from '../utils/url';
 import { useOptionalRouter, type AppRouterAdapter } from './useSpaLocation';
 
-function hasCenterSearchParam(href: string): boolean {
+function normalizeCenterValue(raw: string | null | undefined): string | null {
+  const trimmed = raw?.trim() ?? '';
+  if (!trimmed) return null;
+  return parseCenterCoordinatesString(trimmed) ? trimmed : toUrlSlug(trimmed) || trimmed;
+}
+
+function getCenterSearchParam(href: string): string | null {
+  let rawCenter: string | null = null;
   try {
     const parsedUrl = new URL(href, 'http://localhost');
-    return parsedUrl.searchParams.has('center');
+    rawCenter = parsedUrl.searchParams.get('center');
   } catch {
     const queryIndex = href.indexOf('?');
-    if (queryIndex === -1) return false;
-    return new URLSearchParams(href.slice(queryIndex + 1)).has('center');
+    if (queryIndex === -1) return null;
+    rawCenter = new URLSearchParams(href.slice(queryIndex + 1)).get('center');
   }
+  return normalizeCenterValue(rawCenter);
+}
+
+function getCurrentCenterParam(router?: AppRouterAdapter | null): string | null {
+  const routerCenter = router?.state?.location?.search?.center;
+  if (typeof routerCenter === 'string') {
+    return normalizeCenterValue(routerCenter);
+  }
+  const searchStr =
+    router?.state?.location?.searchStr ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+  if (!searchStr) return null;
+  return normalizeCenterValue(new URLSearchParams(searchStr).get('center'));
+}
+
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    value !== null &&
+    (typeof value === 'object' || typeof value === 'function') &&
+    typeof (value as PromiseLike<unknown>).then === 'function'
+  );
 }
 
 /**
@@ -50,24 +80,70 @@ export function handleSpaNavigation(
 
   event.preventDefault();
   const resolved = resolveAppHref(rawHref) ?? rawHref;
-  if (hasCenterSearchParam(resolved)) {
-    useCameraStore.getState().triggerRecenter();
-  }
+  const targetCenter = getCenterSearchParam(resolved);
+  const currentCenter = targetCenter !== null ? getCurrentCenterParam(router) : null;
+  const isSameCenter = targetCenter !== null && currentCenter === targetCenter;
+
+  const targetPathname = resolved.split('?')[0]?.split('#')[0] ?? '';
+  const currentPathname =
+    router?.state?.location?.pathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '');
+  const isPathnameChanging = targetPathname.length > 0 && targetPathname !== currentPathname;
+
+  let navResult: unknown;
   if (router && typeof router.navigate === 'function') {
-    void router.navigate({ href: resolved });
+    if (isPathnameChanging) {
+      setPendingSpatialNavigationHref(resolved);
+    }
+    try {
+      navResult = router.navigate({ href: resolved });
+    } catch (error) {
+      if (isPathnameChanging) {
+        setPendingSpatialNavigationHref(null);
+      }
+      throw error;
+    }
+    if (isPathnameChanging) {
+      if (isThenable(navResult)) {
+        void Promise.resolve(navResult)
+          .finally(() => {
+            setPendingSpatialNavigationHref(null);
+          })
+          .catch(() => {});
+      } else {
+        queueMicrotask(() => {
+          setPendingSpatialNavigationHref(null);
+        });
+      }
+    }
   } else if (router?.history?.push) {
-    router.history.push(resolved);
+    if (isPathnameChanging) {
+      setPendingSpatialNavigationHref(resolved);
+    }
+    try {
+      router.history.push(resolved);
+    } finally {
+      if (isPathnameChanging) {
+        queueMicrotask(() => {
+          setPendingSpatialNavigationHref(null);
+        });
+      }
+    }
+  }
+
+  if (targetCenter !== null) {
+    if (isSameCenter || !isThenable(navResult)) {
+      useCameraStore.getState().triggerRecenter();
+    } else {
+      void navResult.then(
+        () => {
+          useCameraStore.getState().triggerRecenter();
+        },
+        () => {},
+      );
+    }
   }
   return true;
-}
-
-/**
- * Updates the current SPA URL via history.replaceState and notifies useSpaLocation listeners.
- */
-export function replaceSpaHistoryUrl(url: string): void {
-  if (typeof window === 'undefined') return;
-  window.history.replaceState(window.history.state, '', url);
-  window.dispatchEvent(new Event('starmap:locationchange'));
 }
 
 export function useSpaLinkClick(): (

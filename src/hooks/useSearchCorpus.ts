@@ -1,7 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import {
   getCachedCorpusForFilter,
-  getSearchRepositoryVersion,
   loadSearchCorpusForFilter,
   subscribeSearchRepository,
   type SearchCorpusScope,
@@ -16,22 +15,21 @@ export interface UseSearchCorpusResult {
 /**
  * Reactive hook providing the compact search corpus for a category filter or `'startup'` tier.
  * Resolves synchronously on initial render if already cached in memory.
- * Subscribes to cache updates via useSyncExternalStore and automatically cancels
- * in-flight AbortSignal on unmount or filter change.
+ * Subscribes to cache updates via useSyncExternalStore (keyed to the requested filter's
+ * cached array reference so unrelated background shard loads do not trigger re-renders)
+ * and automatically cancels in-flight AbortSignal on unmount or filter change.
  */
 export function useSearchCorpus(
   filter: SearchCorpusScope = 'startup',
   initialCorpus?: readonly CompactSearchEntry[],
 ): UseSearchCorpusResult {
-  useSyncExternalStore(
+  const cachedCorpus = useSyncExternalStore(
     subscribeSearchRepository,
-    getSearchRepositoryVersion,
-    getSearchRepositoryVersion,
+    () => getCachedCorpusForFilter(filter),
+    () => getCachedCorpusForFilter(filter),
   );
 
   const [completedFilter, setCompletedFilter] = useState<SearchCorpusScope | null>(null);
-
-  const cachedCorpus = getCachedCorpusForFilter(filter);
   const activeCorpus = initialCorpus ?? cachedCorpus;
 
   const isPending = Boolean(!activeCorpus && completedFilter !== filter);

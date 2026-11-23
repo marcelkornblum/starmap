@@ -1,5 +1,6 @@
 /// <reference lib="dom" />
 import { test, expect } from 'playwright/test';
+import { getSafeCanvasCenter } from './helpers/safeCanvasCenter';
 
 test.describe('3D Canvas <-> DOM UI Synchronization & Mobile DetentSheet', () => {
   test('Desktop (1440x900): syncs live wheel zoom aperture, canvas star clicks, BodiesPanel hover, Escape clear, and route roundtrips', async ({
@@ -37,6 +38,7 @@ test.describe('3D Canvas <-> DOM UI Synchronization & Mobile DetentSheet', () =>
       if (!host || !canvas) return null;
       const camPos = (host.getAttribute('data-camera-pos') ?? '0,0,10').split(',').map(Number);
       const camTarget = (host.getAttribute('data-camera-target') ?? '0,0,0').split(',').map(Number);
+      const viewOffset = (host.getAttribute('data-view-offset') ?? '0,0').split(',').map(Number);
       const box = canvas.getBoundingClientRect();
 
       let zx = (camPos[0] ?? 0) - (camTarget[0] ?? 0);
@@ -67,8 +69,8 @@ test.describe('3D Canvas <-> DOM UI Synchronization & Mobile DetentSheet', () =>
       const ndcX = xCam / (zCam * tanFov * aspect);
       const ndcY = yCam / (zCam * tanFov);
       return {
-        x: Math.round(box.x + (ndcX * 0.5 + 0.5) * box.width),
-        y: Math.round(box.y + (-ndcY * 0.5 + 0.5) * box.height),
+        x: Math.round(box.x + (ndcX * 0.5 + 0.5) * box.width - (viewOffset[0] ?? 0)),
+        y: Math.round(box.y + (-ndcY * 0.5 + 0.5) * box.height - (viewOffset[1] ?? 0)),
       };
     });
 
@@ -140,8 +142,9 @@ test.describe('3D Canvas <-> DOM UI Synchronization & Mobile DetentSheet', () =>
     await expect(page.getByTestId('galaxy-view-root')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(1500);
 
-    // Tap Sol at viewport centre
-    await page.mouse.click(195, 422);
+    // Tap Sol at safe optical centre
+    const safeMobile = await getSafeCanvasCenter(page);
+    await page.mouse.click(safeMobile.x, safeMobile.y);
 
     const detailsPanel = page.getByTestId('details-panel');
     await expect(detailsPanel).toBeVisible({ timeout: 10_000 });

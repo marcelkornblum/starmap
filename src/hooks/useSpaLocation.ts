@@ -15,6 +15,7 @@ export interface AppRouterState {
   readonly location?: {
     readonly pathname?: string;
     readonly searchStr?: string;
+    readonly search?: StarmapSearchParams;
   };
 }
 
@@ -44,7 +45,7 @@ export function useOptionalRouter(): AppRouterAdapter | undefined {
 }
 
 /**
- * Pure function normalizing a raw location pathname against the application's basepath.
+ * Pure function normalising a raw location pathname against the application's basepath.
  * Strips subpath base prefix (e.g. '/starmap/galaxy' -> '/galaxy', '/starmap/' -> '/').
  */
 export function resolveSpaLocation(
@@ -75,6 +76,7 @@ export function useSpaLocation(
   locationPathname?: string,
   locationSearch?: string,
   fallbackPathname = '/galaxy',
+  trackSearch = true,
 ): { readonly pathname: string; readonly search: string } {
   const router = useOptionalRouter();
   const [, setLocationTick] = useState<number>(0);
@@ -83,17 +85,21 @@ export function useSpaLocation(
     locationPathname ??
     router?.state?.location?.pathname ??
     (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
-  const rawSearch =
-    locationSearch ??
-    router?.state?.location?.searchStr ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const rawSearch = trackSearch
+    ? (locationSearch ??
+      router?.state?.location?.searchStr ??
+      (typeof window !== 'undefined' ? window.location.search : ''))
+    : (locationSearch ?? '');
+  const rawPendingPathname =
+    (router?.state as { pendingLocation?: { pathname?: string } } | undefined)?.pendingLocation
+      ?.pathname ?? '';
 
-  const lastLocationRef = useRef<string>(`${rawPathname}${rawSearch}`);
+  const lastLocationRef = useRef<string>(`${rawPathname}${rawSearch}|${rawPendingPathname}`);
 
   useEffect(() => {
     if (
       typeof window === 'undefined' ||
-      (locationPathname !== undefined && locationSearch !== undefined)
+      (locationPathname !== undefined && (!trackSearch || locationSearch !== undefined))
     ) {
       return;
     }
@@ -102,11 +108,15 @@ export function useSpaLocation(
         locationPathname ??
         router?.state?.location?.pathname ??
         window.location.pathname;
-      const nextSearch =
-        locationSearch ??
-        router?.state?.location?.searchStr ??
-        window.location.search;
-      const current = `${nextPathname}${nextSearch}`;
+      const nextSearch = trackSearch
+        ? (locationSearch ??
+          router?.state?.location?.searchStr ??
+          window.location.search)
+        : (locationSearch ?? '');
+      const nextPendingPathname =
+        (router?.state as { pendingLocation?: { pathname?: string } } | undefined)?.pendingLocation
+          ?.pathname ?? '';
+      const current = `${nextPathname}${nextSearch}|${nextPendingPathname}`;
       if (current !== lastLocationRef.current) {
         lastLocationRef.current = current;
         setLocationTick((n) => n + 1);
@@ -124,7 +134,7 @@ export function useSpaLocation(
       window.removeEventListener('popstate', handleLocationChange);
       window.removeEventListener('starmap:locationchange', handleLocationChange);
     };
-  }, [locationPathname, locationSearch, router]);
+  }, [locationPathname, locationSearch, router, trackSearch]);
 
   return useMemo(
     () => resolveSpaLocation(rawPathname, rawSearch),

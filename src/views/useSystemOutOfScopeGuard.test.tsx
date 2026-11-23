@@ -160,4 +160,88 @@ describe('useSystemOutOfScopeGuard', () => {
     const searchUpdater = navCall.search as (prev: StarmapSearchParams) => StarmapSearchParams;
     expect(searchUpdater({ focus: 'alpha-centauri', center: 'sirius', select: 'sol' })).toEqual({ select: 'sol' });
   });
+
+  it('preserves coordinate-string center and strips malformed comma center', () => {
+    renderHook(() =>
+      useSystemOutOfScopeGuard({
+        urlSystemSlug: 'sol',
+        activeCorpus: dummyCorpus,
+        urlFocusSlug: null,
+        isFocusInThisSystem: true,
+        center: '1.5,-2,3.25',
+        targetSystemId: 'sol',
+      }),
+    );
+    expect(navigateSpy).not.toHaveBeenCalled();
+
+    renderHook(() =>
+      useSystemOutOfScopeGuard({
+        urlSystemSlug: 'sol',
+        activeCorpus: dummyCorpus,
+        urlFocusSlug: null,
+        isFocusInThisSystem: true,
+        center: '1.5,not-a-coord',
+        targetSystemId: 'sol',
+      }),
+    );
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves center matching name slug, satellite, or disk within systemDetail', () => {
+    const systemDetail: DecodedDetailRecord = {
+      kind: 'system',
+      record: {
+        id: 'sol',
+        name: 'Sol',
+        x: 0,
+        y: 0,
+        z: 0,
+        dist: 0,
+        sectorId: 'sector_0_0_0',
+        stars: [{ id: 'sol-star', name: 'Sol Primary', componentDesignation: 'A', spectralType: 'G2V', mag: -26.7, absmag: 4.83 }],
+        planets: [
+          {
+            id: 'earth',
+            name: 'Terra Prime',
+            letter: 'd',
+            composition: 'terrestrial',
+            satellites: [
+              {
+                id: 'luna-id',
+                name: 'The Moon',
+                parentId: 'earth',
+                orbit: { semiMajorAxis: 0.00257, eccentricity: 0.0549, inclination: 5.14, ascendingNode: 0, argumentOfPeriapsis: 0, meanAnomaly: 0, periodDays: 27.3 },
+              },
+            ],
+          },
+        ],
+        disks: [
+          {
+            id: 'sol-belt',
+            name: 'Asteroid Belt',
+            kind: 'asteroid-belt',
+            innerRadiusAu: 2.2,
+            outerRadiusAu: 3.2,
+            semiMajorAxisAu: 2.7,
+            composition: 'silicate',
+          },
+        ],
+      },
+    };
+
+    for (const validCenter of ['Terra Prime', 'the-moon', 'luna-id', 'asteroid-belt', 'sol-belt']) {
+      renderHook(() =>
+        useSystemOutOfScopeGuard({
+          urlSystemSlug: 'sol',
+          activeCorpus: dummyCorpus,
+          urlFocusSlug: null,
+          isFocusInThisSystem: true,
+          center: validCenter,
+          targetSystemId: 'sol',
+          systemDetail,
+        }),
+      );
+    }
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
 });

@@ -6,28 +6,45 @@ import {
 } from '../cartography';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { PlanetScene } from './PlanetScene';
+import { PLANETARY_FRAME } from '../../../config/referenceFrames';
 import { EARTH_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { formatSlugFallbackTitle } from '../../../utils/starNaming';
 import { SystemCameraController } from './SystemCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
+import { resolveCenterCoords } from './cameraControllerUtils';
+import { useResolvedPlanetaryEntitiesAndTarget } from './sceneTargetHelpers';
 import type {
   PlanetarySceneContentProps,
   PlanetaryViewSceneProps,
 } from './spatialSceneTypes';
 
-const ORIGIN_COORDS: readonly [number, number, number] = [0, 0, 0];
-
-const getPlanetaryCamera = () =>
-  getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, ORIGIN_COORDS as [number, number, number]);
-
-export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
+export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = React.memo(({
   planetId = EARTH_REFERENCE_TARGET.id,
   planet,
+  centerId,
+  centerCoordinates,
   onInspectSatellite,
   onSelectEntity,
 }) => {
   const planetDisplayName = planet?.name ?? formatSlugFallbackTitle(planetId);
-  const standardCam = useMemo(() => getPlanetaryCamera(), []);
+  const { resolvedName, resolvedClassification, allEntities, targetCoords } =
+    useResolvedPlanetaryEntitiesAndTarget({
+      planetId,
+      planetName: planetDisplayName,
+      planet,
+      centerId,
+      centerCoordinates,
+    });
+  const hasExplicitCenter = Boolean(centerCoordinates || centerId);
+  const standardCam = useMemo(
+    () =>
+      getStandardInitialCamera(
+        STANDARD_CAMERA_DISTANCES.planetary,
+        targetCoords,
+        PLANETARY_FRAME.camera.baseFov,
+      ),
+    [targetCoords],
+  );
 
   return (
     <>
@@ -35,7 +52,6 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
 
       <OrbitControls
         makeDefault
-        target={standardCam.target}
         enableDamping
         dampingFactor={CONTROLS_DAMPING_FACTOR}
         minDistance={1.2}
@@ -43,25 +59,40 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
       />
 
       <SystemCameraController
+        scope="planet"
         position={standardCam.position}
         target={standardCam.target}
         up={standardCam.up}
+        fov={standardCam.fov}
+        hasExplicitCenter={hasExplicitCenter}
       />
 
       <PlanetScene
         planetId={planetId}
-        planetName={planetDisplayName}
-        classification="terrestrial"
+        planetName={resolvedName}
+        classification={resolvedClassification}
         planet={planet}
+        resolvedEntities={allEntities}
+        centerId={centerId}
+        centerCoordinates={targetCoords}
         onInspectSatellite={onInspectSatellite}
         onSelectEntity={onSelectEntity}
       />
     </>
   );
-};
+});
 
 export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = (props) => {
-  const standardCam = useMemo(() => getPlanetaryCamera(), []);
+  const targetCoords = useMemo(() => resolveCenterCoords(props.centerCoordinates), [props.centerCoordinates]);
+  const standardCam = useMemo(
+    () =>
+      getStandardInitialCamera(
+        STANDARD_CAMERA_DISTANCES.planetary,
+        targetCoords,
+        PLANETARY_FRAME.camera.baseFov,
+      ),
+    [targetCoords],
+  );
 
   return (
     <StandaloneSceneShell

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSpatialEntityStore, useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
 import type { SpatialEntityDefinition } from '../types/spatial';
 import { scheduleSearchBackgroundWarmup } from '../data/searchBackgroundWarmup';
+import { getCachedCorpusForFilter, subscribeSearchRepository } from '../data/searchRepository';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { mergeActiveStarsIntoCorpus } from '../services/details/activeStarsCorpus';
@@ -10,11 +11,11 @@ import { useSearch } from '@tanstack/react-router';
 import { resolveFocusedEntityFromCorpus } from '../services/search/searchSelection';
 import { prefetchEntitySelection } from '../services/details/prefetchEntitySelection';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import { parseCenterCoordinatesString } from '../utils/url';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { BoundedLruCache } from '../utils/lruCache';
 import { useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
 import { useOptionalRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
-import { replaceSpaHistoryUrl } from '../hooks/spaNavigation';
 import { useActiveStarsStore } from '../stores/useActiveStarsStore';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -23,6 +24,7 @@ import { useGalaxyAperture } from './useGalaxyAperture';
 import { useGalaxyFocusAndSelection } from './useGalaxyFocusAndSelection';
 import { useGalaxyPanels } from './useGalaxyPanels';
 import { useGalaxyStoreSync } from './useGalaxyStoreSync';
+import { useScaleCenterResolution } from './useColdLoadCenterId';
 
 export interface UseGalaxyViewModelParams {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -72,15 +74,22 @@ export function useGalaxyViewModel({
     }),
   );
 
-  const { corpus } = useSearchCorpus('startup', initialCorpus);
-  const activeCorpus = corpus ?? EMPTY_CORPUS;
+  const { corpus: startupCorpus } = useSearchCorpus('startup', initialCorpus);
+  const cachedAllCorpus = useSyncExternalStore(
+    subscribeSearchRepository,
+    () => getCachedCorpusForFilter('all'),
+    () => getCachedCorpusForFilter('all'),
+  );
+  const activeCorpus =
+    (initialCorpus ? startupCorpus : (cachedAllCorpus ?? startupCorpus)) ??
+    EMPTY_CORPUS;
   const isHydrated = useActiveStarsStore((state) => state.isHydrated);
 
   useEffect(() => {
-    if (!initialCorpus && corpus && isHydrated) {
+    if (!initialCorpus && startupCorpus && isHydrated) {
       scheduleSearchBackgroundWarmup();
     }
-  }, [initialCorpus, corpus, isHydrated]);
+  }, [initialCorpus, startupCorpus, isHydrated]);
 
   const { pathname, search } = useSpaLocation(locationPathname, locationSearch, '/galaxy');
 
@@ -93,14 +102,13 @@ export function useGalaxyViewModel({
 
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const hasExplicitFocus = Boolean(focus && urlFocusSlug && urlFocusSlug.length > 0);
-  const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
   const inFlightFocusSlug = useCameraStore((state) => state.inFlightFocusSlug);
-  const canvasFocusedSlugs = useCameraStore((state) => state.canvasFocusedSlugs);
+  const storePendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
 
   const optimisticFocusSlug =
     inFlightFocusSlug !== undefined
       ? inFlightFocusSlug
-      : (pendingCenterSlug ?? urlFocusSlug);
+      : (storePendingCenterSlug ?? urlFocusSlug);
   const effectiveHasExplicitFocus = Boolean(hasExplicitFocus || optimisticFocusSlug);
   const effectiveSearch = useMemo(() => {
     if (isExplicitLocation || !optimisticFocusSlug || optimisticFocusSlug === urlFocusSlug) {
@@ -146,11 +154,26 @@ export function useGalaxyViewModel({
     urlFocusSlug: optimisticFocusSlug, storeFocusedEntity, apertureCorpus, activeCorpus, storeSelected, layerIndex, loadedLayers, selectQuery,
   });
 
-  const hasExplicitSelection = Boolean(select !== undefined || searchParams.has('select'));
+  const isSearchSelectionSentinel =
+    effectiveSelectValues.length === 1 && effectiveSelectValues[0] === 'search';
+  const hasExplicitSelection =
+    !isSearchSelectionSentinel &&
+    Boolean(select !== undefined || searchParams.has('select'));
 
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
+  const {
+    isColdLoadFocus,
+    pendingCenterSlug,
+    canvasFocusedSlugs,
+  } = useScaleCenterResolution({
+    center,
+    cameraState,
+    urlFocusSlug: optimisticFocusSlug,
+    clearPendingOnUrlSync: false,
+  });
+
   const centerEntity = useMemo(() => {
-    if (!cameraState.center) return null;
+    if (!cameraState.center || parseCenterCoordinatesString(cameraState.center)) return null;
     return storeApi.getState().entities[cameraState.center] ?? (apertureCorpus.length > 0 ? resolveFocusedEntityFromCorpus(cameraState.center, apertureCorpus) : null);
   }, [cameraState.center, storeApi, apertureCorpus]);
 
@@ -176,13 +199,13 @@ export function useGalaxyViewModel({
 
   const resolvedCenterCoordinates = useMemo(() => {
     const next = resolveGalaxyCenterCoordinates({
-      cameraState, urlFocusSlug: optimisticFocusSlug, canvasFocusedSlugs, pendingCenterSlug,
+      cameraState, urlFocusSlug: optimisticFocusSlug, isColdLoadFocus, canvasFocusedSlugs, pendingCenterSlug,
       center, focusedEntity, centerEntity, selectedEntities, apertureCorpus,
     });
     return internCoords(next);
   }, [
     apertureCorpus, cameraState, canvasFocusedSlugs, center, centerEntity,
-    focusedEntity, optimisticFocusSlug, pendingCenterSlug, selectedEntities,
+    focusedEntity, isColdLoadFocus, optimisticFocusSlug, pendingCenterSlug, selectedEntities,
   ]);
 
   const handleHoverEntity = useCallback(
@@ -229,28 +252,16 @@ export function useGalaxyViewModel({
           cam.setInFlightFocusSlug(undefined);
         }
       } else {
-        try {
-          if (typeof window !== 'undefined') {
-            const searchParams = new URLSearchParams(window.location.search);
-            if (id) {
-              searchParams.set('focus', id);
-            } else {
-              searchParams.delete('focus');
-            }
-            const newQs = searchParams.toString();
-            const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
-            replaceSpaHistoryUrl(newUrl);
-          }
-        } catch {
-          // noop
-        }
         cam.setInFlightFocusSlug(undefined);
       }
     },
     [router],
   );
 
-  const centerId = center ? toUrlSlug(center) : cameraState.center;
+  const rawCenter = center ?? cameraState.center;
+  const centerId = rawCenter && !parseCenterCoordinatesString(rawCenter)
+    ? toUrlSlug(rawCenter)
+    : undefined;
 
   return {
     pathname, search, canvasEntities, cameraState, centerId, resolvedCenterCoordinates,

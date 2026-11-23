@@ -211,6 +211,45 @@ describe('coordinateFinsGeometry', () => {
     expect(tickLines.xy.visible).toBe(true);
     expect(arcLines.xy.visible).toBe(false);
 
+    // Scales grazingFade by instrumentFade (0 -> hidden, 0.5 -> halved)
+    updateCoordinateFinsFrame(
+      perimeterLines,
+      tickLines,
+      arcLines,
+      mats,
+      15,
+      { qwXY: [1, 0, 0, 0], qwXZ: [0, 0, 0, 0], qwYZ: [0, 0, 0, 0], fadeXY: 0.8, fadeXZ: 0, fadeYZ: 0 },
+      0.6,
+      0.2,
+      [{ radius: 5, isMajor: true, fade: 1.0 }],
+      1,
+      8,
+      0.5,
+    );
+    expect(mats.xy.perimeter.uniforms.uGrazingFade.value).toBeCloseTo(0.4);
+    expect(mats.xy.ticks.uniforms.uGrazingFade.value).toBeCloseTo(0.4);
+    expect(mats.xy.arcs.uniforms.uGrazingFade.value).toBeCloseTo(0.4);
+    expect(perimeterLines.xy.visible).toBe(true);
+
+    updateCoordinateFinsFrame(
+      perimeterLines,
+      tickLines,
+      arcLines,
+      mats,
+      15,
+      { qwXY: [1, 0, 0, 0], qwXZ: [0, 0, 0, 0], qwYZ: [0, 0, 0, 0], fadeXY: 0.8, fadeXZ: 0, fadeYZ: 0 },
+      0.6,
+      0.2,
+      [{ radius: 5, isMajor: true, fade: 1.0 }],
+      1,
+      8,
+      0,
+    );
+    expect(mats.xy.perimeter.uniforms.uGrazingFade.value).toBe(0);
+    expect(mats.xy.ticks.uniforms.uGrazingFade.value).toBe(0);
+    expect(mats.xy.arcs.uniforms.uGrazingFade.value).toBe(0);
+    expect(perimeterLines.xy.visible).toBe(false);
+
     disposeAllFinMaterials(mats);
   });
 });

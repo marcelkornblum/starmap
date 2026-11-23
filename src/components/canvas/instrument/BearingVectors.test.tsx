@@ -1,12 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
+import { useFrame } from '@react-three/fiber';
 import { BearingVectors } from './BearingVectors';
 import { SpatialFrameProvider, GALACTIC_FRAME, SYSTEM_FRAME } from './index';
+import {
+  setCrossScaleInstrumentFade,
+  resetCrossScaleInstrumentFade,
+} from './crossScaleFadeState';
 import { NOOP_RAYCAST } from '../engineConfig';
+import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 
 describe('BearingVectors Primitive', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetCrossScaleInstrumentFade();
+  });
+
+  afterEach(() => {
+    resetCrossScaleInstrumentFade();
   });
 
   it('renders axis spokes and cardinal bearings for GALACTIC_FRAME', async () => {
@@ -64,6 +76,48 @@ describe('BearingVectors Primitive', () => {
     expect(bearingCore.props.raycast).toBe(NOOP_RAYCAST);
     const bearingOrbital = renderer.scene.findByProps({ name: 'bearing-orbital' });
     expect(bearingOrbital.props.raycast).toBe(NOOP_RAYCAST);
+    await renderer.unmount();
+  });
+
+  it('dissolves axis spoke and bearing opacities to 0 when instrumentFade is 0 and restores when 1', async () => {
+    const ObliqueCamera = () => {
+      useFrame(({ camera }) => {
+        camera.position.set(10, -10, 10);
+      }, -200);
+      return null;
+    };
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <ObliqueCamera />
+        <BearingVectors showAxisLines={true} showCardinalBearings={true} />
+      </SpatialFrameProvider>,
+    );
+
+    const tokens = useThreeTokenStore.getState().tokens;
+    const negYMat = (renderer.scene.findByProps({ name: 'axis-neg-y' }).instance as THREE.LineSegments).material as THREE.LineBasicMaterial;
+    const posZMat = (renderer.scene.findByProps({ name: 'axis-pos-z' }).instance as THREE.LineSegments).material as THREE.LineBasicMaterial;
+    const coreMat = (renderer.scene.findByProps({ name: 'bearing-core' }).instance as THREE.LineSegments).material as THREE.LineBasicMaterial;
+    const orbMat = (renderer.scene.findByProps({ name: 'bearing-orbital' }).instance as THREE.LineSegments).material as THREE.LineBasicMaterial;
+
+    await renderer.advanceFrames(1, 0.016);
+    expect(posZMat.opacity).toBeGreaterThan(0);
+    expect(coreMat.opacity).toBeCloseTo(tokens.bearingCoreAlpha);
+    expect(orbMat.opacity).toBeCloseTo(tokens.bearingOrbitalAlpha);
+
+    setCrossScaleInstrumentFade(0);
+    await renderer.advanceFrames(1, 0.016);
+    expect(negYMat.opacity).toBe(0);
+    expect(posZMat.opacity).toBe(0);
+    expect(coreMat.opacity).toBe(0);
+    expect(orbMat.opacity).toBe(0);
+
+    setCrossScaleInstrumentFade(1);
+    await renderer.advanceFrames(1, 0.016);
+    expect(posZMat.opacity).toBeGreaterThan(0);
+    expect(coreMat.opacity).toBeCloseTo(tokens.bearingCoreAlpha);
+    expect(orbMat.opacity).toBeCloseTo(tokens.bearingOrbitalAlpha);
+
     await renderer.unmount();
   });
 });

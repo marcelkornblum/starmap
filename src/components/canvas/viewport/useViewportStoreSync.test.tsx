@@ -129,4 +129,149 @@ describe('useViewportStoreSync hook', () => {
 
     expect(localStore.getState().hoveredId).toBe('hip-71683');
   });
+
+  it('resolves outerStore selectedIds slugs to canonical local entity IDs when local entities exist beforehand', () => {
+    localStore.getState().registerEntity({
+      id: 'HYG-10847',
+      name: 'Epsilon Eridani',
+      classification: 'star',
+      position: [3.2, 0, 0],
+    });
+    outerStore.getState().registerEntity({
+      id: 'epsilon-eridani',
+      name: 'Epsilon Eridani',
+      classification: 'star',
+      position: [3.2, 0, 0],
+    });
+
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      outerStore.getState().setSelectedIds(new Set(['epsilon-eridani']));
+    });
+
+    expect(localStore.getState().selectedIds.has('HYG-10847')).toBe(true);
+    expect(localStore.getState().selectedIds.has('epsilon-eridani')).toBe(false);
+  });
+
+  it('re-resolves outerStore selectedIds asynchronously when local entities register after selection', () => {
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      outerStore.getState().setSelectedIds(new Set(['epsilon-eridani']));
+    });
+    expect(localStore.getState().selectedIds.has('epsilon-eridani')).toBe(true);
+
+    act(() => {
+      localStore.getState().registerEntity({
+        id: 'HYG-10847',
+        name: 'Epsilon Eridani',
+        classification: 'star',
+        position: [3.2, 0, 0],
+      });
+    });
+
+    expect(localStore.getState().selectedIds.has('HYG-10847')).toBe(true);
+    expect(localStore.getState().selectedIds.has('epsilon-eridani')).toBe(false);
+  });
+
+  it('preserves multi-selection in outerStore without clobbering when inward slug resolution updates local selectedId', () => {
+    localStore.getState().registerEntity({
+      id: 'HYG-10847',
+      name: 'Epsilon Eridani',
+      classification: 'star',
+      position: [3.2, 0, 0],
+    });
+    localStore.getState().registerEntity({
+      id: 'HYG-8102',
+      name: 'Tau Ceti',
+      classification: 'star',
+      position: [-3.1, 0, 0],
+    });
+
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      outerStore.getState().setSelectedIds(new Set(['epsilon-eridani', 'tau-ceti']));
+    });
+
+    expect(localStore.getState().selectedIds).toEqual(new Set(['HYG-10847', 'HYG-8102']));
+    expect(outerStore.getState().selectedIds).toEqual(new Set(['epsilon-eridani', 'tau-ceti']));
+  });
+
+  it('re-resolves outerStore focusedId asynchronously when local entity registers after outer focus', () => {
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      outerStore.getState().setFocused('epsilon-eridani');
+    });
+    expect(localStore.getState().focusedId).toBe('epsilon-eridani');
+
+    act(() => {
+      localStore.getState().registerEntity({
+        id: 'HYG-10847',
+        name: 'Epsilon Eridani',
+        classification: 'star',
+        position: [3.2, 0, 0],
+      });
+    });
+
+    expect(localStore.getState().focusedId).toBe('HYG-10847');
+  });
+
+  it('synchronizes local multi-selection and multi-focus outward to outerStore', () => {
+    localStore.getState().registerEntity({
+      id: 'star-2',
+      name: 'Star 2',
+      classification: 'star',
+      position: [20, 0, 0],
+    });
+
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      localStore.getState().setSelectedIds(['star-1', 'star-2']);
+    });
+
+    expect(outerStore.getState().selectedIds).toEqual(new Set(['star-1', 'star-2']));
+    expect(outerStore.getState().entities['star-2']).toBeDefined();
+
+    act(() => {
+      localStore.getState().setFocusedIds(['star-1', 'star-2']);
+    });
+
+    expect(outerStore.getState().focusedIds).toEqual(new Set(['star-1', 'star-2']));
+
+    act(() => {
+      localStore.getState().setSelectedIds([]);
+    });
+
+    expect(outerStore.getState().selectedIds.size).toBe(0);
+    expect(outerStore.getState().selectedId).toBeNull();
+  });
 });

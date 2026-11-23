@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import { SpatialShell } from './SpatialShell';
 import { useUIStore } from '../../../stores/useUIStore';
+import { REDUCED_MOTION_MEDIA_QUERY } from '../../../utils/reducedMotion';
 
 describe('SpatialShell Domain Component', () => {
   beforeEach(() => {
@@ -20,14 +21,12 @@ describe('SpatialShell Domain Component', () => {
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
     });
 
-    it('renders custom testId and custom className', () => {
-      render(
-        <SpatialShell testId="custom-shell" className="custom-spatial-shell" />,
-      );
+    it('renders custom testId without dynamic className prop', () => {
+      render(<SpatialShell testId="custom-shell" />);
 
       const root = screen.getByTestId('custom-shell');
       expect(root).toBeDefined();
-      expect(root.className).toContain('custom-spatial-shell');
+      expect(root.getAttribute('data-spatial-shell')).not.toBeNull();
     });
 
     it('renders all dedicated spatial regions with injected slots', () => {
@@ -275,6 +274,335 @@ describe('SpatialShell Domain Component', () => {
 
       expect(screen.getByTestId('store-details')).toBeInTheDocument();
       expect(screen.getByTestId('store-directions')).toBeInTheDocument();
+    });
+  });
+
+  describe('Camera Flight Retraction & Safe-Rect Observer', () => {
+    const originalMatchMedia = window.matchMedia;
+    const originalResizeObserver = globalThis.ResizeObserver;
+    const originalInnerWidth = window.innerWidth;
+    const originalInnerHeight = window.innerHeight;
+
+    function mockReducedMotion(matches: boolean): void {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: vi.fn((query: string) => ({
+          matches: query === REDUCED_MOTION_MEDIA_QUERY ? matches : false,
+          media: query,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          onchange: null,
+          dispatchEvent: vi.fn(),
+        })),
+      });
+    }
+
+    function setRect(el: Element | null, rect: { left: number; top: number; width: number; height: number }): void {
+      if (!el) return;
+      Object.defineProperty(el, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({
+          ...rect,
+          right: rect.left + rect.width,
+          bottom: rect.top + rect.height,
+          x: rect.left,
+          y: rect.top,
+          toJSON: () => rect,
+        }),
+      });
+    }
+
+    afterEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: originalMatchMedia,
+      });
+      Object.defineProperty(globalThis, 'ResizeObserver', {
+        configurable: true,
+        writable: true,
+        value: originalResizeObserver,
+      });
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalInnerWidth,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        writable: true,
+        value: originalInnerHeight,
+      });
+      vi.restoreAllMocks();
+    });
+
+    it('sets data-camera-in-flight="true" during camera transitions when reduced motion is false', () => {
+      mockReducedMotion(false);
+      render(<SpatialShell />);
+
+      const root = screen.getByTestId('spatial-shell-root');
+      expect(root.getAttribute('data-camera-in-flight')).toBe('false');
+
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(true);
+      });
+      expect(root.getAttribute('data-camera-in-flight')).toBe('true');
+
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(false);
+      });
+      expect(root.getAttribute('data-camera-in-flight')).toBe('false');
+    });
+
+    it('keeps data-camera-in-flight="false" during camera transitions when prefers-reduced-motion is true', () => {
+      mockReducedMotion(true);
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(true);
+      });
+
+      render(<SpatialShell />);
+
+      const root = screen.getByTestId('spatial-shell-root');
+      expect(root.getAttribute('data-camera-in-flight')).toBe('false');
+    });
+
+    it('sets data-camera-retracted directly on floating-left and minimap regions without relying on ancestor selector invalidation', () => {
+      mockReducedMotion(false);
+      render(<SpatialShell />);
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const floatingLeft = root.querySelector('[data-spatial-region="floating-left"]');
+      const minimap = root.querySelector('[data-spatial-region="minimap"]');
+
+      expect(floatingLeft?.getAttribute('data-camera-retracted')).toBe('false');
+      expect(minimap?.getAttribute('data-camera-retracted')).toBe('false');
+
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(true);
+      });
+      expect(floatingLeft?.getAttribute('data-camera-retracted')).toBe('true');
+      expect(minimap?.getAttribute('data-camera-retracted')).toBe('true');
+
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(false);
+      });
+      expect(floatingLeft?.getAttribute('data-camera-retracted')).toBe('false');
+      expect(minimap?.getAttribute('data-camera-retracted')).toBe('false');
+    });
+
+    it('memoizes SpatialShell so parent re-renders with identical slot props do not re-render children', () => {
+      let renderCount = 0;
+      const Probe = () => {
+        renderCount += 1;
+        return <div data-testid="probe" />;
+      };
+      const probeNode = <Probe />;
+
+      const { rerender } = render(<SpatialShell detailsPanel={probeNode} />);
+      expect(renderCount).toBe(1);
+
+      rerender(<SpatialShell detailsPanel={probeNode} />);
+      expect(renderCount).toBe(1);
+    });
+
+    it('measures individual HUD panels into useUIStore.viewportSafeRect (never .leftColumn) and resets on unmount', () => {
+      let resizeCallback: ResizeObserverCallback | null = null;
+      const observeSpy = vi.fn();
+      const disconnectSpy = vi.fn();
+
+      class MockResizeObserver {
+        constructor(cb: ResizeObserverCallback) {
+          resizeCallback = cb;
+        }
+        observe = observeSpy;
+        unobserve = vi.fn();
+        disconnect = disconnectSpy;
+      }
+
+      Object.defineProperty(globalThis, 'ResizeObserver', {
+        configurable: true,
+        writable: true,
+        value: MockResizeObserver,
+      });
+
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1440 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 900 });
+
+      const { unmount } = render(
+        <SpatialShell
+          breadcrumbs={<div data-testid="obs-breadcrumbs">Breadcrumbs</div>}
+          detailsPanel={<div data-testid="obs-details">Details</div>}
+          controls={<div data-testid="obs-controls">Controls</div>}
+          bodies={<div data-testid="obs-bodies">Bodies</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const topBar = root.querySelector('[data-spatial-region="top-bar"]');
+      const floatingLeft = root.querySelector('[data-spatial-region="floating-left"]');
+      const detailsCard = floatingLeft?.firstElementChild ?? null;
+      const bodiesRegion = root.querySelector('[data-spatial-region="bodies"]');
+      const controlsRegion = root.querySelector('[data-spatial-region="controls"]');
+      const leftColumn = floatingLeft?.parentElement ?? null;
+
+      setRect(root, { left: 0, top: 0, width: 1440, height: 900 });
+      setRect(leftColumn, { left: 0, top: 0, width: 700, height: 800 });
+      setRect(topBar, { left: 8, top: 8, width: 377, height: 60 });
+      setRect(detailsCard, { left: 8, top: 76, width: 377, height: 420 });
+      setRect(bodiesRegion, { left: 1008, top: 0, width: 432, height: 900 });
+      setRect(controlsRegion, { left: 0, top: 844, width: 1440, height: 56 });
+
+      // Ensure .leftColumn itself was never observed by ResizeObserver
+      expect(leftColumn).not.toBeNull();
+      expect(observeSpy).not.toHaveBeenCalledWith(leftColumn);
+
+      // Trigger resize observer and flush rAF
+      vi.useFakeTimers();
+      try {
+        act(() => {
+          resizeCallback?.([], {} as ResizeObserver);
+          vi.runAllTimers();
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      // Left inset comes from detailsCard (385), NOT .leftColumn (700)
+      expect(useUIStore.getState().viewportSafeRect).toEqual({
+        top: 0,
+        right: 432,
+        bottom: 56,
+        left: 385,
+        width: 1440 - 385 - 432,
+        height: 900 - 56,
+        bypass: false,
+      });
+
+      unmount();
+      expect(disconnectSpy).toHaveBeenCalled();
+      expect(useUIStore.getState().viewportSafeRect).toBeNull();
+    });
+
+    it('gracefully handles missing ResizeObserver and measures mobile detent sheet bypass', () => {
+      Object.defineProperty(globalThis, 'ResizeObserver', {
+        configurable: true,
+        writable: true,
+        value: undefined,
+      });
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 390 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 844 });
+
+      act(() => {
+        useUIStore.getState().setDetailsDetent('full');
+      });
+
+      render(
+        <SpatialShell
+          breadcrumbs={<div data-testid="mob-breadcrumbs">Breadcrumbs</div>}
+          detailsPanel={<div data-testid="full-sheet">Full Sheet</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const detentEl = screen.getByTestId('full-sheet');
+      setRect(root, { left: 0, top: 0, width: 390, height: 844 });
+      setRect(detentEl, { left: 0, top: 60, width: 390, height: 784 });
+
+      vi.useFakeTimers();
+      try {
+        act(() => {
+          window.dispatchEvent(new Event('resize'));
+          vi.runAllTimers();
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      expect(useUIStore.getState().viewportSafeRect?.bypass).toBe(true);
+    });
+
+    it('treats desktop DetentSheet as left occlusion rather than mobile bottom sheet and excludes closed tablet drawer', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 768 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 1024 });
+
+      render(
+        <SpatialShell
+          isBodiesDrawerOpen={false}
+          detailsPanel={<div data-detent="peek">Desktop/Tablet Details</div>}
+          bodies={<div>Bodies Drawer</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const detentEl = root.querySelector('[data-detent]');
+      const bodiesEl = root.querySelector('[data-spatial-region="bodies"]');
+
+      setRect(root, { left: 0, top: 0, width: 768, height: 1024 });
+      setRect(detentEl, { left: 8, top: 100, width: 377, height: 400 });
+      // Closed drawer on tablet still occupies layout box in jsdom, but must be ignored when closed
+      setRect(bodiesEl, { left: 391, top: 0, width: 377, height: 1024 });
+
+      vi.useFakeTimers();
+      try {
+        act(() => {
+          window.dispatchEvent(new Event('resize'));
+          vi.runAllTimers();
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      expect(useUIStore.getState().viewportSafeRect).toEqual({
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 385,
+        width: 768 - 385,
+        height: 1024,
+        bypass: false,
+      });
+    });
+
+    it('immediately accounts for opening Bodies drawer width on tablet even while CSS translateX(100%) is still sliding in', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1000 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 800 });
+
+      render(
+        <SpatialShell
+          isBodiesDrawerOpen={true}
+          bodies={<div data-testid="sliding-bodies">Bodies</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const bodiesEl = root.querySelector('[data-spatial-region="bodies"]');
+
+      setRect(root, { left: 0, top: 0, width: 1000, height: 800 });
+      // Mid-transition translateX(100%): left is still 1000 (off-screen), width is 384
+      setRect(bodiesEl, { left: 1000, top: 0, width: 384, height: 800 });
+
+      vi.useFakeTimers();
+      try {
+        act(() => {
+          window.dispatchEvent(new Event('resize'));
+          vi.runAllTimers();
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      expect(useUIStore.getState().viewportSafeRect).toEqual({
+        top: 0,
+        right: 384,
+        bottom: 0,
+        left: 0,
+        width: 1000 - 384,
+        height: 800,
+        bypass: false,
+      });
     });
   });
 });

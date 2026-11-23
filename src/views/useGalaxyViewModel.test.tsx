@@ -13,6 +13,10 @@ import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEnt
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
+import {
+  clearSearchRepositoryCache,
+  fetchSearchShard,
+} from '../data/searchRepository';
 
 describe('useGalaxyViewModel', () => {
   let navigateSpy: ReturnType<typeof vi.fn>;
@@ -135,6 +139,32 @@ describe('useGalaxyViewModel', () => {
     expect(store.getState().selectedIds.size).toBe(0);
   });
 
+  it('preserves active search selectedIds when ?q=<query>&select=search sentinel is in the URL', async () => {
+    const store = createSpatialEntityStore();
+    store.getState().registerEntity({
+      id: 'epsilon-indi',
+      name: 'Epsilon Indi',
+      position: [2.02, -1.86, -2.37],
+      classification: 'star',
+    });
+    store.getState().setSelectedIds(['epsilon-indi']);
+
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useGalaxyViewModel({
+            locationPathname: '/galaxy',
+            locationSearch: '?q=epsilon&select=search',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(Array.from(store.getState().selectedIds)).toEqual(['epsilon-indi']);
+    expect(hookResult.result.current.canvasEntities.map((e) => e.id)).toEqual(['epsilon-indi']);
+  });
+
   it('preserves root path "/" when router.state.location.pathname is "/" during focus change', async () => {
     vi.mocked(useRouter).mockReturnValue({
       navigate: navigateSpy,
@@ -165,10 +195,37 @@ describe('useGalaxyViewModel', () => {
     );
   });
 
-  it('updates window.history.replaceState and dispatches starmap:locationchange when router.navigate is undefined', async () => {
+  it('centres on ?focus= on cold load, but does not force-re-centre when ?focus= changes subsequently without ?center=', async () => {
+    const store = createSpatialEntityStore();
+    const corpus = [
+      { i: 'tau-ceti', n: 'Tau Ceti', p: [3.16, 1.54, -1.0] as [number, number, number] },
+      { i: 'sol', n: 'Sol', p: [0, 0, 0] as [number, number, number] },
+    ];
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, { search: string }>>;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ search }) =>
+          useGalaxyViewModel({
+            initialCorpus: corpus,
+            locationPathname: '/galaxy',
+            locationSearch: search,
+          }),
+        { wrapper: createWrapper(store), initialProps: { search: '?focus=tau-ceti' } },
+      );
+    });
+
+    expect(hookResult.result.current.resolvedCenterCoordinates).toEqual([3.16, 1.54, -1.0]);
+
+    await act(async () => {
+      hookResult.rerender({ search: '?focus=sol' });
+    });
+
+    expect(hookResult.result.current.resolvedCenterCoordinates).toBeUndefined();
+  });
+
+  it('does not mutate window.history.replaceState when router.navigate is undefined', async () => {
     vi.mocked(useRouter).mockReturnValue(undefined as never);
     const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
-    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
 
     const store = createSpatialEntityStore();
     let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
@@ -187,14 +244,56 @@ describe('useGalaxyViewModel', () => {
       hookResult.result.current.handleFocusChange('sol');
     });
 
-    expect(replaceStateSpy).toHaveBeenCalledWith(
-      window.history.state,
-      '',
-      expect.stringContaining('focus=sol'),
-    );
-    expect(dispatchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'starmap:locationchange' }),
-    );
+    expect(replaceStateSpy).not.toHaveBeenCalled();
     expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
+    replaceStateSpy.mockRestore();
+  });
+
+  it('prefers cached all corpus over startup corpus when initialCorpus is omitted', async () => {
+    clearSearchRepositoryCache();
+    const mockFetch = vi.fn(async (url: string) => {
+      const d = url.includes('core.json')
+        ? [{ i: 'epsilon-indi', n: 'Epsilon Indi', p: [2.5, -1.2, 0.8] }]
+        : url.includes('startup.json')
+          ? [{ i: 'sol', n: 'Sol', p: [0, 0, 0] }]
+          : [];
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          v: 1,
+          i: url,
+          n: url,
+          c: d.length,
+          t: '2026-10-17T00:00:00Z',
+          d,
+        }),
+      } as unknown as Response;
+    });
+
+    await fetchSearchShard('startup', mockFetch as unknown as typeof fetch);
+    await fetchSearchShard('core', mockFetch as unknown as typeof fetch);
+    await fetchSearchShard('structures', mockFetch as unknown as typeof fetch);
+    await fetchSearchShard('minor-bodies', mockFetch as unknown as typeof fetch);
+
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useGalaxyViewModel({
+            locationPathname: '/galaxy',
+            locationSearch: '?focus=epsilon-indi',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.resolvedCenterCoordinates).toEqual([2.5, -1.2, 0.8]);
+    await act(async () => {
+      hookResult.unmount();
+      clearSearchRepositoryCache();
+    });
   });
 });

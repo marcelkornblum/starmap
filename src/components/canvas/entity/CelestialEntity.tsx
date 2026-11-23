@@ -15,6 +15,7 @@ import { KinematicVector } from './KinematicVector';
 import { OrbitPath } from './OrbitPath';
 import { EntityLabel } from './EntityLabel';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
+import { getCrossScaleSceneScale } from '../instrument/crossScaleVisualState';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
@@ -77,7 +78,8 @@ const BodyCrossfadeTracker: React.FC<BodyCrossfadeTrackerProps> = ({
   useFrame(({ camera, size }) => {
     if (nodeGroupRef.current) {
       const worldPos = nodeGroupRef.current.getWorldPosition(scratchWorldPosRef.current);
-      const diameterPx = projectedPixelDiameter(camera, worldPos, bodyRadius, size.height);
+      const effectiveRadius = bodyRadius * getCrossScaleSceneScale();
+      const diameterPx = projectedPixelDiameter(camera, worldPos, effectiveRadius, size.height);
       const alpha = nodeVisibility(
         diameterPx,
         bodyMinPixelSize ?? DEFAULT_BODY_MIN_PIXEL_SIZE,

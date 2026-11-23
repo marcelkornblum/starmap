@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FocusEvent,
@@ -10,12 +11,14 @@ import {
   useLayerIndex,
   useLoadedLayerManifests,
 } from '../../../../hooks/useLayerData';
-import { useSpaLocation } from '../../../../hooks/useSpaLocation';
+import { useOptionalRouter, useSpaLocation } from '../../../../hooks/useSpaLocation';
+import { isSpatialRoutePathname } from '../../../../utils/spatialRoute';
 import type { SearchCategoryFilter } from '../../../../types/search';
 import type { SearchResultItem } from '../../../../services/search/searchTypes';
 import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
 import { useSpatialEntityStoreApi } from '../../../canvas/entity/SpatialEntityContext';
 import { escalateSearchBackgroundWarmup } from '../../../../data/searchBackgroundWarmup';
+import { useCameraStore } from '../../../../stores/useCameraStore';
 import {
   SearchContext,
   type SearchContextValue,
@@ -24,8 +27,10 @@ import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
 import {
   resolveInitialFilter,
   resolveInitialQuery,
+  type SelfWrittenSearchParams,
 } from '../searchUrlSync';
 import { useSearchExecution } from '../useSearchExecution';
+import { useSearchFraming } from '../useSearchFraming';
 import { useSearchUrlSyncEffect } from '../useSearchUrlSyncEffect';
 import styles from './SearchRoot.module.css';
 
@@ -58,8 +63,29 @@ export const SearchRoot = ({
 }: SearchRootProps) => {
   const store = useSpatialEntityStoreApi();
   const searchRootRef = useRef<HTMLDivElement>(null);
-  const [isFocused, setIsFocused] = useState<boolean>(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastSelfWrittenSearchRef = useRef<SelfWrittenSearchParams | null>(null);
+  const [isFocused, setIsFocused] = useState<boolean>(() =>
+    useCameraStore.getState().pendingViewTransitionFocus,
+  );
 
+  useEffect(() => {
+    if (!useCameraStore.getState().consumeSearchFocusForViewTransition()) {
+      return;
+    }
+    const input = searchInputRef.current;
+    if (input) {
+      input.focus({ preventScroll: true });
+      const endPos = input.value.length;
+      try {
+        input.setSelectionRange(endPos, endPos);
+      } catch {
+        return;
+      }
+    }
+  }, []);
+
+  const router = useOptionalRouter();
   const spaLocation = useSpaLocation(locationPathname, locationSearch, '/');
   const activePathname = spaLocation.pathname;
   const activeSearch = spaLocation.search;
@@ -72,6 +98,18 @@ export const SearchRoot = ({
 
   const resolvedInitialQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
   const resolvedInitialFilter = resolveInitialFilter(syncUrl, activeSearch, initialFilter);
+
+  const cancelFramingRef = useRef<() => void>(() => undefined);
+  const discardPreSearchPoseRef = useRef<() => void>(() => undefined);
+
+  const handleSelectResult = useCallback(
+    (item: SearchResultItem): void => {
+      cancelFramingRef.current();
+      discardPreSearchPoseRef.current();
+      onSelectResult?.(item);
+    },
+    [onSelectResult],
+  );
 
   const {
     query,
@@ -95,14 +133,67 @@ export const SearchRoot = ({
     syncUrl,
     isSync,
     effectiveDebounceMs,
+    activePathname,
     activeSearch,
     store,
     layerIndex,
     loadedLayers,
-    onSelectResult,
+    onSelectResult: onSelectResult ? handleSelectResult : undefined,
     searchRootRef,
     setIsFocused,
+    lastSelfWrittenSearchRef,
   });
+
+  const { markUserSearchActivity, cancelSearchFraming, discardPreSearchPose } =
+    useSearchFraming({
+      enabled: syncUrl && isSpatialRoutePathname(activePathname),
+      activePathname,
+      activeSearch,
+      query,
+      filter,
+      status,
+      results,
+      initialCorpus,
+      router,
+    });
+
+  useEffect(() => {
+    cancelFramingRef.current = cancelSearchFraming;
+    discardPreSearchPoseRef.current = discardPreSearchPose;
+  }, [cancelSearchFraming, discardPreSearchPose]);
+
+  const handleSetQuery = useCallback(
+    (nextQuery: string): void => {
+      cancelSearchFraming();
+      if (nextQuery.trim().length > 0) {
+        markUserSearchActivity();
+      }
+      setQuery(nextQuery);
+    },
+    [cancelSearchFraming, markUserSearchActivity, setQuery],
+  );
+
+  const handleSetFilter = useCallback(
+    (nextFilter: SearchCategoryFilter): void => {
+      cancelSearchFraming();
+      if (query.trim().length > 0) {
+        markUserSearchActivity();
+      }
+      setFilter(nextFilter);
+    },
+    [cancelSearchFraming, markUserSearchActivity, query, setFilter],
+  );
+
+  const handleDismissSearch = useCallback(
+    (item?: SearchResultItem): void => {
+      cancelSearchFraming();
+      if (item) {
+        discardPreSearchPose();
+      }
+      dismissSearch(item);
+    },
+    [cancelSearchFraming, discardPreSearchPose, dismissSearch],
+  );
 
   useSearchUrlSyncEffect({
     activePathname,
@@ -124,6 +215,7 @@ export const SearchRoot = ({
     setStatus,
     submitSearch,
     updateResultsAndSelection,
+    lastSelfWrittenSearchRef,
   });
 
   const handleFocusCapture = useCallback((): void => {
@@ -156,20 +248,37 @@ export const SearchRoot = ({
     };
   }, []);
 
-  const contextValue: SearchContextValue = {
-    query,
-    filter,
-    status,
-    errorMessage,
-    results,
-    isFocused,
-    setIsFocused,
-    dismissSearch,
-    setQuery,
-    setFilter,
-    submitSearch,
-    onSelectResult,
-  };
+  const contextValue = useMemo<SearchContextValue>(
+    () => ({
+      query,
+      filter,
+      status,
+      errorMessage,
+      results,
+      isFocused,
+      setIsFocused,
+      searchInputRef,
+      dismissSearch: handleDismissSearch,
+      setQuery: handleSetQuery,
+      setFilter: handleSetFilter,
+      submitSearch,
+      onSelectResult: onSelectResult ? handleSelectResult : undefined,
+    }),
+    [
+      query,
+      filter,
+      status,
+      errorMessage,
+      results,
+      isFocused,
+      handleDismissSearch,
+      handleSetQuery,
+      handleSetFilter,
+      submitSearch,
+      onSelectResult,
+      handleSelectResult,
+    ],
+  );
 
   return (
     <SearchContext.Provider value={contextValue}>

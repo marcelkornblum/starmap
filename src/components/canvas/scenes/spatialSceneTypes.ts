@@ -42,6 +42,11 @@ export interface SystemViewSceneProps extends SystemSceneContentProps {
 export interface PlanetarySceneContentProps {
   planetId?: string;
   planet?: ExoplanetRecord;
+  centerId?: string;
+  centerCoordinates?:
+    | readonly [number, number, number]
+    | [number, number, number]
+    | { x: number; y: number; z: number };
   onInspectSatellite?: (satelliteId: string) => void;
   onSelectEntity?: (entityId: string | null) => void;
 }

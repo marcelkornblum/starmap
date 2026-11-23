@@ -78,32 +78,15 @@ function buildPlanePerimeterGeom(
   for (let q = 0; q < QUADRANTS.length; q++) {
     const quad = QUADRANTS[q];
     if (plane === 'xz') {
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = quad.qx;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
+      positions[posOffset + 3] = quad.qx;
+      posOffset += 6;
     } else if (plane === 'yz') {
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = quad.qy;
-      positions[posOffset++] = 0;
+      positions[posOffset + 4] = quad.qy;
+      posOffset += 6;
     } else {
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = quad.qx;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = 0;
-      positions[posOffset++] = quad.qy;
-      positions[posOffset++] = 0;
+      positions[posOffset + 3] = quad.qx;
+      positions[posOffset + 10] = quad.qy;
+      posOffset += 12;
     }
     quadrants.fill(q, vertOffset, vertOffset + baselineVertsPerQuad);
     vertOffset += baselineVertsPerQuad;
@@ -243,8 +226,10 @@ export function updateCoordinateFinsFrame(
   activeRings: readonly ScaledRingInfo[],
   numActive: number,
   poolSize: number,
+  instrumentFade = 1.0,
 ): void {
   const safeAperture = Number.isFinite(apertureRadius) ? Math.max(0, apertureRadius) : 0;
+  const safeInstrumentFade = Number.isFinite(instrumentFade) ? Math.max(0, Math.min(1, instrumentFade)) : 1.0;
   const clampedPool = clampFinPoolSize(poolSize);
   const clampedActive = Math.max(0, Math.min(numActive, clampedPool, activeRings.length));
 
@@ -252,7 +237,7 @@ export function updateCoordinateFinsFrame(
     const plane = PLANES[pIdx];
     const planeWeight = plane === 'xy' ? planeWeights.qwXY : plane === 'xz' ? planeWeights.qwXZ : planeWeights.qwYZ;
     const rawFade = plane === 'xy' ? planeWeights.fadeXY : plane === 'xz' ? planeWeights.fadeXZ : planeWeights.fadeYZ;
-    const grazingFade = Number.isFinite(rawFade) ? Math.max(0, rawFade) : 0;
+    const grazingFade = (Number.isFinite(rawFade) ? Math.max(0, rawFade) : 0) * safeInstrumentFade;
     const isPlaneVis = grazingFade > 1e-3;
 
     const qw0 = Number.isFinite(planeWeight[0]) ? planeWeight[0] : 0;

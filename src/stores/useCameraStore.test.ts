@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCameraStore, INITIAL_CAMERA_STATE } from './useCameraStore';
+import {
+  useCameraStore,
+  INITIAL_CAMERA_STATE,
+  type PreSearchOrigin,
+} from './useCameraStore';
+import {
+  getPendingSpatialRouteTarget,
+  setPendingSpatialNavigationHref,
+} from '../utils/spatialRoute';
 
 describe('Camera Store: useCameraStore.ts', () => {
   beforeEach(() => {
@@ -17,8 +25,12 @@ describe('Camera Store: useCameraStore.ts', () => {
     expect(state.savedGalaxyCamera).toBeNull();
     expect(state.lastGalaxySearch).toBe('');
     expect(state.pendingCenterSlug).toBeNull();
+    expect(state.pendingSearchFrame).toBeNull();
     expect(state.inFlightFocusSlug).toBeUndefined();
     expect(state.canvasFocusedSlugs.size).toBe(0);
+    expect(state.up).toEqual([0, 1, 0]);
+    expect(state.preSearchOrigin).toBeNull();
+    expect(state.pendingViewTransitionFocus).toBe(false);
   });
 
   it('updates projection mode with setMode', () => {
@@ -74,15 +86,17 @@ describe('Camera Store: useCameraStore.ts', () => {
     expect(state.zoom).toBe(2.0);
   });
 
-  it('updates camera pose with setCameraPose', () => {
+  it('updates camera pose with setCameraPose including optional up vector', () => {
     useCameraStore.getState().setCameraPose({
       position: [10, 20, 30],
       target: [0, 0, 0],
+      up: [0, 0, 1],
       zoom: 1.5,
     });
     const state = useCameraStore.getState();
     expect(state.position).toEqual([10, 20, 30]);
     expect(state.target).toEqual([0, 0, 0]);
+    expect(state.up).toEqual([0, 0, 1]);
     expect(state.zoom).toBe(1.5);
   });
 
@@ -273,6 +287,92 @@ describe('Camera Store: useCameraStore.ts', () => {
 
       useCameraStore.getState().reset();
       expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
+    });
+
+    it('queues, increments tick, clears idempotently, and resets pendingSearchFrame', () => {
+      expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+
+      useCameraStore.getState().requestSearchFrame([12, -4, 6], 42);
+      const first = useCameraStore.getState().pendingSearchFrame;
+      expect(first).toEqual({
+        target: [12, -4, 6],
+        distance: 42,
+        tick: 1,
+      });
+
+      useCameraStore.getState().clearSearchFrame();
+      expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+
+      let notifications = 0;
+      const unsub = useCameraStore.subscribe(() => {
+        notifications++;
+      });
+      useCameraStore.getState().clearSearchFrame();
+      expect(notifications).toBe(0);
+      unsub();
+
+      useCameraStore.getState().requestSearchFrame([1, 2, 3], 18);
+      expect(useCameraStore.getState().pendingSearchFrame?.tick).toBe(2);
+
+      useCameraStore.getState().reset();
+      expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+    });
+
+    it('skips incrementing recenterTick when focusFromSearch is called with triggerRecenter: false', () => {
+      useCameraStore.getState().focusFromSearch('earth', { triggerRecenter: false });
+      let state = useCameraStore.getState();
+      expect(state.pendingCenterSlug).toBe('earth');
+      expect(state.recenterTick).toBe(0);
+
+      useCameraStore.getState().focusFromSearch('mars', { triggerRecenter: true });
+      state = useCameraStore.getState();
+      expect(state.pendingCenterSlug).toBe('mars');
+      expect(state.recenterTick).toBe(1);
+    });
+
+    it('manages preSearchOrigin, pendingViewTransitionFocus, and clears pending spatial href on reset', () => {
+      expect(useCameraStore.getState().consumeSearchFocusForViewTransition()).toBe(false);
+
+      useCameraStore.getState().markSearchFocusForViewTransition();
+      expect(useCameraStore.getState().pendingViewTransitionFocus).toBe(true);
+      expect(useCameraStore.getState().consumeSearchFocusForViewTransition()).toBe(true);
+      expect(useCameraStore.getState().pendingViewTransitionFocus).toBe(false);
+      expect(useCameraStore.getState().consumeSearchFocusForViewTransition()).toBe(false);
+
+      const origin: PreSearchOrigin = {
+        pathname: '/galaxy',
+        search: '?layer=canon-project-hail-mary',
+        target: [1, -2, 3],
+        distance: 42,
+      };
+      useCameraStore.getState().setPreSearchOrigin(origin);
+      expect(useCameraStore.getState().preSearchOrigin).toEqual(origin);
+
+      useCameraStore.getState().clearPreSearchOrigin();
+      expect(useCameraStore.getState().preSearchOrigin).toBeNull();
+
+      useCameraStore.getState().setPreSearchOrigin(origin);
+      useCameraStore.getState().markSearchFocusForViewTransition();
+      setPendingSpatialNavigationHref('/system/sol');
+      expect(getPendingSpatialRouteTarget()).toEqual({ scope: 'system', targetId: 'sol' });
+
+      useCameraStore.getState().reset();
+      expect(useCameraStore.getState().preSearchOrigin).toBeNull();
+      expect(useCameraStore.getState().pendingViewTransitionFocus).toBe(false);
+      expect(getPendingSpatialRouteTarget()).toBeNull();
+    });
+
+    it('preserves unchanged target and position tuple references across setCameraTransform / setCameraPose', () => {
+      useCameraStore.getState().setCameraTransform([0, 0, 10], [1, 2, 3]);
+      const firstTargetRef = useCameraStore.getState().target;
+
+      useCameraStore.getState().setCameraTransform([4, 5, 10], [1, 2, 3]);
+      expect(useCameraStore.getState().target).toBe(firstTargetRef);
+
+      const firstPosRef = useCameraStore.getState().position;
+      useCameraStore.getState().setCameraPose({ position: [4, 5, 10], target: [1, 2, 3] });
+      expect(useCameraStore.getState().position).toBe(firstPosRef);
+      expect(useCameraStore.getState().target).toBe(firstTargetRef);
     });
   });
 });

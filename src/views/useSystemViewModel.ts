@@ -21,8 +21,10 @@ import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useResolvedSystemDetails, type UseResolvedSystemDetailsProps } from './useResolvedSystemDetails';
 import { useSystemOutOfScopeGuard } from './useSystemOutOfScopeGuard';
+import { useScaleCenterResolution } from './useColdLoadCenterId';
 
 const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
+const EMPTY_SELECTED_IDS: readonly string[] = [];
 
 export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   const { locationPathname, locationSearch, systemId: propSystemId } = props;
@@ -69,21 +71,23 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
   const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
+  const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focus = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
-  const select = routeSearch?.select ?? searchParams.get('select') ?? undefined;
-  const layer = routeSearch?.layer ?? searchParams.get('layer') ?? undefined;
-  const route = routeSearch?.route ?? searchParams.get('route') ?? undefined;
-  const center = routeSearch?.center ?? searchParams.get('center') ?? undefined;
+  const param = (key: keyof StarmapSearchParams) =>
+    (isExplicitLocation ? searchParams.get(key) : (routeSearch?.[key] ?? searchParams.get(key))) ?? undefined;
+  const [focus, select, layer, route, center] = (['focus', 'select', 'layer', 'route', 'center'] as const).map(param);
 
-  const rawSystemId = routeParams?.systemId ?? propSystemId;
-  const targetId = toUrlSlug(rawSystemId ?? '') || SOL_REFERENCE_TARGET.id;
+  const rawSystemId = isExplicitLocation
+    ? propSystemId
+    : (routeParams?.systemId ?? propSystemId);
+  const targetId = toUrlSlug(rawSystemId ?? '') || urlSystemSlug || SOL_REFERENCE_TARGET.id;
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
-  const effectiveCenterId = useMemo(
-    () => (center ? toUrlSlug(center) : cameraState.center),
-    [center, cameraState.center],
-  );
+  const { effectiveCenterId, resolvedCenterCoordinates } = useScaleCenterResolution({
+    center,
+    cameraState,
+    urlFocusSlug,
+  });
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
@@ -115,6 +119,15 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
 
   const handleSelectEntity = useCallback(
     (id: string | null) => {
+      const cam = useCameraStore.getState();
+      if (id) {
+        const slug = toUrlSlug(id);
+        cam.recordCanvasFocus(slug ? [slug, id] : [id]);
+        cam.setPendingCenterSlug(null);
+      } else {
+        cam.clearCanvasFocus();
+        cam.setPendingCenterSlug(null);
+      }
       if (!router || typeof router.navigate !== 'function') {
         return;
       }
@@ -123,10 +136,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
           router.navigate({
             to: '/system/$systemId',
             params: { systemId: targetId },
-            search: (prev: StarmapSearchParams = {}) => ({
-              ...prev,
-              focus: id,
-            }),
+            search: (prev: StarmapSearchParams = {}) => ({ ...prev, focus: id }),
             replace: true,
           }),
         ).catch(() => {});
@@ -149,35 +159,41 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   );
 
   const layerIndex = useLayerIndex();
-  const loadedLayers = useLoadedLayerManifests(search);
+  const layerManifestQuery = layer || select ? search : '';
+  const loadedLayers = useLoadedLayerManifests(layerManifestQuery);
 
-  const selectQuery = select ? `?select=${encodeURIComponent(select)}` : search;
-  const selectedEntities = useMemo(
-    () =>
-      storeSelected.length > 0
-        ? storeSelected
-        : resolveSelectedSystemsFromUrlSelect(
-            selectQuery,
-            activeCorpus,
-            layerIndex,
-            loadedLayers,
-          ),
-    [storeSelected, selectQuery, activeCorpus, layerIndex, loadedLayers],
-  );
+  const selectQuery = select ? `?select=${encodeURIComponent(select)}` : '';
+  const selectedEntities = useMemo(() => {
+    if (storeSelected.length > 0) return storeSelected;
+    if (!selectQuery) return EMPTY_SELECTED_ENTITIES;
+    const resolved = resolveSelectedSystemsFromUrlSelect(
+      selectQuery,
+      activeCorpus,
+      layerIndex,
+      loadedLayers,
+    );
+    return resolved.length > 0 ? resolved : EMPTY_SELECTED_ENTITIES;
+  }, [storeSelected, selectQuery, activeCorpus, layerIndex, loadedLayers]);
 
   const urlExplicitSelectSlugs = useMemo(() => {
-    return (select ?? searchParams.get('select') ?? '')
+    const raw = select ?? '';
+    if (!raw) return EMPTY_SELECTED_IDS;
+    const slugs = raw
       .split(',')
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0 && !s.includes(':'));
-  }, [select, searchParams]);
+    return slugs.length > 0 ? slugs : EMPTY_SELECTED_IDS;
+  }, [select]);
 
   const selectedEntityIds = useMemo(() => {
+    if (selectedEntities.length === 0 && urlExplicitSelectSlugs.length === 0) {
+      return EMPTY_SELECTED_IDS;
+    }
     const ids = new Set(selectedEntities.map((e) => e.id));
     for (const slug of urlExplicitSelectSlugs) {
       ids.add(slug);
     }
-    return Array.from(ids);
+    return ids.size > 0 ? Array.from(ids) : EMPTY_SELECTED_IDS;
   }, [selectedEntities, urlExplicitSelectSlugs]);
 
   useSystemOutOfScopeGuard({
@@ -199,13 +215,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
         selectedEntityIds,
         focusedEntityId,
       }),
-    [
-      systemContextDetails,
-      activeCorpus,
-      canonRecords,
-      selectedEntityIds,
-      focusedEntityId,
-    ],
+    [systemContextDetails, activeCorpus, canonRecords, selectedEntityIds, focusedEntityId],
   );
 
   const orbitalSchematic = useMemo(
@@ -230,15 +240,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
             cameraState,
           )
         : null,
-    [
-      systemBodies,
-      orbitalSchematic,
-      systemContextDetails,
-      focusedDetails,
-      focusedEntity,
-      selectedEntities,
-      cameraState,
-    ],
+    [systemBodies, orbitalSchematic, systemContextDetails, focusedDetails, focusedEntity, selectedEntities, cameraState],
   );
 
   const { routeStops, activeJourney } = useMemo(() => {
@@ -262,33 +264,25 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   }, [route, search, activeCorpus, pathname]);
 
   const layerParam = layer ?? searchParams.get('layer');
+  const layerCardSearch = layerParam ? search : '';
   const activeLayerCard = useMemo(
     () =>
-      resolveActiveLayerCard({
-        layerParam,
-        currentPathname: pathname,
-        currentSearch: search,
-        corpus: activeCorpus,
-        layers: loadedLayers,
-      }),
-    [layerParam, pathname, search, activeCorpus, loadedLayers],
+      layerParam
+        ? resolveActiveLayerCard({
+            layerParam,
+            currentPathname: pathname,
+            currentSearch: layerCardSearch,
+            corpus: activeCorpus,
+            layers: loadedLayers,
+          })
+        : null,
+    [layerParam, pathname, layerCardSearch, activeCorpus, loadedLayers],
   );
 
   return {
-    pathname,
-    search,
-    targetId,
-    effectiveCenterId,
-    cameraState,
-    activeJourney,
-    activeLayerCard,
-    focusedDetails,
-    orbitalSchematic,
-    focusedPreview,
-    minimapOrientation,
-    systemBodies,
-    routeStops,
-    resolvedBreadcrumbs,
+    pathname, search, targetId, effectiveCenterId, resolvedCenterCoordinates,
+    cameraState, activeJourney, activeLayerCard, focusedDetails, orbitalSchematic,
+    focusedPreview, minimapOrientation, systemBodies, routeStops, resolvedBreadcrumbs,
     handleSelectEntity,
   };
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, type RefObject } from 'react';
 import { executeCatalogSearch } from '../../../services/search/searchExecution';
 import type {
   GroupedSearchResults,
@@ -16,6 +16,7 @@ export interface SearchContextValue {
   readonly results: GroupedSearchResults;
   readonly isFocused?: boolean;
   readonly setIsFocused?: (focused: boolean) => void;
+  readonly searchInputRef?: RefObject<HTMLInputElement | null>;
   readonly dismissSearch?: (item?: SearchResultItem) => void;
   readonly setQuery: (nextQuery: string) => void;
   readonly setFilter: (nextFilter: SearchCategoryFilter) => void;

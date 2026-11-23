@@ -8,8 +8,13 @@ import {
   type PlanarFootprintItem as PlanarFootprintItemType,
 } from './PlanarGrid';
 import { SpatialFrameProvider } from './SpatialFrameProvider';
+import {
+  setCrossScaleInstrumentFade,
+  resetCrossScaleInstrumentFade,
+} from './crossScaleFadeState';
 import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { NOOP_RAYCAST } from '../engineConfig';
+import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 
 describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () => {
   let createReticleSpy: ReturnType<typeof vi.spyOn>;
@@ -26,6 +31,7 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
 
   afterEach(() => {
     vi.restoreAllMocks();
+    resetCrossScaleInstrumentFade();
   });
 
   it('allocates geometry once and does not re-invoke createReticleGeometry on re-render with identical props', async () => {
@@ -178,6 +184,52 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
     expect(orbital.props.raycast).toBe(NOOP_RAYCAST);
     const footprint = renderer.scene.find((node) => node.props.name === 'planar-footprint');
     expect(footprint.children[0].props.raycast).toBe(NOOP_RAYCAST);
+    await renderer.unmount();
+  });
+
+  it('dissolves opacities to 0 when instrumentFade is 0 and restores normal opacities when 1', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <PlanarGrid showFill={true} showPlanarGrid={true} showPlanarFootprint={true} />
+      </SpatialFrameProvider>,
+    );
+
+    const tokens = useThreeTokenStore.getState().tokens;
+    const fillMesh = renderer.scene.find((node) => node.props.name === 'datum-plane-fill').instance as THREE.Mesh;
+    const boundaryLine = renderer.scene.find((node) => node.props.name === 'datum-plane-boundary').instance as THREE.LineLoop;
+    const gridLine = renderer.scene.find((node) => node.props.name === 'planar-galactic-grid').instance as THREE.LineSegments;
+    const coreLine = renderer.scene.find((node) => node.props.name === 'bearing-core').instance as THREE.LineSegments;
+    const orbLine = renderer.scene.find((node) => node.props.name === 'bearing-orbital').instance as THREE.LineSegments;
+    const fpGroup = renderer.scene.find((node) => node.props.name === 'planar-footprint');
+    const fpLine = fpGroup.children[0].instance as THREE.LineSegments;
+
+    const fillMat = fillMesh.material as THREE.ShaderMaterial;
+    const boundaryMat = boundaryLine.material as THREE.LineBasicMaterial;
+    const gridMat = gridLine.material as THREE.LineBasicMaterial;
+    const coreMat = coreLine.material as THREE.LineBasicMaterial;
+    const orbMat = orbLine.material as THREE.LineBasicMaterial;
+    const fpMat = fpLine.material as THREE.LineBasicMaterial;
+
+    setCrossScaleInstrumentFade(0);
+    await renderer.advanceFrames(1, 0.016);
+
+    expect(fillMat.uniforms.uAlpha.value).toBe(0);
+    expect(boundaryMat.opacity).toBe(0);
+    expect(gridMat.opacity).toBe(0);
+    expect(coreMat.opacity).toBe(0);
+    expect(orbMat.opacity).toBe(0);
+    expect(fpMat.opacity).toBe(0);
+    expect(boundaryLine.visible).toBe(false);
+
+    setCrossScaleInstrumentFade(1);
+    await renderer.advanceFrames(1, 0.016);
+
+    expect(fillMat.uniforms.uAlpha.value).toBeCloseTo(tokens.datumPlaneFillAlpha);
+    expect(boundaryMat.opacity).toBeCloseTo(tokens.datumPlaneMajorAlpha);
+    expect(gridMat.opacity).toBeCloseTo(tokens.datumPlaneMinorAlpha);
+    expect(fpMat.opacity).toBeCloseTo(tokens.footprintAlpha);
+    expect(boundaryLine.visible).toBe(true);
+
     await renderer.unmount();
   });
 });

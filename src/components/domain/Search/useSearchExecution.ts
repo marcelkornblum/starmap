@@ -1,4 +1,4 @@
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getCachedCorpusForFilter } from '../../../data/searchRepository';
 import { escalateSearchBackgroundWarmup } from '../../../data/searchBackgroundWarmup';
 import type { GroupedSearchResults, SearchResultItem } from '../../../services/search/searchTypes';
@@ -12,6 +12,7 @@ import { expandStarsShardIfEmpty, fetchAndComputeAsyncSearch } from './asyncSear
 import type { UseSearchExecutionOptions, UseSearchExecutionReturn } from './searchExecutionTypes';
 import { prefetchEntitySelection } from '../../../services/details/prefetchEntitySelection';
 import { useOptionalRouter } from '../../../hooks/useSpaLocation';
+import { parseSpatialRouteTarget } from '../../../utils/spatialRoute';
 
 export const useSearchExecution = ({
   initialQuery,
@@ -21,6 +22,7 @@ export const useSearchExecution = ({
   syncUrl,
   isSync,
   effectiveDebounceMs,
+  activePathname,
   activeSearch,
   store,
   layerIndex,
@@ -28,8 +30,10 @@ export const useSearchExecution = ({
   onSelectResult,
   searchRootRef,
   setIsFocused,
+  lastSelfWrittenSearchRef,
 }: UseSearchExecutionOptions): UseSearchExecutionReturn => {
   const router = useOptionalRouter();
+  const activeScope = parseSpatialRouteTarget(activePathname ?? '')?.scope ?? 'galaxy';
   const [query, setQueryState] = useState<string>(initialQuery);
   const [filter, setFilterState] = useState<SearchCategoryFilter>(initialFilter);
 
@@ -94,18 +98,17 @@ export const useSearchExecution = ({
         getCachedCorpusForFilter(nextResults.filter) ??
         [];
 
-      startTransition(() => {
-        syncSelectedSystemsToStore(
-          store,
-          nextResults,
-          effectiveSearch,
-          effectiveCorpus,
-          layerDataRef.current.layerIndex,
-          layerDataRef.current.loadedLayers,
-        );
-      });
+      syncSelectedSystemsToStore(
+        store,
+        nextResults,
+        effectiveSearch,
+        effectiveCorpus,
+        layerDataRef.current.layerIndex,
+        layerDataRef.current.loadedLayers,
+        activeScope,
+      );
     },
-    [activeSearch, initialCorpus, store],
+    [activeScope, activeSearch, initialCorpus, store],
   );
 
   const submitSearch = useCallback(
@@ -120,13 +123,7 @@ export const useSearchExecution = ({
       const currentSeq = ++requestSeqRef.current;
 
       if (!activeQuery.trim()) {
-        updateResultsAndSelection(
-          searchCatalog([], {
-            query: '',
-            filter: activeFilter,
-            limitPerCategory,
-          }),
-        );
+        updateResultsAndSelection(searchCatalog([], { query: '', filter: activeFilter, limitPerCategory }));
         setStatus('idle');
         setErrorMessage(null);
         return;
@@ -136,30 +133,13 @@ export const useSearchExecution = ({
       const cachedAllCorpus = getCachedCorpusForFilter('all');
 
       if (syncCorpus) {
-        const computed = searchCatalog(syncCorpus, {
-          query: activeQuery,
-          filter: activeFilter,
-          limitPerCategory,
-          systemEntries: cachedAllCorpus,
-        });
+        const computed = searchCatalog(syncCorpus, { query: activeQuery, filter: activeFilter, limitPerCategory, systemEntries: cachedAllCorpus });
         updateResultsAndSelection(computed);
         setStatus('ready');
         setErrorMessage(null);
 
-        if (
-          !initialCorpus &&
-          activeFilter === 'all' &&
-          computed.totalMatches === 0 &&
-          activeQuery.trim().length >= 3
-        ) {
-          void expandStarsShardIfEmpty(
-            syncCorpus,
-            activeQuery,
-            activeFilter,
-            limitPerCategory,
-            cachedAllCorpus,
-            () => requestSeqRef.current === currentSeq,
-          ).then((expanded) => {
+        if (!initialCorpus && activeFilter === 'all' && computed.totalMatches === 0 && activeQuery.trim().length >= 3) {
+          void expandStarsShardIfEmpty(syncCorpus, activeQuery, activeFilter, limitPerCategory, cachedAllCorpus, () => requestSeqRef.current === currentSeq).then((expanded) => {
             if (expanded) updateResultsAndSelection(expanded);
           });
         }
@@ -170,20 +150,14 @@ export const useSearchExecution = ({
       setErrorMessage(null);
 
       try {
-        const computed = await fetchAndComputeAsyncSearch(
-          activeQuery,
-          activeFilter,
-          limitPerCategory,
-          () => requestSeqRef.current === currentSeq,
-        );
+        const computed = await fetchAndComputeAsyncSearch(activeQuery, activeFilter, limitPerCategory, () => requestSeqRef.current === currentSeq);
         if (computed) {
           updateResultsAndSelection(computed);
           setStatus('ready');
         }
       } catch (err: unknown) {
         if (requestSeqRef.current !== currentSeq) return;
-        const message =
-          err instanceof Error ? err.message : 'Unable to execute catalog search.';
+        const message = err instanceof Error ? err.message : 'Unable to execute catalog search.';
         setErrorMessage(message);
         setStatus('error');
       }
@@ -211,18 +185,18 @@ export const useSearchExecution = ({
       const executeSync = searchQuery.length === 0 || isSync;
 
       if (executeSync) {
-        if (syncUrl) syncSearchUrlParams(nextQuery, filter, router);
+        if (syncUrl) syncSearchUrlParams(nextQuery, filter, router, activePathname ?? '', activeSearch, lastSelfWrittenSearchRef);
         void submitSearch(searchQuery, filter);
         return;
       }
 
       deferredSearchTimerRef.current = setTimeout(() => {
         deferredSearchTimerRef.current = null;
-        if (syncUrl) syncSearchUrlParams(nextQuery, filter, router);
+        if (syncUrl) syncSearchUrlParams(nextQuery, filter, router, activePathname ?? '', activeSearch, lastSelfWrittenSearchRef);
         void submitSearch(searchQuery, filter);
       }, effectiveDebounceMs);
     },
-    [effectiveDebounceMs, filter, initialCorpus, isSync, router, setIsFocused, submitSearch, syncUrl],
+    [activePathname, activeSearch, effectiveDebounceMs, filter, initialCorpus, isSync, lastSelfWrittenSearchRef, router, setIsFocused, submitSearch, syncUrl],
   );
 
   const setFilter = useCallback(
@@ -237,10 +211,10 @@ export const useSearchExecution = ({
         });
       }
       setFilterState(nextFilter);
-      if (syncUrl) syncSearchUrlParams(query, nextFilter, router);
+      if (syncUrl) syncSearchUrlParams(query, nextFilter, router, activePathname ?? '', activeSearch, lastSelfWrittenSearchRef);
       void submitSearch(query, nextFilter);
     },
-    [initialCorpus, query, router, submitSearch, syncUrl],
+    [activePathname, activeSearch, initialCorpus, lastSelfWrittenSearchRef, query, router, submitSearch, syncUrl],
   );
 
   const dismissSearch = useCallback(
@@ -263,13 +237,7 @@ export const useSearchExecution = ({
         setIsFocused(false);
         setStatus('idle');
         setErrorMessage(null);
-        setResults(
-          searchCatalog([], {
-            query: '',
-            filter,
-            limitPerCategory,
-          }),
-        );
+        setResults(searchCatalog([], { query: '', filter, limitPerCategory }));
         if (!item.href.includes('select=')) {
           store.getState().setSelectedIds([]);
         }
@@ -278,10 +246,10 @@ export const useSearchExecution = ({
       }
       setQueryState('');
       setIsFocused(false);
-      if (syncUrl) syncSearchUrlParams('', filter, router);
+      if (syncUrl) syncSearchUrlParams('', filter, router, activePathname ?? '', activeSearch, lastSelfWrittenSearchRef);
       void submitSearch('', filter);
     },
-    [filter, limitPerCategory, onSelectResult, router, searchRootRef, setIsFocused, store, submitSearch, syncUrl],
+    [activePathname, activeSearch, filter, lastSelfWrittenSearchRef, limitPerCategory, onSelectResult, router, searchRootRef, setIsFocused, store, submitSearch, syncUrl],
   );
 
   return {

@@ -9,9 +9,13 @@ import {
   shouldDisplaySpectralBadge,
 } from '../../interface';
 import { useSearchContext } from '../Search/SearchContext';
+import { useOptionalSpatialEntityStoreApi } from '../../canvas/entity/SpatialEntityContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import type { SpatialEntityDefinition } from '../../../types/spatial';
 import { resolveAppHref } from '../../../utils/url';
+import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 import { useSpaLinkClick } from '../../../hooks/spaNavigation';
+import { resolveSpaLocation, useOptionalRouter } from '../../../hooks/useSpaLocation';
 import {
   cancelHoverPrefetch,
   scheduleHoverPrefetch,
@@ -78,6 +82,38 @@ const renderVariationContent = (
   }
 };
 
+function isZeroSpatialPosition(
+  position: SpatialEntityDefinition['position'] | readonly [number, number, number],
+): boolean {
+  if ('x' in position) {
+    return position.x === 0 && position.y === 0 && position.z === 0;
+  }
+  return position[0] === 0 && position[1] === 0 && position[2] === 0;
+}
+
+function parseResultHref(href: string): {
+  pathname: string;
+  focus: string | null;
+  hasCenter: boolean;
+} {
+  try {
+    const parsedUrl = new URL(href, 'http://localhost');
+    return {
+      pathname: parsedUrl.pathname,
+      focus: parsedUrl.searchParams.get('focus'),
+      hasCenter: parsedUrl.searchParams.has('center'),
+    };
+  } catch {
+    const [pathPart = '', queryPart = ''] = href.split('?');
+    const params = new URLSearchParams(queryPart);
+    return {
+      pathname: pathPart,
+      focus: params.get('focus'),
+      hasCenter: params.has('center'),
+    };
+  }
+}
+
 /**
  * Domain Component (`<SearchResultItem>`): accepts a `SearchResultItem` domain record,
  * unpacks its identity, navigation link (`href`), reticle classification (`reticleType`),
@@ -97,21 +133,91 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
   } = result;
 
   const searchCtx = useSearchContext();
+  const spatialStore = useOptionalSpatialEntityStoreApi();
+  const router = useOptionalRouter();
   const handleSpaLinkClick = useSpaLinkClick();
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
     cancelHoverPrefetch();
+    const parsedHref = parseResultHref(href);
+    const focusParam = parsedHref.focus;
+    const focusSlug = focusParam ? toUrlSlug(focusParam) : '';
+    const currentPathname = resolveSpaLocation(
+      undefined,
+      undefined,
+      undefined,
+      router?.state,
+    ).pathname;
+    const targetPathname = resolveSpaLocation(parsedHref.pathname).pathname;
+    const isIntraViewSystemOrPlanet =
+      (targetView === 'system' || targetView === 'planet') &&
+      currentPathname === targetPathname;
+
     if (targetView === 'galaxy') {
-      const focusParam = new URLSearchParams(href.split('?')[1] ?? '').get('focus');
-      if (focusParam) {
-        useCameraStore.getState().focusFromSearch(focusParam);
+      if (spatialStore && result.position) {
+        const state = spatialStore.getState();
+        const existing = state.entities[id];
+        if (
+          !existing ||
+          (isZeroSpatialPosition(existing.position) &&
+            !isZeroSpatialPosition(result.position))
+        ) {
+          state.registerEntity({
+            id,
+            name,
+            position: [
+              result.position[0],
+              result.position[1],
+              result.position[2],
+            ],
+            classification: reticleType,
+            ...(result.spectralType ? { spectralType: result.spectralType } : {}),
+          });
+        }
+      }
+      if (focusSlug) {
+        if (parsedHref.hasCenter) {
+          useCameraStore.getState().focusFromSearch(focusSlug, { triggerRecenter: false });
+        } else {
+          useCameraStore.getState().focusFromSearch(focusSlug);
+        }
+      }
+    } else if (isIntraViewSystemOrPlanet) {
+      if (focusSlug) {
+        if (parsedHref.hasCenter) {
+          useCameraStore.getState().focusFromSearch(focusSlug, { triggerRecenter: false });
+        } else {
+          useCameraStore.getState().focusFromSearch(focusSlug);
+        }
+      } else if (!parsedHref.hasCenter) {
+        useCameraStore.getState().triggerRecenter();
       }
     }
+
     if (searchCtx.dismissSearch) {
       searchCtx.dismissSearch(result);
     } else {
       searchCtx.setQuery('');
       searchCtx.setIsFocused?.(false);
+    }
+    if ((targetView === 'galaxy' || isIntraViewSystemOrPlanet) && focusSlug && spatialStore) {
+      const state = spatialStore.getState();
+      const focusTargetId =
+        state.resolveEntityId(id) ??
+        state.resolveEntityId(focusSlug) ??
+        focusSlug;
+      state.setFocused(focusTargetId);
     }
     if (onSelect) {
       onSelect(result);

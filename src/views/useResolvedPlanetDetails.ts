@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -17,6 +17,7 @@ import { useEntityDetails } from '../hooks/useEntityDetails';
 import { useSystemData } from '../hooks/useSystemData';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
+import { buildPreservedContextSearch } from '../services/details/detailsCamera';
 import type { FocusedEntityDetails } from '../services/details/detailsEntityTypes';
 import { useParams, useSearch } from '@tanstack/react-router';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
@@ -71,16 +72,19 @@ export function useResolvedPlanetDetails(
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
   const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
-  const rawPlanetId = routeParams?.planetId ?? propPlanetId;
+  const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
+  const rawPlanetId = isExplicitLocation
+    ? propPlanetId
+    : (routeParams?.planetId ?? propPlanetId);
   const fallbackPlanetSlug = pathname.startsWith('/planet/')
     ? toUrlSlug(pathname.slice('/planet/'.length).split('/')[0])
     : null;
   const urlPlanetSlug = toUrlSlug(rawPlanetId ?? '') || fallbackPlanetSlug || null;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focusParam = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
-  const selectParam = routeSearch?.select ?? searchParams.get('select') ?? undefined;
-  const centerParam = routeSearch?.center ?? searchParams.get('center') ?? undefined;
+  const param = (key: keyof StarmapSearchParams) =>
+    (isExplicitLocation ? searchParams.get(key) : (routeSearch?.[key] ?? searchParams.get(key))) ?? undefined;
+  const [focusParam, selectParam, centerParam] = (['focus', 'select', 'center'] as const).map(param);
   const urlFocusSlug = focusParam ? toUrlSlug(focusParam) || null : null;
   const hasExplicitFocus = Boolean(focusParam && urlFocusSlug && urlFocusSlug.length > 0);
 
@@ -128,17 +132,22 @@ export function useResolvedPlanetDetails(
     [activeCorpus, planetSlugs],
   );
 
-  const isFocusInPlanetScope = useMemo(
-    () =>
+  const isIdInPlanetScope = useCallback(
+    (slug: string | null) =>
       checkIsFocusInPlanetScope(
-        urlFocusSlug,
+        slug,
         urlPlanetSlug,
         targetPlanetId,
         systemDetail,
         orbitingBodyIds,
         activeCorpus.length,
       ),
-    [urlFocusSlug, urlPlanetSlug, targetPlanetId, systemDetail, orbitingBodyIds, activeCorpus.length],
+    [urlPlanetSlug, targetPlanetId, systemDetail, orbitingBodyIds, activeCorpus.length],
+  );
+
+  const isFocusInPlanetScope = useMemo(
+    () => isIdInPlanetScope(urlFocusSlug),
+    [isIdInPlanetScope, urlFocusSlug],
   );
 
   const urlFocusEntity = useMemo(
@@ -150,14 +159,7 @@ export function useResolvedPlanetDetails(
   );
   const rawStoreFocused = storeApi.getState().getEntitiesByState('focused')[0] ?? null;
   const isStoreFocusedInPlanetScope = rawStoreFocused
-    ? checkIsFocusInPlanetScope(
-        toUrlSlug(rawStoreFocused.id),
-        urlPlanetSlug,
-        targetPlanetId,
-        systemDetail,
-        orbitingBodyIds,
-        activeCorpus.length,
-      )
+    ? isIdInPlanetScope(toUrlSlug(rawStoreFocused.id))
     : false;
   const storeFocusedEntity = isStoreFocusedInPlanetScope ? rawStoreFocused : null;
 
@@ -168,21 +170,11 @@ export function useResolvedPlanetDetails(
   useEffect(() => {
     if (!urlFocusSlug) {
       const currentFocusedId = storeApi.getState().focusedId;
-      if (
-        currentFocusedId &&
-        !checkIsFocusInPlanetScope(
-          toUrlSlug(currentFocusedId),
-          urlPlanetSlug,
-          targetPlanetId,
-          systemDetail,
-          orbitingBodyIds,
-          activeCorpus.length,
-        )
-      ) {
+      if (currentFocusedId && !isIdInPlanetScope(toUrlSlug(currentFocusedId))) {
         storeApi.getState().setFocused(null);
       }
     }
-  }, [urlFocusSlug, urlPlanetSlug, targetPlanetId, systemDetail, orbitingBodyIds, activeCorpus.length, storeApi]);
+  }, [urlFocusSlug, isIdInPlanetScope, storeApi]);
 
   const focusedEntityId = focusedEntity?.id ?? '';
 
@@ -218,22 +210,31 @@ export function useResolvedPlanetDetails(
   );
 
   const effectiveUrlFocusSlug = isFocusInPlanetScope ? urlFocusSlug : null;
+  const preservedContextSearch = useMemo(() => buildPreservedContextSearch(searchParams), [searchParams]);
 
-  const systemContextDetails = buildFocusedEntityDetails({
-    focusedEntity,
-    corpus: activeCorpus,
-    summaryNode: systemSummary,
-    systemDetail,
-    entityDetail: focusedDetail,
-    urlSystemSlug: targetSystemId,
-    urlPlanetSlug,
-    urlFocusSlug: effectiveUrlFocusSlug,
-    hasExplicitFocus: Boolean(hasExplicitFocus && isFocusInPlanetScope),
-    canonRecords,
-    viewScope: 'planet',
-    currentPathname: pathname,
-    currentSearch: search,
-  });
+  const systemContextDetails = useMemo(
+    () =>
+      buildFocusedEntityDetails({
+        focusedEntity,
+        corpus: activeCorpus,
+        summaryNode: systemSummary,
+        systemDetail,
+        entityDetail: focusedDetail,
+        urlSystemSlug: targetSystemId,
+        urlPlanetSlug,
+        urlFocusSlug: effectiveUrlFocusSlug,
+        hasExplicitFocus: Boolean(hasExplicitFocus && isFocusInPlanetScope),
+        canonRecords,
+        viewScope: 'planet',
+        currentPathname: pathname,
+        currentSearch: preservedContextSearch,
+      }),
+    [
+      focusedEntity, activeCorpus, systemSummary, systemDetail, focusedDetail,
+      targetSystemId, urlPlanetSlug, effectiveUrlFocusSlug, hasExplicitFocus,
+      isFocusInPlanetScope, canonRecords, pathname, preservedContextSearch,
+    ],
+  );
 
   const focusedDetails = (focusedEntity && (urlFocusSlug ? isFocusInPlanetScope : true)) ? systemContextDetails : null;
 

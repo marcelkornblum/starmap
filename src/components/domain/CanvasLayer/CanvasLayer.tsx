@@ -1,31 +1,15 @@
-import React, { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
+import React, { Suspense, useEffect, useLayoutEffect } from 'react';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { setStageCallbacks } from '../../../stores/canvasStageCallbacks';
+import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
+import { isSpatialRoutePathname } from '../../../utils/spatialRoute';
 import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { canMountWebGLCanvas } from './webglSupport';
-import type { CanvasWebGLHostProps } from './CanvasWebGLHost';
-import { preloadSceneEntry, type SpatialCanvasScope } from './sceneEntryLoader';
+import { getWebGLHostLazy } from './canvasWebGLHostLoader';
+import './sceneEntryLoader';
 import styles from './CanvasLayer.module.css';
-
-let cachedHostLazy: React.LazyExoticComponent<React.ComponentType<CanvasWebGLHostProps>> | null =
-  null;
-
-function getWebGLHostLazy(
-  initialScope: SpatialCanvasScope,
-): React.LazyExoticComponent<React.ComponentType<CanvasWebGLHostProps>> {
-  if (!cachedHostLazy) {
-    cachedHostLazy = lazy(async () => {
-      const [hostMod] = await Promise.all([
-        import('./CanvasWebGLHost'),
-        preloadSceneEntry(initialScope),
-      ]);
-      return hostMod;
-    });
-  }
-  return cachedHostLazy;
-}
 
 export interface CanvasLayerProps {
   readonly scope: 'galaxy' | 'system' | 'planet';
@@ -73,6 +57,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     onFocusChange,
   } = props;
 
+  const router = useOptionalRouter();
+  const { pathname } = useSpaLocation(undefined, undefined, '/galaxy', false);
   const isRootCanvasMounted = useCanvasStageStore((s) => s.isRootCanvasMounted);
   const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
   const hasStageProps = useCanvasStageStore((s) => s.stageProps !== null);
@@ -81,9 +67,15 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   const setStageProps = useCanvasStageStore((s) => s.setStageProps);
   const hasRootHostContext = React.useContext(RootCanvasStageContext);
 
+  const hasRegisteredRouter = router?.state !== undefined;
   const isSlot = (isRootCanvasMounted || hasRootHostContext) && !isRootHost;
-  const frameloop = isRootHost ? (hasActiveSlot ? 'demand' : 'never') : 'demand';
-  const isSpatialSceneMounted = !isRootHost || (hasActiveSlot && hasStageProps);
+  const isSpatialRoute = isSpatialRoutePathname(pathname);
+  const isStageActive = router
+    ? hasActiveSlot || ((hasStageProps || hasRegisteredRouter) && isSpatialRoute)
+    : hasActiveSlot;
+  const frameloop = isRootHost ? (isStageActive ? 'demand' : 'never') : 'demand';
+  const isSpatialSceneMounted =
+    !isRootHost || (isStageActive && (hasStageProps || hasRegisteredRouter));
 
   useIsomorphicLayoutEffect(() => {
     if (!isRootHost) {

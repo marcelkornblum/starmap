@@ -24,14 +24,24 @@ export interface CanvasStageData<
   readonly routeWaypoints?: readonly string[];
 }
 
+export interface ActiveSceneEntityStoreReader {
+  readonly getState: () => {
+    readonly entities: Record<string, SpatialEntityDefinition>;
+    readonly resolveEntityId: (idOrSlug: string) => string | null;
+  };
+  readonly subscribe: (listener: () => void) => () => void;
+}
+
 export interface CanvasStageState {
   readonly isRootCanvasMounted: boolean;
   readonly activeSlotCount: number;
   readonly stageProps: CanvasStageData | null;
+  readonly activeSceneStore: ActiveSceneEntityStoreReader | null;
 }
 
 export interface CanvasStageActions {
   readonly setRootCanvasMounted: (mounted: boolean) => void;
+  readonly setActiveSceneStore: (store: ActiveSceneEntityStoreReader | null) => void;
   readonly mountSlot: () => void;
   readonly unmountSlot: () => void;
   readonly setStageProps: (props: CanvasStageData) => void;
@@ -45,6 +55,7 @@ export const INITIAL_CANVAS_STAGE_STATE: CanvasStageState = {
   isRootCanvasMounted: false,
   activeSlotCount: 0,
   stageProps: null,
+  activeSceneStore: null,
 };
 
 function sanitizeStageProps(props: CanvasStageData | (CanvasStageData & Record<string, unknown>)): CanvasStageData {
@@ -101,7 +112,6 @@ export const areStagePropsEqual = (
     return false;
   }
 
-  // centerCoordinates equality
   if (a.centerCoordinates !== b.centerCoordinates) {
     if (!a.centerCoordinates || !b.centerCoordinates) return false;
     if (
@@ -113,7 +123,6 @@ export const areStagePropsEqual = (
     }
   }
 
-  // selectedEntities equality (compare IDs and count)
   if (a.selectedEntities !== b.selectedEntities) {
     if (!a.selectedEntities || !b.selectedEntities) return false;
     if (a.selectedEntities.length !== b.selectedEntities.length) return false;
@@ -122,7 +131,6 @@ export const areStagePropsEqual = (
     }
   }
 
-  // routeWaypoints equality
   if (a.routeWaypoints !== b.routeWaypoints) {
     if (!a.routeWaypoints || !b.routeWaypoints) return false;
     if (a.routeWaypoints.length !== b.routeWaypoints.length) return false;
@@ -131,7 +139,6 @@ export const areStagePropsEqual = (
     }
   }
 
-  // journeyLegs equality
   if (a.journeyLegs !== b.journeyLegs) {
     if (!a.journeyLegs || !b.journeyLegs) return false;
     if (a.journeyLegs.length !== b.journeyLegs.length) return false;
@@ -156,6 +163,8 @@ export const areStagePropsEqual = (
 export const useCanvasStageStore = create<CanvasStageStore>()((set) => ({
   ...INITIAL_CANVAS_STAGE_STATE,
   setRootCanvasMounted: (isRootCanvasMounted: boolean) => set({ isRootCanvasMounted }),
+  setActiveSceneStore: (activeSceneStore: ActiveSceneEntityStoreReader | null) =>
+    set((state) => (state.activeSceneStore === activeSceneStore ? state : { activeSceneStore })),
   mountSlot: () => set((state) => ({ activeSlotCount: state.activeSlotCount + 1 })),
   unmountSlot: () =>
     set((state) => ({ activeSlotCount: Math.max(0, state.activeSlotCount - 1) })),

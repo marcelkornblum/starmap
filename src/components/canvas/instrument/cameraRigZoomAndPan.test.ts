@@ -17,7 +17,7 @@ interface MockControls extends OrbitControlsLike {
   mouseButtons: { LEFT: number; MIDDLE: number; RIGHT: number };
   touches: { ONE: number; TWO: number };
   screenSpacePanning?: boolean;
-  update: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn<() => void>>;
 }
 
 describe('cameraRigZoomAndPan', () => {
@@ -38,6 +38,7 @@ describe('cameraRigZoomAndPan', () => {
       object: camera,
       target,
       enableRotate: true,
+      enableDamping: true,
       mouseButtons: {
         LEFT: THREE.MOUSE.ROTATE,
         MIDDLE: THREE.MOUSE.DOLLY,
@@ -47,7 +48,7 @@ describe('cameraRigZoomAndPan', () => {
         ONE: THREE.TOUCH.ROTATE,
         TWO: THREE.TOUCH.DOLLY_PAN,
       },
-      update: vi.fn(),
+      update: vi.fn<() => void>(),
     };
   });
 
@@ -84,20 +85,6 @@ describe('cameraRigZoomAndPan', () => {
       expect(camera.position.distanceTo(target)).toBeCloseTo(initialDistance, 4);
     });
 
-    it('supports legacy single-camera signature for backwards compatibility', () => {
-      applyOrthographicLock(camera, mockControls, 45);
-
-      expect(mockControls.enableRotate).toBe(false);
-      expect(mockControls.mouseButtons.LEFT).toBe(THREE.MOUSE.PAN);
-      expect(camera.fov).toBeCloseTo(3.6, 2);
-
-      releaseOrthographicLock(camera, mockControls, 45);
-      expect(mockControls.enableRotate).toBe(true);
-      expect(mockControls.mouseButtons.LEFT).toBe(THREE.MOUSE.ROTATE);
-      expect(camera.fov).toBe(45);
-      expect(camera.zoom).toBe(1.0);
-    });
-
     it('preserves camera orientation, up vector, and panned target when unlocking from top pole', () => {
       camera.position.set(0, 0, 50);
       camera.up.set(0, 1, 0);
@@ -120,18 +107,6 @@ describe('cameraRigZoomAndPan', () => {
       expect(mockControls.target.x).toBe(15);
       expect(mockControls.target.y).toBe(25);
       expect(mockControls.target.z).toBe(0);
-      expect(mockControls.update).toHaveBeenCalled();
-    });
-
-    it('preserves camera orientation and distance with legacy single-camera signature', () => {
-      camera.position.set(0, 0, -50);
-      camera.up.set(0, 1, 0);
-      camera.lookAt(target);
-
-      applyOrthographicLock(camera, mockControls, 45);
-      releaseOrthographicLock(camera, mockControls, 45);
-
-      expect(camera.position.distanceTo(target)).toBeCloseTo(50, 4);
       expect(mockControls.update).toHaveBeenCalled();
     });
   });

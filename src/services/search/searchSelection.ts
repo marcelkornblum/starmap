@@ -4,6 +4,7 @@ import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { computeDistance3D } from '../../utils/spatialMath';
 import { formatSlugFallbackTitle } from '../../utils/starNaming';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import type { SpatialScale } from '../../utils/referenceFrameOrientation';
 import { buildEntityOrbitTargetHref } from '../details/detailsNavigation';
 import {
   findFocusedEntryInCorpus,
@@ -39,6 +40,7 @@ export const toSearchResultItem = (
   score: number,
   systemName?: string,
   tagSlug?: string,
+  hostPosition?: readonly [number, number, number],
 ): SearchResultItem => {
   const displayName = resolveResultDisplayTitle(entry);
   const category = resolveEntryCategory(entry);
@@ -47,10 +49,11 @@ export const toSearchResultItem = (
 
   let distancePc: number | undefined;
   let position: readonly [number, number, number] | undefined;
-  if (entry.p) {
-    const [x, y, z] = entry.p;
+  const resolvedCoords = entry.p ?? hostPosition;
+  if (resolvedCoords) {
+    const [x, y, z] = resolvedCoords;
     position = [x, y, z];
-    distancePc = Math.round(computeDistance3D(entry.p, ORIGIN_3D) * 100) / 100;
+    distancePc = Math.round(computeDistance3D(resolvedCoords, ORIGIN_3D) * 100) / 100;
   } else if (entry.h === 1) {
     position = ORIGIN_3D;
     distancePc = 0;
@@ -84,6 +87,7 @@ export const toSearchResultItem = (
     href,
     ...(entry.s ? { systemId: entry.s } : {}),
     ...(systemName ? { systemName } : {}),
+    ...(entry.o ? { parentBodyId: entry.o } : {}),
     ...(position ? { position } : {}),
     ...(distancePc !== undefined ? { distancePc } : {}),
     ...(magnitude !== undefined ? { magnitude } : {}),
@@ -108,6 +112,16 @@ export const resolveSelectedSystemsFromSearchResults = (
   results: GroupedSearchResults,
 ): readonly SpatialEntityDefinition[] => {
   const systemsById = new Map<string, SpatialEntityDefinition>();
+  const seenSlugs = new Set<string>();
+
+  const recordSlugs = (id: string, name?: string): void => {
+    const idSlug = toUrlSlug(id);
+    if (idSlug) seenSlugs.add(idSlug);
+    if (name) {
+      const nameSlug = toUrlSlug(name);
+      if (nameSlug) seenSlugs.add(nameSlug);
+    }
+  };
 
   for (const meta of SEARCH_CATEGORIES) {
     const group = results.groups[meta.key];
@@ -122,7 +136,28 @@ export const resolveSelectedSystemsFromSearchResults = (
           classification: item.reticleType,
           ...(item.spectralType ? { spectralType: item.spectralType } : {}),
         });
-      } else if (item.systemId && !systemsById.has(item.systemId)) {
+        recordSlugs(item.id, item.name);
+      } else if (
+        item.category === 'structures' ||
+        (item.entityKind === 'fictional-entry' && !item.systemId && item.position !== undefined)
+      ) {
+        if (!systemsById.has(item.id)) {
+          systemsById.set(item.id, {
+            id: item.id,
+            name: item.name,
+            position: item.position
+              ? [item.position[0], item.position[1], item.position[2]]
+              : [0, 0, 0],
+            classification: item.reticleType,
+          });
+          recordSlugs(item.id, item.name);
+        }
+      } else if (
+        item.systemId &&
+        !systemsById.has(item.systemId) &&
+        !seenSlugs.has(toUrlSlug(item.systemId)) &&
+        !(item.systemName && seenSlugs.has(toUrlSlug(item.systemName)))
+      ) {
         const resolvedSystemName = item.systemName ?? item.systemId;
         systemsById.set(item.systemId, {
           id: item.systemId,
@@ -132,11 +167,45 @@ export const resolveSelectedSystemsFromSearchResults = (
             : [0, 0, 0],
           classification: 'stellar-system',
         });
+        recordSlugs(item.systemId, resolvedSystemName);
       }
     }
   }
 
   return Array.from(systemsById.values());
+};
+
+/**
+ * Resolves deduplicated entity IDs/slugs that should be marked `selected` in
+ * `SpatialEntityStore` for the active spatial scale (`galaxy`, `system`, or `planet`).
+ */
+export const resolveSelectedEntitiesForScope = (
+  results: GroupedSearchResults,
+  scope: SpatialScale,
+): readonly string[] => {
+  if (scope === 'galaxy') {
+    return resolveSelectedSystemsFromSearchResults(results).map((s) => s.id);
+  }
+
+  const ids = new Set<string>();
+  for (const meta of SEARCH_CATEGORIES) {
+    const group = results.groups[meta.key];
+    for (const item of group.items) {
+      if (item.entityKind === 'layer') {
+        continue;
+      }
+      const rawId =
+        scope === 'system' && item.parentBodyId && item.parentBodyId !== item.systemId
+          ? item.parentBodyId
+          : item.id;
+      const slug = toUrlSlug(rawId) || rawId;
+      if (slug) {
+        ids.add(slug);
+      }
+    }
+  }
+
+  return Array.from(ids);
 };
 
 /**

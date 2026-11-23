@@ -3,6 +3,10 @@ import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { CoordinateFins } from './CoordinateFins';
 import { SpatialFrameProvider, GALACTIC_FRAME } from './index';
+import {
+  setCrossScaleInstrumentFade,
+  resetCrossScaleInstrumentFade,
+} from './crossScaleFadeState';
 import { NOOP_RAYCAST } from '../engineConfig';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
@@ -46,11 +50,13 @@ describe('CoordinateFins Primitive', () => {
     vi.clearAllMocks();
     useThreeTokenStore.getState().resetTokens();
     useSettingsStore.getState().resetSettings();
+    resetCrossScaleInstrumentFade();
   });
 
   afterEach(() => {
     useThreeTokenStore.getState().resetTokens();
     useSettingsStore.getState().resetSettings();
+    resetCrossScaleInstrumentFade();
   });
 
   it('consolidates into 3 plane groups and <= 9 ShaderMaterial LineSegments with matrixAutoUpdate=false', async () => {
@@ -264,5 +270,29 @@ describe('CoordinateFins Primitive', () => {
     expect(perimMatDispose).toHaveBeenCalledTimes(1);
     expect(ticksMatDispose).toHaveBeenCalledTimes(1);
     expect(arcsMatDispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('dissolves grazingFade uniforms to 0 when instrumentFade is 0 and restores when 1', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <CoordinateFins rings={[5]} />
+      </SpatialFrameProvider>,
+    );
+    const xyPerim = renderer.scene.findByProps({ name: 'xy-perimeter' }).instance as THREE.LineSegments;
+    const xyTicks = renderer.scene.findByProps({ name: 'xy-ticks' }).instance as THREE.LineSegments;
+    const xyArcs = renderer.scene.findByProps({ name: 'xy-arcs' }).instance as THREE.LineSegments;
+
+    setCrossScaleInstrumentFade(0);
+    await renderer.advanceFrames(1, 0.016);
+    expect((xyPerim.material as THREE.ShaderMaterial).uniforms.uGrazingFade.value).toBe(0);
+    expect((xyTicks.material as THREE.ShaderMaterial).uniforms.uGrazingFade.value).toBe(0);
+    expect((xyArcs.material as THREE.ShaderMaterial).uniforms.uGrazingFade.value).toBe(0);
+    expect(xyPerim.visible).toBe(false);
+
+    setCrossScaleInstrumentFade(1);
+    await renderer.advanceFrames(1, 0.016);
+    expect((xyPerim.material as THREE.ShaderMaterial).uniforms.uGrazingFade.value).toBeGreaterThan(0);
+    expect(xyPerim.visible).toBe(true);
+    await renderer.unmount();
   });
 });

@@ -217,4 +217,75 @@ describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
     await renderer.unmount();
     unmountOutlet();
   });
+
+  it('immediately resets data-occluded to false when upgrading from occluded active state to selected state', async () => {
+    const store = createSpatialEntityStore();
+    const occlusionManager = new CelestialOcclusionManager();
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+
+    occlusionManager.register({
+      id: 'star-blocker',
+      name: 'Blocker',
+      state: 'focused',
+      screenX: 100,
+      screenY: 100,
+      camDist: 1,
+      reticleRadius: 20,
+      starRadius: 0.035,
+      hasReticle: false,
+      labelBox: { left: 0, top: 0, right: 500, bottom: 500 },
+      visible: true,
+      updatedAt: 0,
+    });
+    occlusionManager.register({
+      id: 'star-upgrade',
+      name: 'Upgrade Star',
+      state: 'active',
+      screenX: 100,
+      screenY: 100,
+      camDist: 20,
+      reticleRadius: 20,
+      starRadius: 0.035,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 0,
+    });
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <SpatialEntityProvider store={store} occlusionManager={occlusionManager}>
+          <EntityLabel
+            id="star-upgrade"
+            name="Upgrade Star"
+            spectralType="G2V"
+            state="active"
+            position={[0, 0, 0]}
+          />
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>,
+    );
+
+    await renderer.advanceFrames(1, 0.016);
+    const innerLabel = screen.getByTestId('entity-label-inner-star-upgrade');
+    expect(innerLabel.getAttribute('data-occluded')).toBe('true');
+
+    await renderer.update(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <SpatialEntityProvider store={store} occlusionManager={occlusionManager}>
+          <EntityLabel
+            id="star-upgrade"
+            name="Upgrade Star"
+            spectralType="G2V"
+            state="selected"
+            position={[0, 0, 0]}
+          />
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>,
+    );
+
+    expect(innerLabel.getAttribute('data-occluded')).toBe('false');
+
+    await renderer.unmount();
+    unmountOutlet();
+  });
 });

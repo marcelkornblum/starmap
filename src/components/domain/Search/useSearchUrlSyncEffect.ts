@@ -10,9 +10,14 @@ import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import type { SearchExecutionStatus } from './SearchContext';
-import { resolveInitialFilter, resolveInitialQuery } from './searchUrlSync';
+import {
+  resolveInitialFilter,
+  resolveInitialQuery,
+  type SelfWrittenSearchParams,
+} from './searchUrlSync';
 import { syncSelectedSystemsToStore, syncUrlFocusToStore } from './searchStoreSync';
 import { runSearchCorpusPrewarm } from './searchCorpusPrewarm';
+import { parseSpatialRouteTarget } from '../../../utils/spatialRoute';
 
 export const getSearchRelevantUrlKey = (pathname: string, search: string): string => {
   const params = new URLSearchParams(search);
@@ -46,6 +51,7 @@ export interface UseSearchUrlSyncEffectOptions {
     overrideSearch?: string,
     overrideCorpus?: readonly CompactSearchEntry[],
   ) => void;
+  readonly lastSelfWrittenSearchRef?: { current: SelfWrittenSearchParams | null };
 }
 
 export const useSearchUrlSyncEffect = ({
@@ -68,6 +74,7 @@ export const useSearchUrlSyncEffect = ({
   setStatus,
   submitSearch,
   updateResultsAndSelection,
+  lastSelfWrittenSearchRef,
 }: UseSearchUrlSyncEffectOptions): void => {
   const fallbackFocusIdRef = useRef<string | null>(null);
   const initialResultsRef = useRef(results);
@@ -76,6 +83,7 @@ export const useSearchUrlSyncEffect = ({
   const prewarmedCorpusRef = useRef<readonly CompactSearchEntry[] | null>(null);
   const initialPrewarmFiredRef = useRef<boolean>(false);
   const prevFocusSlugRef = useRef<string | null>(null);
+  const activeScope = parseSpatialRouteTarget(activePathname)?.scope ?? 'galaxy';
 
   const resolveCurrentFocusSlug = useCallback(
     (searchStr: string): string | null => {
@@ -102,6 +110,7 @@ export const useSearchUrlSyncEffect = ({
       focusCorpus,
       layerIndex,
       loadedLayers,
+      activeScope,
     );
 
     if (
@@ -140,13 +149,31 @@ export const useSearchUrlSyncEffect = ({
     const currentUrlKey = getSearchRelevantUrlKey(activePathname, activeSearch);
     if (prevUrlKeyRef.current !== currentUrlKey) {
       prevUrlKeyRef.current = currentUrlKey;
+      const params = new URLSearchParams(activeSearch);
+      const urlQ = (params.get('q') ?? '').trim();
+      const urlCat = params.get('searchCategory') ?? '';
+      const urlLayer = params.getAll('layer').join(',');
+      const selfWritten = lastSelfWrittenSearchRef?.current;
+      if (
+        selfWritten &&
+        selfWritten.pathname === activePathname &&
+        selfWritten.q === urlQ &&
+        selfWritten.cat === urlCat &&
+        selfWritten.layer === urlLayer
+      ) {
+        lastSelfWrittenSearchRef.current = null;
+        return;
+      }
+      if (lastSelfWrittenSearchRef) {
+        lastSelfWrittenSearchRef.current = null;
+      }
       const nextQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
       const nextFilter = resolveInitialFilter(syncUrl, activeSearch, initialFilter);
       setQueryState(nextQuery);
       setFilterState(nextFilter);
       void submitSearch(nextQuery, nextFilter);
     }
-  }, [activePathname, activeSearch, initialFilter, initialQuery, submitSearch, syncUrl, setQueryState, setFilterState]);
+  }, [activePathname, activeSearch, initialFilter, initialQuery, lastSelfWrittenSearchRef, submitSearch, syncUrl, setQueryState, setFilterState]);
 
   // Pre-warm the base search corpus in the background on mount
   useEffect(() => {
@@ -162,6 +189,7 @@ export const useSearchUrlSyncEffect = ({
       initialQuery,
       syncUrl,
       isSearchRoute: activePathname === '/search',
+      activeScope,
       limitPerCategory,
       store,
       layerIndex,
@@ -182,6 +210,7 @@ export const useSearchUrlSyncEffect = ({
     };
   }, [
     activePathname,
+    activeScope,
     activeSearch,
     initialCorpus,
     initialFilter,
@@ -236,6 +265,7 @@ export const useSearchUrlSyncEffect = ({
     );
   }, [
     activePathname,
+    activeScope,
     activeSearch,
     filter,
     initialCorpus,

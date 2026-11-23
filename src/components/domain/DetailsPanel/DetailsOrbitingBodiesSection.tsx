@@ -1,15 +1,54 @@
+import { memo } from 'react';
 import type { SystemElementBodyItem } from '../../../services/details/detailsHierarchyTypes';
 import { CelestialTitle, DataTable, Heading } from '../../interface';
+
+interface DetailsOrbitingBodyRowProps {
+  readonly body: SystemElementBodyItem;
+}
+
+const areOrbitingRowsEqual = (
+  prev: DetailsOrbitingBodyRowProps,
+  next: DetailsOrbitingBodyRowProps,
+): boolean =>
+  prev.body.id === next.body.id &&
+  prev.body.name === next.body.name &&
+  prev.body.href === next.body.href &&
+  prev.body.categoryKey === next.body.categoryKey;
+
+const DetailsOrbitingBodyRow = memo(function DetailsOrbitingBodyRow({
+  body,
+}: DetailsOrbitingBodyRowProps) {
+  return (
+    <DataTable.Row
+      data-testid="details-orbiting-body-item"
+      data-body-id={body.id}
+    >
+      <DataTable.Cell>
+        <CelestialTitle
+          type={
+            body.categoryKey === 'spacecraft'
+              ? 'construct'
+              : (body.categoryKey ?? 'asteroid')
+          }
+          title={body.name}
+          href={body.href}
+          showTooltip={false}
+          titleTestId="details-orbiting-body-link"
+        />
+      </DataTable.Cell>
+    </DataTable.Row>
+  );
+}, areOrbitingRowsEqual);
 
 export interface DetailsOrbitingBodiesSectionProps {
   readonly focusedKind: string;
   readonly orbitingBodies?: readonly SystemElementBodyItem[];
 }
 
-export const DetailsOrbitingBodiesSection = ({
+export const DetailsOrbitingBodiesSection = memo(function DetailsOrbitingBodiesSection({
   focusedKind,
   orbitingBodies,
-}: DetailsOrbitingBodiesSectionProps) => {
+}: DetailsOrbitingBodiesSectionProps) {
   if (
     (focusedKind !== 'planet' &&
       focusedKind !== 'minor-body' &&
@@ -38,27 +77,12 @@ export const DetailsOrbitingBodiesSection = ({
         </DataTable.Head>
         <DataTable.Body>
           {orbitingBodies.map((body) => (
-            <DataTable.Row
-              key={body.id}
-              data-testid="details-orbiting-body-item"
-              data-body-id={body.id}
-            >
-              <DataTable.Cell>
-                <CelestialTitle
-                  type={
-                    body.categoryKey === 'spacecraft'
-                      ? 'construct'
-                      : (body.categoryKey ?? 'asteroid')
-                  }
-                  title={body.name}
-                  href={body.href}
-                  titleTestId="details-orbiting-body-link"
-                />
-              </DataTable.Cell>
-            </DataTable.Row>
+            <DetailsOrbitingBodyRow key={body.id} body={body} />
           ))}
         </DataTable.Body>
       </DataTable>
     </section>
   );
-};
+});
+
+DetailsOrbitingBodiesSection.displayName = 'DetailsOrbitingBodiesSection';

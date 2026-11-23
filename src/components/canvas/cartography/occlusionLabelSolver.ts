@@ -29,6 +29,21 @@ export function evaluateLabelVisibility(
   return { visible: true, behindCanvas: true };
 }
 
+function statePriority(state: CelestialFootprint['state']): number {
+  switch (state) {
+    case 'focused':
+      return 3;
+    case 'selected':
+      return 2;
+    case 'active':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+const _scratchNearby: CelestialFootprint[] = [];
+
 /**
  * Comprehensive Label Occlusion, Displacement & Proximity Culling:
  * 1. Screen-space displacement along radial leader stems.
@@ -54,13 +69,6 @@ export function solveLabelOcclusion(
     return result;
   }
 
-  // Significant nodes (focused or selected) have Target Immunity
-  if (target.state === 'selected' || target.state === 'focused') {
-    result.visible = true;
-    result.behindCanvas = true;
-    return result;
-  }
-
   const box = labelBox ?? target.labelBox;
   if (!box) {
     result.visible = true;
@@ -68,6 +76,7 @@ export function solveLabelOcclusion(
   }
 
   const r = target.reticleRadius;
+  const targetPrio = statePriority(target.state);
 
   for (let cIdx = 0; cIdx < CANDIDATE_MULTIPLIERS.length; cIdx++) {
     const mult = CANDIDATE_MULTIPLIERS[cIdx];
@@ -86,38 +95,44 @@ export function solveLabelOcclusion(
     let collidesWithReticle = false;
     let collidesWithHigherPriorityLabel = false;
 
-    grid.forEachNearby(cCenterX, cCenterY, searchRadius, (other) => {
-      if (!other.visible || other.id === target.id) return;
+    const nearbyCount = grid.collectNearby(cCenterX, cCenterY, searchRadius, _scratchNearby);
+    for (let nIdx = 0; nIdx < nearbyCount; nIdx++) {
+      const other = _scratchNearby[nIdx];
+      if (!other.visible || other.id === target.id) continue;
 
       if (other.hasReticle && diamondIntersectsAABB(other.screenX, other.screenY, other.reticleRadius, cBox)) {
         collidesWithReticle = true;
-        return false;
+        break;
       }
 
       if (other.id !== target.id && other.labelBox && boxesIntersect(cBox, other.labelBox)) {
-        if (other.state === 'selected' || other.state === 'focused') {
+        const otherPrio = statePriority(other.state);
+        if (otherPrio === 0) continue;
+
+        if (otherPrio > targetPrio) {
           collidesWithHigherPriorityLabel = true;
-          return false;
+          break;
         }
 
-        if (other.state === 'active') {
+        if (otherPrio === targetPrio) {
           const otherDist = other.camDist ?? 0;
           const targetDist = target.camDist ?? 0;
           if (otherDist < targetDist) {
             collidesWithHigherPriorityLabel = true;
-            return false;
+            break;
           } else if (otherDist === targetDist && (other.id < target.id ? -1 : other.id > target.id ? 1 : 0) < 0) {
             collidesWithHigherPriorityLabel = true;
-            return false;
+            break;
           }
         }
       }
-    });
+    }
 
     if (collidesWithReticle || collidesWithHigherPriorityLabel) {
       continue;
     }
 
+    _scratchNearby.length = 0;
     result.visible = true;
     result.behindCanvas = true;
     result.displacementX = dx;
@@ -126,7 +141,8 @@ export function solveLabelOcclusion(
     return result;
   }
 
-  result.visible = false;
+  _scratchNearby.length = 0;
+  result.visible = target.state === 'selected' || target.state === 'focused';
   result.behindCanvas = true;
   result.displacementX = 0;
   result.displacementY = 0;

@@ -8,7 +8,7 @@ vi.mock('@tanstack/react-router', () => ({
   useSearch: vi.fn(() => ({})),
   useRouter: vi.fn(() => undefined),
 }));
-import { useRouter } from '@tanstack/react-router';
+import { useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import {
@@ -72,7 +72,7 @@ describe('useSystemViewModel', () => {
     seedDetailRecord('sol', { kind: 'system', record: SOL_FIXTURE });
     seedSummaryNode('sol', SOL_SUMMARY);
     useUIStore.setState({ detailsDetent: 'collapsed' });
-    useCameraStore.setState({ lastGalaxySearch: '' });
+    useCameraStore.getState().reset();
     navigateSpy = vi.fn().mockResolvedValue(undefined);
     vi.mocked(useRouter).mockReturnValue({ navigate: navigateSpy } as never);
   });
@@ -190,5 +190,90 @@ describe('useSystemViewModel', () => {
     expect(hookResult.result.current.orbitalSchematic).toBe(initialSchematic);
     expect(hookResult.result.current.focusedPreview).toBe(initialPreview);
     expect(hookResult.result.current.minimapOrientation).toBe(initialMinimap);
+  });
+
+  it('centres on ?focus= on cold load, but clears effectiveCenterId when ?focus= changes subsequently without ?center=', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, { search: string }>>;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ search }) =>
+          useSystemViewModel({
+            systemId: 'sol',
+            locationPathname: '/system/sol',
+            locationSearch: search,
+          }),
+        {
+          wrapper: createWrapper(store),
+          initialProps: { search: '?focus=earth' },
+        },
+      );
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBe('earth');
+
+    await act(async () => {
+      hookResult.rerender({ search: '?focus=sol' });
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
+
+  it('sets effectiveCenterId on intra-view focusFromSearch and records canvas focus without setting effectiveCenterId on handleSelectEntity', async () => {
+    useCameraStore.getState().reset();
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useSystemViewModel({
+            systemId: 'sol',
+            locationPathname: '/system/sol',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+
+    act(() => {
+      useCameraStore.getState().focusFromSearch('titan');
+    });
+    expect(hookResult.result.current.effectiveCenterId).toBe('titan');
+
+    act(() => {
+      hookResult.result.current.handleSelectEntity('mars');
+    });
+    expect(useCameraStore.getState().canvasFocusedSlugs.has('mars')).toBe(true);
+    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
+
+  it('does not allow live router state to override explicit locationPathname and locationSearch props', async () => {
+    vi.mocked(useParams).mockReturnValue({ systemId: 'sirius' });
+    vi.mocked(useSearch).mockReturnValue({ focus: 'sirius-b', center: 'sirius', route: 'sirius,vega' });
+    const store = createSpatialEntityStore();
+    try {
+      let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, unknown>>;
+      await act(async () => {
+        hookResult = renderHook(
+          () =>
+            useSystemViewModel({
+              systemId: 'sol',
+              locationPathname: '/system/sol',
+              locationSearch: '?focus=earth&center=earth',
+            }),
+          { wrapper: createWrapper(store) },
+        );
+      });
+
+      expect(hookResult.result.current.targetId).toBe('sol');
+      expect(hookResult.result.current.effectiveCenterId).toBe('earth');
+      expect(hookResult.result.current.routeStops).toBeNull();
+    } finally {
+      vi.mocked(useParams).mockReturnValue({});
+      vi.mocked(useSearch).mockReturnValue({});
+    }
   });
 });

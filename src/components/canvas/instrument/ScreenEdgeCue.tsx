@@ -11,6 +11,7 @@ import {
 } from '../cartography/cartographyMath';
 import { useSpatialFrame } from './spatialFrameContext';
 import type { BearingDefinition } from '../../../types/spatial';
+import { useUIStore } from '../../../stores/useUIStore';
 import {
   DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
   DEFAULT_VIEWPORT_WIDTH_PX,
@@ -29,12 +30,26 @@ export interface ScreenEdgeCueProps {
 }
 
 const HTML_Z_INDEX_RANGE: [number, number] = [100, 0];
+const SAFE_MARGIN_VIEWPORT_RATIO = 0.45;
+const LABEL_OFFSET_X_PX = 44;
+const LABEL_OFFSET_Y_PX = 22;
+const LABEL_HALF_WIDTH_PX = 30;
+const LABEL_HALF_HEIGHT_PX = 8;
+const HORIZON_AXIS_THRESHOLD = 0.25;
+
 const pinToViewportOrigin = (_el: THREE.Object3D, _camera: THREE.Camera, _size: { width: number; height: number }, target?: [number, number]): void => {
   if (target) {
     target[0] = 0;
     target[1] = 0;
   }
 };
+
+function clampWithinBounds(value: number, rawMin: number, rawMax: number): number {
+  if (rawMin <= rawMax) {
+    return Math.min(rawMax, Math.max(rawMin, value));
+  }
+  return (rawMin + rawMax) * 0.5;
+}
 
 export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   bearing,
@@ -52,10 +67,11 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
 
   const scratchOrigin = useLazyRef(() => new THREE.Vector3());
   const scratchScreenSize = useRef({ width: 0, height: 0 });
+  const scratchSafeInsets = useRef({ top: 0, right: 0, bottom: 0, left: 0 });
   const scratchResult = useRef<ScreenEdgeBearingResult>({
     x: 0,
     y: 0,
-    edge: 'right' as ScreenEdgeSide,
+    edge: 'right',
     angle: 0,
     isAttached: false,
     visible: false,
@@ -95,6 +111,20 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     const bType: ScreenEdgeBearingType = bearing.id === 'orbital' ? 'orbital' : 'core';
     const effectiveCenterDistance = centerDistance ?? frameRef?.current?.frame?.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
 
+    const safeRect = useUIStore.getState().viewportSafeRect;
+    const safeInsets = scratchSafeInsets.current;
+    if (safeRect && !safeRect.bypass) {
+      safeInsets.top = safeRect.top;
+      safeInsets.right = safeRect.right;
+      safeInsets.bottom = safeRect.bottom;
+      safeInsets.left = safeRect.left;
+    } else {
+      safeInsets.top = 0;
+      safeInsets.right = 0;
+      safeInsets.bottom = 0;
+      safeInsets.left = 0;
+    }
+
     calculateScreenEdgeBearing(
       activeCamera,
       screenSize,
@@ -106,6 +136,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
       scratchResult.current,
       minLineLength,
       frameRef?.current?.orientation,
+      safeInsets,
     );
 
     const res = scratchResult.current;
@@ -144,13 +175,11 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
       chevEl.style.transform = `translate(-50%, -50%) rotate(${qAngle.toFixed(1)}deg)`;
     }
 
-    // Chevron maintains course pinned at line terminus.
-    // Label is placed adjacent to chevron with screen boundary collision avoidance:
-    const safeMargin = Math.min(margin, Math.min(width, height) * 0.45);
-    const distX = 44; // half chevron (8) + gap (6) + half label width (~30)
-    const distY = 22; // half chevron (8) + gap (6) + half label height (~8)
-    const hw = 30;
-    const hh = 8;
+    const safeMargin = Math.min(margin, Math.min(width, height) * SAFE_MARGIN_VIEWPORT_RATIO);
+    const distX = LABEL_OFFSET_X_PX;
+    const distY = LABEL_OFFSET_Y_PX;
+    const hw = LABEL_HALF_WIDTH_PX;
+    const hh = LABEL_HALF_HEIGHT_PX;
 
     const angleRad = (res.angle * Math.PI) / 180;
     const hx = Math.cos(angleRad);
@@ -171,22 +200,24 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     } else if (res.edge === 'bottom') {
       labelOffsetX = 0;
       labelOffsetY = -distY;
+    } else if (Math.abs(hx) >= HORIZON_AXIS_THRESHOLD) {
+      labelOffsetX = hx < 0 ? -distX : distX;
+      labelOffsetY = 0;
     } else {
-      // Line terminus at horizon in-view (res.edge === 'none'):
-      // Bearing line comes from (-hx, -hy) into (res.x, res.y).
-      // Position label away from the incoming line so it never cuts across:
-      if (Math.abs(hx) >= 0.25) {
-        labelOffsetX = hx < 0 ? -distX : distX;
-        labelOffsetY = 0;
-      } else {
-        labelOffsetX = 0;
-        labelOffsetY = hy > 0 ? distY : -distY;
-      }
+      labelOffsetX = 0;
+      labelOffsetY = hy > 0 ? distY : -distY;
     }
 
-    // Clamp label to viewport screen edges
-    const clampedLabelX = Math.min(width - safeMargin - hw, Math.max(safeMargin + hw, res.x + labelOffsetX));
-    const clampedLabelY = Math.min(height - safeMargin - hh, Math.max(safeMargin + hh, res.y + labelOffsetY));
+    const clampedLabelX = clampWithinBounds(
+      res.x + labelOffsetX,
+      safeInsets.left + safeMargin + hw,
+      width - safeInsets.right - safeMargin - hw,
+    );
+    const clampedLabelY = clampWithinBounds(
+      res.y + labelOffsetY,
+      safeInsets.top + safeMargin + hh,
+      height - safeInsets.bottom - safeMargin - hh,
+    );
 
     const finalOffsetX = Math.round((clampedLabelX - res.x) * 10) / 10;
     const finalOffsetY = Math.round((clampedLabelY - res.y) * 10) / 10;
@@ -221,6 +252,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
         calculatePosition={pinToViewportOrigin}
         zIndexRange={HTML_Z_INDEX_RANGE}
         pointerEvents="none"
+        frustumCulled={false}
       >
         <div
           ref={rootRef}

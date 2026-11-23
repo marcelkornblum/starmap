@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
@@ -7,14 +7,8 @@ import styles from './EntityLabel.module.css';
 import type { CelestialInteractionState } from './types';
 import { useOcclusionManager } from './SpatialEntityContext';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
-import type {
-  CelestialFootprint,
-  Box2D,
-} from '../cartography/occlusionTypes';
-import {
-  DEFAULT_RETICLE_SIZE,
-  formatDesignationTag,
-} from '../cartography/reticleGeometry';
+import type { CelestialFootprint, Box2D } from '../cartography/occlusionTypes';
+import { DEFAULT_RETICLE_SIZE, formatDesignationTag } from '../cartography/reticleGeometry';
 import { resolveEntityScreenInvariantScale } from '../engineConfig';
 
 export interface EntityLabelProps {
@@ -29,6 +23,22 @@ export interface EntityLabelProps {
   offset?: [number, number];
   footprintRef?: React.RefObject<CelestialFootprint>;
 }
+
+const DEFAULT_POSITION: [number, number, number] = [0, 0, 0];
+const LABEL_ANCHOR_X_MULTIPLIER = 1.15;
+const LABEL_ANCHOR_Y_MULTIPLIER = 0.75;
+const ESTIMATED_CHAR_WIDTH_PX = 8;
+const ESTIMATED_LABEL_PADDING_PX = 12;
+const ANNOTATED_LABEL_HEIGHT_PX = 38;
+const DEFAULT_LABEL_HEIGHT_PX = 18;
+const DEFAULT_LEADER_HALF_HEIGHT_PX = 9;
+const MIN_CAMERA_DISTANCE = 1e-4;
+const TRANSFORM_EPSILON = 1e-6;
+
+const hasTransformDelta = (prev: number, next: number): boolean =>
+  Number.isNaN(prev) || Math.abs(prev - next) > TRANSFORM_EPSILON;
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 /**
  * EntityLabel (Layer 3: Typographic Label):
@@ -63,15 +73,14 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   const scratchAnchorWorldPos = useLazyRef(() => new THREE.Vector3());
   const scratchAnchorNdc = useLazyRef(() => new THREE.Vector3());
   const lastTransformRef = useRef({
-    qx: Number.NaN, qy: Number.NaN, qz: Number.NaN, qw: Number.NaN,
-    scale: Number.NaN, px: Number.NaN, py: Number.NaN, pz: Number.NaN,
+    qx: Number.NaN, qy: Number.NaN, qz: Number.NaN, qw: Number.NaN, scale: Number.NaN, px: Number.NaN, py: Number.NaN, pz: Number.NaN,
   });
   const occlusionManager = useOcclusionManager();
   const frameCtx = useSpatialFrameSafe();
 
-  const resolvedPos = useMemo(() => {
-    if (!position) return [0, 0, 0] as [number, number, number];
-    if (position instanceof THREE.Vector3) return [position.x, position.y, position.z] as [number, number, number];
+  const resolvedPos = useMemo<[number, number, number]>(() => {
+    if (!position) return DEFAULT_POSITION;
+    if (position instanceof THREE.Vector3) return [position.x, position.y, position.z];
     return position;
   }, [position]);
 
@@ -105,18 +114,15 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
       } else {
         g.getWorldPosition(scratchWorldPos.current);
       }
-      const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
+      const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), MIN_CAMERA_DISTANCE);
       const invScale = resolveEntityScreenInvariantScale(camDist, camera, frameCtx?.frameRef?.current);
 
       const cq = camera.quaternion;
       const last = lastTransformRef.current;
-      const posChanged =
-        Number.isNaN(last.px) || Math.abs(last.px - rx) > 1e-6 || Math.abs(last.py - ry) > 1e-6 || Math.abs(last.pz - rz) > 1e-6;
+      const posChanged = hasTransformDelta(last.px, rx) || hasTransformDelta(last.py, ry) || hasTransformDelta(last.pz, rz);
       const quatChanged =
-        Number.isNaN(last.qw) ||
-        Math.abs(last.qx - cq.x) > 1e-6 || Math.abs(last.qy - cq.y) > 1e-6 ||
-        Math.abs(last.qz - cq.z) > 1e-6 || Math.abs(last.qw - cq.w) > 1e-6;
-      const scaleChanged = Number.isNaN(last.scale) || Math.abs(last.scale - invScale) > 1e-6;
+        hasTransformDelta(last.qx, cq.x) || hasTransformDelta(last.qy, cq.y) || hasTransformDelta(last.qz, cq.z) || hasTransformDelta(last.qw, cq.w);
+      const scaleChanged = hasTransformDelta(last.scale, invScale);
 
       if (posChanged || quatChanged || scaleChanged) {
         g.position.set(rx, ry, rz);
@@ -138,12 +144,9 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
       scratchAnchorNdc.current.copy(scratchAnchorWorldPos.current).project(camera);
       const x = ((scratchAnchorNdc.current.x + 1) * size.width) / 2;
       const y = ((-scratchAnchorNdc.current.y + 1) * size.height) / 2;
-      if (target) {
-        target[0] = x;
-        target[1] = y;
-        return;
-      }
-      return [x, y];
+      if (!target) return [x, y];
+      target[0] = x;
+      target[1] = y;
     },
     [syncBillboardTransform, scratchAnchorWorldPos, scratchAnchorNdc],
   );
@@ -167,45 +170,44 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
     return () => observer.disconnect();
   }, [name, spectralType, isAnnotated]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     propsDirtyRef.current = true;
-  }, [id, name, spectralType, resolvedPos, worldPosition, offset, isOccluded]);
+    if ((state === 'selected' || state === 'focused') && !isOccluded) {
+      lastOccludedRef.current = false;
+      labelRef.current?.setAttribute('data-occluded', 'false');
+    }
+  }, [id, name, spectralType, state, resolvedPos, worldPosition, offset, isOccluded]);
 
   useFrame(({ camera }) => {
-    if (
+    const canSkipIdleFrame =
       !propsDirtyRef.current &&
       occlusionManager.isBatchEvaluating() &&
       !occlusionManager.didCameraOrFootprintsChange() &&
       lastOccludedRef.current !== null &&
       lastStateRef.current === state &&
-      lastIsOccludedPropRef.current === isOccluded
-    ) {
-      return;
-    }
+      lastIsOccludedPropRef.current === isOccluded;
+    if (canSkipIdleFrame) return;
     propsDirtyRef.current = false;
     lastStateRef.current = state;
     lastIsOccludedPropRef.current = isOccluded;
 
     syncBillboardTransform(camera);
-
     if (!labelRef.current) return;
 
-    // Retrieve screen footprint from occlusion manager to construct accurate activeBox
     const fp = occlusionManager.getFootprint(id);
     let activeBox: Box2D | undefined;
     if (fp) {
       const prevFpState = fp.state;
       fp.state = state;
       fp.hasReticle = state !== 'passive';
-      if (prevFpState !== state) {
-        occlusionManager.register(fp);
-      }
+      if (prevFpState !== state) occlusionManager.register(fp);
       if (fp.screenX !== undefined && fp.screenY !== undefined) {
-        const estimatedW = name.length * 8 + 12;
+        const estimatedW = name.length * ESTIMATED_CHAR_WIDTH_PX + ESTIMATED_LABEL_PADDING_PX;
         const w = labelDimensionsRef.current.width > 0 ? labelDimensionsRef.current.width : estimatedW;
-        const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : (isAnnotated && spectralType ? 38 : 18);
-        const anchorX = fp.screenX + 1.15 * fp.reticleRadius;
-        const anchorY = fp.screenY - 0.75 * fp.reticleRadius;
+        const fallbackH = isAnnotated && spectralType ? ANNOTATED_LABEL_HEIGHT_PX : DEFAULT_LABEL_HEIGHT_PX;
+        const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : fallbackH;
+        const anchorX = fp.screenX + LABEL_ANCHOR_X_MULTIPLIER * fp.reticleRadius;
+        const anchorY = fp.screenY - LABEL_ANCHOR_Y_MULTIPLIER * fp.reticleRadius;
         const box = scratchBoxRef.current;
         box.left = anchorX;
         box.top = anchorY;
@@ -239,7 +241,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
         lastYRef.current = dy;
         labelRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
         if (leaderLineRef.current) {
-          const lh = labelDimensionsRef.current.height ? Math.round(labelDimensionsRef.current.height / 2) : 9;
+          const lh = labelDimensionsRef.current.height ? Math.round(labelDimensionsRef.current.height / 2) : DEFAULT_LEADER_HALF_HEIGHT_PX;
           leaderLineRef.current.setAttribute('x1', String(-dx));
           leaderLineRef.current.setAttribute('y1', String(-dy));
           leaderLineRef.current.setAttribute('y2', String(lh));
@@ -255,24 +257,15 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
     }
   });
 
-  const anchorX = reticleSize * 1.15;
-  const anchorY = reticleSize * 0.75;
+  const anchorX = reticleSize * LABEL_ANCHOR_X_MULTIPLIER;
+  const anchorY = reticleSize * LABEL_ANCHOR_Y_MULTIPLIER;
   const isSelectedOrFocused = state === 'selected' || state === 'focused';
+  const safeHtmlPos: [number, number, number] = [anchorX + (offset?.[0] ?? 0), anchorY + (offset?.[1] ?? 0), 0];
+  const designationTag = formatDesignationTag(spectralType);
 
   return (
-    <group
-      ref={setBillboardRef}
-      name={`entity-label-${id} [${name}] [${formatDesignationTag(spectralType)}]`}
-      userData={{ testId: `entity-label-${id}`, name, spectral: formatDesignationTag(spectralType) }}
-      position={resolvedPos}
-    >
-      {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}
-      <SafeHtml
-        position={[anchorX + (offset ? offset[0] : 0), anchorY + (offset ? offset[1] : 0), 0]}
-        calculatePosition={handleCalculatePosition}
-        center={false}
-        data-testid={`entity-label-${id}`}
-      >
+    <group ref={setBillboardRef} name={`entity-label-${id} [${name}] [${designationTag}]`} userData={{ testId: `entity-label-${id}`, name, spectral: designationTag }} position={resolvedPos}>
+      <SafeHtml position={safeHtmlPos} calculatePosition={handleCalculatePosition} center={false} data-testid={`entity-label-${id}`}>
         <div
           ref={labelRef}
           className={styles.labelCluster}
@@ -286,16 +279,9 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
             </svg>
             <span className={styles.name}>{name}</span>
           </div>
-
-          {/* Facet info: stacked cleanly below the designation without collision */}
           {isAnnotated && spectralType && (
-            <div
-              className={styles.spectralFacet}
-              data-state={state}
-              data-spectral={formatDesignationTag(spectralType)}
-              data-testid="celestial-spectrum-facet"
-            >
-              <span>{formatDesignationTag(spectralType)}</span>
+            <div className={styles.spectralFacet} data-state={state} data-spectral={designationTag} data-testid="celestial-spectrum-facet">
+              <span>{designationTag}</span>
             </div>
           )}
         </div>

@@ -15,6 +15,10 @@ import PlanetarySceneEntryDefault, {
 } from './PlanetarySceneEntry';
 import { InteractiveNavigator } from './InteractiveNavigator';
 import { GALAXY_SCENE_MAX_STREAMED_ENTITIES } from './GalaxyScene';
+import { SYSTEM_FRAME, PLANETARY_FRAME } from '../../../config/referenceFrames';
+import * as galacticCameraHelpers from './galacticCameraHelpers';
+import * as planetaryEntityResolver from './planetaryEntityResolver';
+import * as planetPalettes from '../../../data/planetPalettes';
 import type { SpatialEntityDefinition } from '../entity';
 import type { StarDossierData } from './SystemScene';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
@@ -186,11 +190,15 @@ describe('SpatialScenes Storybook Suite', () => {
       unmountOutlet();
     });
 
-    it('renders PlanetarySceneContent with cartographic grid and planet entity', async () => {
+    it('renders PlanetarySceneContent with cartographic grid and planet entity and forwards centerId', async () => {
       const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
 
       const renderer = await ReactThreeTest.create(
-        <PlanetarySceneContent planetId="earth" />,
+        <PlanetarySceneContent
+          planetId="earth"
+          centerId="moon"
+          centerCoordinates={[12, 3, -4]}
+        />,
       );
 
       expect(renderer.scene.findByProps({ name: 'cartographic-grid' })).toBeDefined();
@@ -204,6 +212,68 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(GalacticSceneEntryDefault).toBe(GalacticSceneContent);
       expect(SystemSceneEntryDefault).toBe(SystemSceneContent);
       expect(PlanetarySceneEntryDefault).toBe(PlanetarySceneContent);
+      expect((SystemSceneContent as unknown as { $$typeof?: symbol }).$$typeof).toBe(
+        Symbol.for('react.memo'),
+      );
+      expect((PlanetarySceneContent as unknown as { $$typeof?: symbol }).$$typeof).toBe(
+        Symbol.for('react.memo'),
+      );
+    });
+
+    it('aligns SystemSceneContent OrbitControls maxDistance to SYSTEM_FRAME.camera.maxDistance (150)', async () => {
+      const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+      const renderer = await ReactThreeTest.create(
+        <SystemSceneContent system={mockSolSystem} />,
+      );
+
+      const controlsNode = renderer.scene.find(
+        (node) => typeof node.props.maxDistance === 'number',
+      );
+      expect(controlsNode.props.maxDistance).toBe(SYSTEM_FRAME.camera.maxDistance);
+
+      await renderer.unmount();
+      unmountOutlet();
+    });
+
+    it('aligns PlanetarySceneContent fov to PLANETARY_FRAME.camera.baseFov (30) and resolves planetary entities once', async () => {
+      const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+      const applyPoseSpy = vi.spyOn(galacticCameraHelpers, 'applyImmediateCameraPose');
+      const resolveSpy = vi.spyOn(planetaryEntityResolver, 'resolvePlanetaryEntitiesAndTarget');
+
+      const renderer = await ReactThreeTest.create(
+        <PlanetarySceneContent planetId="earth" />,
+      );
+
+      expect(resolveSpy).toHaveBeenCalledTimes(1);
+      const lastCall = applyPoseSpy.mock.calls.at(-1);
+      expect(lastCall?.[6]).toBe(PLANETARY_FRAME.camera.baseFov);
+
+      resolveSpy.mockRestore();
+      applyPoseSpy.mockRestore();
+      await renderer.unmount();
+      unmountOutlet();
+    });
+
+    it('forwards resolved gas-giant classification from PlanetarySceneContent rather than hardcoding terrestrial', async () => {
+      const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+      const paletteSpy = vi.spyOn(planetPalettes, 'getClassificationPalette');
+
+      const renderer = await ReactThreeTest.create(
+        <PlanetarySceneContent
+          planetId="saturn"
+          planet={{
+            id: 'saturn',
+            name: 'Saturn',
+            letter: 'f',
+            composition: 'gas-giant',
+          }}
+        />,
+      );
+
+      expect(paletteSpy).toHaveBeenCalledWith('gas-giant');
+      paletteSpy.mockRestore();
+      await renderer.unmount();
+      unmountOutlet();
     });
   });
 });

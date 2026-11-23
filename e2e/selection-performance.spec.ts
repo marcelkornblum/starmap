@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test, expect, type Page } from 'playwright/test';
+import { getSafeCanvasCenter, getViewOffsetPx } from './helpers/safeCanvasCenter';
 
 interface SelectionSample {
   readonly label: string;
@@ -46,6 +47,7 @@ function projectStarScreenPoint(
   camPos: [number, number, number],
   camTarget: [number, number, number],
   canvasBox: { x: number; y: number; width: number; height: number },
+  viewOffset: { ox: number; oy: number } = { ox: 0, oy: 0 },
 ): { x: number; y: number } {
   let zx = camPos[0] - camTarget[0];
   let zy = camPos[1] - camTarget[1];
@@ -79,8 +81,8 @@ function projectStarScreenPoint(
   const ndcY = yCam / (zCam * tanFov);
 
   return {
-    x: canvasBox.x + (ndcX * 0.5 + 0.5) * canvasBox.width,
-    y: canvasBox.y + (-ndcY * 0.5 + 0.5) * canvasBox.height,
+    x: canvasBox.x + (ndcX * 0.5 + 0.5) * canvasBox.width - viewOffset.ox,
+    y: canvasBox.y + (-ndcY * 0.5 + 0.5) * canvasBox.height - viewOffset.oy,
   };
 }
 
@@ -446,7 +448,7 @@ test.describe('System Selection Latency & Focused Interaction Performance Guard'
     );
 
     // 2. Direct 3D canvas raycast clicks on `/galaxy?dist=10` (trusted Playwright mouse clicks matching canvas-interaction-and-fps.spec.ts)
-    const { rootHost: hostDist10, canvas: canvasDist10 } = await waitForCanvasReady(
+    const { rootHost: hostDist10 } = await waitForCanvasReady(
       page,
       '/galaxy?dist=10',
     );
@@ -455,12 +457,7 @@ test.describe('System Selection Latency & Focused Interaction Performance Guard'
     });
     await page.waitForTimeout(300);
 
-    const box10 = await canvasDist10.boundingBox();
-    if (!box10) {
-      throw new Error('Missing bounding box for canvasDist10');
-    }
-    const cx10 = box10.x + box10.width / 2;
-    const cy10 = box10.y + box10.height / 2;
+    const { x: cx10, y: cy10 } = await getSafeCanvasCenter(page, 400);
 
     selectionSamples.push(
       await measureCanvasStarClick(page, {
@@ -473,12 +470,7 @@ test.describe('System Selection Latency & Focused Interaction Performance Guard'
 
     await expect(page.locator('[data-testid="details-panel"]')).toBeVisible({ timeout: 15_000 });
 
-    const activeCanvasBox = await canvasDist10.boundingBox();
-    if (!activeCanvasBox) {
-      throw new Error('Missing bounding box for activeCanvasBox');
-    }
-    const curCx = activeCanvasBox.x + activeCanvasBox.width / 2;
-    const curCy = activeCanvasBox.y + activeCanvasBox.height / 2;
+    const { x: curCx, y: curCy, box: activeCanvasBox } = await getSafeCanvasCenter(page, 400);
 
     await page.mouse.move(curCx, curCy);
     await page.mouse.down({ button: 'right' });
@@ -517,10 +509,17 @@ test.describe('System Selection Latency & Focused Interaction Performance Guard'
       { id: 'luhman-16', name: 'Luhman 16', pos: [-1.008, -1.613, -0.587] },
     ];
 
+    const viewOffsetAfterPan = await getViewOffsetPx(page);
     let nonSolClickedCount = 0;
     for (const cand of nonSolCandidates) {
       if (nonSolClickedCount >= 3) break;
-      const pt = projectStarScreenPoint(cand.pos, posAfterPan, targetAfterPan, activeCanvasBox);
+      const pt = projectStarScreenPoint(
+        cand.pos,
+        posAfterPan,
+        targetAfterPan,
+        activeCanvasBox,
+        viewOffsetAfterPan,
+      );
       const isCanvasHit = await page.evaluate(
         ({ x, y }) => document.elementFromPoint(x, y)?.tagName.toLowerCase() === 'canvas',
         pt,

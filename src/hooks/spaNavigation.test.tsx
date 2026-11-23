@@ -1,9 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRouter } from '@tanstack/react-router';
-import { handleSpaNavigation, replaceSpaHistoryUrl, useSpaLinkClick } from './spaNavigation';
+import { handleSpaNavigation, useSpaLinkClick } from './spaNavigation';
 import type { AppRouterAdapter } from './useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
+import {
+  getPendingSpatialRouteTarget,
+  setPendingSpatialNavigationHref,
+} from '../utils/spatialRoute';
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/react-router')>();
@@ -22,7 +26,12 @@ describe('handleSpaNavigation', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setPendingSpatialNavigationHref(null);
     vi.mocked(useRouter).mockReturnValue(mockRouter as never);
+  });
+
+  afterEach(() => {
+    setPendingSpatialNavigationHref(null);
   });
 
   const createMockEvent = (overrides: Partial<MouseEvent> = {}): MouseEvent => {
@@ -47,6 +56,22 @@ describe('handleSpaNavigation', () => {
     expect(mockNavigate).toHaveBeenCalledWith({ href: '/galaxy?focus=tau-ceti' });
   });
 
+  it('publishes pending spatial route target synchronously before calling router.navigate', () => {
+    let targetDuringNavigate: ReturnType<typeof getPendingSpatialRouteTarget> = null;
+    const asyncRouter: AppRouterAdapter = {
+      navigate: vi.fn(() => {
+        targetDuringNavigate = getPendingSpatialRouteTarget();
+        return new Promise<void>(() => {});
+      }) as unknown as AppRouterAdapter['navigate'],
+    };
+
+    handleSpaNavigation(createMockEvent(), '/system/alpha-centauri?focus=proxima', asyncRouter);
+    expect(targetDuringNavigate).toEqual({
+      scope: 'system',
+      targetId: 'alpha-centauri',
+    });
+  });
+
   it('triggers camera recenter only when URLSearchParams includes center parameter', () => {
     const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
 
@@ -55,6 +80,100 @@ describe('handleSpaNavigation', () => {
 
     handleSpaNavigation(createMockEvent(), '/galaxy?center=sol&focus=sol', mockRouter);
     expect(recenterSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores empty or whitespace-only center query params when triggering recenter', () => {
+    const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
+
+    handleSpaNavigation(createMockEvent(), '/galaxy?center=&focus=sol', mockRouter);
+    handleSpaNavigation(createMockEvent(), '/galaxy?center=%20%20&focus=sol', mockRouter);
+    expect(recenterSpy).not.toHaveBeenCalled();
+  });
+
+  it('defers triggerRecenter until async router.navigate resolves when navigating to a different center', async () => {
+    const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
+    let resolveNav!: () => void;
+    const asyncNavigate = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveNav = resolve;
+        }),
+    );
+    const asyncRouter: AppRouterAdapter = {
+      navigate: asyncNavigate as unknown as AppRouterAdapter['navigate'],
+      state: { location: { pathname: '/galaxy', searchStr: '?center=sol', search: { center: 'sol' } } },
+    };
+
+    handleSpaNavigation(createMockEvent(), '/galaxy?center=alpha-centauri', asyncRouter);
+    expect(asyncNavigate).toHaveBeenCalledWith({ href: '/galaxy?center=alpha-centauri' });
+    expect(recenterSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveNav();
+      await Promise.resolve();
+    });
+    expect(recenterSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('triggers recenter synchronously when async router.navigate targets the same center', () => {
+    const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
+    const asyncNavigate = vi.fn(() => new Promise<void>(() => {}));
+    const asyncRouter: AppRouterAdapter = {
+      navigate: asyncNavigate as unknown as AppRouterAdapter['navigate'],
+      state: { location: { pathname: '/galaxy', searchStr: '?center=sol', search: { center: 'sol' } } },
+    };
+
+    handleSpaNavigation(createMockEvent(), '/galaxy?center=sol', asyncRouter);
+    expect(recenterSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('triggers recenter on System Centre CTA click even when URL already has the same ?center=<slug>', () => {
+    const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
+    const asyncRouter: AppRouterAdapter = {
+      navigate: vi.fn().mockResolvedValue(undefined) as unknown as AppRouterAdapter['navigate'],
+      state: {
+        location: {
+          pathname: '/system/sol',
+          searchStr: '?center=earth&focus=earth',
+          search: { center: 'earth', focus: 'earth' },
+        },
+      },
+    };
+
+    handleSpaNavigation(createMockEvent(), '/system/sol?center=earth&focus=earth', asyncRouter);
+    expect(recenterSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears pendingSpatialNavigationHref when router.navigate rejects, throws, or returns non-thenable', async () => {
+    const rejectingRouter: AppRouterAdapter = {
+      navigate: vi.fn().mockRejectedValue(new Error('Navigation aborted')) as unknown as AppRouterAdapter['navigate'],
+    };
+
+    handleSpaNavigation(createMockEvent(), '/system/sol', rejectingRouter);
+    expect(getPendingSpatialRouteTarget()).toEqual({ scope: 'system', targetId: 'sol' });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+
+    const throwingRouter: AppRouterAdapter = {
+      navigate: vi.fn(() => {
+        throw new Error('Sync failure');
+      }) as unknown as AppRouterAdapter['navigate'],
+    };
+    expect(() => handleSpaNavigation(createMockEvent(), '/planet/earth', throwingRouter)).toThrow('Sync failure');
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+
+    const syncRouter: AppRouterAdapter = {
+      navigate: vi.fn(() => undefined) as unknown as AppRouterAdapter['navigate'],
+    };
+    handleSpaNavigation(createMockEvent(), '/system/tau-ceti', syncRouter);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(getPendingSpatialRouteTarget()).toBeNull();
   });
 
   it('ignores external URLs, anchors, mailto, and tel', () => {
@@ -129,19 +248,4 @@ describe('handleSpaNavigation', () => {
       route: 'sol,gaia-2452378776434477184',
     });
   }, 20000);
-});
-
-describe('replaceSpaHistoryUrl', () => {
-  it('calls window.history.replaceState and dispatches starmap:locationchange', () => {
-    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
-    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
-
-    replaceSpaHistoryUrl('/galaxy?focus=tau-ceti');
-
-    expect(replaceStateSpy).toHaveBeenCalledWith(window.history.state, '', '/galaxy?focus=tau-ceti');
-    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'starmap:locationchange' }));
-
-    replaceStateSpy.mockRestore();
-    dispatchSpy.mockRestore();
-  });
 });

@@ -96,7 +96,7 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = React.memo(({
 
   useFrame(() => {
     if (!isEnabled || !rootGroupRef.current?.position) return;
-    const { apertureRadius, focusPoint, planeWeights, orientation } = frameRef.current;
+    const { apertureRadius, focusPoint, planeWeights, orientation, instrumentFade } = frameRef.current;
     rootGroupRef.current.position.copy(focusPoint);
     rootGroupRef.current.quaternion.copy(orientation);
 
@@ -126,6 +126,7 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = React.memo(({
       activeRingsPoolRef.current,
       numActive,
       clampedPoolSize,
+      instrumentFade,
     );
   });
 
