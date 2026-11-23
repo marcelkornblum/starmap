@@ -18,6 +18,7 @@ import { GALAXY_SCENE_MAX_STREAMED_ENTITIES } from './GalaxyScene';
 import { SYSTEM_FRAME, PLANETARY_FRAME } from '../../../config/referenceFrames';
 import * as galacticCameraHelpers from './galacticCameraHelpers';
 import * as planetaryEntityResolver from './planetaryEntityResolver';
+import * as planetPalettes from '../../../data/planetPalettes';
 import type { SpatialEntityDefinition } from '../entity';
 import type { StarDossierData } from './SystemScene';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
@@ -249,6 +250,28 @@ describe('SpatialScenes Storybook Suite', () => {
 
       resolveSpy.mockRestore();
       applyPoseSpy.mockRestore();
+      await renderer.unmount();
+      unmountOutlet();
+    });
+
+    it('forwards resolved gas-giant classification from PlanetarySceneContent rather than hardcoding terrestrial', async () => {
+      const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+      const paletteSpy = vi.spyOn(planetPalettes, 'getClassificationPalette');
+
+      const renderer = await ReactThreeTest.create(
+        <PlanetarySceneContent
+          planetId="saturn"
+          planet={{
+            id: 'saturn',
+            name: 'Saturn',
+            letter: 'f',
+            composition: 'gas-giant',
+          }}
+        />,
+      );
+
+      expect(paletteSpy).toHaveBeenCalledWith('gas-giant');
+      paletteSpy.mockRestore();
       await renderer.unmount();
       unmountOutlet();
     });

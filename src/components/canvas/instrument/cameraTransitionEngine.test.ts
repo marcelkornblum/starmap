@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
-import {
-  CameraTransitionController,
-  type TransitionControlsLike,
-} from './cameraTransitionEngine';
+import { CameraTransitionController } from './cameraTransitionEngine';
+import type { TransitionControlsLike } from './cameraTransitionPoseMath';
 import * as reducedMotion from '../../../utils/reducedMotion';
 
 interface MockControls extends TransitionControlsLike {
@@ -383,5 +381,87 @@ describe('cameraTransitionEngine', () => {
     expect(controller.isTransitioning()).toBe(false);
     expect(progressValues[progressValues.length - 1]).toBe(1);
     expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips controls.update() on completion when settleControlsOnComplete is false while restoring enableDamping', () => {
+    const controller = new CameraTransitionController();
+    const onComplete = vi.fn();
+    mockControls.update.mockClear();
+
+    controller.startPose(
+      perspCam,
+      { target: [10, 0, 0], position: [10, 0, 20] },
+      mockControls,
+      { duration: 1.0, settleControlsOnComplete: false, onComplete },
+      1000,
+    );
+
+    expect(mockControls.update).toHaveBeenCalledTimes(1);
+    expect(mockControls.enableDamping).toBe(false);
+
+    controller.update(perspCam, mockControls, 2000);
+    expect(controller.isTransitioning()).toBe(false);
+    expect(mockControls.update).toHaveBeenCalledTimes(1);
+    expect(mockControls.enableDamping).toBe(true);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips controls.update() under reduced motion when settleControlsOnComplete is false', () => {
+    mockMatchMedia(true);
+    const controller = new CameraTransitionController();
+    const onComplete = vi.fn();
+    mockControls.update.mockClear();
+
+    controller.startPose(
+      perspCam,
+      { target: [10, 0, 0], position: [10, 0, 20] },
+      mockControls,
+      { duration: 1.0, settleControlsOnComplete: false, onComplete },
+    );
+
+    expect(mockControls.update).toHaveBeenCalledTimes(1);
+    expect(mockControls.enableDamping).toBe(true);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('suppresses external controls.update() calls while in-flight and restores original update on settle and cancel', () => {
+    const controller = new CameraTransitionController();
+    const rawUpdate = vi.fn<() => void>();
+    mockControls.update = rawUpdate;
+
+    controller.startPose(
+      perspCam,
+      { target: [10, 0, 0], position: [10, 0, 20] },
+      mockControls,
+      { duration: 1.0, easing: linearEasing },
+      1000,
+    );
+    expect(rawUpdate).toHaveBeenCalledTimes(1);
+
+    controller.update(perspCam, mockControls, 1400);
+    mockControls.update();
+    mockControls.update();
+    expect(rawUpdate).toHaveBeenCalledTimes(1);
+
+    controller.update(perspCam, mockControls, 2000);
+    expect(rawUpdate).toHaveBeenCalledTimes(2);
+    expect(mockControls.update).toBe(rawUpdate);
+
+    mockControls.update();
+    expect(rawUpdate).toHaveBeenCalledTimes(3);
+
+    controller.startPose(
+      perspCam,
+      { target: [20, 0, 0], position: [20, 0, 20] },
+      mockControls,
+      { duration: 1.0, easing: linearEasing },
+      3000,
+    );
+    mockControls.update();
+    expect(rawUpdate).toHaveBeenCalledTimes(4);
+
+    controller.cancel();
+    expect(mockControls.update).toBe(rawUpdate);
+    expect(rawUpdate).toHaveBeenCalledTimes(5);
   });
 });

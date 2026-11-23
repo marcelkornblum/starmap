@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { CrossScaleChoreographyController } from './CrossScaleChoreographyContext';
 import {
   getCrossScaleInstrumentFade,
   setCrossScaleInstrumentFade,
@@ -44,5 +45,17 @@ describe('crossScaleFadeState', () => {
 
     resetCrossScaleInstrumentFade();
     expect(getCrossScaleInstrumentFade()).toBe(1.0);
+  });
+
+  it('isolates fade state per CrossScaleChoreographyController instance', () => {
+    const controllerA = new CrossScaleChoreographyController();
+    const controllerB = new CrossScaleChoreographyController();
+
+    setCrossScaleInstrumentFade(0.2, controllerA);
+    expect(getCrossScaleInstrumentFade(controllerA)).toBeCloseTo(0.2);
+    expect(getCrossScaleInstrumentFade(controllerB)).toBe(1.0);
+
+    resetCrossScaleInstrumentFade(controllerA);
+    expect(getCrossScaleInstrumentFade(controllerA)).toBe(1.0);
   });
 });

@@ -44,8 +44,10 @@ describe('detailsCamera', () => {
   });
 
   describe('buildCenterEntityHref', () => {
-    it('returns undefined if focusId is not provided', () => {
+    it('returns undefined if focusId is not provided or non-galaxy scope lacks scopeTargetId', () => {
       expect(buildCenterEntityHref('galaxy', 'sol', undefined)).toBeUndefined();
+      expect(buildCenterEntityHref('system', undefined, 'earth')).toBeUndefined();
+      expect(buildCenterEntityHref('planet', undefined, 'moon')).toBeUndefined();
     });
 
     it('builds center href for galaxy scope', () => {

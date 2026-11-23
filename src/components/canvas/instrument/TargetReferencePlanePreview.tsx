@@ -5,6 +5,7 @@ import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { easeOutCubic } from '../../../utils/cameraEasing';
 import { NOOP_RAYCAST } from '../engineConfig';
+import { useCrossScaleChoreography } from './CrossScaleChoreographyContext';
 import {
   getCrossScalePlanePreviewState,
   stepCrossScalePlanePreview,
@@ -33,6 +34,7 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
   const datumPlaneMinorAlpha = useThreeTokenStore((s) => s.tokens.datumPlaneMinorAlpha);
 
   const invalidate = useThree((s) => s.invalidate);
+  const choreography = useCrossScaleChoreography();
   const groupRef = useRef<THREE.Group>(null);
   const discMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const outerRingMatRef = useRef<THREE.MeshBasicMaterial>(null);
@@ -110,14 +112,14 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
 
   useFrame((_, delta) => {
     const dt = Number.isFinite(delta) && delta > 0 ? Math.min(delta, 0.05) : 0;
-    if (stepCrossScalePlanePreview(dt)) {
+    if (stepCrossScalePlanePreview(dt, choreography)) {
       invalidate?.();
     }
 
     const group = groupRef.current;
     if (!group?.position) return;
 
-    const preview = getCrossScalePlanePreviewState();
+    const preview = getCrossScalePlanePreviewState(choreography);
     const isVisible = preview.active && preview.opacity > OPACITY_EPSILON;
     group.visible = isVisible;
 

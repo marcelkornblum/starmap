@@ -127,6 +127,55 @@ describe('handleSpaNavigation', () => {
     expect(recenterSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('triggers recenter on System Centre CTA click even when URL already has the same ?center=<slug>', () => {
+    const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
+    const asyncRouter: AppRouterAdapter = {
+      navigate: vi.fn().mockResolvedValue(undefined) as unknown as AppRouterAdapter['navigate'],
+      state: {
+        location: {
+          pathname: '/system/sol',
+          searchStr: '?center=earth&focus=earth',
+          search: { center: 'earth', focus: 'earth' },
+        },
+      },
+    };
+
+    handleSpaNavigation(createMockEvent(), '/system/sol?center=earth&focus=earth', asyncRouter);
+    expect(recenterSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears pendingSpatialNavigationHref when router.navigate rejects, throws, or returns non-thenable', async () => {
+    const rejectingRouter: AppRouterAdapter = {
+      navigate: vi.fn().mockRejectedValue(new Error('Navigation aborted')) as unknown as AppRouterAdapter['navigate'],
+    };
+
+    handleSpaNavigation(createMockEvent(), '/system/sol', rejectingRouter);
+    expect(getPendingSpatialRouteTarget()).toEqual({ scope: 'system', targetId: 'sol' });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+
+    const throwingRouter: AppRouterAdapter = {
+      navigate: vi.fn(() => {
+        throw new Error('Sync failure');
+      }) as unknown as AppRouterAdapter['navigate'],
+    };
+    expect(() => handleSpaNavigation(createMockEvent(), '/planet/earth', throwingRouter)).toThrow('Sync failure');
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+
+    const syncRouter: AppRouterAdapter = {
+      navigate: vi.fn(() => undefined) as unknown as AppRouterAdapter['navigate'],
+    };
+    handleSpaNavigation(createMockEvent(), '/system/tau-ceti', syncRouter);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(getPendingSpatialRouteTarget()).toBeNull();
+  });
+
   it('ignores external URLs, anchors, mailto, and tel', () => {
     const event = createMockEvent();
 

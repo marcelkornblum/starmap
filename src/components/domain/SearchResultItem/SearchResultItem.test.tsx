@@ -290,4 +290,27 @@ describe('<SearchResultItem />', () => {
     fireEvent.click(screen.getByRole('link', { name: /sol system/i }));
     expect(triggerRecenterSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('passes triggerRecenter: false to focusFromSearch when result href already includes ?center=', () => {
+    const focusFromSearchSpy = vi.fn();
+    vi.spyOn(useCameraStore, 'getState').mockReturnValue({
+      focusFromSearch: focusFromSearchSpy,
+      triggerRecenter: vi.fn(),
+    } as unknown as ReturnType<typeof useCameraStore.getState>);
+
+    window.history.pushState({}, '', '/system/sol');
+    const centeredPlanet = makeResult({
+      id: 'earth',
+      name: 'Earth',
+      category: 'planets',
+      entityKind: 'planet',
+      reticleType: 'terrestrial',
+      targetView: 'system',
+      href: '/system/sol?center=earth&focus=earth',
+      systemId: 'sol',
+    });
+    renderWithSearchContext(<SearchResultItem result={centeredPlanet} />);
+    fireEvent.click(screen.getByRole('link', { name: /earth/i }));
+    expect(focusFromSearchSpy).toHaveBeenCalledWith('earth', { triggerRecenter: false });
+  });
 });

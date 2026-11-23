@@ -8,6 +8,10 @@ import {
   setCrossScaleInstrumentFade,
   resetCrossScaleInstrumentFade,
 } from '../instrument/crossScaleFadeState';
+import {
+  setCrossScaleSceneScale,
+  resetCrossScaleSceneScale,
+} from '../instrument/crossScaleVisualState';
 import { NOOP_RAYCAST } from '../engineConfig';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
@@ -49,9 +53,11 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
   beforeEach(() => {
     mockInvalidate.mockClear();
     resetCrossScaleInstrumentFade();
+    resetCrossScaleSceneScale();
   });
   afterEach(() => {
     resetCrossScaleInstrumentFade();
+    resetCrossScaleSceneScale();
   });
   it('does NOT render drop stalk in passive or active states (Single-Stalk Rule)', async () => {
     const passiveRenderer = await ReactThreeTest.create(
@@ -290,6 +296,41 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
     expect(fpMat.opacity).toBeCloseTo(tokens.footprintSelectedAlpha);
 
     setOpacitySpy.mockRestore();
+    await renderer.unmount();
+  });
+
+  it('compensates footprint scale by dividing invScale by getCrossScaleSceneScale() and updates stalk tip geometry', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="scaled-stalk" position={[0, 0, 5]} state="selected" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    await renderer.advanceFrames(2, 0.2);
+
+    const stalkLine = renderer.scene.find((node) => node.props.name === 'stalk-line');
+    const stalkInstance = stalkLine.instance;
+    expect(stalkInstance).toBeInstanceOf(THREE.LineSegments);
+    if (stalkInstance instanceof THREE.LineSegments) {
+      const posAttr = stalkInstance.geometry.getAttribute('position');
+      expect(posAttr).toBeInstanceOf(THREE.BufferAttribute);
+      if (posAttr instanceof THREE.BufferAttribute) {
+        expect(posAttr.array[5]).toBeCloseTo(-5, 4);
+      }
+    }
+
+    const footprint = renderer.scene.find((node) => node.props.name === 'stalk-footprint');
+    const baselineScaleX = footprint.instance instanceof THREE.Group ? footprint.instance.scale.x : 0;
+    expect(baselineScaleX).toBeGreaterThan(0);
+
+    setCrossScaleSceneScale(0.25);
+    await renderer.advanceFrames(1, 0.016);
+
+    const compensatedScaleX = footprint.instance instanceof THREE.Group ? footprint.instance.scale.x : 0;
+    expect(compensatedScaleX).toBeCloseTo(baselineScaleX * 4, 4);
+
     await renderer.unmount();
   });
 });

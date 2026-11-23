@@ -91,18 +91,25 @@ function isZeroSpatialPosition(
   return position[0] === 0 && position[1] === 0 && position[2] === 0;
 }
 
-function parseResultHref(href: string): { pathname: string; focus: string | null } {
+function parseResultHref(href: string): {
+  pathname: string;
+  focus: string | null;
+  hasCenter: boolean;
+} {
   try {
     const parsedUrl = new URL(href, 'http://localhost');
     return {
       pathname: parsedUrl.pathname,
       focus: parsedUrl.searchParams.get('focus'),
+      hasCenter: parsedUrl.searchParams.has('center'),
     };
   } catch {
     const [pathPart = '', queryPart = ''] = href.split('?');
+    const params = new URLSearchParams(queryPart);
     return {
       pathname: pathPart,
-      focus: new URLSearchParams(queryPart).get('focus'),
+      focus: params.get('focus'),
+      hasCenter: params.has('center'),
     };
   }
 }
@@ -180,12 +187,20 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
         }
       }
       if (focusSlug) {
-        useCameraStore.getState().focusFromSearch(focusSlug);
+        if (parsedHref.hasCenter) {
+          useCameraStore.getState().focusFromSearch(focusSlug, { triggerRecenter: false });
+        } else {
+          useCameraStore.getState().focusFromSearch(focusSlug);
+        }
       }
     } else if (isIntraViewSystemOrPlanet) {
       if (focusSlug) {
-        useCameraStore.getState().focusFromSearch(focusSlug);
-      } else {
+        if (parsedHref.hasCenter) {
+          useCameraStore.getState().focusFromSearch(focusSlug, { triggerRecenter: false });
+        } else {
+          useCameraStore.getState().focusFromSearch(focusSlug);
+        }
+      } else if (!parsedHref.hasCenter) {
         useCameraStore.getState().triggerRecenter();
       }
     }

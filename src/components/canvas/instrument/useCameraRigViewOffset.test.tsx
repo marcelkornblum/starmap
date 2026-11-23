@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { createElement } from 'react';
+import { render, renderHook, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import {
+  CrossScaleChoreographyProvider,
+  resetDefaultChoreographyController,
+} from './CrossScaleChoreographyContext';
 import { useCameraRigViewOffset } from './useCameraRigViewOffset';
 import { FRAME_PRIORITY } from '../engineConfig';
 import { useUIStore } from '../../../stores/useUIStore';
@@ -30,6 +35,7 @@ describe('useCameraRigViewOffset', () => {
   });
 
   afterEach(() => {
+    resetDefaultChoreographyController();
     vi.restoreAllMocks();
   });
 
@@ -183,7 +189,7 @@ describe('useCameraRigViewOffset', () => {
     expect(orthoCam.view?.enabled).toBe(false);
   });
 
-  it('re-applies current view offset to both cameras on viewport resize and clears on unmount', () => {
+  it('re-applies current view offset to both cameras on viewport resize and preserves it on unmount', () => {
     vi.spyOn(reducedMotion, 'prefersReducedMotion').mockReturnValue(true);
     const perspSetSpy = vi.spyOn(perspCam, 'setViewOffset');
     const orthoSetSpy = vi.spyOn(orthoCam, 'setViewOffset');
@@ -222,9 +228,75 @@ describe('useCameraRigViewOffset', () => {
     expect(perspSetSpy).toHaveBeenCalledWith(1280, 720, -120, 0, 1280, 720);
     expect(orthoSetSpy).toHaveBeenCalledWith(1280, 720, -120, 0, 1280, 720);
 
+    perspClearSpy.mockClear();
+    orthoClearSpy.mockClear();
     unmount();
 
-    expect(perspClearSpy).toHaveBeenCalled();
-    expect(orthoClearSpy).toHaveBeenCalled();
+    expect(perspClearSpy).not.toHaveBeenCalled();
+    expect(orthoClearSpy).not.toHaveBeenCalled();
+  });
+
+  it('persists optical-centre offset across CameraRig scale swaps inside CrossScaleChoreographyProvider without re-easing from 0', () => {
+    const sharedSafeRect = {
+      top: 40,
+      right: 0,
+      bottom: 80,
+      left: 240,
+      width: 1200,
+      height: 780,
+      bypass: false,
+    };
+    useUIStore.getState().setViewportSafeRect(sharedSafeRect);
+
+    const perspClearSpy = vi.spyOn(perspCam, 'clearViewOffset');
+    const nextOrthoCam = new THREE.OrthographicCamera(-16, 16, 9, -9, 0.1, 1000);
+    const nextOrthoSetSpy = vi.spyOn(nextOrthoCam, 'setViewOffset');
+
+    const OutgoingRig = () => {
+      useCameraRigViewOffset({
+        perspCamRef,
+        orthoCamRef,
+        sizeWidth: 1440,
+        sizeHeight: 900,
+        invalidate: mockInvalidate,
+      });
+      return null;
+    };
+
+    const IncomingRig = () => {
+      useCameraRigViewOffset({
+        perspCamRef,
+        orthoCamRef: { current: nextOrthoCam },
+        sizeWidth: 1440,
+        sizeHeight: 900,
+        invalidate: mockInvalidate,
+      });
+      return null;
+    };
+
+    const TestShell = ({ incoming }: { incoming: boolean }) =>
+      createElement(
+        CrossScaleChoreographyProvider,
+        null,
+        incoming ? createElement(IncomingRig) : createElement(OutgoingRig),
+      );
+
+    const { rerender, unmount } = render(createElement(TestShell, { incoming: false }));
+
+    const frameCb = getLatestFrameCallback();
+    frameCb({}, 0.35);
+    expect(perspCam.view?.offsetX).toBeCloseTo(-120, 4);
+    expect(perspCam.view?.offsetY).toBeCloseTo(20, 4);
+
+    act(() => {
+      rerender(createElement(TestShell, { incoming: true }));
+    });
+
+    expect(perspClearSpy).not.toHaveBeenCalled();
+    expect(perspCam.view?.offsetX).toBeCloseTo(-120, 4);
+    expect(perspCam.view?.offsetY).toBeCloseTo(20, 4);
+    expect(nextOrthoSetSpy).toHaveBeenCalledWith(1440, 900, -120, 20, 1440, 900);
+
+    unmount();
   });
 });

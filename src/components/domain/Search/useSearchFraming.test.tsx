@@ -11,16 +11,11 @@ import { useUIStore } from '../../../stores/useUIStore';
 import type { AppRouterAdapter } from '../../../hooks/useSpaLocation';
 import { searchCatalog } from './searchHelpers';
 import {
-  consumeSearchFocusForViewTransition,
-  getPreSearchOrigin,
-  resetSearchFocusContinuity,
-} from './searchFocusContinuity';
-import {
   getPendingSpatialRouteTarget,
   setPendingSpatialNavigationHref,
 } from '../../../utils/spatialRoute';
+import { appendSearchParamsToHref } from './searchFramingHelpers';
 import {
-  appendSearchParamsToHref,
   useSearchFraming,
   type UseSearchFramingOptions,
 } from './useSearchFraming';
@@ -92,7 +87,6 @@ function createMockRouter(pathname = '/galaxy', searchStr = ''): {
 describe('useSearchFraming', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    resetSearchFocusContinuity();
     setPendingSpatialNavigationHref(null);
     useCameraStore.getState().reset();
     useUIStore.getState().resetUI();
@@ -350,7 +344,7 @@ describe('useSearchFraming', () => {
     expect(navigate).toHaveBeenCalledWith({
       href: `${SOL_REFERENCE_TARGET.href}?focus=earth&q=Earth`,
     });
-    expect(consumeSearchFocusForViewTransition()).toBe(true);
+    expect(useCameraStore.getState().consumeSearchFocusForViewTransition()).toBe(true);
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
 
     // When already on /system/sol?focus=earth, do not redundantly navigate
@@ -424,7 +418,7 @@ describe('useSearchFraming', () => {
     expect(navigate).toHaveBeenCalledWith({
       href: '/galaxy?q=Kepler&searchCategory=stars',
     });
-    expect(consumeSearchFocusForViewTransition()).toBe(true);
+    expect(useCameraStore.getState().consumeSearchFocusForViewTransition()).toBe(true);
   });
 
   it('restores pre-search camera pose via requestSearchFrame when search is cleared after framing', () => {
@@ -742,7 +736,7 @@ describe('useSearchFraming', () => {
     expect(navigate).toHaveBeenCalledWith({
       href: `${SOL_REFERENCE_TARGET.href}?q=titan&searchCategory=planets`,
     });
-    expect(consumeSearchFocusForViewTransition()).toBe(true);
+    expect(useCameraStore.getState().consumeSearchFocusForViewTransition()).toBe(true);
   });
 
   it('skips redundant requestSearchFrame when typing extra characters yields identical framed bounds (epsi -> epsil)', () => {
@@ -948,7 +942,7 @@ describe('useSearchFraming', () => {
     expect(galaxyNavigate).toHaveBeenCalledWith({
       href: `${SOL_REFERENCE_TARGET.href}?q=titan`,
     });
-    expect(getPreSearchOrigin()).toEqual({
+    expect(useCameraStore.getState().preSearchOrigin).toEqual({
       pathname: '/galaxy',
       search: '?q=titan',
       target: [5, -2, 3],
@@ -994,7 +988,7 @@ describe('useSearchFraming', () => {
       router: solRouter,
     });
 
-    expect(getPreSearchOrigin()).toBeNull();
+    expect(useCameraStore.getState().preSearchOrigin).toBeNull();
     expect(useCameraStore.getState().pendingSearchFrame).toMatchObject({
       target: [5, -2, 3],
       distance: 42,
@@ -1002,7 +996,6 @@ describe('useSearchFraming', () => {
     expect(getPendingSpatialRouteTarget()).toEqual({ scope: 'galaxy' });
     expect(solNavigate).toHaveBeenCalledWith({ href: '/galaxy' });
 
-    // Also verify discardPreSearchPose clears cross-scale preSearchOrigin
     act(() => {
       useCameraStore.getState().clearSearchFrame();
       setPendingSpatialNavigationHref(null);
@@ -1022,13 +1015,13 @@ describe('useSearchFraming', () => {
     act(() => {
       vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
     });
-    expect(getPreSearchOrigin()).not.toBeNull();
+    expect(useCameraStore.getState().preSearchOrigin).not.toBeNull();
 
     act(() => {
       solHook.result.current.discardPreSearchPose();
       useCameraStore.getState().clearSearchFrame();
     });
-    expect(getPreSearchOrigin()).toBeNull();
+    expect(useCameraStore.getState().preSearchOrigin).toBeNull();
     solNavigate.mockClear();
     solHook.rerender({
       enabled: true,
@@ -1043,5 +1036,125 @@ describe('useSearchFraming', () => {
     });
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
     expect(solNavigate).not.toHaveBeenCalled();
+  });
+
+  it('calls focusFromSearch without marking view transition when enter-scale targets the same view pathname', () => {
+    const saturnCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'titan',
+        n: 'Titan',
+        s: 'sol',
+        o: 'saturn',
+        k: 3,
+        u: 'terrestrial',
+        h: 1,
+        a: 'titan',
+      },
+    ];
+    const { router, navigate } = createMockRouter('/planet/saturn', '');
+    const titanResults = searchCatalog(saturnCorpus, {
+      query: 'titan',
+      filter: 'all',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/planet/saturn',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: saturnCorpus,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/planet/saturn',
+      activeSearch: '?q=titan',
+      query: 'titan',
+      filter: 'all',
+      status: 'ready',
+      results: titanResults,
+      initialCorpus: saturnCorpus,
+      router,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+
+    expect(navigate).toHaveBeenCalledWith({
+      href: '/planet/saturn?focus=titan&q=titan',
+    });
+    expect(useCameraStore.getState().pendingViewTransitionFocus).toBe(false);
+    expect(useCameraStore.getState().pendingCenterSlug).toBe('titan');
+    expect(useCameraStore.getState().recenterTick).toBe(1);
+  });
+
+  it('clears pendingSpatialNavigationHref in finally when router.navigate rejects', async () => {
+    const navigate = vi.fn().mockRejectedValue(new Error('Aborted'));
+    const router: AppRouterAdapter = {
+      navigate,
+      state: { location: { pathname: '/galaxy', searchStr: '' } },
+    };
+    const earthResults = searchCatalog(FRAMING_CORPUS, {
+      query: 'Earth',
+      filter: 'all',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: FRAMING_CORPUS,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=Earth',
+      query: 'Earth',
+      filter: 'all',
+      status: 'ready',
+      results: earthResults,
+      initialCorpus: FRAMING_CORPUS,
+      router,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+
+    expect(getPendingSpatialRouteTarget()).toEqual({ scope: 'system', targetId: 'sol' });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(getPendingSpatialRouteTarget()).toBeNull();
   });
 });

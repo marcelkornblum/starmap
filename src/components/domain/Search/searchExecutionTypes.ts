@@ -11,6 +11,7 @@ import type { SearchCategoryFilter } from '../../../types/search';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import type { SearchExecutionStatus } from './SearchContext';
+import type { SelfWrittenSearchParams } from './searchUrlSync';
 
 export interface UseSearchExecutionOptions {
   readonly initialQuery: string;
@@ -28,6 +29,7 @@ export interface UseSearchExecutionOptions {
   readonly onSelectResult?: (item: SearchResultItem) => void;
   readonly searchRootRef: RefObject<HTMLDivElement | null>;
   readonly setIsFocused: (focused: boolean) => void;
+  readonly lastSelfWrittenSearchRef?: { current: SelfWrittenSearchParams | null };
 }
 
 export interface UseSearchExecutionReturn {

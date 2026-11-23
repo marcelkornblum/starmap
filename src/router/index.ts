@@ -10,7 +10,7 @@ import {
   resolveSpaLocation,
   type StarmapSearchParams,
 } from '../hooks/useSpaLocation';
-import { registerSpatialViewPreloader } from '../components/domain/CanvasLayer/sceneEntryLoader';
+import { registerSpatialViewPreloader } from '../services/navigation/scalePreloader';
 import { RootLayout } from './RootLayout';
 
 registerSpatialViewPreloader((scope) => {

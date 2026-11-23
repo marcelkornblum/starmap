@@ -82,4 +82,25 @@ describe('searchExecution', () => {
       '/galaxy?focus=tau-ceti&select=tag:habitable-candidate',
     );
   });
+
+  it('propagates parent star galactic position to child planet results lacking direct p coordinates', () => {
+    const corpus: CompactSearchEntry[] = [
+      {
+        i: 'ain',
+        k: 1,
+        n: 'Ain',
+        p: [-41.2, 14.5, -9.8],
+      },
+      {
+        i: 'epsilon-tauri-b',
+        k: 2,
+        n: 'Epsilon Tauri b',
+        s: 'ain',
+      },
+    ];
+
+    const results = executeCatalogSearch(corpus, { query: 'Epsilon Tauri' });
+    expect(results.groups.planets.items).toHaveLength(1);
+    expect(results.groups.planets.items[0]?.position).toEqual([-41.2, 14.5, -9.8]);
+  });
 });

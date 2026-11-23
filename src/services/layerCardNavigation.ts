@@ -91,6 +91,8 @@ export interface LayerItemTargetFields {
   readonly parentBodyId?: string;
 }
 
+const SYSTEM_SCOPED_TARGET_TYPES: ReadonlySet<string> = new Set(['planet', 'star']);
+
 /**
  * Pure helper resolving the orbit-context navigation target href and view for a layer entry.
  */
@@ -124,8 +126,7 @@ export function resolveLayerItemTargetHref(
     entry.targetType === 'moon' ||
     (Boolean(entry.parentBodyId) && entry.parentBodyId !== entry.systemId);
   const isStarOrPlanetTarget =
-    entry.targetType === 'planet' ||
-    (entry.targetType as string) === 'star' ||
+    SYSTEM_SCOPED_TARGET_TYPES.has(entry.targetType) ||
     (Boolean(currentPathname?.startsWith('/system/')) && Boolean(entry.systemId));
 
   if (isMoonTarget) {

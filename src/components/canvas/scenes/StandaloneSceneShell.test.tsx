@@ -11,6 +11,10 @@ import {
   useOptionalSpatialEntityStoreApi,
 } from '../entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../entity/SpatialEntityStore';
+import {
+  getActiveChoreographyController,
+  useCrossScaleChoreography,
+} from '../instrument/CrossScaleChoreographyContext';
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
@@ -33,7 +37,15 @@ vi.mock('../SceneTokenBridge', () => ({
 
 const ChildProbe: React.FC = () => {
   const store = useOptionalSpatialEntityStoreApi();
-  return <div data-testid="child-probe" data-has-store={String(Boolean(store))} />;
+  const choreography = useCrossScaleChoreography();
+  const isScopedController = choreography === getActiveChoreographyController();
+  return (
+    <div
+      data-testid="child-probe"
+      data-has-store={String(Boolean(store))}
+      data-has-choreography={String(isScopedController)}
+    />
+  );
 };
 
 describe('StandaloneSceneShell Component', () => {
@@ -95,5 +107,6 @@ describe('StandaloneSceneShell Component', () => {
 
     const probe = screen.getByTestId('child-probe');
     expect(probe.getAttribute('data-has-store')).toBe('true');
+    expect(probe.getAttribute('data-has-choreography')).toBe('true');
   });
 });

@@ -5,55 +5,85 @@ import { computeViewportSafeRect, type PanelRectLike } from '../../../utils/view
 const MOBILE_BREAKPOINT_PX = 768;
 const DESKTOP_DOCK_BREAKPOINT_PX = 1024;
 const FULL_WIDTH_SHEET_RATIO = 0.65;
+const POST_FLIGHT_SETTLE_DELAY_MS = 180;
 
-interface HudRegionElements {
-  readonly topBarEl: HTMLElement | null;
-  readonly floatingLeftEl: HTMLElement | null;
-  readonly bodiesEl: HTMLElement | null;
-  readonly controlsEl: HTMLElement | null;
-}
-
-function queryHudRegions(shellEl: HTMLElement): HudRegionElements {
-  return {
-    topBarEl: shellEl.querySelector<HTMLElement>('[data-spatial-region="top-bar"]'),
-    floatingLeftEl: shellEl.querySelector<HTMLElement>('[data-spatial-region="floating-left"]'),
-    bodiesEl: shellEl.querySelector<HTMLElement>('[data-spatial-region="bodies"]'),
-    controlsEl: shellEl.querySelector<HTMLElement>('[data-spatial-region="controls"]'),
-  };
+export interface SpatialShellRegionRefs {
+  readonly shellRef: RefObject<HTMLElement | null>;
+  readonly topBarRef: RefObject<HTMLElement | null>;
+  readonly floatingLeftRef: RefObject<HTMLElement | null>;
+  readonly bodiesRegionRef: RefObject<HTMLElement | null>;
+  readonly controlsRegionRef: RefObject<HTMLElement | null>;
 }
 
 function toPanelRectLike(rect: DOMRect): PanelRectLike {
-  return {
-    top: rect.top,
-    right: rect.right,
-    bottom: rect.bottom,
-    left: rect.left,
-    width: rect.width,
-    height: rect.height,
-  };
+  const { top, right, bottom, left, width, height } = rect;
+  return { top, right, bottom, left, width, height };
 }
 
 function isElementVisible(el: HTMLElement): boolean {
-  if (typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') {
-    return true;
-  }
+  if (typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') return true;
   const style = window.getComputedStyle(el);
   return style.display !== 'none' && style.visibility !== 'hidden';
 }
 
+function resolveBodiesRegion(
+  bodiesEl: HTMLElement | null,
+  isBodiesDrawerOpen: boolean,
+  viewportWidth: number,
+): PanelRectLike | null {
+  const isBodiesVisible =
+    bodiesEl !== null &&
+    (isBodiesDrawerOpen || viewportWidth >= DESKTOP_DOCK_BREAKPOINT_PX) &&
+    isElementVisible(bodiesEl);
+  if (!isBodiesVisible) return null;
+
+  const rawBodiesRect = toPanelRectLike(bodiesEl.getBoundingClientRect());
+  const resolvedWidth = rawBodiesRect.width > 0 ? rawBodiesRect.width : bodiesEl.offsetWidth;
+  if (resolvedWidth <= 0) return null;
+
+  const resolvedLeft = Math.min(rawBodiesRect.left, Math.max(0, viewportWidth - resolvedWidth));
+  return { ...rawBodiesRect, left: resolvedLeft, right: resolvedLeft + resolvedWidth, width: resolvedWidth };
+}
+
+function resolveMobileDetentSheet(
+  floatingLeftItems: readonly PanelRectLike[],
+  viewportWidth: number,
+  detailsDetent: string,
+): (PanelRectLike & { readonly detent: string }) | null {
+  const candidates = floatingLeftItems.filter(
+    (rect) =>
+      rect.width > 0 &&
+      rect.height > 0 &&
+      (viewportWidth < MOBILE_BREAKPOINT_PX || rect.width >= viewportWidth * FULL_WIDTH_SHEET_RATIO),
+  );
+  if (candidates.length === 0) return null;
+  const primarySheet = candidates.reduce((tallest, rect) => (rect.top < tallest.top ? rect : tallest));
+  return { ...primarySheet, detent: detailsDetent };
+}
+
 /**
- * Observes individual active HUD panels inside SpatialShell and publishes the
+ * Observes active HUD region refs inside SpatialShell and publishes the
  * unobstructed 3D viewport safe rectangle to useUIStore.
  */
 export function useViewportSafeRectObserver(
-  shellRef: RefObject<HTMLElement | null>,
+  refs: SpatialShellRegionRefs,
   isBodiesDrawerOpen: boolean,
 ): void {
+  const {
+    shellRef,
+    topBarRef,
+    floatingLeftRef,
+    bodiesRegionRef,
+    controlsRegionRef,
+  } = refs;
+
   useEffect(() => {
     const shellEl = shellRef.current;
     if (!shellEl) return;
 
     let rafId: number | null = null;
+    let settleTimerId: ReturnType<typeof setTimeout> | null = null;
+    let deferredUntilSettle = false;
 
     const measure = () => {
       const shellRect = shellEl.getBoundingClientRect();
@@ -70,7 +100,10 @@ export function useViewportSafeRectObserver(
             ? window.innerHeight
             : 0;
 
-      const { topBarEl, floatingLeftEl, bodiesEl, controlsEl } = queryHudRegions(shellEl);
+      const topBarEl = topBarRef.current;
+      const floatingLeftEl = floatingLeftRef.current;
+      const bodiesEl = bodiesRegionRef.current;
+      const controlsEl = controlsRegionRef.current;
 
       const topBar =
         topBarEl && isElementVisible(topBarEl)
@@ -83,44 +116,18 @@ export function useViewportSafeRectObserver(
           )
         : [];
 
-      const detentEl = floatingLeftEl?.querySelector<HTMLElement>('[data-detent]') ?? null;
-      const detentRect = detentEl ? toPanelRectLike(detentEl.getBoundingClientRect()) : null;
-      const isMobileDetentSheet =
-        detentEl !== null &&
-        detentRect !== null &&
-        (viewportWidth < MOBILE_BREAKPOINT_PX ||
-          detentRect.width >= viewportWidth * FULL_WIDTH_SHEET_RATIO);
-      const mobileDetentSheet = isMobileDetentSheet
-        ? {
-            ...detentRect,
-            detent: detentEl.getAttribute('data-detent'),
-          }
-        : null;
+      const detailsDetent = useUIStore.getState().detailsDetent;
+      const mobileDetentSheet = resolveMobileDetentSheet(
+        floatingLeftItems,
+        viewportWidth,
+        detailsDetent,
+      );
 
-      const isBodiesVisible =
-        bodiesEl !== null &&
-        (isBodiesDrawerOpen || viewportWidth >= DESKTOP_DOCK_BREAKPOINT_PX) &&
-        isElementVisible(bodiesEl);
-      let bodiesRegion: PanelRectLike | null = null;
-      if (isBodiesVisible) {
-        const rawBodiesRect = toPanelRectLike(bodiesEl.getBoundingClientRect());
-        const resolvedWidth =
-          rawBodiesRect.width > 0 ? rawBodiesRect.width : bodiesEl.offsetWidth;
-        if (resolvedWidth > 0) {
-          // Account for in-flight slide-in CSS transforms (translateX(100%) -> 0) on <= 1023px drawers
-          // so optical-centre compensation glides immediately in sync with the opening drawer.
-          const resolvedLeft = Math.min(
-            rawBodiesRect.left,
-            Math.max(0, viewportWidth - resolvedWidth),
-          );
-          bodiesRegion = {
-            ...rawBodiesRect,
-            left: resolvedLeft,
-            right: resolvedLeft + resolvedWidth,
-            width: resolvedWidth,
-          };
-        }
-      }
+      const bodiesRegion = resolveBodiesRegion(
+        bodiesEl,
+        isBodiesDrawerOpen,
+        viewportWidth,
+      );
 
       const controlsRegion =
         controlsEl && isElementVisible(controlsEl)
@@ -139,10 +146,18 @@ export function useViewportSafeRectObserver(
     };
 
     const scheduleMeasure = () => {
+      if (useUIStore.getState().isCameraTransitioning) {
+        deferredUntilSettle = true;
+        return;
+      }
       if (rafId !== null) return;
       if (typeof requestAnimationFrame === 'function') {
         rafId = requestAnimationFrame(() => {
           rafId = null;
+          if (useUIStore.getState().isCameraTransitioning) {
+            deferredUntilSettle = true;
+            return;
+          }
           measure();
         });
       } else {
@@ -158,7 +173,11 @@ export function useViewportSafeRectObserver(
       resizeObserver.disconnect();
       resizeObserver.observe(shellEl);
 
-      const { topBarEl, floatingLeftEl, bodiesEl, controlsEl } = queryHudRegions(shellEl);
+      const topBarEl = topBarRef.current;
+      const floatingLeftEl = floatingLeftRef.current;
+      const bodiesEl = bodiesRegionRef.current;
+      const controlsEl = controlsRegionRef.current;
+
       if (topBarEl) resizeObserver.observe(topBarEl);
       if (floatingLeftEl) {
         resizeObserver.observe(floatingLeftEl);
@@ -178,16 +197,49 @@ export function useViewportSafeRectObserver(
           })
         : null;
 
-    mutationObserver?.observe(shellEl, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['data-detent', 'data-bodies-drawer-open'],
+    if (floatingLeftRef.current) {
+      mutationObserver?.observe(floatingLeftRef.current, {
+        childList: true,
+        subtree: false,
+      });
+    }
+
+    let prevDetailsDetent = useUIStore.getState().detailsDetent;
+    let prevInFlight = useUIStore.getState().isCameraTransitioning;
+    const unsubscribeDetent = useUIStore.subscribe((state) => {
+      if (state.detailsDetent !== prevDetailsDetent) {
+        prevDetailsDetent = state.detailsDetent;
+        scheduleMeasure();
+      }
+      if (prevInFlight && !state.isCameraTransitioning) {
+        prevInFlight = false;
+        if (deferredUntilSettle) {
+          deferredUntilSettle = false;
+          if (settleTimerId !== null) {
+            clearTimeout(settleTimerId);
+          }
+          settleTimerId = setTimeout(() => {
+            settleTimerId = null;
+            scheduleMeasure();
+          }, POST_FLIGHT_SETTLE_DELAY_MS);
+        }
+      } else {
+        if (state.isCameraTransitioning && settleTimerId !== null) {
+          clearTimeout(settleTimerId);
+          settleTimerId = null;
+          deferredUntilSettle = true;
+        }
+        prevInFlight = state.isCameraTransitioning;
+      }
     });
 
-    const handleTransitionEnd = () => scheduleMeasure();
-    const { bodiesEl: initialBodiesEl } = queryHudRegions(shellEl);
-    initialBodiesEl?.addEventListener('transitionend', handleTransitionEnd);
+    const handleTransitionEnd = (event: Event) => {
+      if ('propertyName' in event && (event as TransitionEvent).propertyName === 'opacity') {
+        return;
+      }
+      scheduleMeasure();
+    };
+    shellEl.addEventListener('transitionend', handleTransitionEnd);
 
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', scheduleMeasure);
@@ -200,7 +252,11 @@ export function useViewportSafeRectObserver(
       if (rafId !== null && typeof cancelAnimationFrame === 'function') {
         cancelAnimationFrame(rafId);
       }
-      initialBodiesEl?.removeEventListener('transitionend', handleTransitionEnd);
+      if (settleTimerId !== null) {
+        clearTimeout(settleTimerId);
+      }
+      unsubscribeDetent();
+      shellEl.removeEventListener('transitionend', handleTransitionEnd);
       resizeObserver?.disconnect();
       mutationObserver?.disconnect();
       if (typeof window !== 'undefined') {
@@ -208,5 +264,12 @@ export function useViewportSafeRectObserver(
       }
       useUIStore.getState().setViewportSafeRect(null);
     };
-  }, [shellRef, isBodiesDrawerOpen]);
+  }, [
+    shellRef,
+    topBarRef,
+    floatingLeftRef,
+    bodiesRegionRef,
+    controlsRegionRef,
+    isBodiesDrawerOpen,
+  ]);
 }

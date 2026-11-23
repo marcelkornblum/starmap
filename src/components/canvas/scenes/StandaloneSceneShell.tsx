@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { AdaptiveQualityMonitor } from '../AdaptiveQualityMonitor';
 import { SceneTokenBridge } from '../SceneTokenBridge';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
+import { CrossScaleChoreographyProvider } from '../instrument/CrossScaleChoreographyContext';
 import { CameraTransitionProvider } from '../instrument/useCameraTransition';
 import { getInitialCanvasDpr } from '../../../services/deviceTierService';
 import {
@@ -53,9 +54,11 @@ export const StandaloneSceneShell: React.FC<StandaloneSceneShellProps> = ({
           <CanvasRouterBridgeContext.Provider value={outerRouter}>
             <SpatialEntityStoreContext.Provider value={outerStore}>
               <CameraTransitionProvider>
-                <SceneTokenBridge />
-                <AdaptiveQualityMonitor />
-                {children}
+                <CrossScaleChoreographyProvider>
+                  <SceneTokenBridge />
+                  <AdaptiveQualityMonitor />
+                  {children}
+                </CrossScaleChoreographyProvider>
               </CameraTransitionProvider>
             </SpatialEntityStoreContext.Provider>
           </CanvasRouterBridgeContext.Provider>

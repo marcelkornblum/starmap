@@ -5,19 +5,23 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
   type ReactNode,
 } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useUIStore } from '../../../stores/useUIStore';
 import { FRAME_PRIORITY } from '../engineConfig';
 import { CameraTransitionController } from './cameraTransitionEngine';
+import { hasPendingCrossScaleArrival } from './crossScaleArrivalState';
+import {
+  createTransitionFrameScheduler,
+  type TransitionFrameScheduler,
+} from './transitionFrameScheduler';
 import {
   isTransitionControlsLike,
   type CameraTransitionApi,
   type CameraTransitionOptions,
-  type CameraTransitionPose,
 } from './cameraTransitionPoseMath';
 
 export type {
@@ -29,129 +33,194 @@ export type {
   CameraTransitionApi,
 } from './cameraTransitionPoseMath';
 
+interface ThreeStateSnapshot {
+  readonly camera?: THREE.Camera;
+  readonly controls?: unknown;
+  readonly invalidate?: () => void;
+}
+
+interface HudRetractState {
+  active: boolean;
+}
+
 const CameraTransitionContext = createContext<CameraTransitionApi | null>(null);
 
-function useLocalCameraTransitionEngine(enabled: boolean): CameraTransitionApi {
+function createTransitionOptionsWrapper(
+  controller: CameraTransitionController,
+  hudRetractState: HudRetractState,
+  scheduler: TransitionFrameScheduler,
+  options?: CameraTransitionOptions,
+): CameraTransitionOptions {
+  return {
+    ...options,
+    onComplete: () => {
+      scheduler.cancelPending();
+      const didRetractHud = hudRetractState.active;
+      hudRetractState.active = false;
+      options?.onComplete?.();
+      if (
+        didRetractHud &&
+        !controller.isTransitioning() &&
+        !hasPendingCrossScaleArrival()
+      ) {
+        useUIStore.getState().setCameraTransitioning(false);
+      }
+    },
+    onCancel: () => {
+      scheduler.cancelPending();
+      const didRetractHud = hudRetractState.active;
+      hudRetractState.active = false;
+      options?.onCancel?.();
+      if (
+        didRetractHud &&
+        !controller.isTransitioning() &&
+        !hasPendingCrossScaleArrival()
+      ) {
+        useUIStore.getState().setCameraTransitioning(false);
+      }
+    },
+  };
+}
+
+function createCameraTransitionApi(
+  controller: CameraTransitionController,
+  getState: () => ThreeStateSnapshot | undefined,
+  hudRetractState: HudRetractState,
+  scheduler: TransitionFrameScheduler,
+): CameraTransitionApi {
+  const resolveThree = () => {
+    const liveState = getState();
+    const activeControls = isTransitionControlsLike(liveState?.controls)
+      ? liveState.controls
+      : undefined;
+    return {
+      activeCamera: liveState?.camera,
+      activeControls,
+      invalidate: liveState?.invalidate,
+    };
+  };
+
+  const beginHudRetractionIfNeeded = (options?: CameraTransitionOptions) => {
+    if (!controller.isTransitioning()) return;
+    const shouldRetractHud = options?.retractHud !== false;
+    hudRetractState.active = shouldRetractHud;
+    if (shouldRetractHud) {
+      useUIStore.getState().setCameraTransitioning(true);
+    }
+  };
+
+  return {
+    transitionTo: (target, options) => {
+      const { activeCamera, activeControls, invalidate } = resolveThree();
+      if (!activeCamera) return;
+      controller.start(
+        activeCamera,
+        target,
+        activeControls?.target,
+        createTransitionOptionsWrapper(controller, hudRetractState, scheduler, options),
+        undefined,
+        activeControls,
+      );
+      beginHudRetractionIfNeeded(options);
+      scheduler.requestInitial(invalidate);
+    },
+    transitionToPose: (endPose, options) => {
+      const { activeCamera, activeControls, invalidate } = resolveThree();
+      if (!activeCamera) return;
+      controller.startPose(
+        activeCamera,
+        endPose,
+        activeControls,
+        createTransitionOptionsWrapper(controller, hudRetractState, scheduler, options),
+      );
+      beginHudRetractionIfNeeded(options);
+      scheduler.requestInitial(invalidate);
+    },
+    cancelTransition: () => {
+      scheduler.cancelPending();
+      const didRetractHud = hudRetractState.active;
+      controller.cancel();
+      hudRetractState.active = false;
+      if (didRetractHud && !hasPendingCrossScaleArrival()) {
+        useUIStore.getState().setCameraTransitioning(false);
+      }
+    },
+    isTransitioning: () => controller.isTransitioning(),
+  };
+}
+
+function useCameraTransitionEngine(): CameraTransitionApi {
   const camera = useThree((s) => s.camera);
   const invalidate = useThree((s) => s.invalidate);
   const rawControls = useThree((s) => s.controls);
   const controls = isTransitionControlsLike(rawControls) ? rawControls : undefined;
   const get = useThree((s) => s.get);
 
-  const controllerRef = useLazyRef(() => new CameraTransitionController());
+  const [controller] = useState(() => new CameraTransitionController());
+  const [hudRetractState] = useState<HudRetractState>(() => ({ active: false }));
+  const [scheduler] = useState(() => createTransitionFrameScheduler());
 
-  const cancelTransition = useCallback(() => {
-    const wasTransitioning = controllerRef.current.isTransitioning();
-    controllerRef.current.cancel();
-    if (wasTransitioning) {
-      useUIStore.getState().setCameraTransitioning(false);
-    }
-  }, [controllerRef]);
-
-  const wrapOptions = useCallback(
-    (options?: CameraTransitionOptions): CameraTransitionOptions => ({
-      ...options,
-      onComplete: () => {
-        useUIStore.getState().setCameraTransitioning(false);
-        options?.onComplete?.();
-      },
-      onCancel: () => {
-        useUIStore.getState().setCameraTransitioning(false);
-        options?.onCancel?.();
-      },
-    }),
-    [],
-  );
-
-  const startTransitionTo = useCallback(
-    (target: THREE.Vector3 | [number, number, number], options?: CameraTransitionOptions) => {
-      const liveState = typeof get === 'function' ? get() : undefined;
-      const activeCamera = liveState?.camera ?? camera;
-      const rawLiveControls = liveState?.controls ?? controls;
-      const activeControls = isTransitionControlsLike(rawLiveControls) ? rawLiveControls : undefined;
-
-      controllerRef.current.start(
-        activeCamera,
-        target,
-        activeControls?.target,
-        wrapOptions(options),
-        undefined,
-        activeControls,
-      );
-      if (controllerRef.current.isTransitioning()) {
-        useUIStore.getState().setCameraTransitioning(true);
-      }
-      if (typeof invalidate === 'function') invalidate();
-    },
-    [camera, controls, get, invalidate, controllerRef, wrapOptions],
-  );
-
-  const startTransitionToPose = useCallback(
-    (endPose: CameraTransitionPose, options?: CameraTransitionOptions) => {
-      const liveState = typeof get === 'function' ? get() : undefined;
-      const activeCamera = liveState?.camera ?? camera;
-      const rawLiveControls = liveState?.controls ?? controls;
-      const activeControls = isTransitionControlsLike(rawLiveControls) ? rawLiveControls : undefined;
-
-      controllerRef.current.startPose(
-        activeCamera,
-        endPose,
-        activeControls,
-        wrapOptions(options),
-      );
-      if (controllerRef.current.isTransitioning()) {
-        useUIStore.getState().setCameraTransitioning(true);
-      }
-      if (typeof invalidate === 'function') invalidate();
-    },
-    [camera, controls, get, invalidate, controllerRef, wrapOptions],
-  );
-
-  const isTransitioning = useCallback(
-    () => controllerRef.current.isTransitioning(),
-    [controllerRef],
-  );
+  const getLiveSnapshot = useCallback((): ThreeStateSnapshot => {
+    const liveState = typeof get === 'function' ? get() : undefined;
+    return {
+      camera: liveState?.camera ?? camera,
+      controls: liveState?.controls ?? controls,
+      invalidate: liveState?.invalidate ?? invalidate,
+    };
+  }, [camera, controls, get, invalidate]);
 
   const api = useMemo<CameraTransitionApi>(
-    () => ({
-      transitionTo: startTransitionTo,
-      transitionToPose: startTransitionToPose,
-      cancelTransition,
-      isTransitioning,
-    }),
-    [startTransitionTo, startTransitionToPose, cancelTransition, isTransitioning],
+    () =>
+      createCameraTransitionApi(
+        controller,
+        getLiveSnapshot,
+        hudRetractState,
+        scheduler,
+      ),
+    [controller, getLiveSnapshot, hudRetractState, scheduler],
   );
 
   useEffect(() => {
-    if (!enabled || !controls || typeof controls.addEventListener !== 'function') return;
+    if (!controls || typeof controls.addEventListener !== 'function') return;
     const handleUserInteract = () => {
-      cancelTransition();
+      api.cancelTransition();
     };
     controls.addEventListener('start', handleUserInteract);
     return () => {
       controls.removeEventListener?.('start', handleUserInteract);
     };
-  }, [enabled, controls, cancelTransition]);
+  }, [controls, api]);
 
   useEffect(() => {
-    if (!enabled) return;
-    const controller = controllerRef.current;
     return () => {
+      scheduler.cancelPending();
+      const didRetractHud = hudRetractState.active;
       if (controller.isTransitioning()) {
         controller.cancel();
-        useUIStore.getState().setCameraTransitioning(false);
+        hudRetractState.active = false;
+        if (didRetractHud) {
+          useUIStore.getState().setCameraTransitioning(false);
+        }
       }
     };
-  }, [enabled, controllerRef]);
+  }, [controller, hudRetractState, scheduler]);
+
+  const isStillTransitioning = useCallback(
+    () => controller.isTransitioning(),
+    [controller],
+  );
 
   useFrame(() => {
-    if (!enabled) return;
-    const liveState = typeof get === 'function' ? get() : undefined;
-    const activeCamera = liveState?.camera ?? camera;
-    const rawLiveControls = liveState?.controls ?? controls;
-    const activeControls = isTransitionControlsLike(rawLiveControls) ? rawLiveControls : undefined;
-    const updated = controllerRef.current.update(activeCamera, activeControls);
-    if (updated && typeof invalidate === 'function') invalidate();
+    const snapshot = getLiveSnapshot();
+    const activeCamera = snapshot.camera;
+    if (!activeCamera) return;
+    const activeControls = isTransitionControlsLike(snapshot.controls)
+      ? snapshot.controls
+      : undefined;
+    const updated = controller.update(activeCamera, activeControls);
+    if (updated) {
+      scheduler.requestNext(snapshot.invalidate, isStillTransitioning);
+    }
   }, FRAME_PRIORITY.cameraTransition);
 
   return api;
@@ -166,17 +235,65 @@ export interface CameraTransitionProviderProps {
  * its priority -2 useFrame loop, and its OrbitControls 'start' cancellation listener.
  */
 export function CameraTransitionProvider({ children }: CameraTransitionProviderProps) {
-  const api = useLocalCameraTransitionEngine(true);
+  const api = useCameraTransitionEngine();
   return createElement(CameraTransitionContext.Provider, { value: api }, children);
 }
 
+const NOOP_CAMERA_TRANSITION_API: CameraTransitionApi = {
+  transitionTo: () => {},
+  transitionToPose: () => {},
+  cancelTransition: () => {},
+  isTransitioning: () => false,
+};
+
+const selectNoop = (): undefined => undefined;
+
 /**
  * Hook providing smooth, zero-allocation camera and instrument focal transitions.
- * Consumes the enclosing CameraTransitionProvider when present, or falls back to
- * a local controller when called outside a provider (e.g. isolated unit tests).
+ * Consumes the enclosing `CameraTransitionProvider` with zero extra allocations or `useFrame`
+ * registrations, falling back to a lazy non-`useFrame` controller only when mounted outside a provider.
  */
 export function useCameraTransition(): CameraTransitionApi {
   const contextApi = useContext(CameraTransitionContext);
-  const fallbackApi = useLocalCameraTransitionEngine(contextApi === null);
-  return contextApi ?? fallbackApi;
+  const get = useThree(contextApi ? selectNoop : (s) => s.get);
+  const camera = useThree(contextApi ? selectNoop : (s) => s.camera);
+  const rawControls = useThree(contextApi ? selectNoop : (s) => s.controls);
+  const invalidate = useThree(contextApi ? selectNoop : (s) => s.invalidate);
+  const [fallbackState] = useState<{
+    readonly controller: CameraTransitionController;
+    readonly hudRetractState: HudRetractState;
+    readonly scheduler: TransitionFrameScheduler;
+  } | null>(() =>
+    contextApi
+      ? null
+      : {
+          controller: new CameraTransitionController(),
+          hudRetractState: { active: false },
+          scheduler: createTransitionFrameScheduler(),
+        },
+  );
+
+  const getFallbackSnapshot = useCallback((): ThreeStateSnapshot => {
+    const liveState = typeof get === 'function' ? get() : undefined;
+    return {
+      camera: liveState?.camera ?? camera,
+      controls: liveState?.controls ?? rawControls,
+      invalidate: liveState?.invalidate ?? invalidate,
+    };
+  }, [camera, get, invalidate, rawControls]);
+
+  const fallbackApi = useMemo<CameraTransitionApi | null>(
+    () =>
+      fallbackState
+        ? createCameraTransitionApi(
+            fallbackState.controller,
+            getFallbackSnapshot,
+            fallbackState.hudRetractState,
+            fallbackState.scheduler,
+          )
+        : null,
+    [fallbackState, getFallbackSnapshot],
+  );
+
+  return contextApi ?? fallbackApi ?? NOOP_CAMERA_TRANSITION_API;
 }

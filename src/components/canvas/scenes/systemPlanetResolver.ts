@@ -82,7 +82,7 @@ export function resolveCorpusPlanetEntity(
   };
 }
 
-export interface ResolveSystemSceneEntitiesParams {
+export interface ResolveBaseSystemSceneEntitiesParams {
   readonly targetId?: string;
   readonly resolvedId?: string;
   readonly explicitSystem?: StarDossierData;
@@ -90,10 +90,22 @@ export interface ResolveSystemSceneEntitiesParams {
   readonly summaryNode?: SystemSummaryNode;
   readonly matchedEntry?: CompactSearchEntry;
   readonly activeCorpus: readonly CompactSearchEntry[];
+}
+
+export interface ResolveSystemSceneEntitiesParams extends ResolveBaseSystemSceneEntitiesParams {
   readonly centerId?: string;
   readonly focusedId: string | null;
   readonly selectedIds: ReadonlySet<string>;
 }
+
+export interface BaseSystemSceneEntitiesResult {
+  readonly baseEntities: SpatialEntityDefinition[];
+  readonly baseKeys: ReadonlySet<string>;
+  readonly lookupKeys: readonly string[];
+  readonly resolvedSlug: string;
+}
+
+const EMPTY_EXTRA_ENTITIES: readonly SpatialEntityDefinition[] = [];
 
 function recordEntityKeys(keys: Set<string>, id: string, name?: string): void {
   if (id) {
@@ -107,7 +119,21 @@ function recordEntityKeys(keys: Set<string>, id: string, name?: string): void {
   }
 }
 
-export function resolveSystemSceneEntities({
+function isEntryAlreadyRegistered(existingKeys: ReadonlySet<string>, entry: CompactSearchEntry): boolean {
+  const idSlug = toUrlSlug(entry.i);
+  const nameSlug = toUrlSlug(entry.n);
+  return (
+    existingKeys.has(entry.i) ||
+    (idSlug !== '' && existingKeys.has(idSlug)) ||
+    (nameSlug !== '' && existingKeys.has(nameSlug))
+  );
+}
+
+function isOrbitingSystemStar(entry: CompactSearchEntry, resolvedSlug: string): boolean {
+  return !entry.o || (resolvedSlug !== '' && toUrlSlug(entry.o) === resolvedSlug);
+}
+
+export function resolveBaseSystemSceneEntities({
   targetId,
   resolvedId,
   explicitSystem,
@@ -115,11 +141,10 @@ export function resolveSystemSceneEntities({
   summaryNode,
   matchedEntry,
   activeCorpus,
-  centerId,
-  focusedId,
-  selectedIds,
-}: ResolveSystemSceneEntitiesParams): SpatialEntityDefinition[] {
-  if (!resolvedId && !targetId) return [];
+}: ResolveBaseSystemSceneEntitiesParams): BaseSystemSceneEntitiesResult {
+  if (!resolvedId && !targetId) {
+    return { baseEntities: [], baseKeys: new Set(), lookupKeys: [], resolvedSlug: '' };
+  }
 
   const starName =
     explicitSystem?.name ??
@@ -127,7 +152,6 @@ export function resolveSystemSceneEntities({
     summaryNode?.name ??
     matchedEntry?.n ??
     (targetId ? formatSlugFallbackTitle(targetId) : 'System');
-
   const starSpectral =
     explicitSystem?.spectralType ??
     sysManifest?.stars?.[0]?.spectralType ??
@@ -149,99 +173,115 @@ export function resolveSystemSceneEntities({
   };
 
   const primaryStarMassMsun = explicitSystem?.massMsun ?? sysManifest?.stars?.[0]?.massMsun;
-  let planetEntities: SpatialEntityDefinition[] = [];
-
   const resolvedSlug = resolvedId ? toUrlSlug(resolvedId) : '';
   const childrenIndex = getCorpusSystemChildrenIndex(activeCorpus);
-  const lookupKeys = [resolvedId, resolvedSlug, targetId].filter(
-    (key): key is string => Boolean(key),
-  );
+  const lookupKeys = [resolvedId, resolvedSlug, targetId].filter((key): key is string => Boolean(key));
+  let planetEntities: SpatialEntityDefinition[] = [];
 
   if (explicitSystem?.planets?.length) {
-    planetEntities = explicitSystem.planets.map((p, index) =>
-      resolveSystemPlanetEntity(p, index, primaryStarMassMsun),
-    );
+    planetEntities = explicitSystem.planets.map((p, i) => resolveSystemPlanetEntity(p, i, primaryStarMassMsun));
   } else if (sysManifest?.planets?.length) {
-    planetEntities = sysManifest.planets.map((p, index) =>
-      resolveSystemPlanetEntity(p, index, primaryStarMassMsun),
-    );
+    planetEntities = sysManifest.planets.map((p, i) => resolveSystemPlanetEntity(p, i, primaryStarMassMsun));
   } else {
     const seen = new Set<CompactSearchEntry>();
     const corpusPlanets: CompactSearchEntry[] = [];
     for (const key of lookupKeys) {
-      const list = childrenIndex.get(key);
-      if (!list) continue;
-      for (const entry of list) {
-        const orbitsSystemStar =
-          !entry.o || (resolvedSlug !== '' && toUrlSlug(entry.o) === resolvedSlug);
-        if ((entry.k === 2 || entry.k === 4) && orbitsSystemStar && !seen.has(entry)) {
+      for (const entry of childrenIndex.get(key) ?? []) {
+        if ((entry.k === 2 || entry.k === 4) && isOrbitingSystemStar(entry, resolvedSlug) && !seen.has(entry)) {
           seen.add(entry);
           corpusPlanets.push(entry);
         }
       }
     }
-    if (corpusPlanets.length > 0) {
-      planetEntities = corpusPlanets.map((p, index) => resolveCorpusPlanetEntity(p, index));
-    }
+    planetEntities = corpusPlanets.map((p, i) => resolveCorpusPlanetEntity(p, i));
   }
 
   const existingKeys = new Set<string>();
   recordEntityKeys(existingKeys, starEntity.id, starEntity.name);
-  for (const planet of planetEntities) {
-    recordEntityKeys(existingKeys, planet.id, planet.name);
-  }
+  for (const planet of planetEntities) recordEntityKeys(existingKeys, planet.id, planet.name);
 
-  const targetMatchKeys = new Set<string>();
-  recordEntityKeys(targetMatchKeys, centerId ?? '');
-  recordEntityKeys(targetMatchKeys, focusedId ?? '');
-  for (const id of selectedIds) {
-    recordEntityKeys(targetMatchKeys, id);
-  }
-
-  const extraEntities: SpatialEntityDefinition[] = [];
-  const seenExtra = new Set<CompactSearchEntry>();
+  const dwarfEntities: SpatialEntityDefinition[] = [];
+  const seenDwarf = new Set<CompactSearchEntry>();
   for (const key of lookupKeys) {
-    const list = childrenIndex.get(key);
-    if (!list) continue;
-    for (const entry of list) {
-      if (seenExtra.has(entry)) continue;
-      seenExtra.add(entry);
-
-      const entryIdSlug = toUrlSlug(entry.i);
-      const entryNameSlug = toUrlSlug(entry.n);
-      if (
-        existingKeys.has(entry.i) ||
-        (entryIdSlug !== '' && existingKeys.has(entryIdSlug)) ||
-        (entryNameSlug !== '' && existingKeys.has(entryNameSlug))
-      ) {
-        continue;
-      }
-
-      const orbitsSystemStar =
-        !entry.o || (resolvedSlug !== '' && toUrlSlug(entry.o) === resolvedSlug);
-      if (!orbitsSystemStar) continue;
-
-      const isDwarfPlanet = entry.k === 4;
-      const isEligibleTargetedKind =
-        entry.k === 2 ||
-        entry.k === 4 ||
-        entry.k === 6 ||
-        (entry.k === 7 && entry.i !== entry.w);
-      const isTargeted =
-        targetMatchKeys.has(entry.i) ||
-        (entryIdSlug !== '' && targetMatchKeys.has(entryIdSlug)) ||
-        (entryNameSlug !== '' && targetMatchKeys.has(entryNameSlug));
-
-      if (!isDwarfPlanet && !(isEligibleTargetedKind && isTargeted)) {
-        continue;
-      }
-
-      extraEntities.push(
-        resolveCorpusPlanetEntity(entry, planetEntities.length + extraEntities.length),
-      );
+    for (const entry of childrenIndex.get(key) ?? []) {
+      if (entry.k !== 4 || seenDwarf.has(entry) || isEntryAlreadyRegistered(existingKeys, entry)) continue;
+      seenDwarf.add(entry);
+      if (!isOrbitingSystemStar(entry, resolvedSlug)) continue;
+      dwarfEntities.push(resolveCorpusPlanetEntity(entry, planetEntities.length + dwarfEntities.length));
       recordEntityKeys(existingKeys, entry.i, entry.n);
     }
   }
 
-  return [starEntity, ...planetEntities, ...extraEntities];
+  return { baseEntities: [starEntity, ...planetEntities, ...dwarfEntities], baseKeys: existingKeys, lookupKeys, resolvedSlug };
+}
+
+export function resolveTargetedSystemExtraEntities(params: {
+  readonly base: BaseSystemSceneEntitiesResult;
+  readonly activeCorpus: readonly CompactSearchEntry[];
+  readonly centerId?: string;
+  readonly focusedId: string | null;
+  readonly selectedIds: ReadonlySet<string>;
+}): readonly SpatialEntityDefinition[] {
+  const { base, activeCorpus, centerId, focusedId, selectedIds } = params;
+  if (base.baseEntities.length === 0) return EMPTY_EXTRA_ENTITIES;
+
+  const targetMatchKeys = new Set<string>();
+  recordEntityKeys(targetMatchKeys, centerId ?? '');
+  recordEntityKeys(targetMatchKeys, focusedId ?? '');
+  for (const id of selectedIds) recordEntityKeys(targetMatchKeys, id);
+  if (targetMatchKeys.size === 0) return EMPTY_EXTRA_ENTITIES;
+
+  let hasUnmountedTarget = false;
+  for (const key of targetMatchKeys) {
+    if (!base.baseKeys.has(key)) {
+      hasUnmountedTarget = true;
+      break;
+    }
+  }
+  if (!hasUnmountedTarget) return EMPTY_EXTRA_ENTITIES;
+
+  const childrenIndex = getCorpusSystemChildrenIndex(activeCorpus);
+  const existingKeys = new Set(base.baseKeys);
+  const extraEntities: SpatialEntityDefinition[] = [];
+  const seenExtra = new Set<CompactSearchEntry>();
+
+  for (const key of base.lookupKeys) {
+    for (const entry of childrenIndex.get(key) ?? []) {
+      if (seenExtra.has(entry) || isEntryAlreadyRegistered(existingKeys, entry)) continue;
+      seenExtra.add(entry);
+      if (!isOrbitingSystemStar(entry, base.resolvedSlug)) continue;
+
+      const isEligibleKind = entry.k === 2 || entry.k === 4 || entry.k === 6 || (entry.k === 7 && entry.i !== entry.w);
+      const idSlug = toUrlSlug(entry.i);
+      const nameSlug = toUrlSlug(entry.n);
+      const isTargeted =
+        targetMatchKeys.has(entry.i) ||
+        (idSlug !== '' && targetMatchKeys.has(idSlug)) ||
+        (nameSlug !== '' && targetMatchKeys.has(nameSlug));
+      if (!(isEligibleKind && isTargeted)) continue;
+
+      extraEntities.push(resolveCorpusPlanetEntity(entry, base.baseEntities.length - 1 + extraEntities.length));
+      recordEntityKeys(existingKeys, entry.i, entry.n);
+    }
+  }
+
+  return extraEntities.length > 0 ? extraEntities : EMPTY_EXTRA_ENTITIES;
+}
+
+export function resolveSystemSceneEntities({
+  centerId,
+  focusedId,
+  selectedIds,
+  ...baseParams
+}: ResolveSystemSceneEntitiesParams): SpatialEntityDefinition[] {
+  const base = resolveBaseSystemSceneEntities(baseParams);
+  if (base.baseEntities.length === 0) return [];
+  const extras = resolveTargetedSystemExtraEntities({
+    base,
+    activeCorpus: baseParams.activeCorpus,
+    centerId,
+    focusedId,
+    selectedIds,
+  });
+  return extras.length > 0 ? [...base.baseEntities, ...extras] : base.baseEntities;
 }

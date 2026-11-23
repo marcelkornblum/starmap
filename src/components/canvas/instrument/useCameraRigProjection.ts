@@ -80,8 +80,6 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
     ? Math.max(controls?.minDistance ?? 0, frame.camera.minDistance ?? 0)
     : frame.camera.minDistance;
 
-  syncControlsDistance(controls, resolvedMinDistance, resolvedMaxDistance);
-
   useEffect(() => {
     if (!controls) return;
     const prevMin = controls.minDistance;
@@ -181,6 +179,7 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
         {
           duration: snapDuration,
           easing: DEFAULT_CAMERA_EASING_CURVE,
+          retractHud: false,
           onComplete: () => {
             if (isOrthoAllowed()) lockToOrthographic(cardinal);
           },

@@ -1,13 +1,15 @@
+import {
+  getActiveChoreographyController,
+  type CrossScaleChoreographyController,
+} from './CrossScaleChoreographyContext';
+
 /**
- * Lightweight module-level scalar controlling cross-scale fade-out and fade-in
+ * Lightweight scalar accessor controlling cross-scale fade-out and fade-in
  * of 3D cartographic instrument primitives during transitions.
  *
- * Intentionally lives outside Zustand / React state so `useFrame` loops read a
- * plain primitive number with zero allocations and zero re-renders.
+ * Reads from the active `CrossScaleChoreographyController` with zero allocations
+ * and zero React re-renders.
  */
-
-let crossScaleInstrumentFade = 1.0;
-
 function clampInstrumentFade(value: number): number {
   if (Number.isNaN(value)) return 1.0;
   if (value <= 0) return 0;
@@ -15,14 +17,24 @@ function clampInstrumentFade(value: number): number {
   return value;
 }
 
-export function getCrossScaleInstrumentFade(): number {
-  return crossScaleInstrumentFade;
+/** Returns the current instrument fade opacity in `[0, 1]`. */
+export function getCrossScaleInstrumentFade(
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): number {
+  return controller.instrumentFade;
 }
 
-export function setCrossScaleInstrumentFade(value: number): void {
-  crossScaleInstrumentFade = clampInstrumentFade(value);
+/** Sets the instrument fade opacity, clamped to `[0, 1]`. */
+export function setCrossScaleInstrumentFade(
+  value: number,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  controller.instrumentFade = clampInstrumentFade(value);
 }
 
-export function resetCrossScaleInstrumentFade(): void {
-  crossScaleInstrumentFade = 1.0;
+/** Resets the instrument fade opacity back to `1.0`. */
+export function resetCrossScaleInstrumentFade(
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  controller.instrumentFade = 1.0;
 }

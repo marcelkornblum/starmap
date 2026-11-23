@@ -1,11 +1,32 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import type { SceneCameraUrlState } from '../services/details/detailsNavigationTypes';
+import { useCameraStore } from '../stores/useCameraStore';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { parseCenterCoordinatesString } from '../utils/url';
-import type { SceneCameraUrlState } from '../services/details/detailsNavigationTypes';
 
-export interface UseColdLoadCenterResult {
+export interface ScaleCenterResolutionResult {
   readonly effectiveCenterId: string | undefined;
   readonly resolvedCenterCoordinates: readonly [number, number, number] | undefined;
+  readonly isColdLoadFocus: boolean;
+  readonly pendingCenterSlug: string | null;
+  readonly canvasFocusedSlugs: ReadonlySet<string>;
+}
+
+export interface ResolveEffectiveScaleCenterSlugParams {
+  readonly center?: string;
+  readonly cameraCenter?: string;
+  readonly hasExplicitCoords?: boolean;
+  readonly pendingCenterSlug: string | null;
+  readonly urlFocusSlug: string | null;
+  readonly isColdLoadFocus: boolean;
+  readonly canvasFocusedSlugs: ReadonlySet<string>;
+}
+
+export interface UseScaleCenterResolutionParams {
+  readonly center: string | undefined;
+  readonly cameraState: SceneCameraUrlState;
+  readonly urlFocusSlug: string | null;
+  readonly clearPendingOnUrlSync?: boolean;
 }
 
 interface ColdLoadLatch {
@@ -34,6 +55,42 @@ function createColdLoadLatch(initialFocus: string | null): ColdLoadLatch {
       }
     },
   };
+}
+
+export function resolveEffectiveScaleCenterSlug({
+  center,
+  cameraCenter,
+  hasExplicitCoords = false,
+  pendingCenterSlug,
+  urlFocusSlug,
+  isColdLoadFocus,
+  canvasFocusedSlugs,
+}: ResolveEffectiveScaleCenterSlugParams): string | undefined {
+  const rawCenter = center ?? cameraCenter;
+  if (hasExplicitCoords || parseCenterCoordinatesString(rawCenter)) {
+    return undefined;
+  }
+  const explicitSlug = center
+    ? toUrlSlug(center) || undefined
+    : cameraCenter
+      ? toUrlSlug(cameraCenter) || undefined
+      : undefined;
+  if (explicitSlug) {
+    return explicitSlug;
+  }
+  if (pendingCenterSlug) {
+    return toUrlSlug(pendingCenterSlug) || pendingCenterSlug;
+  }
+  if (isColdLoadFocus && urlFocusSlug) {
+    const normalizedFocus = toUrlSlug(urlFocusSlug) || urlFocusSlug;
+    const isCanvasClickFocus =
+      canvasFocusedSlugs.has(urlFocusSlug) ||
+      canvasFocusedSlugs.has(normalizedFocus);
+    if (!isCanvasClickFocus) {
+      return normalizedFocus;
+    }
+  }
+  return undefined;
 }
 
 export function useColdLoadFocusActive(
@@ -65,19 +122,30 @@ export function useColdLoadFocusActive(
   );
 }
 
-export function useColdLoadCenter(
-  center: string | undefined,
-  cameraState: SceneCameraUrlState,
-  urlFocusSlug: string | null,
-): UseColdLoadCenterResult {
-  const hasExplicitCenterParam = Boolean(
-    (center ?? cameraState.center) ||
-      (cameraState.x !== undefined &&
-        cameraState.y !== undefined &&
-        cameraState.z !== undefined),
+export function useScaleCenterResolution({
+  center,
+  cameraState,
+  urlFocusSlug,
+  clearPendingOnUrlSync = true,
+}: UseScaleCenterResolutionParams): ScaleCenterResolutionResult {
+  const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
+  const canvasFocusedSlugs = useCameraStore((state) => state.canvasFocusedSlugs);
+
+  const hasExplicitCoords = Boolean(
+    cameraState.x !== undefined &&
+      cameraState.y !== undefined &&
+      cameraState.z !== undefined,
   );
+  const hasExplicitCenterParam = Boolean((center ?? cameraState.center) || hasExplicitCoords);
   const isColdLoadFocus = useColdLoadFocusActive(hasExplicitCenterParam, urlFocusSlug);
-  const coldFocus = isColdLoadFocus && urlFocusSlug ? urlFocusSlug : undefined;
+
+  useEffect(() => {
+    if (!clearPendingOnUrlSync) return;
+    const pending = useCameraStore.getState().pendingCenterSlug;
+    if (pending && (!urlFocusSlug || pending === toUrlSlug(urlFocusSlug))) {
+      useCameraStore.getState().setPendingCenterSlug(null);
+    }
+  }, [clearPendingOnUrlSync, urlFocusSlug]);
 
   return useMemo(() => {
     const rawCenter = center ?? cameraState.center;
@@ -89,15 +157,32 @@ export function useColdLoadCenter(
         ? [cameraState.x, cameraState.y, cameraState.z]
         : parsedCoords;
 
-    const effectiveCenterId = parsedCoords
-      ? undefined
-      : center
-        ? toUrlSlug(center)
-        : (cameraState.center ?? coldFocus);
+    const effectiveCenterId = resolveEffectiveScaleCenterSlug({
+      center,
+      cameraCenter: cameraState.center,
+      hasExplicitCoords: Boolean(coordTuple),
+      pendingCenterSlug,
+      urlFocusSlug,
+      isColdLoadFocus,
+      canvasFocusedSlugs,
+    });
 
     return {
       effectiveCenterId,
       resolvedCenterCoordinates: coordTuple,
+      isColdLoadFocus,
+      pendingCenterSlug,
+      canvasFocusedSlugs,
     };
-  }, [center, cameraState.center, cameraState.x, cameraState.y, cameraState.z, coldFocus]);
+  }, [
+    center,
+    cameraState.center,
+    cameraState.x,
+    cameraState.y,
+    cameraState.z,
+    pendingCenterSlug,
+    urlFocusSlug,
+    isColdLoadFocus,
+    canvasFocusedSlugs,
+  ]);
 }

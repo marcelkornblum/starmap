@@ -72,7 +72,7 @@ describe('useSystemViewModel', () => {
     seedDetailRecord('sol', { kind: 'system', record: SOL_FIXTURE });
     seedSummaryNode('sol', SOL_SUMMARY);
     useUIStore.setState({ detailsDetent: 'collapsed' });
-    useCameraStore.setState({ lastGalaxySearch: '' });
+    useCameraStore.getState().reset();
     navigateSpy = vi.fn().mockResolvedValue(undefined);
     vi.mocked(useRouter).mockReturnValue({ navigate: navigateSpy } as never);
   });
@@ -216,6 +216,37 @@ describe('useSystemViewModel', () => {
       hookResult.rerender({ search: '?focus=sol' });
     });
 
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
+
+  it('sets effectiveCenterId on intra-view focusFromSearch and records canvas focus without setting effectiveCenterId on handleSelectEntity', async () => {
+    useCameraStore.getState().reset();
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useSystemViewModel({
+            systemId: 'sol',
+            locationPathname: '/system/sol',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+
+    act(() => {
+      useCameraStore.getState().focusFromSearch('titan');
+    });
+    expect(hookResult.result.current.effectiveCenterId).toBe('titan');
+
+    act(() => {
+      hookResult.result.current.handleSelectEntity('mars');
+    });
+    expect(useCameraStore.getState().canvasFocusedSlugs.has('mars')).toBe(true);
+    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
     expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
   });
 

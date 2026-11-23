@@ -3,7 +3,7 @@ import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { CanvasLayer } from './CanvasLayer';
-import * as sceneEntryLoader from './sceneEntryLoader';
+import * as scalePreloader from '../../../services/navigation/scalePreloader';
 import { _resetWebGLSupportedForTesting } from './webglSupport.testing';
 import { RootCanvasHost } from './RootCanvasHost';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
@@ -421,7 +421,7 @@ describe('RootCanvasHost Domain Component', () => {
     });
     _resetWebGLSupportedForTesting();
     const preloadSpy = vi
-      .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+      .spyOn(scalePreloader, 'preloadSceneEntry')
       .mockResolvedValue(undefined);
 
     const guideRouter: AppRouterAdapter = {
@@ -450,5 +450,46 @@ describe('RootCanvasHost Domain Component', () => {
     expect(layer.getAttribute('data-target-id')).toBe('alpha-centauri');
     expect(preloadSpy).toHaveBeenCalledWith('system');
     expect(await screen.findByTestId('mock-canvas')).toBeInTheDocument();
+  });
+
+  it('preserves imperative data-camera-* telemetry attributes across RootCanvasHost re-renders', async () => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+      if (contextId === 'webgl2' || contextId === 'webgl') {
+        return {} as WebGLRenderingContext;
+      }
+      return null;
+    });
+    _resetWebGLSupportedForTesting();
+
+    act(() => {
+      useCanvasStageStore.getState().mountSlot();
+      useCanvasStageStore.getState().setStageProps({ scope: 'galaxy', centerId: 'sol' });
+    });
+
+    render(<RootCanvasHost />);
+    const host = screen.getByTestId('root-canvas-host');
+    await screen.findByTestId('mock-canvas');
+
+    act(() => {
+      useCameraStore.getState().setCameraPose({
+        position: [5, 6, 7],
+        target: [1, 2, 3],
+        up: [0, 1, 0],
+        zoom: 1,
+        focalDistance: 9.5,
+      });
+    });
+
+    expect(host.getAttribute('data-camera-pos')).toBe('5.00,6.00,7.00');
+    expect(host.getAttribute('data-camera-target')).toBe('1.00,2.00,3.00');
+    expect(host.getAttribute('data-camera-dist')).toBe('9.50');
+
+    act(() => {
+      useCanvasStageStore.getState().setStageProps({ scope: 'galaxy', centerId: 'sirius' });
+    });
+
+    expect(host.getAttribute('data-camera-pos')).toBe('5.00,6.00,7.00');
+    expect(host.getAttribute('data-camera-target')).toBe('1.00,2.00,3.00');
+    expect(host.getAttribute('data-camera-dist')).toBe('9.50');
   });
 });

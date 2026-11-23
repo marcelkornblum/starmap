@@ -11,7 +11,7 @@ import { EARTH_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { formatSlugFallbackTitle } from '../../../utils/starNaming';
 import { SystemCameraController } from './SystemCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
-import { resolveCenterCoords } from './useGalaxyViewCamera';
+import { resolveCenterCoords } from './cameraControllerUtils';
 import { useResolvedPlanetaryEntitiesAndTarget } from './sceneTargetHelpers';
 import type {
   PlanetarySceneContentProps,
@@ -27,13 +27,14 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = React
   onSelectEntity,
 }) => {
   const planetDisplayName = planet?.name ?? formatSlugFallbackTitle(planetId);
-  const { resolvedName, allEntities, targetCoords } = useResolvedPlanetaryEntitiesAndTarget({
-    planetId,
-    planetName: planetDisplayName,
-    planet,
-    centerId,
-    centerCoordinates,
-  });
+  const { resolvedName, resolvedClassification, allEntities, targetCoords } =
+    useResolvedPlanetaryEntitiesAndTarget({
+      planetId,
+      planetName: planetDisplayName,
+      planet,
+      centerId,
+      centerCoordinates,
+    });
   const hasExplicitCenter = Boolean(centerCoordinates || centerId);
   const standardCam = useMemo(
     () =>
@@ -69,7 +70,7 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = React
       <PlanetScene
         planetId={planetId}
         planetName={resolvedName}
-        classification="terrestrial"
+        classification={resolvedClassification}
         planet={planet}
         resolvedEntities={allEntities}
         centerId={centerId}

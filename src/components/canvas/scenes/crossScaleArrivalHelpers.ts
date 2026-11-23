@@ -6,6 +6,7 @@ import {
   computeCrossScalePreviewHandoffOpacity,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
+  computePlanePreviewMaxRadius,
   getReferenceFrameRadius,
 } from '../../../utils/referenceFrameOrientation';
 import type { SpatialEntityStore } from '../entity/SpatialEntityStore';
@@ -29,13 +30,6 @@ import {
 import type { CameraTransitionApi } from '../instrument/useCameraTransition';
 import type { OrbitControlsLike } from './cameraControllerUtils';
 import { applyImmediateCameraPose } from './galacticCameraHelpers';
-
-export {
-  applyDefaultInitialGalacticPose,
-  resolveGalacticLandingPose,
-  tryRestoreSavedGalaxyPose,
-  type GalacticLandingPose,
-} from './galacticLandingHelpers';
 
 export interface CrossScaleArrivalGlideParams {
   readonly camera: THREE.Camera;
@@ -196,7 +190,7 @@ export function startCrossScaleArrivalGlide(params: CrossScaleArrivalGlideParams
       Number.isFinite(arrival.planePreviewMaxRadius) &&
       arrival.planePreviewMaxRadius > 0
         ? arrival.planePreviewMaxRadius
-        : Math.max(0.6, landingDist * 0.16);
+        : computePlanePreviewMaxRadius(landingDist, config);
     setCrossScalePlanePreview({
       position: resolveArrivalPreviewPosition(arrival, outerStore, landingTarget),
       inclinationRad: arrival.planePreviewInclinationRad,

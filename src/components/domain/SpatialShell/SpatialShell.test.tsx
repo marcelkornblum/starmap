@@ -21,14 +21,12 @@ describe('SpatialShell Domain Component', () => {
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
     });
 
-    it('renders custom testId and custom className', () => {
-      render(
-        <SpatialShell testId="custom-shell" className="custom-spatial-shell" />,
-      );
+    it('renders custom testId without dynamic className prop', () => {
+      render(<SpatialShell testId="custom-shell" />);
 
       const root = screen.getByTestId('custom-shell');
       expect(root).toBeDefined();
-      expect(root.className).toContain('custom-spatial-shell');
+      expect(root.getAttribute('data-spatial-shell')).not.toBeNull();
     });
 
     it('renders all dedicated spatial regions with injected slots', () => {
@@ -371,6 +369,45 @@ describe('SpatialShell Domain Component', () => {
       expect(root.getAttribute('data-camera-in-flight')).toBe('false');
     });
 
+    it('sets data-camera-retracted directly on floating-left and minimap regions without relying on ancestor selector invalidation', () => {
+      mockReducedMotion(false);
+      render(<SpatialShell />);
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const floatingLeft = root.querySelector('[data-spatial-region="floating-left"]');
+      const minimap = root.querySelector('[data-spatial-region="minimap"]');
+
+      expect(floatingLeft?.getAttribute('data-camera-retracted')).toBe('false');
+      expect(minimap?.getAttribute('data-camera-retracted')).toBe('false');
+
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(true);
+      });
+      expect(floatingLeft?.getAttribute('data-camera-retracted')).toBe('true');
+      expect(minimap?.getAttribute('data-camera-retracted')).toBe('true');
+
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(false);
+      });
+      expect(floatingLeft?.getAttribute('data-camera-retracted')).toBe('false');
+      expect(minimap?.getAttribute('data-camera-retracted')).toBe('false');
+    });
+
+    it('memoizes SpatialShell so parent re-renders with identical slot props do not re-render children', () => {
+      let renderCount = 0;
+      const Probe = () => {
+        renderCount += 1;
+        return <div data-testid="probe" />;
+      };
+      const probeNode = <Probe />;
+
+      const { rerender } = render(<SpatialShell detailsPanel={probeNode} />);
+      expect(renderCount).toBe(1);
+
+      rerender(<SpatialShell detailsPanel={probeNode} />);
+      expect(renderCount).toBe(1);
+    });
+
     it('measures individual HUD panels into useUIStore.viewportSafeRect (never .leftColumn) and resets on unmount', () => {
       let resizeCallback: ResizeObserverCallback | null = null;
       const observeSpy = vi.fn();
@@ -458,15 +495,19 @@ describe('SpatialShell Domain Component', () => {
       Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 390 });
       Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 844 });
 
+      act(() => {
+        useUIStore.getState().setDetailsDetent('full');
+      });
+
       render(
         <SpatialShell
           breadcrumbs={<div data-testid="mob-breadcrumbs">Breadcrumbs</div>}
-          detailsPanel={<div data-detent="full">Full Sheet</div>}
+          detailsPanel={<div data-testid="full-sheet">Full Sheet</div>}
         />,
       );
 
       const root = screen.getByTestId('spatial-shell-root');
-      const detentEl = root.querySelector('[data-detent]');
+      const detentEl = screen.getByTestId('full-sheet');
       setRect(root, { left: 0, top: 0, width: 390, height: 844 });
       setRect(detentEl, { left: 0, top: 60, width: 390, height: 784 });
 

@@ -11,6 +11,14 @@ import {
 import { FRAME_PRIORITY } from '../engineConfig';
 import { createSpatialEntityStore } from '../entity/SpatialEntityStore';
 import { useUIStore } from '../../../stores/useUIStore';
+import {
+  clearPendingCrossScaleArrival,
+  setPendingCrossScaleArrival,
+} from './crossScaleArrivalState';
+import {
+  registerWebGLGpuTelemetry,
+  resetDeviceTierRuntimeState,
+} from '../../../services/deviceTierService';
 
 let mockCamera: THREE.PerspectiveCamera;
 let mockControls: {
@@ -72,7 +80,10 @@ describe('CameraTransitionProvider & useCameraTransition', () => {
   });
 
   afterEach(() => {
+    clearPendingCrossScaleArrival();
+    resetDeviceTierRuntimeState();
     setMockReducedMotion(false);
+    vi.useRealTimers();
   });
 
   describe('CameraTransitionProvider single-owner context', () => {
@@ -135,6 +146,176 @@ describe('CameraTransitionProvider & useCameraTransition', () => {
       expect(mockControls.enableDamping).toBe(true);
 
       hookCalls.unmount();
+    });
+
+    it('registers zero useFrame hooks per consumer when inside CameraTransitionProvider', () => {
+      vi.mocked(useFrame).mockClear();
+      renderHook(
+        () => {
+          useCameraTransition();
+          useCameraTransition();
+          return useCameraTransition();
+        },
+        { wrapper: providerWrapper },
+      );
+
+      const frameCallsAtTransitionPriority = vi.mocked(useFrame).mock.calls.filter(
+        ([, priority]) => priority === FRAME_PRIORITY.cameraTransition,
+      );
+      expect(frameCallsAtTransitionPriority).toHaveLength(1);
+    });
+
+    it('runs options.onComplete before checking pending cross-scale arrival so isCameraTransitioning stays true during Stage 1 to Stage 2 handoff', () => {
+      const perfSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
+      const { result } = renderHook(() => useCameraTransition(), { wrapper: providerWrapper });
+
+      const transitionFrameCb = vi.mocked(useFrame).mock.calls.find(
+        ([, priority]) => priority === FRAME_PRIORITY.cameraTransition,
+      )?.[0];
+      expect(transitionFrameCb).toBeDefined();
+
+      act(() => {
+        result.current.transitionTo([10, 0, 0], {
+          duration: 0.5,
+          onComplete: () => {
+            setPendingCrossScaleArrival({
+              direction: 'in',
+              targetScope: 'system',
+              durationSec: 1.0,
+            });
+          },
+        });
+      });
+
+      expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+      perfSpy.mockReturnValue(1500);
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+
+      expect(result.current.isTransitioning()).toBe(false);
+      expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+      perfSpy.mockRestore();
+    });
+
+    it('does not set or clear isCameraTransitioning when retractHud is false', () => {
+      const perfSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
+      const { result } = renderHook(() => useCameraTransition(), { wrapper: providerWrapper });
+
+      const transitionFrameCb = vi.mocked(useFrame).mock.calls.find(
+        ([, priority]) => priority === FRAME_PRIORITY.cameraTransition,
+      )?.[0];
+      expect(transitionFrameCb).toBeDefined();
+
+      act(() => {
+        result.current.transitionToPose(
+          { target: [0, 0, 0], direction: [0, 0, 1], distance: 20 },
+          { duration: 0.35, retractHud: false },
+        );
+      });
+      expect(result.current.isTransitioning()).toBe(true);
+      expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+
+      useUIStore.getState().setCameraTransitioning(true);
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+      perfSpy.mockReturnValue(1400);
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+      expect(result.current.isTransitioning()).toBe(false);
+      expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+      perfSpy.mockRestore();
+    });
+
+    it('does not call invalidate inside useFrame on the completion tick after controller settles', () => {
+      const perfSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
+      const { result } = renderHook(() => useCameraTransition(), { wrapper: providerWrapper });
+
+      const transitionFrameCb = vi.mocked(useFrame).mock.calls.find(
+        ([, priority]) => priority === FRAME_PRIORITY.cameraTransition,
+      )?.[0];
+      expect(transitionFrameCb).toBeDefined();
+
+      act(() => {
+        result.current.transitionTo([10, 0, 0], { duration: 0.5 });
+      });
+      mockInvalidate.mockClear();
+
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+      perfSpy.mockReturnValue(1200);
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+      expect(result.current.isTransitioning()).toBe(true);
+      expect(mockInvalidate).toHaveBeenCalled();
+
+      mockInvalidate.mockClear();
+      perfSpy.mockReturnValue(1500);
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+
+      expect(result.current.isTransitioning()).toBe(false);
+      expect(mockInvalidate).not.toHaveBeenCalled();
+      perfSpy.mockRestore();
+    });
+
+    it('paces invalidate on constrained software GPUs instead of queuing every 16ms frame, and cancels pending timer on settle', () => {
+      vi.useFakeTimers();
+      registerWebGLGpuTelemetry({ gpuRenderer: 'ANGLE (Google, SwiftShader)' });
+      let nowMs = 1000;
+      const perfSpy = vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+      const { result } = renderHook(() => useCameraTransition(), { wrapper: providerWrapper });
+
+      const transitionFrameCb = vi.mocked(useFrame).mock.calls.find(
+        ([, priority]) => priority === FRAME_PRIORITY.cameraTransition,
+      )?.[0];
+      expect(transitionFrameCb).toBeDefined();
+
+      act(() => {
+        result.current.transitionTo([10, 0, 0], { duration: 0.5 });
+      });
+      expect(mockInvalidate).toHaveBeenCalledTimes(1);
+      mockInvalidate.mockClear();
+
+      nowMs = 1016;
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+      expect(mockInvalidate).not.toHaveBeenCalled();
+
+      act(() => {
+        nowMs = 1070;
+        vi.advanceTimersByTime(54);
+      });
+      expect(mockInvalidate).toHaveBeenCalledTimes(1);
+      mockInvalidate.mockClear();
+
+      nowMs = 1068;
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+      expect(mockInvalidate).not.toHaveBeenCalled();
+
+      nowMs = 1520;
+      act(() => {
+        transitionFrameCb?.({} as never, 0.016);
+      });
+      expect(result.current.isTransitioning()).toBe(false);
+      expect(mockInvalidate).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(mockInvalidate).not.toHaveBeenCalled();
+      perfSpy.mockRestore();
     });
   });
 

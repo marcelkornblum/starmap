@@ -1,5 +1,9 @@
-import { useDeferredValue, useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useUIStore } from '../stores/useUIStore';
+
+interface ForcedResolution<T> {
+  readonly forInput: T;
+}
 
 /**
  * useBoundedDeferredValue:
@@ -14,13 +18,14 @@ export function useBoundedDeferredValue<T>(
   maxWaitMs = 900,
 ): T | null {
   const deferred = useDeferredValue<T | null>(value, initialValue);
-  const [forcedValue, setForcedValue] = useState<T | null>(null);
+  const inputToken = useMemo(() => ({ forInput: value }), [value]);
+  const [forced, setForced] = useState<ForcedResolution<T> | null>(null);
 
   useEffect(() => {
     if (
       typeof window === 'undefined' ||
       import.meta.env.MODE === 'test' ||
-      deferred === value
+      Object.is(deferred, value)
     ) {
       return;
     }
@@ -28,14 +33,14 @@ export function useBoundedDeferredValue<T>(
     let unsubscribe: (() => void) | undefined;
     const timer = setTimeout(() => {
       if (!useUIStore.getState().isCameraTransitioning) {
-        setForcedValue(value);
+        setForced(inputToken);
         return;
       }
       unsubscribe = useUIStore.subscribe((state) => {
         if (!state.isCameraTransitioning) {
           unsubscribe?.();
           unsubscribe = undefined;
-          setForcedValue(value);
+          setForced(inputToken);
         }
       });
     }, maxWaitMs);
@@ -44,13 +49,13 @@ export function useBoundedDeferredValue<T>(
       clearTimeout(timer);
       unsubscribe?.();
     };
-  }, [value, deferred, maxWaitMs]);
+  }, [value, deferred, maxWaitMs, inputToken]);
 
   if (typeof window === 'undefined' || import.meta.env.MODE === 'test') {
     return value;
   }
 
-  if (deferred === value || forcedValue === value) {
+  if (Object.is(deferred, value) || forced === inputToken) {
     return value;
   }
 

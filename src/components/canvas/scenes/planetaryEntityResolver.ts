@@ -6,7 +6,7 @@ import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 import { getCachedDetailRecord, type DecodedDetailRecord } from '../../../data/detailsRepository';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { calculateKeplerianPosition } from '../math/kepler';
-import { resolveCenterCoords } from './useGalaxyViewCamera';
+import { resolveCenterCoords } from './cameraControllerUtils';
 
 export function resolveTargetCoordsFromEntities(
   entities: readonly SpatialEntityDefinition[],
@@ -39,6 +39,7 @@ export interface ResolvePlanetaryEntitiesParams {
   readonly planetId: string;
   readonly planetName?: string;
   readonly classification?: CelestialClassification;
+  readonly corpusReticleClassification?: CelestialClassification;
   readonly radius?: number;
   readonly minPixelSize?: number;
   readonly fadeRange?: number;
@@ -54,14 +55,47 @@ export interface ResolvePlanetaryEntitiesParams {
 
 export interface ResolvedPlanetaryEntitiesResult {
   readonly resolvedName: string;
+  readonly resolvedClassification: CelestialClassification;
   readonly allEntities: SpatialEntityDefinition[];
   readonly targetCoords: [number, number, number];
+}
+
+function findPlanetInSystemDetail(
+  detail: DecodedDetailRecord | undefined,
+  planetId: string,
+  planetSlug: string,
+): ExoplanetRecord | undefined {
+  if (detail?.kind !== 'system') return undefined;
+  return detail.record.planets?.find(
+    (p) =>
+      p.id === planetId ||
+      toUrlSlug(p.id) === planetSlug ||
+      toUrlSlug(p.name) === planetSlug,
+  );
+}
+
+function resolveMatchedSystemPlanet(
+  planetId: string,
+  hostSystemDetail: DecodedDetailRecord | undefined,
+): ExoplanetRecord | undefined {
+  if (!planetId) return undefined;
+  const planetSlug = toUrlSlug(planetId);
+  return (
+    findPlanetInSystemDetail(hostSystemDetail, planetId, planetSlug) ??
+    findPlanetInSystemDetail(getCachedDetailRecord(planetId), planetId, planetSlug) ??
+    findPlanetInSystemDetail(
+      getCachedDetailRecord(SOL_REFERENCE_TARGET.id),
+      planetId,
+      planetSlug,
+    )
+  );
 }
 
 export function resolvePlanetaryEntitiesAndTarget({
   planetId,
   planetName,
-  classification = 'terrestrial',
+  classification,
+  corpusReticleClassification,
   radius = 1.0,
   minPixelSize = 24,
   fadeRange = 16,
@@ -72,46 +106,18 @@ export function resolvePlanetaryEntitiesAndTarget({
   centerCoordinates,
 }: ResolvePlanetaryEntitiesParams): ResolvedPlanetaryEntitiesResult {
   const resolvedName = planetName ?? (planetId.charAt(0).toUpperCase() + planetId.slice(1));
+  const matchedSystemPlanet = resolveMatchedSystemPlanet(planetId, hostSystemDetail);
+  const resolvedClassification: CelestialClassification =
+    classification ??
+    planet?.composition ??
+    matchedSystemPlanet?.composition ??
+    corpusReticleClassification ??
+    'terrestrial';
 
-  let resolvedSatellites: readonly SatelliteRecord[] = [];
-  if (planet?.satellites && planet.satellites.length > 0) {
-    resolvedSatellites = planet.satellites;
-  } else if (planetId) {
-    const planetSlug = toUrlSlug(planetId);
-    if (hostSystemDetail?.kind === 'system') {
-      const found = hostSystemDetail.record.planets?.find(
-        (p) =>
-          p.id === planetId ||
-          toUrlSlug(p.id) === planetSlug ||
-          toUrlSlug(p.name) === planetSlug,
-      );
-      if (found?.satellites) resolvedSatellites = found.satellites;
-    }
-    if (resolvedSatellites.length === 0) {
-      const detail = getCachedDetailRecord(planetId);
-      if (detail?.kind === 'system') {
-        const found = detail.record.planets?.find(
-          (p) =>
-            p.id === planetId ||
-            toUrlSlug(p.id) === planetSlug ||
-            toUrlSlug(p.name) === planetSlug,
-        );
-        if (found?.satellites) resolvedSatellites = found.satellites;
-      }
-    }
-    if (resolvedSatellites.length === 0) {
-      const sol = getCachedDetailRecord(SOL_REFERENCE_TARGET.id);
-      if (sol?.kind === 'system') {
-        const found = sol.record.planets?.find(
-          (p) =>
-            p.id === planetId ||
-            toUrlSlug(p.id) === planetSlug ||
-            toUrlSlug(p.name) === planetSlug,
-        );
-        if (found?.satellites) resolvedSatellites = found.satellites;
-      }
-    }
-  }
+  const resolvedSatellites: readonly SatelliteRecord[] =
+    planet?.satellites && planet.satellites.length > 0
+      ? planet.satellites
+      : (matchedSystemPlanet?.satellites ?? []);
 
   const satellites: SpatialEntityDefinition[] = explicitSatellites
     ? explicitSatellites
@@ -145,7 +151,7 @@ export function resolvePlanetaryEntitiesAndTarget({
   const planetEntity: SpatialEntityDefinition = {
     id: planetId,
     name: resolvedName,
-    classification,
+    classification: resolvedClassification,
     position: [0, 0, 0],
     bodyRadius: radius,
     bodyMinPixelSize: minPixelSize,
@@ -156,5 +162,5 @@ export function resolvePlanetaryEntitiesAndTarget({
   const allEntities = hasPlanet ? satellites : [planetEntity, ...satellites];
   const targetCoords = resolveTargetCoordsFromEntities(allEntities, centerId, centerCoordinates);
 
-  return { resolvedName, allEntities, targetCoords };
+  return { resolvedName, resolvedClassification, allEntities, targetCoords };
 }

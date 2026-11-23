@@ -19,6 +19,7 @@ import { CartographicLighting } from '../instrument/CartographicLighting';
 import { useCameraTransition } from '../instrument/useCameraTransition';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
+import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import { useViewportStoreSync } from './useViewportStoreSync';
 import { useViewportPointerHandlers } from './useViewportPointerHandlers';
@@ -58,6 +59,15 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
   const prevEntityIdsRef = useRef<Set<string>>(new Set());
   const frameCtx = useSpatialFrameSafe();
   const dotsBatchRegistry = useMemo(() => createEntityDotsBatchRegistry(), []);
+
+  useIsomorphicLayoutEffect(() => {
+    useCanvasStageStore.getState().setActiveSceneStore(storeApi);
+    return () => {
+      if (useCanvasStageStore.getState().activeSceneStore === storeApi) {
+        useCanvasStageStore.getState().setActiveSceneStore(null);
+      }
+    };
+  }, [storeApi]);
 
   useIsomorphicLayoutEffect(() => {
     const nextIds = new Set<string>();

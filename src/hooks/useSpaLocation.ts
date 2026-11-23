@@ -76,6 +76,7 @@ export function useSpaLocation(
   locationPathname?: string,
   locationSearch?: string,
   fallbackPathname = '/galaxy',
+  trackSearch = true,
 ): { readonly pathname: string; readonly search: string } {
   const router = useOptionalRouter();
   const [, setLocationTick] = useState<number>(0);
@@ -84,10 +85,11 @@ export function useSpaLocation(
     locationPathname ??
     router?.state?.location?.pathname ??
     (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
-  const rawSearch =
-    locationSearch ??
-    router?.state?.location?.searchStr ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const rawSearch = trackSearch
+    ? (locationSearch ??
+      router?.state?.location?.searchStr ??
+      (typeof window !== 'undefined' ? window.location.search : ''))
+    : (locationSearch ?? '');
   const rawPendingPathname =
     (router?.state as { pendingLocation?: { pathname?: string } } | undefined)?.pendingLocation
       ?.pathname ?? '';
@@ -97,7 +99,7 @@ export function useSpaLocation(
   useEffect(() => {
     if (
       typeof window === 'undefined' ||
-      (locationPathname !== undefined && locationSearch !== undefined)
+      (locationPathname !== undefined && (!trackSearch || locationSearch !== undefined))
     ) {
       return;
     }
@@ -106,10 +108,11 @@ export function useSpaLocation(
         locationPathname ??
         router?.state?.location?.pathname ??
         window.location.pathname;
-      const nextSearch =
-        locationSearch ??
-        router?.state?.location?.searchStr ??
-        window.location.search;
+      const nextSearch = trackSearch
+        ? (locationSearch ??
+          router?.state?.location?.searchStr ??
+          window.location.search)
+        : (locationSearch ?? '');
       const nextPendingPathname =
         (router?.state as { pendingLocation?: { pathname?: string } } | undefined)?.pendingLocation
           ?.pathname ?? '';
@@ -131,7 +134,7 @@ export function useSpaLocation(
       window.removeEventListener('popstate', handleLocationChange);
       window.removeEventListener('starmap:locationchange', handleLocationChange);
     };
-  }, [locationPathname, locationSearch, router]);
+  }, [locationPathname, locationSearch, router, trackSearch]);
 
   return useMemo(
     () => resolveSpaLocation(rawPathname, rawSearch),

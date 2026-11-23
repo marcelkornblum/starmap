@@ -1,4 +1,7 @@
+import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as THREE from 'three';
+import { useThree } from '@react-three/fiber';
 import ReactThreeTest from '@react-three/test-renderer';
 import { render } from '@testing-library/react';
 import { ScreenEdgeCue } from './ScreenEdgeCue';
@@ -46,21 +49,19 @@ describe('ScreenEdgeCue safe-rect alignment', () => {
 
     await renderer.advanceFrames(1, 0.016);
 
-    const coreEl = document.querySelector('[data-name="bearing-indicator-core"]') as HTMLElement | null;
-    const orbitalEl = document.querySelector('[data-name="bearing-indicator-orbital"]') as HTMLElement | null;
+    const coreEl = document.querySelector<HTMLElement>('[data-name="bearing-indicator-core"]');
+    const orbitalEl = document.querySelector<HTMLElement>('[data-name="bearing-indicator-orbital"]');
     expect(coreEl).not.toBeNull();
     expect(orbitalEl).not.toBeNull();
 
     const corePos = parseTranslate3d(coreEl!.style.transform);
     const orbitalPos = parseTranslate3d(orbitalEl!.style.transform);
 
-    // Core (+X) clamps at width - right - margin = 1440 - 320 - 28 = 1092
     expect(corePos.x).toBeLessThanOrEqual(1440 - 320 - 28 + 0.1);
     expect(corePos.x).toBeGreaterThanOrEqual(280 + 28 - 0.1);
     expect(corePos.y).toBeGreaterThanOrEqual(64 + 28 - 0.1);
     expect(corePos.y).toBeLessThanOrEqual(900 - 120 - 28 + 0.1);
 
-    // Orbital (+Y) clamps at top + margin = 64 + 28 = 92
     expect(orbitalPos.y).toBeGreaterThanOrEqual(64 + 28 - 0.1);
     expect(orbitalPos.y).toBeLessThanOrEqual(900 - 120 - 28 + 0.1);
     expect(orbitalPos.x).toBeGreaterThanOrEqual(280 + 28 - 0.1);
@@ -93,12 +94,46 @@ describe('ScreenEdgeCue safe-rect alignment', () => {
 
     await renderer.advanceFrames(1, 0.016);
 
-    const coreEl = document.querySelector('[data-name="bearing-indicator-core"]') as HTMLElement | null;
+    const coreEl = document.querySelector<HTMLElement>('[data-name="bearing-indicator-core"]');
     expect(coreEl).not.toBeNull();
     const corePos = parseTranslate3d(coreEl!.style.transform);
 
-    // Full-viewport right edge: 1440 - 28 = 1412
     expect(corePos.x).toBeCloseTo(1412, 0);
+
+    await renderer.unmount();
+    unmountOutlet();
+  });
+
+  it('remains visible when camera looks away from world [0, 0, 0] via frustumCulled={false}', async () => {
+    const coreBearing = GALACTIC_FRAME.bearings[0];
+    let activeCamera: THREE.Camera | null = null;
+    const CameraCapturer: React.FC = () => {
+      activeCamera = useThree((s) => s.camera);
+      return null;
+    };
+
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <CameraCapturer />
+        <ScreenEdgeCue bearing={coreBearing} origin={[1000, 0, 0]} margin={28} />
+      </SpatialFrameProvider>,
+      { width: 1440, height: 900 },
+    );
+
+    expect(activeCamera).not.toBeNull();
+    activeCamera!.position.set(0, 0, -10);
+    activeCamera!.lookAt(0, 0, -20);
+    activeCamera!.updateMatrixWorld(true);
+
+    await renderer.advanceFrames(1, 0.016);
+
+    const coreEl = document.querySelector<HTMLElement>('[data-name="bearing-indicator-core"]');
+    expect(coreEl).not.toBeNull();
+    const safeHtmlContainer = coreEl!.parentElement?.parentElement;
+    expect(safeHtmlContainer).not.toBeNull();
+    expect(safeHtmlContainer?.style.display).toBe('');
+    expect(coreEl!.style.display).toBe('block');
 
     await renderer.unmount();
     unmountOutlet();

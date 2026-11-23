@@ -27,12 +27,15 @@ export const buildCenterEntityHref = (
   if (!focusId) {
     return undefined;
   }
+  if (viewScope !== 'galaxy' && !scopeTargetId) {
+    return undefined;
+  }
   const basePath =
-    viewScope === 'galaxy' || !scopeTargetId
+    viewScope === 'galaxy'
       ? '/galaxy'
       : viewScope === 'system'
-        ? `/system/${encodeURIComponent(scopeTargetId)}`
-        : `/planet/${encodeURIComponent(scopeTargetId)}`;
+        ? `/system/${encodeURIComponent(scopeTargetId ?? '')}`
+        : `/planet/${encodeURIComponent(scopeTargetId ?? '')}`;
 
   const outParams = new URLSearchParams();
   outParams.set('center', focusId);

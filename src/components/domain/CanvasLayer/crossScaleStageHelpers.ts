@@ -1,11 +1,5 @@
 import { createElement, type ReactNode } from 'react';
 import * as THREE from 'three';
-import {
-  fetchDetailRecord,
-  fetchSummaryNode,
-  getCachedDetailRecord,
-  getCachedSummaryNode,
-} from '../../../data/detailsRepository';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import type { SpatialScale, TargetPlaneMetadata } from '../../../utils/referenceFrameOrientation';
@@ -26,8 +20,6 @@ import {
   LazyGalacticSceneContent,
   LazyPlanetarySceneContent,
   LazySystemSceneContent,
-  preloadSceneEntry,
-  preloadSpatialView,
 } from './sceneEntryLoader';
 
 export interface SpatialStageSceneProps {
@@ -98,52 +90,6 @@ export function resolveTargetPlaneMetadata(
     ...(axialTiltDeg !== undefined ? { axialTiltDeg } : {}),
     ...(obliquityDeg !== undefined ? { obliquityDeg } : {}),
   };
-}
-
-/**
- * Preloads system manifest and summary records when transitioning into a stellar system
- * so entities are warm in cache prior to the atomic scene swap.
- */
-export function preloadSystemData(
-  targetId?: string,
-  forceInTest = false,
-): Promise<void> {
-  if (!targetId) return Promise.resolve();
-  if (!forceInTest && import.meta.env.MODE === 'test') {
-    return Promise.resolve();
-  }
-  const needDetail = !getCachedDetailRecord(targetId);
-  const needSummary = !getCachedSummaryNode(targetId);
-  if (!needDetail && !needSummary) {
-    return Promise.resolve();
-  }
-  return Promise.all([
-    needDetail ? fetchDetailRecord(targetId).catch(() => undefined) : Promise.resolve(undefined),
-    needSummary ? fetchSummaryNode(targetId).catch(() => undefined) : Promise.resolve(undefined),
-  ]).then(() => undefined);
-}
-
-/**
- * Preloads the target scene chunk and (for system transitions) its backing data in parallel.
- */
-export function preloadTargetScaleEntry(
-  scope: SpatialScale,
-  targetId?: string,
-  forceInTest = false,
-): Promise<unknown> {
-  const scenePromise = preloadSceneEntry(scope);
-  if (!forceInTest && import.meta.env.MODE === 'test') {
-    return scenePromise;
-  }
-  const viewPromise = preloadSpatialView(scope).catch(() => undefined);
-  if (
-    scope === 'system' &&
-    targetId &&
-    (!getCachedDetailRecord(targetId) || !getCachedSummaryNode(targetId))
-  ) {
-    return Promise.all([scenePromise, viewPromise, preloadSystemData(targetId, forceInTest)]);
-  }
-  return Promise.all([scenePromise, viewPromise]);
 }
 
 /**

@@ -9,15 +9,9 @@
     flex-direction: row;
     inline-size: 100vw;
     block-size: 100dvh;
-    overflow: hidden;
     position: relative;
     background-color: transparent;
     color: var(--content-default);
-    pointer-events: none;
-    overscroll-behavior: none;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    -webkit-user-select: none;
   }
 
   .stage {
@@ -26,6 +20,10 @@
     inline-size: 100%;
     block-size: 100%;
     min-inline-size: 0;
+  }
+
+  .spatialShell,
+  .stage {
     overflow: hidden;
     pointer-events: none;
     overscroll-behavior: none;
@@ -43,67 +41,78 @@
     pointer-events: none;
   }
 
+  .leftColumn,
+  .topBar,
+  .floatingLeft {
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+  }
+
   .leftColumn {
     position: absolute;
-    top: var(--space-fib-3);
-    bottom: calc(var(--space-fib-6) + var(--space-fib-4));
-    left: var(--space-fib-3);
+    inset: var(--space-fib-3) auto calc(var(--space-fib-6) + var(--space-fib-4)) var(--space-fib-3);
     width: min(var(--size-measure-panel), calc(100% - var(--size-measure-md)));
     z-index: var(--layer-panel);
-    display: flex;
-    flex-direction: column;
     gap: var(--space-fib-2);
-    pointer-events: none;
   }
 
-  .topBar {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-fib-2);
-    pointer-events: none;
-  }
+  .topBar { flex: 0 0 auto; align-items: flex-start; gap: var(--space-fib-2); }
 
-  .breadcrumbsRegion {
-    pointer-events: auto;
-    inline-size: fit-content;
-    max-inline-size: 100%;
-    background: var(--surface-hud-bg);
-    border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
-    box-shadow: var(--surface-hud-shadow);
-    padding: var(--space-fib-1) var(--space-fib-2);
-    border-radius: var(--radius-control);
+  .breadcrumbsRegion,
+  .searchRegion,
+  .controlsRegion,
+  .bodiesRegion {
     box-sizing: border-box;
+  }
+
+  .breadcrumbsRegion,
+  .searchRegion,
+  .minimapRegion,
+  .bodiesRegion {
     transform: translateZ(0);
   }
 
-  .breadcrumbsRegion:empty {
-    display: none;
+  .breadcrumbsRegion,
+  .searchRegion {
+    pointer-events: auto;
+    padding: var(--space-fib-1) var(--space-fib-2);
+  }
+
+  .breadcrumbsRegion,
+  .controlsRegion,
+  .minimapRegion {
+    background: var(--surface-hud-bg);
+    box-shadow: var(--surface-hud-shadow);
+  }
+
+  .breadcrumbsRegion,
+  .minimapRegion {
+    border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
+  }
+
+  .breadcrumbsRegion {
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    border-radius: var(--radius-control);
   }
 
   .searchRegion {
-    pointer-events: auto;
     inline-size: 100%;
     background: var(--surface-dock-bg);
     border: var(--surface-dock-border-width) var(--surface-dock-border-style) var(--surface-dock-border-color);
     box-shadow: var(--surface-dock-shadow);
-    padding: var(--space-fib-1) var(--space-fib-2);
     border-radius: var(--radius-container);
-    box-sizing: border-box;
-    transform: translateZ(0);
   }
 
-  .searchRegion:empty {
-    display: none;
-  }
+  .layerCardRegion { pointer-events: auto; inline-size: 100%; }
 
-  .layerCardRegion {
-    pointer-events: auto;
-    inline-size: 100%;
-  }
-
-  .layerCardRegion:empty {
+  .breadcrumbsRegion:empty,
+  .searchRegion:empty,
+  .layerCardRegion:empty,
+  .floatingLeft:empty,
+  .controlsRegion:empty,
+  .minimapRegion:empty {
     display: none;
   }
 
@@ -120,70 +129,46 @@
   .floatingLeft {
     flex: 1 1 auto;
     min-block-size: 0;
-    display: flex;
-    flex-direction: column;
     gap: var(--space-fib-3);
     overflow-y: auto;
-    pointer-events: none;
-    transition:
-      opacity var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease),
-      transform var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease);
   }
 
-  .floatingLeft > * {
+  .floatingLeft > * { pointer-events: auto; }
+
+  .controlsRegion,
+  .minimapRegion {
+    position: absolute;
+    z-index: var(--layer-hud);
     pointer-events: auto;
-  }
-
-  .floatingLeft:empty {
-    display: none;
   }
 
   .controlsRegion {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: auto 0 0 0;
     inline-size: 100%;
-    box-sizing: border-box;
-    z-index: var(--layer-hud);
-    pointer-events: auto;
-    background: var(--surface-hud-bg);
     border-block-start: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
-    box-shadow: var(--surface-hud-shadow);
     padding: var(--space-fib-2) var(--space-fib-4);
   }
 
-  .controlsRegion:empty {
-    display: none;
-  }
-
   .minimapRegion {
-    position: absolute;
     bottom: calc(var(--space-fib-6) + var(--space-fib-4));
     right: var(--space-fib-4);
     width: var(--size-measure-md);
     max-height: var(--size-measure-sm);
     overflow: auto;
-    z-index: var(--layer-hud);
-    background: var(--surface-hud-bg);
-    border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
-    box-shadow: var(--surface-hud-shadow);
     padding: var(--space-inset-panel-tight);
     border-radius: var(--radius-container);
-    pointer-events: auto;
-    transform: translateZ(0);
+    contain: layout style;
+  }
+
+  .floatingLeft,
+  .minimapRegion {
+    will-change: opacity, transform;
     transition:
       opacity var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease),
       transform var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease);
   }
 
-  .minimapRegion:empty {
-    display: none;
-  }
-
-  .bodiesBackdrop {
-    display: none;
-  }
+  .bodiesBackdrop { display: none; }
 
   .bodiesRegion {
     flex: 0 0 clamp(var(--size-measure-panel), 30vw, var(--size-measure-card));
@@ -194,52 +179,38 @@
     border-inline-start: var(--surface-dock-border-width) var(--surface-dock-border-style) var(--surface-dock-border-color);
     box-shadow: var(--surface-dock-shadow);
     padding: var(--space-inset-panel);
-    box-sizing: border-box;
     z-index: var(--layer-dock);
     pointer-events: auto;
-    transform: translateZ(0);
     contain: layout style;
   }
 }
 
 @layer exceptions {
-  .spatialShell[data-camera-in-flight="true"] .floatingLeft {
+  .floatingLeft[data-camera-retracted="true"],
+  .minimapRegion[data-camera-retracted="true"] {
     opacity: var(--spatial-shell-retract-opacity);
+    pointer-events: none;
+  }
+
+  .floatingLeft[data-camera-retracted="true"] {
     transform: translateX(calc(-1 * var(--spatial-shell-retract-shift-x)));
-    pointer-events: none;
   }
 
-  .spatialShell[data-camera-in-flight="true"] .floatingLeft > * {
-    pointer-events: none;
-  }
+  .floatingLeft[data-camera-retracted="true"] > * { pointer-events: none; }
 
-  .spatialShell[data-camera-in-flight="true"] .minimapRegion {
-    opacity: var(--spatial-shell-retract-opacity);
+  .minimapRegion[data-camera-retracted="true"] {
     transform: translateX(var(--spatial-shell-retract-shift-x));
-    pointer-events: none;
   }
 
-  /* Tablet and Desktop (>= 768px) */
   @media (min-width: 768px) {
-    .floatingLeft {
-      transform: translateZ(0);
-      contain: layout style;
-    }
-
-    .controlsRegion {
-      transform: translateZ(0);
-      contain: layout style;
-    }
+    .floatingLeft,
+    .controlsRegion { transform: translateZ(0); contain: layout style; }
   }
 
-  /* Above Tablet (>= 1024px) */
   @media (min-width: 1024px) {
-    .topBarActions {
-      display: none;
-    }
+    .topBarActions { display: none; }
   }
 
-  /* Tablet Portrait and Mobile (<= 1023px) */
   @media (max-width: 1023px) {
     .bodiesBackdrop[data-bodies-drawer-open="true"] {
       display: block;
@@ -252,9 +223,7 @@
 
     .bodiesRegion {
       position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0 0 0 auto;
       width: min(var(--size-measure-panel), 88vw);
       height: 100dvh;
       padding: var(--space-inset-panel);
@@ -266,77 +235,33 @@
       transition: transform var(--motion-duration-feedback) var(--motion-ease-default);
     }
 
-    .bodiesRegion[data-bodies-drawer-open="false"] {
-      transform: translateX(100%);
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .bodiesRegion[data-bodies-drawer-open="true"] {
-      transform: translateX(0);
-      visibility: visible;
-      pointer-events: auto;
-    }
+    .bodiesRegion[data-bodies-drawer-open="false"] { transform: translateX(100%); visibility: hidden; pointer-events: none; }
+    .bodiesRegion[data-bodies-drawer-open="true"] { transform: translateX(0); visibility: visible; pointer-events: auto; }
   }
 
-  /* Mobile (<= 767px) */
   @media (max-width: 767px) {
-    .leftColumn {
-      top: var(--space-fib-2);
-      left: var(--space-fib-2);
-      right: var(--space-fib-2);
-      bottom: auto;
-      width: auto;
-      z-index: var(--layer-panel);
-    }
+    .leftColumn { inset: var(--space-fib-2) var(--space-fib-2) auto var(--space-fib-2); width: auto; }
+    .topBar { inline-size: 100%; gap: var(--space-fib-1); }
+    .breadcrumbsRegion { padding: var(--stroke-width-2) var(--space-fib-2); max-inline-size: calc(100% - var(--space-fib-8)); }
+    .topBarActions { top: var(--space-fib-2); right: var(--space-fib-2); }
 
-    .topBar {
-      inline-size: 100%;
-      gap: var(--space-fib-1);
-    }
-
-    .breadcrumbsRegion {
-      padding: var(--stroke-width-2) var(--space-fib-2);
-      max-inline-size: calc(100% - var(--space-fib-8));
-    }
-
-    .searchRegion {
-      inline-size: 100%;
-    }
-
-    .topBarActions {
-      top: var(--space-fib-2);
-      right: var(--space-fib-2);
-    }
-
-    .controlsRegion {
+    .controlsRegion,
+    .floatingLeft {
       position: fixed;
-      left: auto;
-      right: var(--space-fib-2);
-      bottom: var(--space-fib-2);
-      inline-size: auto;
-      max-inline-size: fit-content;
       padding: 0;
       background: transparent;
       border: none;
       box-shadow: none;
       pointer-events: none;
-      z-index: var(--layer-hud);
     }
 
-    .stage:has(.floatingLeft:not(:empty)) .controlsRegion:not(:has([data-mobile-expanded="true"])) {
-      bottom: calc(var(--space-fib-7) + var(--space-fib-3));
-    }
-
-    .controlsRegion > * {
-      pointer-events: auto;
-    }
+    .controlsRegion { inset: auto var(--space-fib-2) var(--space-fib-2) auto; inline-size: auto; max-inline-size: fit-content; }
+    .stage:has(.floatingLeft:not(:empty)) .controlsRegion:not(:has([data-mobile-expanded="true"])) { bottom: calc(var(--space-fib-7) + var(--space-fib-3)); }
+    .controlsRegion > * { pointer-events: auto; }
 
     .controlsRegion:has([data-mobile-expanded="true"]) {
       position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: auto 0 0 0;
       inline-size: 100%;
       max-inline-size: 100%;
       padding: var(--space-fib-2);
@@ -344,55 +269,22 @@
       border-block-start: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
       box-shadow: var(--surface-hud-shadow);
       pointer-events: auto;
-      z-index: calc(var(--layer-panel) + 2);
+      z-index: var(--layer-drawer);
     }
 
-    .floatingLeft {
-      position: fixed;
-      top: auto;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      max-height: 100dvh;
-      overflow: visible;
-      padding: 0;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      pointer-events: none;
-      z-index: var(--layer-panel);
-    }
-
-    .minimapRegion {
-      display: none;
-    }
-
-    .spatialShell[data-camera-in-flight="true"] .floatingLeft {
-      transform: translateY(var(--spatial-shell-retract-shift-y));
-    }
+    .floatingLeft { inset: auto 0 0 0; width: 100%; max-height: 100dvh; overflow: visible; z-index: var(--layer-panel); }
+    .minimapRegion { display: none; }
+    .floatingLeft[data-camera-retracted="true"] { transform: translateY(var(--spatial-shell-retract-shift-y)); }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .floatingLeft,
-    .minimapRegion {
-      transition: none;
-    }
+    .minimapRegion { transition: none; }
 
-    .spatialShell[data-camera-in-flight="true"] .floatingLeft {
-      opacity: var(--opacity-full);
-      transform: none;
-      pointer-events: none;
-    }
+    .floatingLeft[data-camera-retracted="true"],
+    .minimapRegion[data-camera-retracted="true"] { opacity: var(--opacity-full); transform: none; }
 
-    .spatialShell[data-camera-in-flight="true"] .floatingLeft > * {
-      pointer-events: auto;
-    }
-
-    .spatialShell[data-camera-in-flight="true"] .minimapRegion {
-      opacity: var(--opacity-full);
-      transform: none;
-      pointer-events: auto;
-    }
+    .floatingLeft[data-camera-retracted="true"] > *,
+    .minimapRegion[data-camera-retracted="true"] { pointer-events: auto; }
   }
 }

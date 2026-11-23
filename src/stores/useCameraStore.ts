@@ -1,7 +1,15 @@
 import { create } from 'zustand';
 import type { CardinalDirection } from '../types/spatial';
+import { setPendingSpatialNavigationHref } from '../utils/spatialRoute';
 
 export type CameraProjectionMode = 'perspective' | 'orthographic';
+
+export interface PreSearchOrigin {
+  readonly pathname: string;
+  readonly search: string;
+  readonly target: readonly [number, number, number];
+  readonly distance: number;
+}
 
 export interface SavedGalaxyCameraPose {
   position: [number, number, number];
@@ -27,8 +35,10 @@ export interface CameraState {
   activeCardinal: CardinalDirection | null;
   /** Current camera position in world space */
   position: [number, number, number];
-  /** Current focal target (orbit center) in world space */
+  /** Current focal target (orbit centre) in world space */
   target: [number, number, number];
+  /** Current camera up vector in world space */
+  up: [number, number, number];
   /** Current focal distance (distance from position to target) */
   focalDistance: number;
   /** Orthographic camera zoom factor or perspective baseline zoom */
@@ -49,8 +59,12 @@ export interface CameraState {
   pendingSearchFrame: SearchFrameRequest | null;
   /** Transient in-flight optimistic focus slug during navigation transitions */
   inFlightFocusSlug: string | null | undefined;
-  /** Set of entity slugs focused directly via canvas interaction (prevents unwanted recentering) */
+  /** Set of entity slugs focused directly via canvas interaction (prevents unwanted recentring) */
   canvasFocusedSlugs: ReadonlySet<string>;
+  /** Saved pre-search spatial origin across cross-scale search transitions */
+  preSearchOrigin: PreSearchOrigin | null;
+  /** One-shot flag indicating cross-scale search navigation should restore search focus */
+  pendingViewTransitionFocus: boolean;
 }
 
 export type CameraPreset = 'top-down' | 'reset' | 'orbital-lock' | 'radial';
@@ -78,7 +92,14 @@ export interface CameraActions {
   requestSearchFrame: (target: readonly [number, number, number], distance: number) => void;
   clearSearchFrame: () => void;
   setInFlightFocusSlug: (slug: string | null | undefined) => void;
-  focusFromSearch: (pendingCenterSlug: string) => void;
+  focusFromSearch: (
+    pendingCenterSlug: string,
+    options?: { triggerRecenter?: boolean },
+  ) => void;
+  setPreSearchOrigin: (origin: PreSearchOrigin) => void;
+  clearPreSearchOrigin: () => void;
+  markSearchFocusForViewTransition: () => void;
+  consumeSearchFocusForViewTransition: () => boolean;
   recordCanvasFocus: (slugOrSlugs: string | readonly string[]) => void;
   clearCanvasFocus: () => void;
   requestAxisView: (direction: CardinalDirection) => void;
@@ -101,6 +122,7 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   activeCardinal: null,
   position: [0, 0, 10],
   target: [0, 0, 0],
+  up: [0, 1, 0],
   focalDistance: 10,
   zoom: 1.0,
   pendingAxisRequest: null,
@@ -112,11 +134,13 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   pendingSearchFrame: null,
   inFlightFocusSlug: undefined,
   canvasFocusedSlugs: new Set<string>(),
+  preSearchOrigin: null,
+  pendingViewTransitionFocus: false,
 };
 
 let nextSearchFrameTick = 0;
 
-export const useCameraStore = create<CameraStore>()((set) => ({
+export const useCameraStore = create<CameraStore>()((set, get) => ({
   ...INITIAL_CAMERA_STATE,
   setMode: (mode: CameraProjectionMode) =>
     set((state) => (state.mode === mode ? state : { mode })),
@@ -136,19 +160,11 @@ export const useCameraStore = create<CameraStore>()((set) => ({
     set((state) =>
       state.activeCardinal === activeCardinal ? state : { activeCardinal },
     ),
-  setCameraTransform: (
-    position: [number, number, number],
-    target: [number, number, number],
-    zoom?: number,
-  ) =>
+  setCameraTransform: (position: [number, number, number], target: [number, number, number], zoom?: number) =>
     set({
       position,
       target,
-      focalDistance: Math.hypot(
-        position[0] - target[0],
-        position[1] - target[1],
-        position[2] - target[2],
-      ),
+      focalDistance: Math.hypot(position[0] - target[0], position[1] - target[1], position[2] - target[2]),
       ...(zoom !== undefined ? { zoom } : {}),
     }),
   setCameraPose: (pose: {
@@ -161,13 +177,10 @@ export const useCameraStore = create<CameraStore>()((set) => ({
     set({
       position: pose.position,
       target: pose.target,
+      ...(pose.up !== undefined ? { up: pose.up } : {}),
       focalDistance:
         pose.focalDistance ??
-        Math.hypot(
-          pose.position[0] - pose.target[0],
-          pose.position[1] - pose.target[1],
-          pose.position[2] - pose.target[2],
-        ),
+        Math.hypot(pose.position[0] - pose.target[0], pose.position[1] - pose.target[1], pose.position[2] - pose.target[2]),
       ...(pose.zoom !== undefined ? { zoom: pose.zoom } : {}),
     }),
   setSavedGalaxyCamera: (savedGalaxyCamera: SavedGalaxyCameraPose | null) =>
@@ -203,14 +216,43 @@ export const useCameraStore = create<CameraStore>()((set) => ({
         ? state
         : { inFlightFocusSlug },
     ),
-  focusFromSearch: (pendingCenterSlug: string) =>
+  focusFromSearch: (
+    pendingCenterSlug: string,
+    options?: { triggerRecenter?: boolean },
+  ) =>
     set((state) => ({
       canvasFocusedSlugs:
         state.canvasFocusedSlugs.size === 0 ? state.canvasFocusedSlugs : new Set<string>(),
       pendingCenterSlug,
       inFlightFocusSlug: undefined,
-      recenterTick: state.recenterTick + 1,
+      ...(options?.triggerRecenter === false
+        ? {}
+        : { recenterTick: state.recenterTick + 1 }),
     })),
+  setPreSearchOrigin: (origin: PreSearchOrigin) =>
+    set({
+      preSearchOrigin: {
+        pathname: origin.pathname,
+        search: origin.search,
+        target: [origin.target[0], origin.target[1], origin.target[2]],
+        distance: origin.distance,
+      },
+    }),
+  clearPreSearchOrigin: () =>
+    set((state) =>
+      state.preSearchOrigin === null ? state : { preSearchOrigin: null },
+    ),
+  markSearchFocusForViewTransition: () =>
+    set((state) =>
+      state.pendingViewTransitionFocus ? state : { pendingViewTransitionFocus: true },
+    ),
+  consumeSearchFocusForViewTransition: () => {
+    if (!get().pendingViewTransitionFocus) {
+      return false;
+    }
+    set({ pendingViewTransitionFocus: false });
+    return true;
+  },
   recordCanvasFocus: (slugOrSlugs: string | readonly string[]) =>
     set((state) => {
       const slugs = Array.isArray(slugOrSlugs) ? slugOrSlugs : [slugOrSlugs];
@@ -242,6 +284,7 @@ export const useCameraStore = create<CameraStore>()((set) => ({
   triggerRecenter: () => set((state) => ({ recenterTick: state.recenterTick + 1 })),
   reset: () => {
     nextSearchFrameTick = 0;
+    setPendingSpatialNavigationHref(null);
     set({ ...INITIAL_CAMERA_STATE });
   },
 }));

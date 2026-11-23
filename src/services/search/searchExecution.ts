@@ -96,12 +96,14 @@ export const executeCatalogSearch = (
     QUERY_CLEAN_KEY_TO_TAG_SLUG[normalised.rawCleanKey];
 
   const systemNameById = new Map<string, string>();
+  const systemPosById = new Map<string, readonly [number, number, number]>();
   const stronglyMatchedSystemIds = new Set<string>();
 
   if (options.systemEntries) {
     for (const sys of options.systemEntries) {
       if (resolveEntryCategory(sys) === 'stars') {
         systemNameById.set(sys.i, resolveResultDisplayTitle(sys));
+        if (sys.p) systemPosById.set(sys.i, sys.p);
         if (scoreSearchEntry(sys, normalised) >= 700) {
           stronglyMatchedSystemIds.add(sys.i);
         }
@@ -111,6 +113,7 @@ export const executeCatalogSearch = (
   for (const entry of entries) {
     if (resolveEntryCategory(entry) === 'stars') {
       systemNameById.set(entry.i, resolveResultDisplayTitle(entry));
+      if (entry.p) systemPosById.set(entry.i, entry.p);
     }
   }
 
@@ -144,8 +147,9 @@ export const executeCatalogSearch = (
         const hostName =
           resolveResultSystemTitle(entry, systemNameById) ??
           (entry.h === 1 && entry.s ? formatSlugFallbackTitle(entry.s) : undefined);
+        const hostPos = entry.s ? systemPosById.get(entry.s) : undefined;
         matchedByCategory[category].push(
-          toSearchResultItem(entry, effectiveScore, hostName, itemTagSlug),
+          toSearchResultItem(entry, effectiveScore, hostName, itemTagSlug, hostPos),
         );
       }
     } else if (
@@ -157,7 +161,6 @@ export const executeCatalogSearch = (
     }
   }
 
-  // Relational system pass: surface child planets or fictional entries hosted in a strongly matched star system
   if (stronglyMatchedSystemIds.size > 0) {
     for (const child of deferredSystemChildren) {
       if (child.s && stronglyMatchedSystemIds.has(child.s)) {
@@ -165,8 +168,9 @@ export const executeCatalogSearch = (
         const hostName =
           resolveResultSystemTitle(child, systemNameById) ??
           (child.h === 1 && child.s ? formatSlugFallbackTitle(child.s) : undefined);
+        const hostPos = systemPosById.get(child.s);
         matchedByCategory[category].push(
-          toSearchResultItem(child, 600, hostName),
+          toSearchResultItem(child, 600, hostName, undefined, hostPos),
         );
       }
     }

@@ -6,11 +6,18 @@ import {
   getCachedCorpusForFilter,
   subscribeSearchRepository,
 } from '../../../data/searchRepository';
+import { getCachedDetailRecord } from '../../../data/detailsRepository';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { useSystemData } from '../../../hooks/useSystemData';
 import { useSearchCorpus } from '../../../hooks/useSearchCorpus';
-import { findFocusedEntryInCorpus } from '../../../services/search/searchCorpusHelpers';
-import { resolveSystemSceneEntities } from './systemPlanetResolver';
+import {
+  findFocusedEntryInCorpus,
+  resolveReticleType,
+} from '../../../services/search/searchCorpusHelpers';
+import {
+  resolveBaseSystemSceneEntities,
+  resolveTargetedSystemExtraEntities,
+} from './systemPlanetResolver';
 import {
   resolvePlanetaryEntitiesAndTarget,
   resolveTargetCoordsFromEntities,
@@ -33,6 +40,7 @@ export function useResolvedSystemEntitiesAndTarget(
 ): {
   readonly entities: SpatialEntityDefinition[];
   readonly targetCoords: [number, number, number];
+  readonly isSystemDetailReady: boolean;
 } {
   const targetId = explicitSystem?.id ?? systemId;
   const { corpus } = useSearchCorpus('startup');
@@ -67,31 +75,35 @@ export function useResolvedSystemEntitiesAndTarget(
 
   const matchedEntry = useMemo(
     () =>
-      effectiveCorpus.length > 0 && targetId
-        ? findFocusedEntryInCorpus(targetId, effectiveCorpus)
+      activeCorpus.length > 0 && targetId
+        ? findFocusedEntryInCorpus(targetId, activeCorpus)
         : undefined,
-    [targetId, effectiveCorpus],
+    [targetId, activeCorpus],
   );
 
-  const resolvedId = explicitSystem?.id ?? matchedEntry?.s ?? matchedEntry?.i ?? targetId;
-  const { systemSummary: summaryNode, systemDetail: detailRecord } = useSystemData(
-    resolvedId ?? targetId,
-  );
+  const candidateId = explicitSystem?.id ?? matchedEntry?.s ?? matchedEntry?.i ?? targetId;
+  const resolvedId =
+    targetId && getCachedDetailRecord(targetId) && (!candidateId || !getCachedDetailRecord(candidateId))
+      ? targetId
+      : candidateId;
+  const {
+    systemSummary: summaryNode,
+    systemDetail: detailRecord,
+    isLoading: isLoadingSystemData,
+  } = useSystemData(resolvedId ?? targetId);
   const sysManifest = detailRecord?.kind === 'system' ? detailRecord.record : undefined;
+  const isSystemDetailReady = Boolean(explicitSystem || sysManifest || !isLoadingSystemData);
 
-  const entities = useMemo<SpatialEntityDefinition[]>(
+  const baseResult = useMemo(
     () =>
-      resolveSystemSceneEntities({
+      resolveBaseSystemSceneEntities({
         targetId,
         resolvedId,
         explicitSystem,
         sysManifest,
         summaryNode,
         matchedEntry,
-        activeCorpus: effectiveCorpus,
-        centerId,
-        focusedId,
-        selectedIds,
+        activeCorpus,
       }),
     [
       targetId,
@@ -100,11 +112,28 @@ export function useResolvedSystemEntitiesAndTarget(
       sysManifest,
       summaryNode,
       matchedEntry,
-      effectiveCorpus,
-      centerId,
-      focusedId,
-      selectedIds,
+      activeCorpus,
     ],
+  );
+
+  const extraEntities = useMemo(
+    () =>
+      resolveTargetedSystemExtraEntities({
+        base: baseResult,
+        activeCorpus: effectiveCorpus,
+        centerId,
+        focusedId,
+        selectedIds,
+      }),
+    [baseResult, effectiveCorpus, centerId, focusedId, selectedIds],
+  );
+
+  const entities = useMemo<SpatialEntityDefinition[]>(
+    () =>
+      extraEntities.length > 0
+        ? [...baseResult.baseEntities, ...extraEntities]
+        : baseResult.baseEntities,
+    [baseResult.baseEntities, extraEntities],
   );
 
   const targetCoords = useMemo(
@@ -112,7 +141,7 @@ export function useResolvedSystemEntitiesAndTarget(
     [entities, centerId, centerCoordinates],
   );
 
-  return { entities, targetCoords };
+  return { entities, targetCoords, isSystemDetailReady };
 }
 
 /**
@@ -144,6 +173,9 @@ export function useResolvedPlanetaryEntitiesAndTarget({
 
   const hostSystemId =
     matchedEntry?.s ?? (matchedEntry?.k === 1 ? matchedEntry.i : SOL_REFERENCE_TARGET.id);
+  const corpusReticleClassification = matchedEntry
+    ? resolveReticleType(matchedEntry)
+    : undefined;
 
   const { systemDetail } = useSystemData(hostSystemId, planetId);
 
@@ -153,6 +185,7 @@ export function useResolvedPlanetaryEntitiesAndTarget({
         planetId,
         planetName,
         classification,
+        corpusReticleClassification,
         radius,
         minPixelSize,
         fadeRange,
@@ -166,6 +199,7 @@ export function useResolvedPlanetaryEntitiesAndTarget({
       planetId,
       planetName,
       classification,
+      corpusReticleClassification,
       radius,
       minPixelSize,
       fadeRange,

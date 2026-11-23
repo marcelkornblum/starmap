@@ -269,4 +269,34 @@ describe('useCameraRigStoreSync', () => {
     });
     expect(useSettingsStore.getState().projection).toBe('3d');
   });
+
+  it('enforces orthographic control locks in useFrame when projection is top-down even if enableOrthographicProjection is false', () => {
+    useSettingsStore.setState({
+      enableOrthographicProjection: false,
+      projection: 'top-down',
+    });
+    useCameraStore.getState().setLocked(true);
+    liveThreeState.camera = orthoCamera;
+
+    renderSyncHook();
+    const { rigFrameCb } = getFrameCallbacks();
+
+    mockControls.enableRotate = true;
+    mockControls.enablePan = false;
+    mockControls.screenSpacePanning = false;
+    if (mockControls.mouseButtons) mockControls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+    if (mockControls.touches) mockControls.touches.ONE = THREE.TOUCH.ROTATE;
+    mockControls.object = camera;
+
+    act(() => {
+      rigFrameCb?.(liveThreeState as never, 0.016);
+    });
+
+    expect(mockControls.enableRotate).toBe(false);
+    expect(mockControls.enablePan).toBe(true);
+    expect(mockControls.screenSpacePanning).toBe(true);
+    expect(mockControls.mouseButtons?.LEFT).toBe(THREE.MOUSE.PAN);
+    expect(mockControls.touches?.ONE).toBe(THREE.TOUCH.PAN);
+    expect(mockControls.object).toBe(orthoCamera);
+  });
 });

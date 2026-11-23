@@ -12,18 +12,6 @@ export const GALACTIC_TO_ECLIPTIC_TILT_DEG = SYSTEM_FRAME.planeInclinationDeg ??
 export const DEFAULT_PLANETARY_OBLIQUITY_DEG =
   PLANETARY_FRAME.planeInclinationDeg ?? EARTH_OBLIQUITY_DEG;
 
-/** Duration of a single stage in a cross-scale transition, in seconds. */
-export const CROSS_SCALE_STAGE_DURATION_SEC = 0.9;
-
-/** Total cross-scale camera transition duration (1.5× medium intra-view duration), in seconds. */
-export const CROSS_SCALE_TOTAL_DURATION_SEC = 1.8;
-
-/** Normalised transition window during which orbital-plane orientation tilts. */
-export const CROSS_SCALE_ORIENTATION_WINDOW: readonly [number, number] = [0, 0.5];
-
-/** Normalised transition window during which target translation and distance zoom occur. */
-export const CROSS_SCALE_TRANSLATION_WINDOW: readonly [number, number] = [0.2, 1.0];
-
 /** Parameterised timing, windowing, scale, and distance config for cross-scale choreography. */
 export interface CrossScaleChoreographyConfig {
   readonly totalDurationSec: number;
@@ -46,6 +34,8 @@ export interface CrossScaleChoreographyConfig {
   readonly preloadHoldCeiling: number;
   readonly preloadCreepTimeConstantSec: number;
   readonly preloadMaxHoldSec: number;
+  readonly previewRadiusFactor: number;
+  readonly minPreviewRadius: number;
 }
 
 /** Default cross-scale choreography configuration (2.4s total: 0.4s preview + 1.0s out + 1.0s in). */
@@ -70,6 +60,8 @@ export const DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG: CrossScaleChoreographyConf
   preloadHoldCeiling: 0.94,
   preloadCreepTimeConstantSec: 1.8,
   preloadMaxHoldSec: 4.0,
+  previewRadiusFactor: 0.16,
+  minPreviewRadius: 0.6,
 };
 
 /** Resolved stage durations in seconds for a cross-scale transition. */
@@ -292,4 +284,16 @@ export function computeCrossScalePreviewHandoffOpacity(
   config: CrossScaleChoreographyConfig = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
 ): number {
   return 1 - evaluateWindowedProgress(stageProgress, config.arrivalPreviewFadeWindow);
+}
+
+/**
+ * Computes the clamped maximum radius of the target reference-plane preview disc
+ * from the active viewing distance and choreography config.
+ */
+export function computePlanePreviewMaxRadius(
+  distance: number,
+  config: CrossScaleChoreographyConfig = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+): number {
+  const safeDistance = Number.isFinite(distance) && distance > 0 ? distance : 0;
+  return Math.max(config.minPreviewRadius, safeDistance * config.previewRadiusFactor);
 }

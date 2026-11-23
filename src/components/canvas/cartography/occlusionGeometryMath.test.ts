@@ -87,4 +87,46 @@ describe('occlusionGeometryMath - Geometry Primitives & Grid', () => {
     });
     expect(empty.length).toBe(0);
   });
+
+  it('collects nearby items via collectNearby into caller-provided buffer without shrinking length', () => {
+    const grid = new ScreenSpatialGrid(50);
+    const nearA = {
+      id: 'near-a',
+      state: 'active' as const,
+      screenX: 25,
+      screenY: 25,
+      reticleRadius: 20,
+      starRadius: 3,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 100,
+    };
+    const nearB = {
+      ...nearA,
+      id: 'near-b',
+      screenX: 60,
+      screenY: 40,
+    };
+    const farC = {
+      ...nearA,
+      id: 'far-c',
+      screenX: 500,
+      screenY: 500,
+    };
+    grid.insert(nearA);
+    grid.insert(nearB);
+    grid.insert(farC);
+
+    const out = [farC, farC, farC, farC, farC];
+    const count = grid.collectNearby(30, 30, 50, out);
+
+    expect(count).toBe(2);
+    expect(out.length).toBe(5);
+    expect(out.slice(0, count).map((item) => item.id)).toEqual(['near-a', 'near-b']);
+
+    grid.clear();
+    const emptyCount = grid.collectNearby(30, 30, 50, out);
+    expect(emptyCount).toBe(0);
+    expect(out.length).toBe(5);
+  });
 });

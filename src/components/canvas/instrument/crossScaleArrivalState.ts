@@ -4,6 +4,10 @@ import {
   type CrossScaleChoreographyConfig,
   type SpatialScale,
 } from '../../../utils/referenceFrameOrientation';
+import {
+  getActiveChoreographyController,
+  type CrossScaleChoreographyController,
+} from './CrossScaleChoreographyContext';
 
 export type CrossScaleDirection = 'in' | 'out';
 
@@ -26,29 +30,27 @@ export interface TiltedArrivalEntryPose {
   readonly up: [number, number, number];
 }
 
-const ARRIVAL_ENTRY_IN_MULTIPLIER = 1.9;
-const ARRIVAL_ENTRY_OUT_MULTIPLIER = 0.45;
-
 const _scratchOffset = new THREE.Vector3();
 const _scratchUp = new THREE.Vector3();
 const _scratchAxis = new THREE.Vector3();
-
-let pendingArrival: CrossScaleArrivalDescriptor | null = null;
 
 /**
  * Stores a pending Stage 2 cross-scale arrival descriptor for the incoming scene controller.
  */
 export function setPendingCrossScaleArrival(
   arrival: CrossScaleArrivalDescriptor | null,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
 ): void {
-  pendingArrival = arrival;
+  controller.pendingArrival = arrival;
 }
 
 /**
  * Returns whether a pending cross-scale arrival descriptor is currently queued.
  */
-export function hasPendingCrossScaleArrival(): boolean {
-  return pendingArrival !== null;
+export function hasPendingCrossScaleArrival(
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): boolean {
+  return controller.pendingArrival !== null;
 }
 
 /**
@@ -57,39 +59,23 @@ export function hasPendingCrossScaleArrival(): boolean {
  */
 export function consumePendingCrossScaleArrival(
   scope: SpatialScale,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
 ): CrossScaleArrivalDescriptor | null {
-  if (!pendingArrival || pendingArrival.targetScope !== scope) {
+  if (!controller.pendingArrival || controller.pendingArrival.targetScope !== scope) {
     return null;
   }
-  const matched = pendingArrival;
-  pendingArrival = null;
+  const matched = controller.pendingArrival;
+  controller.pendingArrival = null;
   return matched;
 }
 
 /**
  * Clears any pending cross-scale arrival descriptor.
  */
-export function clearPendingCrossScaleArrival(): void {
-  pendingArrival = null;
-}
-
-/**
- * Computes the Stage 2 arrival entry camera position along the landing view ray.
- * - `'in'` begins farther back at `1.9 * landingDist` and glides in toward `landingPosition`.
- * - `'out'` begins closer in at `0.45 * landingDist` and pulls back to `landingPosition`.
- */
-export function computeCrossScaleArrivalEntryPosition(
-  landingPosition: readonly [number, number, number],
-  landingTarget: readonly [number, number, number],
-  direction: CrossScaleDirection,
-): [number, number, number] {
-  const scale =
-    direction === 'in' ? ARRIVAL_ENTRY_IN_MULTIPLIER : ARRIVAL_ENTRY_OUT_MULTIPLIER;
-  return [
-    landingTarget[0] + (landingPosition[0] - landingTarget[0]) * scale,
-    landingTarget[1] + (landingPosition[1] - landingTarget[1]) * scale,
-    landingTarget[2] + (landingPosition[2] - landingTarget[2]) * scale,
-  ];
+export function clearPendingCrossScaleArrival(
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  controller.pendingArrival = null;
 }
 
 /**

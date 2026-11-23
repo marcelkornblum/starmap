@@ -99,8 +99,9 @@ describe('cameraTransitionPoseMath', () => {
   });
 
   describe('evaluateTransitionEasing', () => {
-    it('defaults to easeOutCubic, supports criticallyDamped, and invokes custom functions', () => {
+    it('defaults to easeOutCubic, supports easeInQuad and criticallyDamped, and invokes custom functions', () => {
       expect(evaluateTransitionEasing(undefined, 0.5)).toBeCloseTo(0.875, 5);
+      expect(evaluateTransitionEasing('easeInQuad', 0.5)).toBeCloseTo(0.25, 5);
       expect(evaluateTransitionEasing('criticallyDamped', 0)).toBe(0);
       expect(evaluateTransitionEasing('criticallyDamped', 1)).toBe(1);
       const custom = vi.fn((t: number) => t * t);

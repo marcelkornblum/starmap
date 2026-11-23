@@ -24,7 +24,7 @@ import { useGalaxyAperture } from './useGalaxyAperture';
 import { useGalaxyFocusAndSelection } from './useGalaxyFocusAndSelection';
 import { useGalaxyPanels } from './useGalaxyPanels';
 import { useGalaxyStoreSync } from './useGalaxyStoreSync';
-import { useColdLoadFocusActive } from './useColdLoadCenterId';
+import { useScaleCenterResolution } from './useColdLoadCenterId';
 
 export interface UseGalaxyViewModelParams {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -102,14 +102,13 @@ export function useGalaxyViewModel({
 
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const hasExplicitFocus = Boolean(focus && urlFocusSlug && urlFocusSlug.length > 0);
-  const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
   const inFlightFocusSlug = useCameraStore((state) => state.inFlightFocusSlug);
-  const canvasFocusedSlugs = useCameraStore((state) => state.canvasFocusedSlugs);
+  const storePendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
 
   const optimisticFocusSlug =
     inFlightFocusSlug !== undefined
       ? inFlightFocusSlug
-      : (pendingCenterSlug ?? urlFocusSlug);
+      : (storePendingCenterSlug ?? urlFocusSlug);
   const effectiveHasExplicitFocus = Boolean(hasExplicitFocus || optimisticFocusSlug);
   const effectiveSearch = useMemo(() => {
     if (isExplicitLocation || !optimisticFocusSlug || optimisticFocusSlug === urlFocusSlug) {
@@ -155,11 +154,23 @@ export function useGalaxyViewModel({
     urlFocusSlug: optimisticFocusSlug, storeFocusedEntity, apertureCorpus, activeCorpus, storeSelected, layerIndex, loadedLayers, selectQuery,
   });
 
-  const hasExplicitSelection = Boolean(select !== undefined || searchParams.has('select'));
+  const isSearchSelectionSentinel =
+    effectiveSelectValues.length === 1 && effectiveSelectValues[0] === 'search';
+  const hasExplicitSelection =
+    !isSearchSelectionSentinel &&
+    Boolean(select !== undefined || searchParams.has('select'));
 
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
-  const hasExplicitCenterParam = Boolean(center ?? cameraState.center);
-  const isColdLoadFocus = useColdLoadFocusActive(hasExplicitCenterParam, optimisticFocusSlug);
+  const {
+    isColdLoadFocus,
+    pendingCenterSlug,
+    canvasFocusedSlugs,
+  } = useScaleCenterResolution({
+    center,
+    cameraState,
+    urlFocusSlug: optimisticFocusSlug,
+    clearPendingOnUrlSync: false,
+  });
 
   const centerEntity = useMemo(() => {
     if (!cameraState.center || parseCenterCoordinatesString(cameraState.center)) return null;

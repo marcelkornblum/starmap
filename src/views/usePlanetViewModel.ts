@@ -27,7 +27,7 @@ import {
   useResolvedPlanetDetails,
   type UseResolvedPlanetDetailsProps,
 } from './useResolvedPlanetDetails';
-import { useColdLoadCenter } from './useColdLoadCenterId';
+import { useScaleCenterResolution } from './useColdLoadCenterId';
 
 export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
   const { locationPathname, locationSearch, planetId: propPlanetId } = props;
@@ -67,11 +67,11 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
   const targetId = toUrlSlug(rawPlanetId ?? '') || urlPlanetSlug || EARTH_REFERENCE_TARGET.id;
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
-  const { effectiveCenterId, resolvedCenterCoordinates } = useColdLoadCenter(
+  const { effectiveCenterId, resolvedCenterCoordinates } = useScaleCenterResolution({
     center,
     cameraState,
     urlFocusSlug,
-  );
+  });
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
@@ -132,10 +132,14 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
     [planetaryBodies, focusedEntity, selectedEntities, cameraState],
   );
 
-  const breadcrumbs = buildPlanetViewBreadcrumbs(
-    focusedDetails,
-    planetaryBodies,
-    urlPlanetSlug,
+  const breadcrumbs = useMemo(
+    () =>
+      buildPlanetViewBreadcrumbs(
+        focusedDetails,
+        planetaryBodies,
+        urlPlanetSlug,
+      ),
+    [focusedDetails, planetaryBodies, urlPlanetSlug],
   );
 
   const lastGalaxySearch = useCameraStore((s) => s.lastGalaxySearch);
@@ -147,33 +151,51 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
     );
   }, [breadcrumbs, lastGalaxySearch]);
 
-  const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
-  const routeStops = extractUrlRouteStops(routeSearchQuery, 'planet');
-  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
-  const activeJourney = routeStops
-    ? buildJourneyPlan({
-        stops: routeStops,
-        selectedOptionId: routeOptionId,
-        corpus: activeCorpus,
-        viewScope: 'planet',
-        currentPathname: pathname,
-        currentSearch: search,
-      })
-    : null;
+  const { routeStops, activeJourney } = useMemo(() => {
+    if (!route && !search.includes('route=')) {
+      return { routeStops: null, activeJourney: null };
+    }
+    const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
+    const stops = extractUrlRouteStops(routeSearchQuery, 'planet');
+    const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
+    const journey = stops
+      ? buildJourneyPlan({
+          stops,
+          selectedOptionId: routeOptionId,
+          corpus: activeCorpus,
+          viewScope: 'planet',
+          currentPathname: pathname,
+          currentSearch: search,
+        })
+      : null;
+    return { routeStops: stops, activeJourney: journey };
+  }, [route, search, activeCorpus, pathname]);
 
   const layerParam = layer ?? searchParams.get('layer');
-  const loadedLayers = useLoadedLayerManifests(layer ? `?layer=${encodeURIComponent(layer)}` : search);
-  const activeLayerCard = resolveActiveLayerCard({
-    layerParam,
-    currentPathname: pathname,
-    currentSearch: search,
-    corpus: activeCorpus,
-    layers: loadedLayers,
-  });
+  const layerManifestQuery = layerParam ? `?layer=${encodeURIComponent(layerParam)}` : '';
+  const loadedLayers = useLoadedLayerManifests(layerManifestQuery);
+  const layerCardSearch = layerParam ? search : '';
+  const activeLayerCard = useMemo(
+    () =>
+      layerParam
+        ? resolveActiveLayerCard({
+            layerParam,
+            currentPathname: pathname,
+            currentSearch: layerCardSearch,
+            corpus: activeCorpus,
+            layers: loadedLayers,
+          })
+        : null,
+    [layerParam, pathname, layerCardSearch, activeCorpus, loadedLayers],
+  );
 
   const handleSelectEntity = useCallback(
     (id: string | null) => {
+      const cam = useCameraStore.getState();
       if (id) {
+        const slug = toUrlSlug(id);
+        cam.recordCanvasFocus(slug ? [slug, id] : [id]);
+        cam.setPendingCenterSlug(null);
         if (useUIStore.getState().detailsDetent === 'collapsed') {
           useUIStore.getState().setDetailsDetent('peek');
         }
@@ -190,19 +212,23 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
             }),
           ).catch(() => {});
         }
-      } else if (router && typeof router.navigate === 'function') {
-        void Promise.resolve(
-          router.navigate({
-            to: '/planet/$planetId',
-            params: { planetId: targetId },
-            search: (prev: StarmapSearchParams = {}) => {
-              const next = { ...prev };
-              delete next.focus;
-              return next;
-            },
-            replace: true,
-          }),
-        ).catch(() => {});
+      } else {
+        cam.clearCanvasFocus();
+        cam.setPendingCenterSlug(null);
+        if (router && typeof router.navigate === 'function') {
+          void Promise.resolve(
+            router.navigate({
+              to: '/planet/$planetId',
+              params: { planetId: targetId },
+              search: (prev: StarmapSearchParams = {}) => {
+                const next = { ...prev };
+                delete next.focus;
+                return next;
+              },
+              replace: true,
+            }),
+          ).catch(() => {});
+        }
       }
     },
     [router, targetId],

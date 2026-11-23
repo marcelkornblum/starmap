@@ -1,4 +1,4 @@
-export type CameraEasingCurveId = 'easeOutCubic';
+export type CameraEasingCurveId = 'easeOutCubic' | 'easeInQuad';
 
 export const DEFAULT_CAMERA_EASING_CURVE: CameraEasingCurveId = 'easeOutCubic';
 
@@ -50,8 +50,14 @@ export function easeInQuad(t: number): number {
   return clamped * clamped;
 }
 
-export function evaluateCameraEasing(_curve: CameraEasingCurveId, t: number): number {
-  return easeOutCubic(t);
+/**
+ * Evaluates a named camera easing curve at normalised progress `t` in `[0, 1]`.
+ */
+export function evaluateCameraEasing(
+  t: number,
+  curve: CameraEasingCurveId = DEFAULT_CAMERA_EASING_CURVE,
+): number {
+  return curve === 'easeInQuad' ? easeInQuad(t) : easeOutCubic(t);
 }
 
 export function interpolateCameraDistance(

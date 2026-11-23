@@ -99,6 +99,7 @@ export const DetailsPanel = memo(function DetailsPanel({
         directionsHref={details.directionsHref}
         centerHref={details.centerHref}
         systemDetailsHref={details.systemDetailsHref}
+        coordinatesPc={details.coordinatesPc}
       />
       <DetailsHazardsSection hazards={details.hazards} />
       <DetailsDeferredPartialLower

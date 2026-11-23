@@ -7,6 +7,7 @@ import { useUIStore } from '../../../stores/useUIStore';
 import { computeOpticalCenterOffsetPx } from '../../../utils/viewportSafeRect';
 import { easeOutCubic } from '../../../utils/cameraEasing';
 import { prefersReducedMotion } from '../../../utils/reducedMotion';
+import { useCrossScaleChoreography } from './CrossScaleChoreographyContext';
 
 const VIEW_OFFSET_TRANSITION_DURATION_SEC = 0.35;
 const VIEW_OFFSET_ZERO_EPSILON_PX = 0.25;
@@ -40,20 +41,25 @@ function applyCameraViewOffset(
 /**
  * Synchronises the optical-centre view offset from `useUIStore.viewportSafeRect`
  * across both perspective and orthographic cameras, smoothly easing over 0.35s
- * unless `prefersReducedMotion()` is active.
+ * unless `prefersReducedMotion()` is active. Persists active offsets across
+ * cross-scale `CameraRig` swaps via `CrossScaleChoreographyContext`.
  */
 export function useCameraRigViewOffset(options: UseCameraRigViewOffsetOptions): void {
   const { perspCamRef, orthoCamRef, sizeWidth, sizeHeight, invalidate } = options;
 
+  const choreography = useCrossScaleChoreography();
   const viewportSafeRect = useUIStore((s) => s.viewportSafeRect);
   const { offsetX, offsetY } = computeOpticalCenterOffsetPx(viewportSafeRect);
 
-  const curXRef = useRef(0);
-  const curYRef = useRef(0);
-  const startXRef = useRef(0);
-  const startYRef = useRef(0);
-  const targetXRef = useRef(0);
-  const targetYRef = useRef(0);
+  const initialX = choreography.viewOffset.initialized ? choreography.viewOffset.curX : 0;
+  const initialY = choreography.viewOffset.initialized ? choreography.viewOffset.curY : 0;
+
+  const curXRef = useRef(initialX);
+  const curYRef = useRef(initialY);
+  const startXRef = useRef(initialX);
+  const startYRef = useRef(initialY);
+  const targetXRef = useRef(initialX);
+  const targetYRef = useRef(initialY);
   const elapsedSecRef = useRef(0);
   const isAnimatingRef = useRef(false);
 
@@ -78,6 +84,7 @@ export function useCameraRigViewOffset(options: UseCameraRigViewOffsetOptions): 
     if (prefersReducedMotion()) {
       curXRef.current = offsetX;
       curYRef.current = offsetY;
+      choreography.setViewOffset(offsetX, offsetY);
       elapsedSecRef.current = 0;
       isAnimatingRef.current = false;
 
@@ -91,10 +98,11 @@ export function useCameraRigViewOffset(options: UseCameraRigViewOffsetOptions): 
 
     startXRef.current = curXRef.current;
     startYRef.current = curYRef.current;
+    choreography.setViewOffset(curXRef.current, curYRef.current);
     elapsedSecRef.current = 0;
     isAnimatingRef.current = true;
     invalidateRef.current?.();
-  }, [offsetX, offsetY, perspCamRef, orthoCamRef]);
+  }, [offsetX, offsetY, perspCamRef, orthoCamRef, choreography]);
 
   useEffect(() => {
     const w = sizeWidth ?? 0;
@@ -132,6 +140,8 @@ export function useCameraRigViewOffset(options: UseCameraRigViewOffsetOptions): 
       isAnimatingRef.current = false;
     }
 
+    choreography.setViewOffset(curXRef.current, curYRef.current);
+
     const w = sizeWidthRef.current;
     const h = sizeHeightRef.current;
     applyCameraViewOffset(perspCamRef.current, w, h, curXRef.current, curYRef.current);
@@ -141,13 +151,4 @@ export function useCameraRigViewOffset(options: UseCameraRigViewOffsetOptions): 
       invalidateRef.current?.();
     }
   }, FRAME_PRIORITY.cameraRig);
-
-  useEffect(() => {
-    const perspCam = perspCamRef.current;
-    const orthoCam = orthoCamRef.current;
-    return () => {
-      perspCam?.clearViewOffset();
-      orthoCam?.clearViewOffset();
-    };
-  }, [perspCamRef, orthoCamRef]);
 }

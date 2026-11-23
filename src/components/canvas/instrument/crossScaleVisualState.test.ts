@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { easeOutCubic } from '../../../utils/cameraEasing';
+import { CrossScaleChoreographyController } from './CrossScaleChoreographyContext';
 import {
   clearCrossScalePlanePreview,
   getCrossScalePlanePreviewState,
@@ -166,5 +167,26 @@ describe('crossScaleVisualState', () => {
     expect(state.mode).toBe('idle');
     expect(state.radiusProgress).toBe(0);
     expect(state.opacity).toBe(0);
+  });
+
+  it('isolates scene scale and plane preview state per CrossScaleChoreographyController instance', () => {
+    const controllerA = new CrossScaleChoreographyController();
+    const controllerB = new CrossScaleChoreographyController();
+
+    setCrossScaleSceneScale(0.35, controllerA);
+    setCrossScalePlanePreview(
+      {
+        position: [1, 2, 3],
+        inclinationRad: 0.4,
+        ascendingNodeRad: 0.1,
+        maxRadius: 9,
+      },
+      controllerA,
+    );
+
+    expect(getCrossScaleSceneScale(controllerA)).toBe(0.35);
+    expect(getCrossScaleSceneScale(controllerB)).toBe(1);
+    expect(getCrossScalePlanePreviewState(controllerA).active).toBe(true);
+    expect(getCrossScalePlanePreviewState(controllerB).active).toBe(false);
   });
 });

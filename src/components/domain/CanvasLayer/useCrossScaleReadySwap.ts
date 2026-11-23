@@ -11,6 +11,17 @@ import { isMatchingSceneTarget } from './crossScaleStageHelpers';
 
 const READY_SWAP_FALLBACK_TIMEOUT_MS = 800;
 
+function extractPendingLocationPathname(state: unknown): string | undefined {
+  if (typeof state !== 'object' || state === null || !('pendingLocation' in state)) {
+    return undefined;
+  }
+  const pending = state.pendingLocation;
+  if (typeof pending !== 'object' || pending === null || !('pathname' in pending)) {
+    return undefined;
+  }
+  return typeof pending.pathname === 'string' ? pending.pathname : undefined;
+}
+
 export function useRequestedSpatialTarget(
   fallbackScope: SpatialScale,
   fallbackTargetId: string | undefined,
@@ -28,9 +39,7 @@ export function useRequestedSpatialTarget(
     getPendingSpatialRouteTarget,
   );
   const currentLocationTarget = parseSpatialRouteTarget(location.pathname);
-  const pendingLocationPathname = (
-    router?.state as { pendingLocation?: { pathname?: string } } | undefined
-  )?.pendingLocation?.pathname;
+  const pendingLocationPathname = extractPendingLocationPathname(router?.state);
   const pendingLocationTarget = pendingLocationPathname
     ? parseSpatialRouteTarget(pendingLocationPathname)
     : null;

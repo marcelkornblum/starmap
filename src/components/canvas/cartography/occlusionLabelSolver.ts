@@ -42,6 +42,8 @@ function statePriority(state: CelestialFootprint['state']): number {
   }
 }
 
+const _scratchNearby: CelestialFootprint[] = [];
+
 /**
  * Comprehensive Label Occlusion, Displacement & Proximity Culling:
  * 1. Screen-space displacement along radial leader stems.
@@ -93,21 +95,23 @@ export function solveLabelOcclusion(
     let collidesWithReticle = false;
     let collidesWithHigherPriorityLabel = false;
 
-    grid.forEachNearby(cCenterX, cCenterY, searchRadius, (other) => {
-      if (!other.visible || other.id === target.id) return;
+    const nearbyCount = grid.collectNearby(cCenterX, cCenterY, searchRadius, _scratchNearby);
+    for (let nIdx = 0; nIdx < nearbyCount; nIdx++) {
+      const other = _scratchNearby[nIdx];
+      if (!other.visible || other.id === target.id) continue;
 
       if (other.hasReticle && diamondIntersectsAABB(other.screenX, other.screenY, other.reticleRadius, cBox)) {
         collidesWithReticle = true;
-        return false;
+        break;
       }
 
       if (other.id !== target.id && other.labelBox && boxesIntersect(cBox, other.labelBox)) {
         const otherPrio = statePriority(other.state);
-        if (otherPrio === 0) return;
+        if (otherPrio === 0) continue;
 
         if (otherPrio > targetPrio) {
           collidesWithHigherPriorityLabel = true;
-          return false;
+          break;
         }
 
         if (otherPrio === targetPrio) {
@@ -115,14 +119,14 @@ export function solveLabelOcclusion(
           const targetDist = target.camDist ?? 0;
           if (otherDist < targetDist) {
             collidesWithHigherPriorityLabel = true;
-            return false;
+            break;
           } else if (otherDist === targetDist && (other.id < target.id ? -1 : other.id > target.id ? 1 : 0) < 0) {
             collidesWithHigherPriorityLabel = true;
-            return false;
+            break;
           }
         }
       }
-    });
+    }
 
     if (collidesWithReticle || collidesWithHigherPriorityLabel) {
       continue;

@@ -3,7 +3,7 @@ import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { CanvasLayer, preloadWebGLHost } from './CanvasLayer';
-import * as sceneEntryLoader from './sceneEntryLoader';
+import * as scalePreloader from '../../../services/navigation/scalePreloader';
 import { canMountWebGLCanvas } from './webglSupport';
 import { _resetWebGLSupportedForTesting } from './webglSupport.testing';
 import {
@@ -22,6 +22,12 @@ import {
   useOptionalSpatialEntityStoreApi,
 } from '../../canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
+import {
+  CrossScaleChoreographyController,
+  useCrossScaleChoreography,
+} from '../../canvas/instrument/CrossScaleChoreographyContext';
+
+const observedChoreographyControllers: CrossScaleChoreographyController[] = [];
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -54,6 +60,8 @@ vi.mock('../../canvas/scenes/PlanetarySceneEntry', () => {
     onSelectEntity?: (id: string | null) => void;
   }) => {
     const store = useOptionalSpatialEntityStoreApi();
+    const choreographyController = useCrossScaleChoreography();
+    observedChoreographyControllers.push(choreographyController);
     return createElement('div', {
       'data-testid': 'mock-planetary-scene',
       'data-has-inspect': String(Boolean(props.onInspectSatellite)),
@@ -108,6 +116,7 @@ describe('CanvasLayer Domain Component', () => {
   let originalGetContext: typeof HTMLCanvasElement.prototype.getContext;
 
   beforeEach(() => {
+    observedChoreographyControllers.length = 0;
     originalGetContext = HTMLCanvasElement.prototype.getContext;
     act(() => {
       useCanvasStageStore.getState().resetCanvasStageStore();
@@ -466,7 +475,7 @@ describe('CanvasLayer Domain Component', () => {
 
     it('preloadWebGLHost eagerly preloads CanvasWebGLHost and scene entry only when WebGL is supported', () => {
       const preloadSpy = vi
-        .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+        .spyOn(scalePreloader, 'preloadSceneEntry')
         .mockResolvedValue(undefined);
 
       preloadWebGLHost('system');
@@ -482,6 +491,28 @@ describe('CanvasLayer Domain Component', () => {
 
       preloadWebGLHost('system');
       expect(preloadSpy).toHaveBeenCalledWith('system');
+    });
+
+    it('provides an isolated CrossScaleChoreographyController per CanvasWebGLHost instance', async () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      render(
+        <div>
+          <CanvasLayer scope="planet" targetId="earth" testId="canvas-one" />
+          <CanvasLayer scope="planet" targetId="mars" testId="canvas-two" />
+        </div>,
+      );
+
+      const scenes = await screen.findAllByTestId('mock-planetary-scene');
+      expect(scenes).toHaveLength(2);
+      expect(observedChoreographyControllers).toHaveLength(2);
+      expect(observedChoreographyControllers[0]).not.toBe(observedChoreographyControllers[1]);
     });
   });
 });

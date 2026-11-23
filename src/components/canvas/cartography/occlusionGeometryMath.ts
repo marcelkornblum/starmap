@@ -163,4 +163,34 @@ export class ScreenSpatialGrid {
       }
     }
   }
+
+  /**
+   * Collects nearby items into caller-provided `out` without shrinking `out.length` or allocating.
+   */
+  public collectNearby(
+    x: number,
+    y: number,
+    radius: number,
+    out: CelestialFootprint[],
+  ): number {
+    const minCx = Math.floor((x - radius) / this.cellSize);
+    const maxCx = Math.floor((x + radius) / this.cellSize);
+    const minCy = Math.floor((y - radius) / this.cellSize);
+    const maxCy = Math.floor((y + radius) / this.cellSize);
+
+    let count = 0;
+    for (let cx = minCx; cx <= maxCx; cx++) {
+      for (let cy = minCy; cy <= maxCy; cy++) {
+        const key = this.hash(cx, cy);
+        const arr = this.cells.get(key);
+        if (arr && arr.length > 0) {
+          for (let i = 0; i < arr.length; i++) {
+            out[count] = arr[i];
+            count++;
+          }
+        }
+      }
+    }
+    return count;
+  }
 }

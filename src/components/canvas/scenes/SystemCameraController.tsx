@@ -1,6 +1,7 @@
 import type React from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import { useOptionalSpatialEntityStoreApi } from '../entity/SpatialEntityContext';
@@ -17,9 +18,6 @@ import {
 } from './galacticCameraHelpers';
 import { startCrossScaleArrivalGlide } from './crossScaleArrivalHelpers';
 
-const useIsomorphicLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-
 export interface SystemCameraControllerProps {
   readonly scope?: 'system' | 'planet';
   readonly position: readonly [number, number, number];
@@ -27,6 +25,7 @@ export interface SystemCameraControllerProps {
   readonly up: readonly [number, number, number];
   readonly fov?: number;
   readonly hasExplicitCenter?: boolean;
+  readonly isTargetHydrated?: boolean;
 }
 
 export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
@@ -36,19 +35,21 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   up,
   fov,
   hasExplicitCenter = true,
+  isTargetHydrated = true,
 }) => {
   const camera = useThree((s) => s.camera);
   const invalidate = useThree((s) => s.invalidate);
   const rawControls = useThree((s) => s.controls);
   const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
   const outerStore = useOptionalSpatialEntityStoreApi();
-  const { transitionTo, transitionToPose } = useCameraTransition();
+  const { transitionTo, transitionToPose, cancelTransition, isTransitioning } = useCameraTransition();
   const recenterTick = useCameraStore((s) => s.recenterTick);
 
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevTickRef = useRef<number>(-1);
   const prevControlsRef = useRef<OrbitControlsLike | undefined>(undefined);
   const prevHasExplicitCenterRef = useRef<boolean>(hasExplicitCenter);
+  const awaitingColdHydrationRef = useRef<boolean>(!isTargetHydrated);
   const hasAppliedControlsRef = useRef(false);
   const isArrivalInFlightRef = useRef(false);
 
@@ -107,8 +108,16 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
       return;
     }
 
-    if (isArrivalInFlightRef.current && isTargetSame && isTickSame) {
+    if (isArrivalInFlightRef.current) {
+      prevTargetRef.current = [tgtX, tgtY, tgtZ];
+      prevTickRef.current = recenterTick;
       prevControlsRef.current = controls;
+      prevHasExplicitCenterRef.current = hasExplicitCenter;
+      return;
+    }
+
+    if (!isInitialMount && isTargetSame && !isTickSame && isControlsSame && isTransitioning()) {
+      prevTickRef.current = recenterTick;
       prevHasExplicitCenterRef.current = hasExplicitCenter;
       return;
     }
@@ -167,21 +176,35 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
       return;
     }
 
+    if (!isInitialMount && awaitingColdHydrationRef.current && !isTargetHydrated) {
+      prevControlsRef.current = controls;
+      prevHasExplicitCenterRef.current = hasExplicitCenter;
+      return;
+    }
+
+    const isColdHydrationSnap =
+      !isInitialMount && awaitingColdHydrationRef.current && isTargetHydrated;
+    if (isTargetHydrated) {
+      awaitingColdHydrationRef.current = false;
+    }
+
     if (
       isInitialMount ||
+      isColdHydrationSnap ||
       (!hasAppliedControlsRef.current &&
         !useUIStore.getState().isCameraTransitioning &&
         controls &&
         isTargetSame &&
         isTickSame)
     ) {
+      cancelTransition();
       const applied = applyImmediateCameraPose(
         camera,
         controls,
         [posX, posY, posZ],
         [tgtX, tgtY, tgtZ],
         [upX, upY, upZ],
-        isInitialMount ? 1 : getCameraZoom(camera),
+        isInitialMount || isColdHydrationSnap ? 1 : getCameraZoom(camera),
         fov,
       );
       if (applied) hasAppliedControlsRef.current = true;
@@ -198,7 +221,6 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
       onComplete: () => {
         hasAppliedControlsRef.current = Boolean(controls);
         syncPoseToStore([tgtX, tgtY, tgtZ]);
-        invalidate?.();
       },
     });
 
@@ -219,6 +241,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     fov,
     scope,
     hasExplicitCenter,
+    isTargetHydrated,
     recenterTick,
     camera,
     controls,
@@ -227,6 +250,8 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     syncPoseToStore,
     transitionTo,
     transitionToPose,
+    cancelTransition,
+    isTransitioning,
   ]);
 
   return null;

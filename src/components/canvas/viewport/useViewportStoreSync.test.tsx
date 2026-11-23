@@ -238,4 +238,40 @@ describe('useViewportStoreSync hook', () => {
 
     expect(localStore.getState().focusedId).toBe('HYG-10847');
   });
+
+  it('synchronizes local multi-selection and multi-focus outward to outerStore', () => {
+    localStore.getState().registerEntity({
+      id: 'star-2',
+      name: 'Star 2',
+      classification: 'star',
+      position: [20, 0, 0],
+    });
+
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      localStore.getState().setSelectedIds(['star-1', 'star-2']);
+    });
+
+    expect(outerStore.getState().selectedIds).toEqual(new Set(['star-1', 'star-2']));
+    expect(outerStore.getState().entities['star-2']).toBeDefined();
+
+    act(() => {
+      localStore.getState().setFocusedIds(['star-1', 'star-2']);
+    });
+
+    expect(outerStore.getState().focusedIds).toEqual(new Set(['star-1', 'star-2']));
+
+    act(() => {
+      localStore.getState().setSelectedIds([]);
+    });
+
+    expect(outerStore.getState().selectedIds.size).toBe(0);
+    expect(outerStore.getState().selectedId).toBeNull();
+  });
 });

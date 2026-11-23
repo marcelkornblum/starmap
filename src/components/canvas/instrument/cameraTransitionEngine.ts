@@ -9,6 +9,7 @@ import {
   createTransitionOrientationState,
   initOrientationTransitionState,
 } from './cameraTransitionOrientationMath';
+import { createControlsFlightGuard } from './cameraTransitionControlsGuard';
 import {
   advanceDynamicTransitionProgress,
   applyOpticalTransitionValues,
@@ -23,15 +24,6 @@ import {
   type CameraTransitionPose,
   type TransitionControlsLike,
   type TransitionOpticsState,
-} from './cameraTransitionPoseMath';
-
-export type {
-  Vector3Input,
-  CameraTransitionEasing,
-  CameraTransitionOptions,
-  CameraTransitionPose,
-  TransitionControlsLike,
-  CameraTransitionApi,
 } from './cameraTransitionPoseMath';
 
 const MAX_FRAME_DELTA_SEC = 0.05;
@@ -50,8 +42,7 @@ export class CameraTransitionController {
   private currentProgress = 0;
   private duration = DEFAULT_CAMERA_TRANSITION_DURATION_SEC;
   private options?: CameraTransitionOptions;
-  private activeControls?: TransitionControlsLike;
-  private prevEnableDamping?: boolean;
+  private controlsGuard = createControlsFlightGuard(() => this.isTransitioningState);
 
   private startTarget = new THREE.Vector3();
   private endTarget = new THREE.Vector3();
@@ -86,7 +77,7 @@ export class CameraTransitionController {
     this.isTransitioningState = false;
     this.pendingStart = false;
     this.currentProgress = 0;
-    this.restoreAndSettleControls();
+    this.restoreAndSettleControls(undefined, true);
     const onCancel = this.options?.onCancel;
     this.options = undefined;
     onCancel?.();
@@ -114,9 +105,8 @@ export class CameraTransitionController {
   ): void {
     if (this.isTransitioningState) this.cancel();
 
-    // Pause damping and drain residual OrbitControls inertia before capturing start pose.
     if (controls) {
-      this.pauseControlsDamping(controls);
+      this.controlsGuard.pauseForFlight(controls);
       controls.update?.();
     }
 
@@ -156,7 +146,7 @@ export class CameraTransitionController {
     if (prefersReducedMotion() || duration <= 0) {
       if (controls?.target instanceof THREE.Vector3) controls.target.copy(this.endTarget);
       this.applyFinalPose(camera);
-      this.restoreAndSettleControls(controls);
+      this.restoreAndSettleControls(controls, options?.settleControlsOnComplete !== false);
       options?.onComplete?.();
       return;
     }
@@ -170,14 +160,7 @@ export class CameraTransitionController {
     now: number = performance.now(),
   ): boolean {
     if (!this.isTransitioningState) return false;
-    if (controls && this.activeControls !== controls) {
-      if (this.activeControls && this.prevEnableDamping !== undefined) {
-        this.activeControls.enableDamping = this.prevEnableDamping;
-      }
-      this.activeControls = undefined;
-      this.prevEnableDamping = undefined;
-      this.pauseControlsDamping(controls);
-    }
+    this.controlsGuard.syncActiveControls(controls);
     if (this.pendingStart) {
       this.startTime = now;
       this.lastUpdateTime = now;
@@ -206,33 +189,17 @@ export class CameraTransitionController {
       progress = Math.min(elapsed / Math.max(this.duration, MIN_FLIGHT_DURATION_SEC), 1.0);
     }
     const easing = this.options?.easing;
-    const tOrient = evaluateWindowedTransitionEasing(
-      easing,
-      progress,
-      this.options?.orientationWindow,
-    );
-    const tTrans = evaluateWindowedTransitionEasing(
-      easing,
-      progress,
-      this.options?.translationWindow,
-    );
+    const tOrient = evaluateWindowedTransitionEasing(easing, progress, this.options?.orientationWindow);
+    const tTrans = evaluateWindowedTransitionEasing(easing, progress, this.options?.translationWindow);
 
     this.scratchCurrentTarget.lerpVectors(this.startTarget, this.endTarget, tTrans);
     const d = interpolateCameraDistance(this.startDist, this.endDist, tTrans, this.useLogDist);
-    applyOrientationTransitionValues(
-      camera,
-      tOrient,
-      this.orientation,
-      this.scratchDir,
-      this.scratchCurrentUp,
-    );
+    applyOrientationTransitionValues(camera, tOrient, this.orientation, this.scratchDir, this.scratchCurrentUp);
     this.scratchCurrentCamPos.copy(this.scratchCurrentTarget).addScaledVector(this.scratchDir, d);
     applyOpticalTransitionValues(camera, tTrans, this.optics);
 
-    const activeCtrl = controls ?? this.activeControls;
-    if (activeCtrl?.target instanceof THREE.Vector3) {
-      activeCtrl.target.copy(this.scratchCurrentTarget);
-    }
+    const activeCtrl = controls ?? this.controlsGuard.getActiveControls();
+    if (activeCtrl?.target instanceof THREE.Vector3) activeCtrl.target.copy(this.scratchCurrentTarget);
     camera.position.copy(this.scratchCurrentCamPos);
     camera.lookAt(this.scratchCurrentTarget);
 
@@ -256,7 +223,7 @@ export class CameraTransitionController {
     controls: TransitionControlsLike | undefined,
     now: number | undefined,
   ): void {
-    if (controls) this.pauseControlsDamping(controls);
+    if (controls) this.controlsGuard.pauseForFlight(controls);
     this.duration = duration;
     this.options = options;
     this.pendingStart = now === undefined;
@@ -266,25 +233,11 @@ export class CameraTransitionController {
     this.isTransitioningState = true;
   }
 
-  private pauseControlsDamping(controls: TransitionControlsLike): void {
-    this.activeControls = controls;
-    if (this.prevEnableDamping === undefined && controls.enableDamping !== undefined) {
-      this.prevEnableDamping = controls.enableDamping;
-      controls.enableDamping = false;
-    }
-  }
-
-  private restoreAndSettleControls(controls?: TransitionControlsLike): void {
-    const targetControls = controls ?? this.activeControls;
-    if (targetControls) {
-      // Commit settled pose while damping is paused, then restore enableDamping.
-      targetControls.update?.();
-      if (this.prevEnableDamping !== undefined) {
-        targetControls.enableDamping = this.prevEnableDamping;
-      }
-    }
-    this.activeControls = undefined;
-    this.prevEnableDamping = undefined;
+  private restoreAndSettleControls(
+    controls?: TransitionControlsLike,
+    settleControls = this.options?.settleControlsOnComplete !== false,
+  ): void {
+    this.controlsGuard.restoreAndSettle(controls, settleControls);
   }
 
   private resolveDuration(explicitDuration: number | undefined): number {

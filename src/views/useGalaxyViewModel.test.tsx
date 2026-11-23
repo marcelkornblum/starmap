@@ -139,6 +139,32 @@ describe('useGalaxyViewModel', () => {
     expect(store.getState().selectedIds.size).toBe(0);
   });
 
+  it('preserves active search selectedIds when ?q=<query>&select=search sentinel is in the URL', async () => {
+    const store = createSpatialEntityStore();
+    store.getState().registerEntity({
+      id: 'epsilon-indi',
+      name: 'Epsilon Indi',
+      position: [2.02, -1.86, -2.37],
+      classification: 'star',
+    });
+    store.getState().setSelectedIds(['epsilon-indi']);
+
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useGalaxyViewModel({
+            locationPathname: '/galaxy',
+            locationSearch: '?q=epsilon&select=search',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(Array.from(store.getState().selectedIds)).toEqual(['epsilon-indi']);
+    expect(hookResult.result.current.canvasEntities.map((e) => e.id)).toEqual(['epsilon-indi']);
+  });
+
   it('preserves root path "/" when router.state.location.pathname is "/" during focus change', async () => {
     vi.mocked(useRouter).mockReturnValue({
       navigate: navigateSpy,

@@ -10,6 +10,7 @@ import { AdaptiveQualityMonitor } from '../../canvas/AdaptiveQualityMonitor';
 import { SceneTokenBridge } from '../../canvas/SceneTokenBridge';
 import { SafeHtmlPortalOutlet } from '../../canvas/SafeHtml';
 import { CameraTransitionProvider } from '../../canvas/instrument/useCameraTransition';
+import { CrossScaleChoreographyProvider } from '../../canvas/instrument/CrossScaleChoreographyContext';
 import { getInitialCanvasDpr } from '../../../services/deviceTierService';
 import {
   SpatialEntityStoreContext,
@@ -95,20 +96,22 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
         <CanvasRouterBridgeContext.Provider value={outerRouter}>
           <SpatialEntityStoreContext.Provider value={outerStore}>
             <CameraTransitionProvider>
-              <SceneTokenBridge />
-              <AdaptiveQualityMonitor />
-              <CrossScaleStageHost
-                scope={scope}
-                targetId={targetId}
-                centerId={centerId}
-                centerCoordinates={centerCoordinates}
-                selectedEntities={selectedEntities}
-                cameraDistance={cameraDistance}
-                isSpatialSceneMounted={isSpatialSceneMounted}
-                onInspect={onInspect}
-                onSelect={onSelect}
-                onFocusChange={onFocusChange}
-              />
+              <CrossScaleChoreographyProvider>
+                <SceneTokenBridge />
+                <AdaptiveQualityMonitor />
+                <CrossScaleStageHost
+                  scope={scope}
+                  targetId={targetId}
+                  centerId={centerId}
+                  centerCoordinates={centerCoordinates}
+                  selectedEntities={selectedEntities}
+                  cameraDistance={cameraDistance}
+                  isSpatialSceneMounted={isSpatialSceneMounted}
+                  onInspect={onInspect}
+                  onSelect={onSelect}
+                  onFocusChange={onFocusChange}
+                />
+              </CrossScaleChoreographyProvider>
             </CameraTransitionProvider>
           </SpatialEntityStoreContext.Provider>
         </CanvasRouterBridgeContext.Provider>

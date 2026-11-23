@@ -76,7 +76,7 @@ const PlanetSceneViewport: React.FC<PlanetSceneViewportProps> = ({
 const PlanetSceneFromLookup: React.FC<PlanetSceneProps> = ({
   planetId = EARTH_REFERENCE_TARGET.id,
   planetName,
-  classification = 'terrestrial',
+  classification,
   radius = 1.0,
   minPixelSize = 24,
   fadeRange = 16,
@@ -88,25 +88,26 @@ const PlanetSceneFromLookup: React.FC<PlanetSceneProps> = ({
   onSelectEntity,
   debugHitarea = false,
 }) => {
-  const { resolvedName, allEntities, targetCoords } = useResolvedPlanetaryEntitiesAndTarget({
-    planetId,
-    planetName,
-    classification,
-    radius,
-    minPixelSize,
-    fadeRange,
-    planet,
-    explicitSatellites,
-    centerId,
-    centerCoordinates,
-  });
+  const { resolvedName, resolvedClassification, allEntities, targetCoords } =
+    useResolvedPlanetaryEntitiesAndTarget({
+      planetId,
+      planetName,
+      classification,
+      radius,
+      minPixelSize,
+      fadeRange,
+      planet,
+      explicitSatellites,
+      centerId,
+      centerCoordinates,
+    });
 
   return (
     <PlanetSceneViewport
       resolvedName={resolvedName}
       allEntities={allEntities}
       targetCoords={targetCoords}
-      classification={classification}
+      classification={resolvedClassification}
       radius={radius}
       minPixelSize={minPixelSize}
       fadeRange={fadeRange}
@@ -122,7 +123,7 @@ const PlanetSceneWithEntities: React.FC<
 > = ({
   planetId = EARTH_REFERENCE_TARGET.id,
   planetName,
-  classification = 'terrestrial',
+  classification,
   radius = 1.0,
   minPixelSize = 24,
   fadeRange = 16,
@@ -133,16 +134,20 @@ const PlanetSceneWithEntities: React.FC<
   onSelectEntity,
   debugHitarea = false,
 }) => {
-  const { resolvedName, targetCoords } = useMemo(
+  const { resolvedName, resolvedClassification, targetCoords } = useMemo(
     () => ({
       resolvedName: planetName ?? (planetId.charAt(0).toUpperCase() + planetId.slice(1)),
+      resolvedClassification:
+        classification ??
+        resolvedEntities.find((e) => e.id === planetId)?.classification ??
+        'terrestrial',
       targetCoords: resolveTargetCoordsFromEntities(
         resolvedEntities,
         centerId,
         centerCoordinates,
       ),
     }),
-    [planetName, planetId, resolvedEntities, centerId, centerCoordinates],
+    [planetName, planetId, classification, resolvedEntities, centerId, centerCoordinates],
   );
 
   return (
@@ -150,7 +155,7 @@ const PlanetSceneWithEntities: React.FC<
       resolvedName={resolvedName}
       allEntities={resolvedEntities}
       targetCoords={targetCoords}
-      classification={classification}
+      classification={resolvedClassification}
       radius={radius}
       minPixelSize={minPixelSize}
       fadeRange={fadeRange}

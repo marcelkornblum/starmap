@@ -84,13 +84,51 @@ export function handleSpaNavigation(
   const currentCenter = targetCenter !== null ? getCurrentCenterParam(router) : null;
   const isSameCenter = targetCenter !== null && currentCenter === targetCenter;
 
+  const targetPathname = resolved.split('?')[0]?.split('#')[0] ?? '';
+  const currentPathname =
+    router?.state?.location?.pathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '');
+  const isPathnameChanging = targetPathname.length > 0 && targetPathname !== currentPathname;
+
   let navResult: unknown;
   if (router && typeof router.navigate === 'function') {
-    setPendingSpatialNavigationHref(resolved);
-    navResult = router.navigate({ href: resolved });
+    if (isPathnameChanging) {
+      setPendingSpatialNavigationHref(resolved);
+    }
+    try {
+      navResult = router.navigate({ href: resolved });
+    } catch (error) {
+      if (isPathnameChanging) {
+        setPendingSpatialNavigationHref(null);
+      }
+      throw error;
+    }
+    if (isPathnameChanging) {
+      if (isThenable(navResult)) {
+        void Promise.resolve(navResult)
+          .finally(() => {
+            setPendingSpatialNavigationHref(null);
+          })
+          .catch(() => {});
+      } else {
+        queueMicrotask(() => {
+          setPendingSpatialNavigationHref(null);
+        });
+      }
+    }
   } else if (router?.history?.push) {
-    setPendingSpatialNavigationHref(resolved);
-    router.history.push(resolved);
+    if (isPathnameChanging) {
+      setPendingSpatialNavigationHref(resolved);
+    }
+    try {
+      router.history.push(resolved);
+    } finally {
+      if (isPathnameChanging) {
+        queueMicrotask(() => {
+          setPendingSpatialNavigationHref(null);
+        });
+      }
+    }
   }
 
   if (targetCenter !== null) {

@@ -8,7 +8,11 @@ import { isSpatialRoutePathname } from '../../../utils/spatialRoute';
 import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { canMountWebGLCanvas } from './webglSupport';
 import type { CanvasWebGLHostProps } from './CanvasWebGLHost';
-import { preloadSceneEntry, type SpatialCanvasScope } from './sceneEntryLoader';
+import {
+  preloadSceneEntry,
+  type SpatialCanvasScope,
+} from '../../../services/navigation/scalePreloader';
+import './sceneEntryLoader';
 import styles from './CanvasLayer.module.css';
 
 let cachedHostLazy: React.LazyExoticComponent<React.ComponentType<CanvasWebGLHostProps>> | null =
@@ -87,7 +91,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   } = props;
 
   const router = useOptionalRouter();
-  const { pathname } = useSpaLocation();
+  const { pathname } = useSpaLocation(undefined, undefined, '/galaxy', false);
   const isRootCanvasMounted = useCanvasStageStore((s) => s.isRootCanvasMounted);
   const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
   const hasStageProps = useCanvasStageStore((s) => s.stageProps !== null);

@@ -1,8 +1,11 @@
+import type { AppRouterAdapter } from '../../../hooks/useSpaLocation';
 import type {
   GroupedSearchResults,
   SearchResultItem,
 } from '../../../services/search/searchTypes';
 import type { SearchCategoryFilter } from '../../../types/search';
+import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
+import { setPendingSpatialNavigationHref } from '../../../utils/spatialRoute';
 
 const FRAMING_GROUP_KEYS = [
   'stars',
@@ -95,4 +98,51 @@ export function isWithinFramedBounds(
     targetDelta <= TARGET_MATCH_TOLERANCE_PC &&
     Math.abs(distance - prev.distance) <= DISTANCE_MATCH_TOLERANCE_PC
   );
+}
+
+export function buildPreSearchReturnHref(pathname: string, search: string): string {
+  const normalizedSearch =
+    search.length > 0 && !search.startsWith('?') ? `?${search}` : search;
+  if (!normalizedSearch || normalizedSearch === '?') {
+    return pathname;
+  }
+  const params = new URLSearchParams(normalizedSearch);
+  params.delete('q');
+  params.delete('searchCategory');
+  if (params.get('select') === 'search') {
+    params.delete('select');
+  }
+  const qs = params.toString();
+  return qs.length > 0 ? `${pathname}?${qs}` : pathname;
+}
+
+export function parseEnterScaleHref(href: string): { pathname: string; focusSlug: string } {
+  try {
+    const parsed = new URL(href, 'http://localhost');
+    const focusParam = parsed.searchParams.get('focus');
+    return { pathname: parsed.pathname, focusSlug: focusParam ? toUrlSlug(focusParam) : '' };
+  } catch {
+    const [pathname = '', query = ''] = href.split('?');
+    const focusParam = new URLSearchParams(query).get('focus');
+    return { pathname, focusSlug: focusParam ? toUrlSlug(focusParam) : '' };
+  }
+}
+
+export function navigateWithPendingClear(
+  router: AppRouterAdapter | undefined,
+  href: string,
+): void {
+  setPendingSpatialNavigationHref(href);
+  let navResult: unknown;
+  try {
+    navResult = router?.navigate?.({ href });
+  } catch (error) {
+    setPendingSpatialNavigationHref(null);
+    throw error;
+  }
+  void Promise.resolve(navResult)
+    .finally(() => {
+      setPendingSpatialNavigationHref(null);
+    })
+    .catch(() => {});
 }

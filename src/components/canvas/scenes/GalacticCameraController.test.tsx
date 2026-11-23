@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createElement, useEffect } from 'react';
+import { createElement, useEffect, type ReactNode } from 'react';
 import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { GalacticCameraController } from './GalacticCameraController';
 import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { CameraTransitionController } from '../instrument/cameraTransitionEngine';
+import { CameraTransitionProvider } from '../instrument/useCameraTransition';
 import {
   clearPendingCrossScaleArrival,
-  computeCrossScaleArrivalEntryPosition,
   computeTiltedArrivalEntryPose,
   hasPendingCrossScaleArrival,
   setPendingCrossScaleArrival,
@@ -88,6 +88,9 @@ function advanceTransitionFrames(stepMs: number[], nowSpy: ReturnType<typeof vi.
   }
 }
 
+const withTransitionProvider = (node: ReactNode) =>
+  createElement(CameraTransitionProvider, null, node);
+
 describe('GalacticCameraController Camera Ownership & Choreography', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -133,9 +136,11 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
   it('glides smoothly when target coordinates change and syncs camera store on settle', () => {
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
     const { rerender } = render(
-      createElement(GalacticCameraController, {
-        target: [0, 0, 0],
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+        }),
+      ),
     );
 
     expect(mockControls.target.x).toBe(0);
@@ -143,9 +148,11 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     expect(mockControls.target.z).toBe(0);
 
     rerender(
-      createElement(GalacticCameraController, {
-        target: [10, -5, 2],
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [10, -5, 2],
+        }),
+      ),
     );
 
     // Mid-flight: should NOT snap synchronously
@@ -175,15 +182,19 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
   it('settles target updates immediately when prefersReducedMotion is active', () => {
     setMockReducedMotion(true);
     const { rerender } = render(
-      createElement(GalacticCameraController, {
-        target: [0, 0, 0],
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+        }),
+      ),
     );
 
     rerender(
-      createElement(GalacticCameraController, {
-        target: [10, -5, 2],
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [10, -5, 2],
+        }),
+      ),
     );
 
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
@@ -202,7 +213,7 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     const setCameraPoseSpy = vi.spyOn(useCameraStore.getState(), 'setCameraPose');
     const setSavedSpy = vi.spyOn(useCameraStore.getState(), 'setSavedGalaxyCamera');
 
-    render(createElement(GalacticCameraController, { target: [0, 0, 0] }));
+    render(withTransitionProvider(createElement(GalacticCameraController, { target: [0, 0, 0] })));
     setCameraPoseSpy.mockClear();
     setSavedSpy.mockClear();
 
@@ -223,7 +234,7 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
       state: { location: { pathname: '/galaxy', search: { focus: 'tau-ceti' } } },
     };
 
-    render(createElement(GalacticCameraController, { target: [0, 0, 0] }));
+    render(withTransitionProvider(createElement(GalacticCameraController, { target: [0, 0, 0] })));
 
     mockControls.target.set(5.24, 1.51, -1.03);
     for (const cb of mockControls.listeners['end'] ?? []) cb();
@@ -259,9 +270,11 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     const initialPosCopy = mockCamera.position.clone();
 
     render(
-      createElement(GalacticCameraController, {
-        target: [5, 5, 0],
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [5, 5, 0],
+        }),
+      ),
     );
 
     expect(mockCamera.position.x).toBe(initialPosCopy.x);
@@ -272,33 +285,47 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
   it('calls invalidate() after imperative camera mutations on mount and target change, and skips when target is unchanged', () => {
     expect(useOptionalRouter).toBeDefined();
     const { rerender } = render(
-      createElement(GalacticCameraController, {
-        target: [0, 0, 0],
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+        }),
+      ),
     );
 
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
 
     mockInvalidate.mockClear();
     rerender(
-      createElement(GalacticCameraController, {
-        target: [0, 0, 0],
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+        }),
+      ),
     );
     expect(mockInvalidate).not.toHaveBeenCalled();
 
     rerender(
-      createElement(GalacticCameraController, {
-        target: [5, 10, 15],
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [5, 10, 15],
+        }),
+      ),
     );
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
   });
 
   it('does not glide to [0, 0, 0] when hasExplicitCenter is false and recenterTick increments', () => {
-    const { rerender } = render(createElement(GalacticCameraController, { target: [12, 4, -3], hasExplicitCenter: true }));
+    const { rerender } = render(
+      withTransitionProvider(
+        createElement(GalacticCameraController, { target: [12, 4, -3], hasExplicitCenter: true }),
+      ),
+    );
     expect(mockControls.target.toArray()).toEqual([12, 4, -3]);
-    rerender(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }));
+    rerender(
+      withTransitionProvider(
+        createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }),
+      ),
+    );
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     act(() => { useCameraStore.getState().focusFromSearch('sirius'); });
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
@@ -309,7 +336,11 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     useCameraStore.getState().setSavedGalaxyCamera({
       position: [10, -25, 15], target: [10, 5, 0], up: [0, 0, 1], zoom: 1.4, focalDistance: 30, centerKey: '10,5,0',
     });
-    render(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: true }));
+    render(
+      withTransitionProvider(
+        createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: true }),
+      ),
+    );
     expect(mockControls.target.toArray()).toEqual([0, 0, 0]);
   });
 
@@ -319,7 +350,11 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
       up: [0, 0, 1] as [number, number, number], zoom: 1, focalDistance: 40, centerKey: '0,0,0',
     };
     useCameraStore.getState().setSavedGalaxyCamera(initialSaved);
-    const { unmount } = render(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }));
+    const { unmount } = render(
+      withTransitionProvider(
+        createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }),
+      ),
+    );
     useUIStore.getState().setCameraTransitioning(true);
     mockControls.target.set(7, 8, 9);
     unmount();
@@ -347,10 +382,12 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     });
 
     render(
-      createElement(GalacticCameraController, {
-        target: [0, 0, 0],
-        hasExplicitCenter: false,
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+          hasExplicitCenter: false,
+        }),
+      ),
     );
 
     expect(hasPendingCrossScaleArrival()).toBe(false);
@@ -358,10 +395,16 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     expect(getCrossScaleInstrumentFade()).toBe(0);
     expect(useUIStore.getState().isCameraTransitioning).toBe(true);
 
-    const expectedEntry = computeCrossScaleArrivalEntryPosition(savedPos, savedTarget, 'out');
-    expect(mockCamera.position.x).toBeCloseTo(expectedEntry[0], 4);
-    expect(mockCamera.position.y).toBeCloseTo(expectedEntry[1], 4);
-    expect(mockCamera.position.z).toBeCloseTo(expectedEntry[2], 4);
+    const expectedEntry = computeTiltedArrivalEntryPose(
+      savedPos,
+      savedTarget,
+      [0, 0, 1],
+      'out',
+      0,
+    );
+    expect(mockCamera.position.x).toBeCloseTo(expectedEntry.position[0], 4);
+    expect(mockCamera.position.y).toBeCloseTo(expectedEntry.position[1], 4);
+    expect(mockCamera.position.z).toBeCloseTo(expectedEntry.position[2], 4);
 
     act(() => {
       advanceTransitionFrames([2000, 2450], nowSpy);
@@ -381,7 +424,7 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
   it('restores GALACTIC_FRAME.camera.baseFov (45) on normal initial mount after leaving System (35) or Planet (30)', () => {
     mockCamera.fov = 35;
     const updateProjSpy = vi.spyOn(mockCamera, 'updateProjectionMatrix');
-    render(createElement(GalacticCameraController, { target: [0, 0, 0] }));
+    render(withTransitionProvider(createElement(GalacticCameraController, { target: [0, 0, 0] })));
     expect(mockCamera.fov).toBe(GALACTIC_FRAME.camera.baseFov);
     expect(updateProjSpy).toHaveBeenCalled();
 
@@ -395,7 +438,7 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
       centerKey: '0,0,0',
     });
     mockCamera.fov = 30;
-    render(createElement(GalacticCameraController, { target: [0, 0, 0] }));
+    render(withTransitionProvider(createElement(GalacticCameraController, { target: [0, 0, 0] })));
     expect(mockCamera.fov).toBe(GALACTIC_FRAME.camera.baseFov);
   });
 
@@ -409,7 +452,9 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
       centerKey: '0,0,0',
     });
     const { unmount } = render(
-      createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }),
+      ),
     );
     setPendingCrossScaleArrival({
       direction: 'in',
@@ -473,14 +518,16 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     };
 
     render(
-      createElement(
-        SpatialEntityStoreContext.Provider,
-        { value: outerStore },
-        createElement(PassiveProbe),
-        createElement(GalacticCameraController, {
-          target: [0, 0, 0],
-          hasExplicitCenter: false,
-        }),
+      withTransitionProvider(
+        createElement(
+          SpatialEntityStoreContext.Provider,
+          { value: outerStore },
+          createElement(PassiveProbe),
+          createElement(GalacticCameraController, {
+            target: [0, 0, 0],
+            hasExplicitCenter: false,
+          }),
+        ),
       ),
     );
 
@@ -558,7 +605,11 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
       config: DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
     });
 
-    render(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }));
+    render(
+      withTransitionProvider(
+        createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }),
+      ),
+    );
     expect(getCrossScalePlanePreviewState().active).toBe(true);
 
     act(() => {
@@ -599,10 +650,12 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     });
 
     const { rerender } = render(
-      createElement(GalacticCameraController, {
-        target: [0, 0, 0],
-        hasExplicitCenter: true,
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+          hasExplicitCenter: true,
+        }),
+      ),
     );
 
     expect(getCrossScalePlanePreviewState().active).toBe(true);
@@ -612,10 +665,12 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     // Render 2: OrbitControls attaches (`controls` changes from undefined -> mockControls)
     activeMockControls = mockControls;
     rerender(
-      createElement(GalacticCameraController, {
-        target: [0, 0, 0],
-        hasExplicitCenter: true,
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+          hasExplicitCenter: true,
+        }),
+      ),
     );
 
     expect(transitionToSpy).not.toHaveBeenCalled();
@@ -637,7 +692,7 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
 
   it('transitions to pendingSearchFrame target and distance when requested on galaxy view and saves pose on settle', () => {
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(9000);
-    render(createElement(GalacticCameraController, { target: [0, 0, 0] }));
+    render(withTransitionProvider(createElement(GalacticCameraController, { target: [0, 0, 0] })));
 
     act(() => {
       useCameraStore.getState().requestSearchFrame([12, -6, 3], 32);
@@ -678,10 +733,12 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     });
 
     render(
-      createElement(GalacticCameraController, {
-        target: [0, 0, 0],
-        hasExplicitCenter: false,
-      }),
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+          hasExplicitCenter: false,
+        }),
+      ),
     );
 
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();

@@ -1,17 +1,18 @@
 import type React from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import { useOptionalRouter } from '../../../hooks/useSpaLocation';
 import { useOptionalSpatialEntityStoreApi } from '../entity/SpatialEntityContext';
-import {
-  consumePendingCrossScaleArrival,
-} from '../instrument/crossScaleArrivalState';
+import { consumePendingCrossScaleArrival } from '../instrument/crossScaleArrivalState';
 import { useCameraTransition } from '../instrument/useCameraTransition';
 import {
   type OrbitControlsLike,
+  isControlsTargetWithinEpsilon,
   isOrbitControlsLike,
+  resolvePositiveFiniteDistance,
 } from './cameraControllerUtils';
 import {
   bindGalacticControlsListeners,
@@ -19,17 +20,15 @@ import {
   dispatchPendingSearchFrame,
   formatCenterCoordString,
   persistCameraPoseToStore,
+  syncAndPersistGalacticPose,
   syncCameraPoseSnapshotToStore,
 } from './galacticCameraHelpers';
+import { startCrossScaleArrivalGlide } from './crossScaleArrivalHelpers';
 import {
   applyDefaultInitialGalacticPose,
   resolveGalacticLandingPose,
-  startCrossScaleArrivalGlide,
   tryRestoreSavedGalaxyPose,
-} from './crossScaleArrivalHelpers';
-
-const useIsomorphicLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+} from './galacticLandingHelpers';
 
 export interface GalacticCameraControllerProps {
   readonly target: [number, number, number];
@@ -158,12 +157,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       isTargetSame &&
       isDistSame &&
       isControlsSame &&
-      controls?.target &&
-      Math.hypot(
-        controls.target.x - targetX,
-        controls.target.y - targetY,
-        controls.target.z - targetZ,
-      ) < 1e-3
+      isControlsTargetWithinEpsilon(controls, targetX, targetY, targetZ)
     ) {
       prevRecenterTickRef.current = recenterTick;
       return;
@@ -198,14 +192,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
           const liveControls = prevControlsRef.current ?? controls;
           isArrivalInFlightRef.current = false;
           hasRestoredRef.current = Boolean(liveControls);
-          syncCameraPoseSnapshotToStore(camera, liveControls, landing.target);
-          if (liveControls) {
-            persistCameraPoseToStore(
-              computeCameraPoseSnapshot(camera, liveControls, landing.target),
-              persistGalaxyPose,
-              true,
-            );
-          }
+          syncAndPersistGalacticPose(camera, liveControls, landing.target, persistGalaxyPose);
         },
         onCancel: () => {
           isArrivalInFlightRef.current = false;
@@ -276,10 +263,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
-    const resolvedDistance =
-      typeof distance === 'number' && Number.isFinite(distance) && distance > 0
-        ? distance
-        : undefined;
+    const resolvedDistance = resolvePositiveFiniteDistance(distance);
 
     transitionTo([targetX, targetY, targetZ], {
       ...(resolvedDistance !== undefined ? { targetDistance: resolvedDistance } : {}),
@@ -296,20 +280,9 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     prevRecenterTickRef.current = recenterTick;
     prevControlsRef.current = controls;
   }, [
-    targetX,
-    targetY,
-    targetZ,
-    distance,
-    hasExplicitCenter,
-    persistGalaxyPose,
-    recenterTick,
-    camera,
-    controls,
-    outerStore,
-    invalidate,
-    saveCurrentGalaxyPose,
-    transitionTo,
-    transitionToPose,
+    targetX, targetY, targetZ, distance, hasExplicitCenter, persistGalaxyPose,
+    recenterTick, camera, controls, outerStore, invalidate,
+    saveCurrentGalaxyPose, transitionTo, transitionToPose,
   ]);
 
   return null;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BodiesPanel } from '../components/domain/BodiesPanel';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { CanvasLayer } from '../components/domain/CanvasLayer';
@@ -22,13 +22,41 @@ export interface PlanetViewProps {
   readonly planetId?: string;
 }
 
+const PLANET_CONTROLS_NODE = <ControlBar scope="planet" />;
+const renderPlanetSearchResultItem = (
+  result: React.ComponentProps<typeof SearchResultItem>['result'],
+) => <SearchResultItem key={result.id} result={result} />;
+
 export const PlanetView: React.FC<PlanetViewProps> = (props) => {
   const { initialCorpus } = props;
-  const isCameraTransitioning = useUIStore((s) => s.isCameraTransitioning);
-  const [panelsReady, setPanelsReady] = useState(() => !isCameraTransitioning);
-  if (!isCameraTransitioning && !panelsReady) {
-    setPanelsReady(true);
-  }
+  const [panelsReady, setPanelsReady] = useState(
+    () => !useUIStore.getState().isCameraTransitioning,
+  );
+
+  useEffect(() => {
+    if (panelsReady) return;
+    let cancelled = false;
+    if (!useUIStore.getState().isCameraTransitioning) {
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setPanelsReady(true);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    const unsubscribe = useUIStore.subscribe((state) => {
+      if (!state.isCameraTransitioning && !cancelled) {
+        unsubscribe();
+        setPanelsReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [panelsReady]);
   const {
     pathname,
     search,
@@ -48,62 +76,124 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     handleSelectEntity,
   } = usePlanetViewModel(props);
 
+  const nonCameraSearch = useMemo(() => {
+    if (!search || (!search.includes('center=') && !search.includes('x=') && !search.includes('az=') && !search.includes('dist='))) {
+      return search;
+    }
+    const params = new URLSearchParams(search);
+    for (const key of ['center', 'x', 'y', 'z', 'az', 'el', 'dist', 'zoom']) {
+      params.delete(key);
+    }
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  }, [search]);
+
+  const breadcrumbsNode = useMemo(
+    () => <Breadcrumbs items={resolvedBreadcrumbs} />,
+    [resolvedBreadcrumbs],
+  );
+
+  const searchNode = useMemo(
+    () => (
+      <Search.Root
+        limitPerCategory={3}
+        initialCorpus={initialCorpus}
+        locationPathname={pathname}
+        locationSearch={nonCameraSearch}
+      >
+        <Search.Panel scope="planet" />
+        <Search.Results
+          searchViewPath="/search"
+          renderItem={renderPlanetSearchResultItem}
+        />
+      </Search.Root>
+    ),
+    [initialCorpus, pathname, nonCameraSearch],
+  );
+
+  const activeJourneyMethod =
+    activeJourney?.selectedOption?.id ?? activeJourney?.options[0]?.id;
+
+  const canvasNode = useMemo(
+    () => (
+      <CanvasLayer
+        scope="planet"
+        targetId={targetId}
+        centerId={effectiveCenterId}
+        centerCoordinates={resolvedCenterCoordinates}
+        cameraAzimuthDeg={cameraState.az}
+        cameraElevationDeg={cameraState.el}
+        cameraDistance={cameraState.dist}
+        journeyLegs={activeJourney?.chordLegs}
+        activeJourneyMethod={activeJourneyMethod}
+        onSelect={handleSelectEntity}
+      />
+    ),
+    [
+      targetId,
+      effectiveCenterId,
+      resolvedCenterCoordinates,
+      cameraState.az,
+      cameraState.el,
+      cameraState.dist,
+      activeJourney?.chordLegs,
+      activeJourneyMethod,
+      handleSelectEntity,
+    ],
+  );
+
+  const layerCardNode = useMemo(
+    () => <LayerCard card={activeLayerCard} />,
+    [activeLayerCard],
+  );
+
+  const detailsPanelNode = useMemo(
+    () =>
+      panelsReady && focusedDetails ? (
+        <DetailsPanel
+          details={focusedDetails}
+          schematic={orbitalSchematic}
+          preview={focusedPreview}
+        />
+      ) : undefined,
+    [panelsReady, focusedDetails, orbitalSchematic, focusedPreview],
+  );
+
+  const hasMultiStopJourney = Boolean(activeJourney && routeStops && routeStops.length >= 2);
+  const directionsPanelNode = useMemo(
+    () => (hasMultiStopJourney && activeJourney ? <DirectionsPanel journey={activeJourney} /> : undefined),
+    [hasMultiStopJourney, activeJourney],
+  );
+
+  const hasActiveJourney = Boolean(activeJourney);
+  const previewNode = useMemo(
+    () => (hasActiveJourney ? <PreviewPanel preview={focusedPreview} /> : null),
+    [hasActiveJourney, focusedPreview],
+  );
+
+  const minimapNode = useMemo(
+    () => <Minimap orientation={minimapOrientation} />,
+    [minimapOrientation],
+  );
+
+  const bodiesNode = useMemo(
+    () => (panelsReady ? <BodiesPanel elements={planetaryBodies} schematic={orbitalSchematic} /> : undefined),
+    [panelsReady, planetaryBodies, orbitalSchematic],
+  );
+
   return (
     <SpatialShell
       testId="planet-view-root"
-      canvas={
-        <CanvasLayer
-          scope="planet"
-          targetId={targetId}
-          centerId={effectiveCenterId}
-          centerCoordinates={resolvedCenterCoordinates}
-          cameraAzimuthDeg={cameraState.az}
-          cameraElevationDeg={cameraState.el}
-          cameraDistance={cameraState.dist}
-          journeyLegs={activeJourney?.chordLegs}
-          activeJourneyMethod={
-            activeJourney?.selectedOption?.id ??
-            activeJourney?.options[0]?.id
-          }
-          onSelect={handleSelectEntity}
-        />
-      }
-      breadcrumbs={<Breadcrumbs items={resolvedBreadcrumbs} />}
-      controls={<ControlBar scope="planet" />}
-      search={
-        <Search.Root
-          limitPerCategory={3}
-          initialCorpus={initialCorpus}
-          locationPathname={pathname}
-          locationSearch={search}
-        >
-          <Search.Panel scope="planet" />
-          <Search.Results
-            searchViewPath="/search"
-            renderItem={(result) => (
-              <SearchResultItem key={result.id} result={result} />
-            )}
-          />
-        </Search.Root>
-      }
-      layerCard={<LayerCard card={activeLayerCard} />}
-      detailsPanel={
-        panelsReady && focusedDetails ? (
-          <DetailsPanel
-            details={focusedDetails}
-            schematic={orbitalSchematic}
-            preview={focusedPreview}
-          />
-        ) : undefined
-      }
-      directionsPanel={
-        activeJourney && routeStops && routeStops.length >= 2 ? (
-          <DirectionsPanel journey={activeJourney} />
-        ) : undefined
-      }
-      preview={activeJourney ? <PreviewPanel preview={focusedPreview} /> : null}
-      minimap={<Minimap orientation={minimapOrientation} />}
-      bodies={panelsReady ? <BodiesPanel elements={planetaryBodies} schematic={orbitalSchematic} /> : undefined}
+      canvas={canvasNode}
+      breadcrumbs={breadcrumbsNode}
+      controls={PLANET_CONTROLS_NODE}
+      search={searchNode}
+      layerCard={layerCardNode}
+      detailsPanel={detailsPanelNode}
+      directionsPanel={directionsPanelNode}
+      preview={previewNode}
+      minimap={minimapNode}
+      bodies={bodiesNode}
     />
   );
 };

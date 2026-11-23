@@ -21,7 +21,7 @@ import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useResolvedSystemDetails, type UseResolvedSystemDetailsProps } from './useResolvedSystemDetails';
 import { useSystemOutOfScopeGuard } from './useSystemOutOfScopeGuard';
-import { useColdLoadCenter } from './useColdLoadCenterId';
+import { useScaleCenterResolution } from './useColdLoadCenterId';
 
 const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
 const EMPTY_SELECTED_IDS: readonly string[] = [];
@@ -83,11 +83,11 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   const targetId = toUrlSlug(rawSystemId ?? '') || urlSystemSlug || SOL_REFERENCE_TARGET.id;
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
-  const { effectiveCenterId, resolvedCenterCoordinates } = useColdLoadCenter(
+  const { effectiveCenterId, resolvedCenterCoordinates } = useScaleCenterResolution({
     center,
     cameraState,
     urlFocusSlug,
-  );
+  });
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
@@ -119,6 +119,15 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
 
   const handleSelectEntity = useCallback(
     (id: string | null) => {
+      const cam = useCameraStore.getState();
+      if (id) {
+        const slug = toUrlSlug(id);
+        cam.recordCanvasFocus(slug ? [slug, id] : [id]);
+        cam.setPendingCenterSlug(null);
+      } else {
+        cam.clearCanvasFocus();
+        cam.setPendingCenterSlug(null);
+      }
       if (!router || typeof router.navigate !== 'function') {
         return;
       }
@@ -127,10 +136,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
           router.navigate({
             to: '/system/$systemId',
             params: { systemId: targetId },
-            search: (prev: StarmapSearchParams = {}) => ({
-              ...prev,
-              focus: id,
-            }),
+            search: (prev: StarmapSearchParams = {}) => ({ ...prev, focus: id }),
             replace: true,
           }),
         ).catch(() => {});
@@ -153,7 +159,8 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   );
 
   const layerIndex = useLayerIndex();
-  const loadedLayers = useLoadedLayerManifests(search);
+  const layerManifestQuery = layer || select ? search : '';
+  const loadedLayers = useLoadedLayerManifests(layerManifestQuery);
 
   const selectQuery = select ? `?select=${encodeURIComponent(select)}` : '';
   const selectedEntities = useMemo(() => {
@@ -257,34 +264,25 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   }, [route, search, activeCorpus, pathname]);
 
   const layerParam = layer ?? searchParams.get('layer');
+  const layerCardSearch = layerParam ? search : '';
   const activeLayerCard = useMemo(
     () =>
-      resolveActiveLayerCard({
-        layerParam,
-        currentPathname: pathname,
-        currentSearch: search,
-        corpus: activeCorpus,
-        layers: loadedLayers,
-      }),
-    [layerParam, pathname, search, activeCorpus, loadedLayers],
+      layerParam
+        ? resolveActiveLayerCard({
+            layerParam,
+            currentPathname: pathname,
+            currentSearch: layerCardSearch,
+            corpus: activeCorpus,
+            layers: loadedLayers,
+          })
+        : null,
+    [layerParam, pathname, layerCardSearch, activeCorpus, loadedLayers],
   );
 
   return {
-    pathname,
-    search,
-    targetId,
-    effectiveCenterId,
-    resolvedCenterCoordinates,
-    cameraState,
-    activeJourney,
-    activeLayerCard,
-    focusedDetails,
-    orbitalSchematic,
-    focusedPreview,
-    minimapOrientation,
-    systemBodies,
-    routeStops,
-    resolvedBreadcrumbs,
+    pathname, search, targetId, effectiveCenterId, resolvedCenterCoordinates,
+    cameraState, activeJourney, activeLayerCard, focusedDetails, orbitalSchematic,
+    focusedPreview, minimapOrientation, systemBodies, routeStops, resolvedBreadcrumbs,
     handleSelectEntity,
   };
 }

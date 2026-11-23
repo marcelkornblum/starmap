@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { SpatialEntityDefinition } from '../../../types/spatial';
-import type { SpatialEntityStore } from '../entity';
+import { areSetsEqual, type SpatialEntityStore } from '../entity';
 
 export interface ViewportStoreSyncOptions {
   readonly storeApi: SpatialEntityStore;
@@ -205,30 +205,36 @@ export function useViewportStoreSync({
         }
       }
 
-      if (!isApplyingFromOuterRef.current && state.selectedId !== prevState.selectedId) {
+      if (
+        !isApplyingFromOuterRef.current &&
+        (state.selectedId !== prevState.selectedId || state.selectedIds !== prevState.selectedIds)
+      ) {
         if (outerStore && outerStore !== storeApi) {
-          if (state.selectedId) {
-            const entity = state.entities[state.selectedId];
+          for (const id of state.selectedIds) {
+            const entity = state.entities[id];
             if (entity) {
               outerStore.getState().registerEntity(entity);
             }
           }
-          if (outerStore.getState().selectedId !== state.selectedId) {
-            outerStore.getState().setSelected(state.selectedId);
+          if (!areSetsEqual(outerStore.getState().selectedIds, state.selectedIds)) {
+            outerStore.getState().setSelectedIds(state.selectedIds);
           }
         }
       }
 
-      if (!isApplyingFromOuterRef.current && state.focusedId !== prevState.focusedId) {
+      if (
+        !isApplyingFromOuterRef.current &&
+        (state.focusedId !== prevState.focusedId || state.focusedIds !== prevState.focusedIds)
+      ) {
         if (outerStore && outerStore !== storeApi) {
-          if (state.focusedId) {
-            const entity = state.entities[state.focusedId];
+          for (const id of state.focusedIds) {
+            const entity = state.entities[id];
             if (entity) {
               outerStore.getState().registerEntity(entity);
             }
           }
-          if (outerStore.getState().focusedId !== state.focusedId) {
-            outerStore.getState().setFocused(state.focusedId);
+          if (!areSetsEqual(outerStore.getState().focusedIds, state.focusedIds)) {
+            outerStore.getState().setFocusedIds(state.focusedIds);
           }
         }
       }

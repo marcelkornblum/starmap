@@ -44,6 +44,7 @@ interface SystemSceneViewportProps {
   readonly entities: SpatialEntityDefinition[];
   readonly targetCoords: [number, number, number];
   readonly hasExplicitCenter: boolean;
+  readonly isTargetHydrated?: boolean;
   readonly onInspectPlanet?: (planetId: string) => void;
   readonly onSelectEntity?: (entityId: string | null) => void;
   readonly debugHitarea: boolean;
@@ -53,6 +54,7 @@ const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
   entities,
   targetCoords,
   hasExplicitCenter,
+  isTargetHydrated = true,
   onInspectPlanet,
   onSelectEntity,
   debugHitarea,
@@ -72,15 +74,7 @@ const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
   }
 
   return (
-    <SpatialViewport
-      frame={SYSTEM_FRAME}
-      entities={entities}
-      cameraDistance={STANDARD_CAMERA_DISTANCES.system}
-      onInspect={onInspectPlanet}
-      onSelect={onSelectEntity}
-      onFocusChange={onSelectEntity}
-      debugHitarea={debugHitarea}
-    >
+    <>
       <SystemCameraController
         scope="system"
         position={standardCam.position}
@@ -88,8 +82,18 @@ const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
         up={standardCam.up}
         fov={standardCam.fov}
         hasExplicitCenter={hasExplicitCenter}
+        isTargetHydrated={isTargetHydrated}
       />
-    </SpatialViewport>
+      <SpatialViewport
+        frame={SYSTEM_FRAME}
+        entities={entities}
+        cameraDistance={STANDARD_CAMERA_DISTANCES.system}
+        onInspect={onInspectPlanet}
+        onSelect={onSelectEntity}
+        onFocusChange={onSelectEntity}
+        debugHitarea={debugHitarea}
+      />
+    </>
   );
 };
 
@@ -102,19 +106,25 @@ const SystemSceneFromLookup: React.FC<SystemSceneProps> = ({
   onSelectEntity,
   debugHitarea = false,
 }) => {
-  const { entities, targetCoords } = useResolvedSystemEntitiesAndTarget(
+  const { entities, targetCoords, isSystemDetailReady } = useResolvedSystemEntitiesAndTarget(
     systemId,
     explicitSystem,
     centerId,
     centerCoordinates,
   );
   const hasExplicitCenter = Boolean(centerCoordinates || centerId);
+  const isTargetHydrated =
+    !centerId ||
+    Boolean(centerCoordinates) ||
+    (isSystemDetailReady && entities.length > 1) ||
+    (entities[0] !== undefined && entities[0].id === centerId);
 
   return (
     <SystemSceneViewport
       entities={entities}
       targetCoords={targetCoords}
       hasExplicitCenter={hasExplicitCenter}
+      isTargetHydrated={isTargetHydrated}
       onInspectPlanet={onInspectPlanet}
       onSelectEntity={onSelectEntity}
       debugHitarea={debugHitarea}

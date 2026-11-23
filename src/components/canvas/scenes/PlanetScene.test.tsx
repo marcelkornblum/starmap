@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
+import * as planetPalettes from '../../../data/planetPalettes';
 import { PlanetScene } from './PlanetScene';
 import * as planetaryEntityResolver from './planetaryEntityResolver';
 import type { SpatialEntityDefinition } from '../entity';
@@ -204,5 +205,29 @@ describe('PlanetScene Primitive', () => {
       detailsRepository.clearDetailsRepositoryCache();
     });
     vi.unstubAllGlobals();
+  });
+
+  it('derives gas-giant classification from planet composition when classification prop is omitted', async () => {
+    const paletteSpy = vi.spyOn(planetPalettes, 'getClassificationPalette');
+    let renderer!: Awaited<ReturnType<typeof ReactThreeTest.create>>;
+    await ReactThreeTest.act(async () => {
+      renderer = await ReactThreeTest.create(
+        <PlanetScene
+          planetId="saturn"
+          planetName="Saturn"
+          planet={{
+            id: 'saturn',
+            name: 'Saturn',
+            letter: 'f',
+            composition: 'gas-giant',
+          }}
+        />,
+      );
+    });
+
+    expect(paletteSpy).toHaveBeenCalledWith('gas-giant');
+    paletteSpy.mockRestore();
+
+    await renderer.unmount();
   });
 });

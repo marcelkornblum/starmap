@@ -55,7 +55,6 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
   const isLocked = useCameraStore((s) => s.isLocked);
   const pendingAxisRequest = useCameraStore((s) => s.pendingAxisRequest);
   const pendingPresetRequest = useCameraStore((s) => s.pendingPresetRequest);
-  const isCameraTransitioning = useUIStore((s) => s.isCameraTransitioning);
   const enableOrthographicProjection = useSettingsStore((s) => s.enableOrthographicProjection);
   const projection = useSettingsStore((s) => s.projection);
   const isOrthoProjectionActive = projection === 'top-down' || enableOrthographicProjection;
@@ -222,10 +221,19 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
   }, [isLocked, isOrthoAllowed, get, lockToOrthographic, unlockFromOrthographic, orthoCamRef]);
 
   useEffect(() => {
-    if (!isCameraTransitioning) {
+    let prevInFlight = useUIStore.getState().isCameraTransitioning;
+    if (!prevInFlight) {
       syncPoseToStore();
     }
-  }, [isCameraTransitioning, syncPoseToStore]);
+    return useUIStore.subscribe((state) => {
+      if (prevInFlight && !state.isCameraTransitioning) {
+        prevInFlight = false;
+        syncPoseToStore();
+      } else {
+        prevInFlight = state.isCameraTransitioning;
+      }
+    });
+  }, [syncPoseToStore]);
 
   useEffect(() => {
     if (!controls || typeof controls.addEventListener !== 'function') return;
@@ -272,7 +280,7 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
       }
     }
 
-    if (isLocked && enableOrthographicProjection && activeControls) {
+    if (isLocked && isOrthoProjectionActive && activeControls) {
       if (activeControls.enableRotate) activeControls.enableRotate = false;
       if ('enablePan' in activeControls && !activeControls.enablePan) activeControls.enablePan = true;
       if ('screenSpacePanning' in activeControls && !activeControls.screenSpacePanning) activeControls.screenSpacePanning = true;

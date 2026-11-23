@@ -5,19 +5,7 @@ import {
   type StandardCameraConfig,
 } from '../cartography/cartographyCamera';
 import { useCameraStore } from '../../../stores/useCameraStore';
-
-const ORIGIN_COORDS: readonly [number, number, number] = [0, 0, 0];
-
-export function resolveCenterCoords(
-  coords?:
-    | readonly [number, number, number]
-    | [number, number, number]
-    | { x: number; y: number; z: number },
-): [number, number, number] {
-  if (!coords) return ORIGIN_COORDS as [number, number, number];
-  if ('x' in coords) return [coords.x, coords.y, coords.z];
-  return [coords[0], coords[1], coords[2]];
-}
+import { resolveCenterCoords } from './cameraControllerUtils';
 
 export function useGalaxyViewCamera(
   centerCoordinates?:

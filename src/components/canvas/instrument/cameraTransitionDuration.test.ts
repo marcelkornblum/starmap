@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
-import {
-  CameraTransitionController,
-  type TransitionControlsLike,
-} from './cameraTransitionEngine';
+import { CameraTransitionController } from './cameraTransitionEngine';
+import type { TransitionControlsLike } from './cameraTransitionPoseMath';
 import * as reducedMotion from '../../../utils/reducedMotion';
 
 const linearEasing = (t: number) => t;

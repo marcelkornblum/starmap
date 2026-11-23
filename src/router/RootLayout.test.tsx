@@ -4,6 +4,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { useRouter } from '@tanstack/react-router';
 import { RootLayout } from './RootLayout';
 import * as spaNav from '../hooks/spaNavigation';
+import * as scalePreloader from '../services/navigation/scalePreloader';
 
 const galaxyViewMountSpy = vi.fn();
 const galaxyViewUnmountSpy = vi.fn();
@@ -163,5 +164,21 @@ describe('<RootLayout />', () => {
 
     expect(await screen.findByTestId('mock-galaxy-view')).toBeInTheDocument();
     expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('preloads spatial target entry on anchor hover/pointerDown and ignores non-anchor elements', () => {
+    const preloadSpy = vi
+      .spyOn(scalePreloader, 'preloadTargetScaleEntry')
+      .mockResolvedValue(undefined);
+
+    render(<RootLayout />);
+
+    const link = screen.getByTestId('test-link');
+    fireEvent.mouseOver(link);
+    expect(preloadSpy).toHaveBeenCalledWith('galaxy', undefined);
+
+    preloadSpy.mockClear();
+    fireEvent.pointerDown(screen.getByTestId('router-outlet'));
+    expect(preloadSpy).not.toHaveBeenCalled();
   });
 });

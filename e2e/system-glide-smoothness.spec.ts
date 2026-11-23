@@ -23,10 +23,9 @@ test.describe('System View Glide Smoothness Regression Guard', () => {
     await centerBtn.click();
     await page.waitForTimeout(1500);
 
-    // Focus Jupiter and let deferred UI settle
     await schematic.getByRole('link', { name: /^Jupiter$/i }).click();
     await expect(centerBtn).toHaveAttribute('href', /center=jupiter/);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(1000);
 
     // Measure rAF frame deltas strictly across the Centre glide from Mars -> Jupiter
     const glide = await page.evaluate(async () => {

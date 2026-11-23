@@ -6,6 +6,7 @@ import {
   computeCrossScaleDepartureFade,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
+  computePlanePreviewMaxRadius,
   getReferenceFrameRadius,
   getScaleRank,
   resolveTargetReferencePlane,
@@ -119,7 +120,6 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
     const finalScope = resolveFinalScope();
     onBeforeSwap();
     if (direction === 'in') {
-      // Hand off the preview plane directly into the incoming scene's aligned local datum plane.
       setCrossScalePlanePreview({
         position: [0, 0, 0],
         inclinationRad: 0,
@@ -198,6 +198,7 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
           holdThreshold: config.preloadHoldThreshold,
           holdCeiling: config.preloadHoldCeiling,
           holdCreepTimeConstantSec: config.preloadCreepTimeConstantSec,
+          settleControlsOnComplete: false,
           onProgress: (p) => {
             if (!isTokenCurrent()) return;
             setCrossScaleInstrumentFade(computeCrossScaleDepartureFade(p, config));
@@ -222,7 +223,7 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
       position: departureTarget,
       inclinationRad: plane.inclinationRad,
       ascendingNodeRad: plane.ascendingNodeRad,
-      maxRadius: Math.max(0.6, currentDist * 0.16),
+      maxRadius: computePlanePreviewMaxRadius(currentDist, config),
       durationSec: durations.previewSec,
       onComplete: startBeat2,
     });
@@ -239,6 +240,7 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
       holdThreshold: config.preloadHoldThreshold,
       holdCeiling: config.preloadHoldCeiling,
       holdCreepTimeConstantSec: config.preloadCreepTimeConstantSec,
+      settleControlsOnComplete: false,
       onProgress: (p) => {
         if (!isTokenCurrent()) return;
         setCrossScaleSceneScale(computeCrossScaleSceneScale(p, 'out', config.minSceneScale));

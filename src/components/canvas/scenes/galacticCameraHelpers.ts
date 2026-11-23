@@ -164,6 +164,25 @@ export function syncCameraPoseSnapshotToStore(
   });
 }
 
+export function syncAndPersistGalacticPose(
+  camera: THREE.Camera,
+  controls: OrbitControlsLike | undefined,
+  fallbackTarget: readonly [number, number, number],
+  persistGalaxyPose: boolean,
+): void {
+  const snapshot = computeCameraPoseSnapshot(camera, controls, fallbackTarget);
+  useCameraStore.getState().setCameraPose({
+    position: snapshot.position,
+    target: snapshot.target,
+    up: snapshot.up,
+    zoom: snapshot.zoom,
+    focalDistance: snapshot.focalDistance,
+  });
+  if (controls) {
+    persistCameraPoseToStore(snapshot, persistGalaxyPose, true);
+  }
+}
+
 export function bindGalacticControlsListeners(params: {
   controls: OrbitControlsLike | undefined;
   persistGalaxyPose: boolean;

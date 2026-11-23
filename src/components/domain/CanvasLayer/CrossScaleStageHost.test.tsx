@@ -3,12 +3,13 @@ import { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { CrossScaleStageHost } from './CrossScaleStageHost';
+import * as crossScaleStageHelpers from './crossScaleStageHelpers';
+const { resolveTargetPlaneMetadata } = crossScaleStageHelpers;
 import {
   preloadSystemData,
   preloadTargetScaleEntry,
-  resolveTargetPlaneMetadata,
-} from './crossScaleStageHelpers';
-import { registerSpatialViewPreloader } from './sceneEntryLoader';
+  registerSpatialViewPreloader,
+} from '../../../services/navigation/scalePreloader';
 import {
   getPendingSpatialRouteTarget,
   setPendingSpatialNavigationHref,
@@ -52,7 +53,7 @@ import {
   resolveTargetReferencePlane,
 } from '../../../utils/referenceFrameOrientation';
 import { easeInQuad } from '../../../utils/cameraEasing';
-import * as sceneEntryLoader from './sceneEntryLoader';
+import * as scalePreloader from '../../../services/navigation/scalePreloader';
 
 let mockCamera: THREE.PerspectiveCamera;
 let mockControls: {
@@ -65,6 +66,7 @@ let mockControls: {
   listeners: Record<string, Array<() => void>>;
 };
 const mockInvalidate = vi.fn();
+const galacticSceneRenderCenters: Array<string | undefined> = [];
 const frameCallbacks: Array<{ cb: (state: unknown, delta: number) => void; priority?: number }> = [];
 
 function setMockReducedMotion(reduced: boolean) {
@@ -85,16 +87,20 @@ function setMockReducedMotion(reduced: boolean) {
 }
 
 vi.mock('../../canvas/scenes/GalacticSceneEntry', () => ({
-  default: (props: { centerId?: string }) =>
-    createElement('div', {
+  default: (props: { centerId?: string }) => {
+    galacticSceneRenderCenters.push(props.centerId);
+    return createElement('div', {
       'data-testid': 'mock-galactic-scene',
       'data-center-id': props.centerId,
-    }),
-  GalacticSceneContent: (props: { centerId?: string }) =>
-    createElement('div', {
+    });
+  },
+  GalacticSceneContent: (props: { centerId?: string }) => {
+    galacticSceneRenderCenters.push(props.centerId);
+    return createElement('div', {
       'data-testid': 'mock-galactic-scene',
       'data-center-id': props.centerId,
-    }),
+    });
+  },
 }));
 
 vi.mock('../../canvas/scenes/SystemSceneEntry', () => ({
@@ -177,6 +183,7 @@ function advanceDuration(
 describe('CrossScaleStageHost', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    galacticSceneRenderCenters.length = 0;
     frameCallbacks.length = 0;
     setMockReducedMotion(false);
     clearPendingCrossScaleArrival();
@@ -220,7 +227,7 @@ describe('CrossScaleStageHost', () => {
   });
 
   it('commits same-scale updates on galaxy immediately without cross-scale transition or fade', async () => {
-    const preloadSpy = vi.spyOn(sceneEntryLoader, 'preloadSceneEntry');
+    const preloadSpy = vi.spyOn(scalePreloader, 'preloadTargetScaleEntry');
     const { rerender } = render(
       <CameraTransitionProvider>
         <CrossScaleStageHost scope="galaxy" centerId="sol" isSpatialSceneMounted />
@@ -248,7 +255,7 @@ describe('CrossScaleStageHost', () => {
     const durations = computeCrossScaleStageDurations(config);
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
     const preloadSpy = vi
-      .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+      .spyOn(scalePreloader, 'preloadTargetScaleEntry')
       .mockResolvedValue(undefined);
 
     const outerStore = createSpatialEntityStore();
@@ -284,7 +291,7 @@ describe('CrossScaleStageHost', () => {
     );
 
     // Preload kicked off immediately; Beat 1 expands preview disc before camera moves
-    expect(preloadSpy).toHaveBeenCalledWith('system');
+    expect(preloadSpy).toHaveBeenCalledWith('system', 'alpha-centauri');
     expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-system-scene')).toBeNull();
     expect(useUIStore.getState().isCameraTransitioning).toBe(true);
@@ -374,7 +381,7 @@ describe('CrossScaleStageHost', () => {
     const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
     const durations = computeCrossScaleStageDurations(config);
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(2000);
-    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
     mockCamera.position.set(0, -10, 6);
     mockControls.target.set(0, 0, 0);
 
@@ -445,7 +452,7 @@ describe('CrossScaleStageHost', () => {
   it('triggers two-stage transition and remounts SystemScene when targetId changes across systems', async () => {
     const durations = computeCrossScaleStageDurations(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG);
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(3000);
-    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
 
     const { rerender } = render(
       <CameraTransitionProvider>
@@ -477,7 +484,7 @@ describe('CrossScaleStageHost', () => {
   it('aborts cleanly during Beat 1 or Beat 2 when interrupted via OrbitControls start', async () => {
     const durations = computeCrossScaleStageDurations(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG);
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(4000);
-    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
 
     // Subcase 1: Interrupt during Beat 1 (while plane preview expands)
     const { rerender, unmount } = render(
@@ -543,7 +550,7 @@ describe('CrossScaleStageHost', () => {
   it('swaps immediately with reset visual state and no arrival glide when prefersReducedMotion is true', async () => {
     setMockReducedMotion(true);
     const preloadSpy = vi
-      .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+      .spyOn(scalePreloader, 'preloadTargetScaleEntry')
       .mockResolvedValue(undefined);
 
     const { rerender } = render(
@@ -559,7 +566,7 @@ describe('CrossScaleStageHost', () => {
       </CameraTransitionProvider>,
     );
 
-    expect(preloadSpy).toHaveBeenCalledWith('system');
+    expect(preloadSpy).toHaveBeenCalledWith('system', 'sol');
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(hasPendingCrossScaleArrival()).toBe(false);
     expect(getCrossScaleInstrumentFade()).toBe(1);
@@ -571,7 +578,7 @@ describe('CrossScaleStageHost', () => {
   it('clears arrival, plane preview, scene scale, and instrument fade on unmount during Stage 1', async () => {
     const durations = computeCrossScaleStageDurations(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG);
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(5000);
-    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
 
     const { rerender, unmount } = render(
       <CameraTransitionProvider>
@@ -605,7 +612,7 @@ describe('CrossScaleStageHost', () => {
     const durations = computeCrossScaleStageDurations(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG);
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(6000);
     const preloadSpy = vi
-      .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+      .spyOn(scalePreloader, 'preloadTargetScaleEntry')
       .mockResolvedValue(undefined);
 
     let currentPathname = '/galaxy';
@@ -637,7 +644,7 @@ describe('CrossScaleStageHost', () => {
       for (const listener of historyListeners) listener();
     });
 
-    expect(preloadSpy).toHaveBeenCalledWith('system');
+    expect(preloadSpy).toHaveBeenCalledWith('system', 'alpha-centauri');
     expect(getCrossScalePlanePreviewState().mode).toBe('expanding');
     expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
 
@@ -717,7 +724,7 @@ describe('CrossScaleStageHost', () => {
   it('cancels Beat 1 cleanly and restarts choreography when a new navigation arrives mid-preview', async () => {
     const durations = computeCrossScaleStageDurations(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG);
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(7000);
-    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
 
     const outerStore = createSpatialEntityStore();
     outerStore.getState().registerEntity({
@@ -784,7 +791,7 @@ describe('CrossScaleStageHost', () => {
     await preloadTargetScaleEntry('system', 'alpha-centauri', true);
     expect(viewPreloader).toHaveBeenCalledWith('system');
 
-    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
     let currentPathname = '/galaxy';
     const historyListeners = new Set<() => void>();
     const mockRouter: AppRouterAdapter = {
@@ -825,7 +832,7 @@ describe('CrossScaleStageHost', () => {
   });
 
   it('starts Stage 1 at t=0ms from router.state.pendingLocation during Back/Forward navigation', async () => {
-    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
     let currentPathname = '/galaxy';
     let pendingPathname: string | undefined;
     const historyListeners = new Set<() => void>();
@@ -866,7 +873,7 @@ describe('CrossScaleStageHost', () => {
     vi.useFakeTimers();
     const durations = computeCrossScaleStageDurations(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG);
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(8000);
-    vi.spyOn(sceneEntryLoader, 'preloadSceneEntry').mockResolvedValue(undefined);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
 
     let currentPathname = '/galaxy';
     const historyListeners = new Set<() => void>();
@@ -982,7 +989,7 @@ describe('CrossScaleStageHost', () => {
       resolveInPreload = resolve;
     });
     const preloadSpy = vi
-      .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+      .spyOn(scalePreloader, 'preloadTargetScaleEntry')
       .mockReturnValueOnce(inPreloadPromise);
 
     const { rerender, unmount } = render(
@@ -1060,6 +1067,61 @@ describe('CrossScaleStageHost', () => {
       advanceDuration(t, config.preloadMaxHoldSec * 1000, nowSpy);
     });
     expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
+    unmount();
+  });
+
+  it('mirrors same-scale live props in a single render pass without stale centerCoordinates on subsequent departure', async () => {
+    const durations = computeCrossScaleStageDurations(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG);
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(15000);
+    vi.spyOn(scalePreloader, 'preloadTargetScaleEntry').mockResolvedValue(undefined);
+
+    const { rerender, unmount } = render(
+      <CameraTransitionProvider>
+        <CrossScaleStageHost
+          scope="galaxy"
+          centerId="sol"
+          centerCoordinates={[0, 0, 0]}
+          isSpatialSceneMounted
+        />
+      </CameraTransitionProvider>,
+    );
+    await screen.findByTestId('mock-galactic-scene');
+    galacticSceneRenderCenters.length = 0;
+    const renderSceneSpy = vi.spyOn(crossScaleStageHelpers, 'renderCommittedSpatialScene');
+
+    rerender(
+      <CameraTransitionProvider>
+        <CrossScaleStageHost
+          scope="galaxy"
+          centerId="sirius"
+          centerCoordinates={[7, 8, 9]}
+          isSpatialSceneMounted
+        />
+      </CameraTransitionProvider>,
+    );
+
+    expect(renderSceneSpy).toHaveBeenCalledTimes(1);
+    expect(galacticSceneRenderCenters).toEqual(['sirius']);
+
+    rerender(
+      <CameraTransitionProvider>
+        <CrossScaleStageHost
+          scope="system"
+          targetId="unknown-system"
+          isSpatialSceneMounted
+        />
+      </CameraTransitionProvider>,
+    );
+
+    expect(getCrossScalePlanePreviewState().position).toEqual([7, 8, 9]);
+
+    let t = 15000;
+    await act(async () => {
+      await Promise.resolve();
+      t = advanceDuration(t, durations.previewSec * 1000, nowSpy);
+      advanceDuration(t, durations.departureSec * 1000, nowSpy);
+    });
+    expect(await screen.findByTestId('mock-system-scene')).toBeInTheDocument();
     unmount();
   });
 });

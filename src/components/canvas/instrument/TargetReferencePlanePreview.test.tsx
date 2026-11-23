@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { TargetReferencePlanePreview } from './TargetReferencePlanePreview';
+import { CrossScaleChoreographyProvider } from './CrossScaleChoreographyContext';
 import { buildPreviewReferenceMarksGeometry } from './targetReferencePlaneGeometry';
 import {
   clearCrossScalePlanePreview,
@@ -274,6 +275,31 @@ describe('TargetReferencePlanePreview', () => {
     expect(getCrossScalePlanePreviewState().active).toBe(false);
     expect(group.visible).toBe(false);
     expect(discMat.opacity).toBe(0);
+
+    await renderer.unmount();
+  });
+
+  it('reads plane preview state from enclosing CrossScaleChoreographyProvider rather than global default', async () => {
+    const renderer = await ReactThreeTest.create(
+      <CrossScaleChoreographyProvider>
+        <TargetReferencePlanePreview />
+      </CrossScaleChoreographyProvider>,
+    );
+    const group = renderer.scene.findByProps({ name: 'target-reference-plane-preview' })
+      .instance as THREE.Group;
+
+    setCrossScalePlanePreview({
+      position: [1, 2, 3],
+      inclinationRad: 0.4,
+      ascendingNodeRad: 0.1,
+      maxRadius: 6,
+      radiusProgress: 1,
+      opacity: 0.8,
+    });
+
+    await renderer.advanceFrames(1, 0.016);
+    expect(group.visible).toBe(true);
+    expect(group.position.toArray()).toEqual([1, 2, 3]);
 
     await renderer.unmount();
   });

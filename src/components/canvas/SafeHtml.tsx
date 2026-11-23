@@ -1,5 +1,5 @@
 import type React from 'react';
-import { memo, useId, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
+import { memo, useState, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -62,8 +62,11 @@ export interface SafeHtmlProps {
   pointerEvents?: 'none' | 'auto';
   zIndexRange?: [number, number];
   onOcclude?: (hidden: boolean) => void;
+  frustumCulled?: boolean;
   'data-testid'?: string;
 }
+
+let nextSafeHtmlPortalSeq = 0;
 
 /**
  * SafeHtml: Crash-proof, React 18/19 concurrent-safe HTML overlay for R3F scenes.
@@ -85,6 +88,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   pointerEvents = 'none',
   zIndexRange,
   onOcclude,
+  frustumCulled = true,
   'data-testid': dataTestId,
 }) => {
   const groupRef = useRef<THREE.Group | null>(null);
@@ -127,7 +131,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   const gl = useThree((s) => s.gl);
   const invalidate = useThree((s) => s.invalidate);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const portalId = useId();
+  const [portalId] = useState(() => `safe-html-portal-${++nextSafeHtmlPortalSeq}`);
 
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return;
@@ -199,7 +203,10 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     const pos = scratchPos.current;
 
     let isVisible = true;
-    if (camera instanceof THREE.PerspectiveCamera || camera instanceof THREE.OrthographicCamera) {
+    if (
+      frustumCulled &&
+      (camera instanceof THREE.PerspectiveCamera || camera instanceof THREE.OrthographicCamera)
+    ) {
       scratchV4.current.set(pos.x, pos.y, pos.z, 1.0).applyMatrix4(camera.matrixWorldInverse);
       if (camera instanceof THREE.PerspectiveCamera) {
         isVisible = scratchV4.current.z < -camera.near && scratchV4.current.z > -camera.far;

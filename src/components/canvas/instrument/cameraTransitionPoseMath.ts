@@ -37,6 +37,10 @@ export interface CameraTransitionOptions {
   readonly holdCeiling?: number;
   /** Exponential creep time constant in seconds while holding. */
   readonly holdCreepTimeConstantSec?: number;
+  /** Calls `controls.update()` on completion when true or omitted (default `true`). */
+  readonly settleControlsOnComplete?: boolean;
+  /** Retracts HUD chrome via `isCameraTransitioning` while active (default `true`). */
+  readonly retractHud?: boolean;
   onComplete?: () => void;
   onCancel?: () => void;
 }
@@ -78,11 +82,8 @@ export interface CameraTransitionApi {
 const _scratchHint = new THREE.Vector3();
 
 export function copyVec3Input(dest: THREE.Vector3, src: Vector3Input): void {
-  if (src instanceof THREE.Vector3) {
-    dest.copy(src);
-  } else {
-    dest.set(src[0], src[1], src[2]);
-  }
+  if (src instanceof THREE.Vector3) dest.copy(src);
+  else dest.set(src[0], src[1], src[2]);
 }
 
 export function computePerpAxis(
@@ -91,27 +92,18 @@ export function computePerpAxis(
   hintB: THREE.Vector3,
   out: THREE.Vector3,
 ): void {
-  const lenSqA = hintA.lengthSq();
-  if (lenSqA > 1e-6) {
-    _scratchHint.copy(hintA).divideScalar(Math.sqrt(lenSqA));
-    if (Math.abs(_scratchHint.dot(dir)) < 0.9) {
-      out.crossVectors(dir, _scratchHint).normalize();
-      return;
+  for (const hint of [hintA, hintB]) {
+    const lenSq = hint.lengthSq();
+    if (lenSq > 1e-6) {
+      _scratchHint.copy(hint).divideScalar(Math.sqrt(lenSq));
+      if (Math.abs(_scratchHint.dot(dir)) < 0.9) {
+        out.crossVectors(dir, _scratchHint).normalize();
+        return;
+      }
     }
   }
-  const lenSqB = hintB.lengthSq();
-  if (lenSqB > 1e-6) {
-    _scratchHint.copy(hintB).divideScalar(Math.sqrt(lenSqB));
-    if (Math.abs(_scratchHint.dot(dir)) < 0.9) {
-      out.crossVectors(dir, _scratchHint).normalize();
-      return;
-    }
-  }
-  if (Math.abs(dir.z) < 0.9) {
-    out.set(-dir.y, dir.x, 0).normalize();
-  } else {
-    out.set(0, -dir.z, dir.y).normalize();
-  }
+  if (Math.abs(dir.z) < 0.9) out.set(-dir.y, dir.x, 0).normalize();
+  else out.set(0, -dir.z, dir.y).normalize();
 }
 
 export function computeAngleAndAxis(
@@ -140,18 +132,29 @@ export function evaluateTransitionEasing(
   const resolved = easing ?? DEFAULT_CAMERA_EASING_CURVE;
   if (typeof resolved === 'function') return resolved(progress);
   if (resolved === 'criticallyDamped') return criticallyDamped(progress);
-  return evaluateCameraEasing(resolved, progress);
+  return evaluateCameraEasing(progress, resolved);
 }
 
-/**
- * Evaluates transition easing over an optional `[start, end]` progress window.
- */
 export function evaluateWindowedTransitionEasing(
   easing: CameraTransitionEasing | undefined,
   progress: number,
   window?: readonly [number, number],
 ): number {
   return evaluateTransitionEasing(easing, normaliseWindowProgress(progress, window));
+}
+
+function copyNormalizedDirOrFallback(
+  outDir: THREE.Vector3,
+  input: Vector3Input | undefined,
+  fallback: THREE.Vector3,
+): void {
+  if (input === undefined) {
+    outDir.copy(fallback);
+    return;
+  }
+  copyVec3Input(outDir, input);
+  if (outDir.lengthSq() > 1e-8) outDir.normalize();
+  else outDir.copy(fallback);
 }
 
 export function resolveEndPoseDirectionAndPos(
@@ -170,31 +173,15 @@ export function resolveEndPoseDirectionAndPos(
     copyVec3Input(endCamPos, endPose.position);
     scratchOffset.copy(endCamPos).sub(endTarget);
     const posDist = scratchOffset.length();
-    if (posDist > 1e-4) {
-      endDir.copy(scratchOffset).divideScalar(posDist);
-    } else if (endPose.direction !== undefined) {
-      copyVec3Input(endDir, endPose.direction);
-      if (endDir.lengthSq() > 1e-8) endDir.normalize();
-      else endDir.copy(startDir);
-    } else {
-      endDir.copy(startDir);
-    }
+    if (posDist > 1e-4) endDir.copy(scratchOffset).divideScalar(posDist);
+    else copyNormalizedDirOrFallback(endDir, endPose.direction, startDir);
     endDist = endPose.distance ?? posDist;
-    if (endPose.distance !== undefined) {
-      endCamPos.copy(endTarget).addScaledVector(endDir, endDist);
-    }
-  } else if (endPose.direction !== undefined) {
-    copyVec3Input(endDir, endPose.direction);
-    if (endDir.lengthSq() > 1e-8) endDir.normalize();
-    else endDir.copy(startDir);
-    endDist = endPose.distance ?? options?.targetDistance ?? startDist;
-    endCamPos.copy(endTarget).addScaledVector(endDir, endDist);
+    if (endPose.distance !== undefined) endCamPos.copy(endTarget).addScaledVector(endDir, endDist);
   } else {
-    endDir.copy(startDir);
+    copyNormalizedDirOrFallback(endDir, endPose.direction, startDir);
     endDist = endPose.distance ?? options?.targetDistance ?? startDist;
     endCamPos.copy(endTarget).addScaledVector(endDir, endDist);
   }
-
   if (!hasStartDir) startDir.copy(endDir);
   if (endDist <= 1e-4 && hasStartDir) endDir.copy(startDir);
   return endDist;
@@ -208,11 +195,11 @@ export function resolveStartTarget(
 ): void {
   if (controlsTarget instanceof THREE.Vector3) {
     outStartTarget.copy(controlsTarget);
-  } else {
-    camera.getWorldDirection(scratchDir);
-    const camDist = Math.max(camera.position.length(), 1.0);
-    outStartTarget.copy(camera.position).addScaledVector(scratchDir, camDist);
+    return;
   }
+  camera.getWorldDirection(scratchDir);
+  const camDist = Math.max(camera.position.length(), 1.0);
+  outStartTarget.copy(camera.position).addScaledVector(scratchDir, camDist);
 }
 
 export function resolveStartDirection(
@@ -238,13 +225,8 @@ export function resolveTransitionDuration(
   startDist: number,
   endDist: number,
 ): number {
-  if (explicitDuration !== undefined) {
-    return explicitDuration;
-  }
-  return computeCameraTransitionDuration(
-    startTarget.distanceTo(endTarget),
-    Math.max(startDist, endDist, 1),
-  );
+  if (explicitDuration !== undefined) return explicitDuration;
+  return computeCameraTransitionDuration(startTarget.distanceTo(endTarget), Math.max(startDist, endDist, 1));
 }
 
 export interface TransitionOpticsState {
@@ -262,13 +244,13 @@ export function initOpticalTransitionState(
   optics: TransitionOpticsState,
 ): void {
   optics.animateFov = typeof endPose.fov === 'number' && camera instanceof THREE.PerspectiveCamera;
-  if (typeof endPose.fov === 'number' && camera instanceof THREE.PerspectiveCamera) {
+  if (optics.animateFov && camera instanceof THREE.PerspectiveCamera && typeof endPose.fov === 'number') {
     optics.startFov = camera.fov;
     optics.endFov = endPose.fov;
   }
   optics.animateOrthoZoom =
     typeof endPose.orthoZoom === 'number' && camera instanceof THREE.OrthographicCamera;
-  if (typeof endPose.orthoZoom === 'number' && camera instanceof THREE.OrthographicCamera) {
+  if (optics.animateOrthoZoom && camera instanceof THREE.OrthographicCamera && typeof endPose.orthoZoom === 'number') {
     optics.startOrthoZoom = camera.zoom;
     optics.endOrthoZoom = endPose.orthoZoom;
   }
@@ -289,13 +271,10 @@ export function advanceDynamicTransitionProgress(
   isReadyToComplete: () => boolean,
 ): number {
   const dp = dtSec / Math.max(durationSec, MIN_FLIGHT_DURATION_SEC);
-  const threshold = options.holdThreshold ?? DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadHoldThreshold;
-  const ceiling = options.holdCeiling ?? DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadHoldCeiling;
-  const tau = Math.max(
-    MIN_CREEP_TAU_SEC,
-    options.holdCreepTimeConstantSec ??
-      DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadCreepTimeConstantSec,
-  );
+  const cfg = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
+  const threshold = options.holdThreshold ?? cfg.preloadHoldThreshold;
+  const ceiling = options.holdCeiling ?? cfg.preloadHoldCeiling;
+  const tau = Math.max(MIN_CREEP_TAU_SEC, options.holdCreepTimeConstantSec ?? cfg.preloadCreepTimeConstantSec);
   if (currentProgress + dp < threshold || isReadyToComplete()) {
     return Math.min(1.0, currentProgress + dp);
   }
@@ -303,11 +282,7 @@ export function advanceDynamicTransitionProgress(
   return Math.min(ceiling, currentProgress + headroom * (1 - Math.exp(-dtSec / tau)));
 }
 
-export function applyOpticalTransitionValues(
-  camera: THREE.Camera,
-  t: number,
-  optics: TransitionOpticsState,
-): void {
+export function applyOpticalTransitionValues(camera: THREE.Camera, t: number, optics: TransitionOpticsState): void {
   if (optics.animateFov && camera instanceof THREE.PerspectiveCamera) {
     camera.fov = optics.startFov + (optics.endFov - optics.startFov) * t;
     camera.updateProjectionMatrix();

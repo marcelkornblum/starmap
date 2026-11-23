@@ -1,11 +1,11 @@
 import React, {
   useSyncExternalStore,
-  useLayoutEffect,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import {
   getStageCallbacks,
@@ -15,16 +15,13 @@ import { useCameraStore } from '../../../stores/useCameraStore';
 import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
 import { isSpatialRoutePathname, parseSpatialRouteTarget } from '../../../utils/spatialRoute';
 import { CanvasLayer, preloadWebGLHost } from './CanvasLayer';
-import { preloadTargetScaleEntry } from './crossScaleStageHelpers';
+import { preloadTargetScaleEntry } from '../../../services/navigation/scalePreloader';
 import styles from './RootCanvasHost.module.css';
-
-const useIsomorphicLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export const RootCanvasHost: React.FC = () => {
   const hostRef = useRef<HTMLDivElement>(null);
   const router = useOptionalRouter();
-  const { pathname } = useSpaLocation();
+  const { pathname } = useSpaLocation(undefined, undefined, '/galaxy', false);
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
@@ -64,8 +61,6 @@ export const RootCanvasHost: React.FC = () => {
     getStageCallbacks,
   );
 
-  const initialCam = useCameraStore.getState();
-
   useIsomorphicLayoutEffect(() => {
     setRootCanvasMounted(true);
     return () => {
@@ -102,6 +97,8 @@ export const RootCanvasHost: React.FC = () => {
         el.setAttribute('data-camera-dist', state.focalDistance.toFixed(2));
       }
     };
+
+    applyTelemetry(useCameraStore.getState(), null);
 
     const unsubscribe = useCameraStore.subscribe((state, prevState) => {
       if (isInitialMount) {
@@ -190,10 +187,6 @@ export const RootCanvasHost: React.FC = () => {
       className={styles.rootCanvasHost}
       data-testid="root-canvas-host"
       data-stage-inactive={!isStageActive ? 'true' : undefined}
-      data-camera-mode={initialCam.mode}
-      data-camera-pos={initialCam.position.map((v) => v.toFixed(2)).join(',')}
-      data-camera-target={initialCam.target.map((v) => v.toFixed(2)).join(',')}
-      data-camera-dist={initialCam.focalDistance.toFixed(2)}
       aria-hidden="true"
     >
       {hasActivatedSpatialCanvas ? canvasLayerContent : null}

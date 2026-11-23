@@ -9,6 +9,7 @@ import {
   getDeviceTierBudget,
 } from '../../../services/deviceTierService';
 import type { GroupedSearchResults } from '../../../services/search/searchTypes';
+import { resolveSearchFramingAction } from '../../../services/search/searchFramingPolicy';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import type { SearchCategoryFilter } from '../../../types/search';
@@ -16,50 +17,27 @@ import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import {
   MIN_SEARCH_FRAMING_DISTANCE_PC,
   SEARCH_FRAMING_SETTLE_MS,
-  resolveSearchFramingAction,
 } from '../../../utils/searchFraming';
 import {
   isSpatialRoutePathname,
   parseSpatialRouteTarget,
-  setPendingSpatialNavigationHref,
 } from '../../../utils/spatialRoute';
 import { resolveAppHref } from '../../../utils/url';
 import type { SearchExecutionStatus } from './SearchContext';
 import {
-  clearPreSearchOrigin,
-  getPreSearchOrigin,
-  markSearchFocusForViewTransition,
-  setPreSearchOrigin,
-} from './searchFocusContinuity';
-import {
   appendSearchParamsToHref,
+  buildPreSearchReturnHref,
   collectSpatialItems,
   isAlreadyAtTarget,
   isWithinFramedBounds,
+  navigateWithPendingClear,
+  parseEnterScaleHref,
   type FramedBounds,
 } from './searchFramingHelpers';
 import { SEARCH_MIN_QUERY_LENGTH, searchCatalog } from './searchHelpers';
 
-export { appendSearchParamsToHref };
-
 const FALLBACK_VIEWPORT_WIDTH = 1440;
 const FALLBACK_VIEWPORT_HEIGHT = 900;
-
-function buildPreSearchReturnHref(pathname: string, search: string): string {
-  const normalizedSearch =
-    search.length > 0 && !search.startsWith('?') ? `?${search}` : search;
-  if (!normalizedSearch || normalizedSearch === '?') {
-    return pathname;
-  }
-  const params = new URLSearchParams(normalizedSearch);
-  params.delete('q');
-  params.delete('searchCategory');
-  if (params.get('select') === 'search') {
-    params.delete('select');
-  }
-  const qs = params.toString();
-  return qs.length > 0 ? `${pathname}?${qs}` : pathname;
-}
 
 export interface UseSearchFramingOptions {
   readonly enabled: boolean;
@@ -120,7 +98,7 @@ export const useSearchFraming = ({
   }, [clearPendingTimer]);
 
   const discardPreSearchPose = useCallback((): void => {
-    clearPreSearchOrigin();
+    useCameraStore.getState().clearPreSearchOrigin();
     lastFramedBoundsRef.current = null;
   }, []);
 
@@ -133,22 +111,18 @@ export const useSearchFraming = ({
       query.trim().length === 0
     ) {
       lastFramedBoundsRef.current = null;
-      const origin = getPreSearchOrigin();
+      const camStore = useCameraStore.getState();
+      const origin = camStore.preSearchOrigin;
       if (origin !== null) {
-        clearPreSearchOrigin();
-        useCameraStore
-          .getState()
-          .requestSearchFrame(origin.target, origin.distance);
+        camStore.clearPreSearchOrigin();
+        camStore.requestSearchFrame(origin.target, origin.distance);
         if (origin.pathname !== activePathname) {
           const returnHref = buildPreSearchReturnHref(
             origin.pathname,
             origin.search,
           );
           const resolvedReturnHref = resolveAppHref(returnHref) ?? returnHref;
-          setPendingSpatialNavigationHref(resolvedReturnHref);
-          void locationRef.current.router?.navigate?.({
-            href: resolvedReturnHref,
-          });
+          navigateWithPendingClear(locationRef.current.router, resolvedReturnHref);
         }
       }
       return;
@@ -216,9 +190,9 @@ export const useSearchFraming = ({
       });
 
       const snapshotPreSearchPose = (): void => {
-        if (getPreSearchOrigin() === null) {
-          const cam = useCameraStore.getState();
-          setPreSearchOrigin({
+        const cam = useCameraStore.getState();
+        if (cam.preSearchOrigin === null) {
+          cam.setPreSearchOrigin({
             pathname: currentPathname,
             search: currentSearch,
             target: [cam.target[0], cam.target[1], cam.target[2]],
@@ -233,9 +207,13 @@ export const useSearchFraming = ({
           snapshotPreSearchPose();
           const targetHref = appendSearchParamsToHref(action.href, query, filter);
           const resolvedHref = resolveAppHref(targetHref) ?? targetHref;
-          setPendingSpatialNavigationHref(resolvedHref);
-          markSearchFocusForViewTransition();
-          void currentRouter?.navigate?.({ href: resolvedHref });
+          const parsedTarget = parseEnterScaleHref(resolvedHref);
+          if (parsedTarget.pathname !== currentPathname) {
+            useCameraStore.getState().markSearchFocusForViewTransition();
+          } else if (parsedTarget.focusSlug) {
+            useCameraStore.getState().focusFromSearch(parsedTarget.focusSlug);
+          }
+          navigateWithPendingClear(currentRouter, resolvedHref);
         }
         return;
       }
@@ -257,9 +235,8 @@ export const useSearchFraming = ({
         if (currentScope !== 'galaxy') {
           const rawGalaxyHref = appendSearchParamsToHref('/galaxy', query, filter);
           const resolvedGalaxyHref = resolveAppHref(rawGalaxyHref) ?? rawGalaxyHref;
-          setPendingSpatialNavigationHref(resolvedGalaxyHref);
-          markSearchFocusForViewTransition();
-          void currentRouter?.navigate?.({ href: resolvedGalaxyHref });
+          useCameraStore.getState().markSearchFocusForViewTransition();
+          navigateWithPendingClear(currentRouter, resolvedGalaxyHref);
         }
       }
     }, SEARCH_FRAMING_SETTLE_MS);

@@ -117,14 +117,28 @@
 
 ---
 
+## Phase 4.5: Review Fixes (`main..1ee213b8` Code & Architecture Remediation)
+**Goal:** Resolve all Critical, High, Medium, and Low code review (`CR-1`–`CR-17`) and architecture review (`AR-1`–`AR-12`) findings before closing Phase 5.
+
+- [x] **Task 4.5A (Red/Green/Refactor): Per-Canvas `CrossScaleChoreographyProvider`, Persistent `viewOffset`, Scoped `retractHud` & Single-Runner `useCameraTransition`**
+  - Encapsulate `sceneScale`, `planePreview`, `instrumentFade`, `pendingArrival`, and persistent `{ curOffsetX, curOffsetY }` in `CrossScaleChoreographyContext`; eliminate 5× dead `CameraTransitionController`/`useFrame` allocations; add `settleControlsOnComplete` (`CR-5`), `retractHud` (`AR-5`), `onComplete` ordering (`CR-3`), `CameraRig` hook fixes (`CR-9`), and consolidated cross-scale config (`AR-8`, `AR-9`).
+- [x] **Task 4.5B (Red/Green/Refactor): `SafeHtml` Frustum Culling Prop, Zero-Closure Occlusion Solver, Scale-Compensated Stalks & Multi-Select Sync**
+  - Add `frustumCulled?: boolean` on `SafeHtml` (`CR-1`), eliminate per-frame closure in `occlusionLabelSolver` (`CR-7`), scale `bodyRadius` thresholds by `sceneScale` (`AR-3`), sync multi-selection outward in `useViewportStoreSync` (`CR-12`), and enforce `max-lines: 300` + named constants on `EntityLabel` / `DropStalk` / `ScreenEdgeCue` (`CR-16`, `CR-17`).
+- [x] **Task 4.5C (Red/Green/Refactor): `SpatialShell` Region Refs, CSS Guardrails, `useBoundedDeferredValue` & View Mount Effects**
+  - Replace `SpatialShell` DOM `querySelector` coupling with explicit region refs + `useUIStore.detailsDetent` (`AR-4`, `CR-11`), remove `className` concatenation and magic z-index calc (`CR-15`), bring `SpatialShell.module.css` within 300 lines (`CR-16`), fix `useBoundedDeferredValue` `A -> B -> A` (`CR-13`), and move `setPanelsReady` into `useEffect` (`CR-14`, `AR-5`).
+- [x] **Task 4.5D (Red/Green/Refactor): Unified Scale Centring (`AR-1` / `CR-2`), Search Policy Split (`AR-11`), Store Search Origin (`AR-2`), Layering (`AR-7`), Scene Controllers (`CR-4`, `CR-8`, `CR-10`) & 1:1 Colocated Tests (`CR-16`)**
+  - Unify `useScaleCenterResolution` across Galaxy, System, and Planet views; move `preSearchOrigin` into `useCameraStore`; split `searchFramingPolicy.ts` from `utils/searchFraming.ts`; fix `spaNavigation` `.finally()` cleanup (`CR-6`), `CrossScaleStageHost` render state (`CR-10`), `SystemCameraController` arrival guard (`CR-4`), `PlanetarySceneEntry` catalogued classification (`CR-8`), `scalePreloader` layering (`AR-7`), and add all 1:1 colocated `.test.ts(x)` files (`CR-16`).
+
+---
+
 ## Phase 5: Conditional `Centre` CTA (`FS-013`), E2E Coverage & Delivery
 **Goal:** Wire the conditional `Centre` CTA against live scene-local camera coordinates, cover all contracts in Playwright, and complete dual review + PR delivery.
 
-- [ ] **Task 5.1 (Red/Green/Refactor): Conditional `Centre` CTA in `DetailsActionControls`**
+- [x] **Task 5.1 (Red/Green/Refactor): Conditional `Centre` CTA in `DetailsActionControls`**
   - Replace the unconditional `Centre` button and hard-coded `/galaxy?center=…` fallback in `DetailsActionControls.tsx`.
   - Compare live `useCameraStore.target` against the focused entity's **scene-local** position (from `SpatialEntityStore` / active frame units, not galactic `coordinatesPc`) within a frame-appropriate epsilon so `data-testid="details-button-center"` renders only when off-centre, preserving orthogonal query params (`select`, `layer`, `route`) on click.
   - Update `DetailsActionControls` stories/tests and verify `audit:ui` quads.
-- [ ] **Task 5.2: End-to-End Playwright Verification**
+- [x] **Task 5.2: End-to-End Playwright Verification**
   - Add Playwright coverage for intra-view and cross-scale glides, `prefers-reduced-motion`, search framing (`FS-003`), and the conditional `Centre` CTA + `DEC-R014a` `center` vs. `focused` contract (`FS-013`).
 - [ ] **Task 5.3: End-of-Track Dual Review, Changelog & PR Delivery**
   - Run `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, `npm run test:coverage`, and `npm run capture:views`.

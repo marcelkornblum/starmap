@@ -9,7 +9,7 @@ import { SystemScene } from './SystemScene';
 import { SYSTEM_FRAME } from '../../../config/referenceFrames';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
-import { resolveCenterCoords } from './useGalaxyViewCamera';
+import { resolveCenterCoords } from './cameraControllerUtils';
 import type {
   SystemSceneContentProps,
   SystemViewSceneProps,

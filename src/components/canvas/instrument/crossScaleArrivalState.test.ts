@@ -3,9 +3,9 @@ import {
   DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
   type CrossScaleChoreographyConfig,
 } from '../../../utils/referenceFrameOrientation';
+import { CrossScaleChoreographyController } from './CrossScaleChoreographyContext';
 import {
   clearPendingCrossScaleArrival,
-  computeCrossScaleArrivalEntryPosition,
   computeTiltedArrivalEntryPose,
   consumePendingCrossScaleArrival,
   hasPendingCrossScaleArrival,
@@ -56,26 +56,18 @@ describe('crossScaleArrivalState', () => {
     expect(consumePendingCrossScaleArrival('galaxy')).toBeNull();
   });
 
-  it('computes entry position at 1.9x landing distance for "in" and 0.45x for "out" along the landing view ray', () => {
-    const landingPos: readonly [number, number, number] = [11, -6, 12];
-    const landingTarget: readonly [number, number, number] = [1, -6, 2];
-    // Offset = [10, 0, 10]
+  it('isolates pending arrival descriptors per CrossScaleChoreographyController instance', () => {
+    const controllerA = new CrossScaleChoreographyController();
+    const controllerB = new CrossScaleChoreographyController();
 
-    const inEntry = computeCrossScaleArrivalEntryPosition(landingPos, landingTarget, 'in');
-    expect(inEntry[0]).toBeCloseTo(1 + 10 * 1.9, 6);
-    expect(inEntry[1]).toBeCloseTo(-6, 6);
-    expect(inEntry[2]).toBeCloseTo(2 + 10 * 1.9, 6);
-
-    const outEntry = computeCrossScaleArrivalEntryPosition(landingPos, landingTarget, 'out');
-    expect(outEntry[0]).toBeCloseTo(1 + 10 * 0.45, 6);
-    expect(outEntry[1]).toBeCloseTo(-6, 6);
-    expect(outEntry[2]).toBeCloseTo(2 + 10 * 0.45, 6);
-  });
-
-  it('handles degenerate zero-distance landing pose cleanly without NaN', () => {
-    const pos: readonly [number, number, number] = [3, 4, 5];
-    expect(computeCrossScaleArrivalEntryPosition(pos, pos, 'in')).toEqual([3, 4, 5]);
-    expect(computeCrossScaleArrivalEntryPosition(pos, pos, 'out')).toEqual([3, 4, 5]);
+    setPendingCrossScaleArrival(
+      { direction: 'in', targetScope: 'system', durationSec: 1.0 },
+      controllerA,
+    );
+    expect(hasPendingCrossScaleArrival(controllerA)).toBe(true);
+    expect(hasPendingCrossScaleArrival(controllerB)).toBe(false);
+    expect(consumePendingCrossScaleArrival('system', controllerB)).toBeNull();
+    expect(consumePendingCrossScaleArrival('system', controllerA)?.targetScope).toBe('system');
   });
 
   it('stores and consumes extended CrossScaleArrivalDescriptor plane preview and choreography fields', () => {

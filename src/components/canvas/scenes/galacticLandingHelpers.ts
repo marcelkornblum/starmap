@@ -5,7 +5,11 @@ import {
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
 } from '../cartography';
-import { type OrbitControlsLike, getCameraZoom } from './cameraControllerUtils';
+import {
+  type OrbitControlsLike,
+  getCameraZoom,
+  resolvePositiveFiniteDistance,
+} from './cameraControllerUtils';
 import { applyImmediateCameraPose } from './galacticCameraHelpers';
 
 export interface GalacticLandingPose {
@@ -78,9 +82,7 @@ export function resolveGalacticLandingPose(
   }
 
   const initialDistSetting =
-    typeof distance === 'number' && Number.isFinite(distance) && distance > 0
-      ? distance
-      : STANDARD_CAMERA_DISTANCES.galactic;
+    resolvePositiveFiniteDistance(distance) ?? STANDARD_CAMERA_DISTANCES.galactic;
   const initialCam = getStandardInitialCamera(
     initialDistSetting,
     [targetX, targetY, targetZ],
@@ -177,9 +179,7 @@ export function applyDefaultInitialGalacticPose(params: {
 }): boolean {
   const { camera, controls, targetX, targetY, targetZ, distance, saveCurrentGalaxyPose } = params;
   const initialDistSetting =
-    typeof distance === 'number' && Number.isFinite(distance) && distance > 0
-      ? distance
-      : STANDARD_CAMERA_DISTANCES.galactic;
+    resolvePositiveFiniteDistance(distance) ?? STANDARD_CAMERA_DISTANCES.galactic;
   const initialCam = getStandardInitialCamera(
     initialDistSetting,
     [targetX, targetY, targetZ],

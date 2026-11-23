@@ -3,10 +3,6 @@ import { GALACTIC_FRAME, PLANETARY_FRAME, SYSTEM_FRAME } from '../config/referen
 import { DEG_TO_RADIANS, EARTH_OBLIQUITY_DEG } from './astroCoordinates';
 import { easeOutCubic } from './cameraEasing';
 import {
-  CROSS_SCALE_ORIENTATION_WINDOW,
-  CROSS_SCALE_STAGE_DURATION_SEC,
-  CROSS_SCALE_TOTAL_DURATION_SEC,
-  CROSS_SCALE_TRANSLATION_WINDOW,
   DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
   DEFAULT_PLANETARY_OBLIQUITY_DEG,
   GALACTIC_TO_ECLIPTIC_TILT_DEG,
@@ -15,6 +11,7 @@ import {
   computeCrossScalePreviewHandoffOpacity,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
+  computePlanePreviewMaxRadius,
   evaluateWindowedProgress,
   getCrossScaleTiltRad,
   getReferenceFrameRadius,
@@ -26,13 +23,9 @@ import {
 } from './referenceFrameOrientation';
 
 describe('referenceFrameOrientation', () => {
-  it('exports the expected constants and timing windows', () => {
+  it('exports the expected inclination constants', () => {
     expect(GALACTIC_TO_ECLIPTIC_TILT_DEG).toBe(60.19);
     expect(DEFAULT_PLANETARY_OBLIQUITY_DEG).toBe(EARTH_OBLIQUITY_DEG);
-    expect(CROSS_SCALE_STAGE_DURATION_SEC).toBe(0.9);
-    expect(CROSS_SCALE_TOTAL_DURATION_SEC).toBe(1.8);
-    expect(CROSS_SCALE_ORIENTATION_WINDOW).toEqual([0, 0.5]);
-    expect(CROSS_SCALE_TRANSLATION_WINDOW).toEqual([0.2, 1.0]);
   });
 
   it('maps each SpatialScale to its hierarchical rank', () => {
@@ -166,6 +159,21 @@ describe('referenceFrameOrientation', () => {
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.departureOutDistanceMultiplier).toBe(2.2);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalInDistanceMultiplier).toBe(1.85);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalOutDistanceMultiplier).toBe(0.45);
+    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.previewRadiusFactor).toBe(0.16);
+    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.minPreviewRadius).toBe(0.6);
+
+    expect(computePlanePreviewMaxRadius(10)).toBeCloseTo(1.6, 8);
+    expect(computePlanePreviewMaxRadius(1)).toBeCloseTo(0.6, 8);
+    expect(computePlanePreviewMaxRadius(0)).toBeCloseTo(0.6, 8);
+    expect(computePlanePreviewMaxRadius(-5)).toBeCloseTo(0.6, 8);
+    expect(computePlanePreviewMaxRadius(Number.NaN)).toBeCloseTo(0.6, 8);
+    expect(
+      computePlanePreviewMaxRadius(20, {
+        ...DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+        previewRadiusFactor: 0.25,
+        minPreviewRadius: 1.2,
+      }),
+    ).toBeCloseTo(5.0, 8);
 
     const defaults = computeCrossScaleStageDurations();
     expect(defaults.totalSec).toBeCloseTo(2.4, 8);

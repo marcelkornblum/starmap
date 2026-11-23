@@ -4,10 +4,8 @@ import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { GalaxyScene } from './GalaxyScene';
 import { GalacticCameraController } from './GalacticCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
-import {
-  useGalaxyViewCamera,
-  resolveCenterCoords,
-} from './useGalaxyViewCamera';
+import { resolveCenterCoords } from './cameraControllerUtils';
+import { useGalaxyViewCamera } from './useGalaxyViewCamera';
 import { useGalacticCeilingDistance } from './useGalacticCeilingDistance';
 import type {
   GalacticSceneContentProps,

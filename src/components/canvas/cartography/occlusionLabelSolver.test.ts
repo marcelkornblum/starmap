@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ScreenSpatialGrid } from './occlusionGeometryMath';
 import { evaluateLabelVisibility, solveLabelOcclusion } from './occlusionLabelSolver';
 import type { CelestialFootprint, LabelOcclusionResult } from './occlusionTypes';
@@ -117,5 +117,43 @@ describe('occlusionLabelSolver', () => {
     solveLabelOcclusion(target, target.labelBox, grid, cBox, res);
     expect(res.visible).toBe(true);
     expect(res.isDisplaced).toBe(false);
+  });
+
+  it('uses zero-allocation collectNearby instead of forEachNearby closures during occlusion solving', () => {
+    const grid = new ScreenSpatialGrid(100);
+    const forEachSpy = vi.spyOn(grid, 'forEachNearby');
+    const reticleBlocker: CelestialFootprint = {
+      id: 'reticle-blocker',
+      state: 'active',
+      screenX: 150,
+      screenY: 95,
+      reticleRadius: 10,
+      starRadius: 3,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 100,
+    };
+    const target: CelestialFootprint = {
+      id: 'active-target',
+      state: 'active',
+      screenX: 100,
+      screenY: 100,
+      reticleRadius: 20,
+      starRadius: 3,
+      hasReticle: true,
+      labelBox: { left: 135, top: 85, right: 195, bottom: 105 },
+      visible: true,
+      updatedAt: 100,
+    };
+    grid.insert(reticleBlocker);
+    grid.insert(target);
+
+    const cBox = { left: 0, top: 0, right: 0, bottom: 0 };
+    const res: LabelOcclusionResult = { visible: false, behindCanvas: false, displacementX: 0, displacementY: 0, isDisplaced: false };
+
+    solveLabelOcclusion(target, target.labelBox, grid, cBox, res);
+    expect(forEachSpy).not.toHaveBeenCalled();
+    expect(res.visible).toBe(true);
+    expect(res.isDisplaced).toBe(true);
   });
 });

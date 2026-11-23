@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createElement, useEffect } from 'react';
+import { createElement, useEffect, type ReactNode } from 'react';
 import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { SystemCameraController } from './SystemCameraController';
 import { CameraTransitionController } from '../instrument/cameraTransitionEngine';
+import { CameraTransitionProvider } from '../instrument/useCameraTransition';
 import {
   clearPendingCrossScaleArrival,
   computeTiltedArrivalEntryPose,
@@ -78,6 +79,9 @@ function advanceTransitionFrames(stepMs: number[], nowSpy: ReturnType<typeof vi.
   }
 }
 
+const withTransitionProvider = (node: ReactNode) =>
+  createElement(CameraTransitionProvider, null, node);
+
 describe('SystemCameraController Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -121,11 +125,13 @@ describe('SystemCameraController Component', () => {
 
   it('updates camera position, up vector, controls target, and camera store synchronously on mount', () => {
     render(
-      createElement(SystemCameraController, {
-        position: [10, 20, 30],
-        target: [1, 2, 3],
-        up: [0, 0, 1],
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          position: [10, 20, 30],
+          target: [1, 2, 3],
+          up: [0, 0, 1],
+        }),
+      ),
     );
 
     expect(mockCamera.position.x).toBe(10);
@@ -142,11 +148,13 @@ describe('SystemCameraController Component', () => {
   it('glides smoothly preserving the user viewing angle and distance when target updates', () => {
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
     const { rerender } = render(
-      createElement(SystemCameraController, {
-        position: [10, 20, 30],
-        target: [1, 2, 3],
-        up: [0, 0, 1],
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          position: [10, 20, 30],
+          target: [1, 2, 3],
+          up: [0, 0, 1],
+        }),
+      ),
     );
 
     // Simulate user orbiting to a custom viewing offset (+5, -4, +6) from target [1, 2, 3]
@@ -154,11 +162,13 @@ describe('SystemCameraController Component', () => {
     mockInvalidate.mockClear();
 
     rerender(
-      createElement(SystemCameraController, {
-        position: [20, 30, 40],
-        target: [11, 2, 3],
-        up: [0, 0, 1],
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          position: [20, 30, 40],
+          target: [11, 2, 3],
+          up: [0, 0, 1],
+        }),
+      ),
     );
 
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
@@ -186,11 +196,13 @@ describe('SystemCameraController Component', () => {
 
   it('syncs useCameraStore on OrbitControls end only when not transitioning', () => {
     render(
-      createElement(SystemCameraController, {
-        position: [10, 20, 30],
-        target: [1, 2, 3],
-        up: [0, 0, 1],
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          position: [10, 20, 30],
+          target: [1, 2, 3],
+          up: [0, 0, 1],
+        }),
+      ),
     );
 
     const setCameraPoseSpy = vi.spyOn(useCameraStore.getState(), 'setCameraPose');
@@ -213,22 +225,26 @@ describe('SystemCameraController Component', () => {
 
   it('does not force-re-centre when hasExplicitCenter is false after mount', () => {
     const { rerender } = render(
-      createElement(SystemCameraController, {
-        position: [10, 20, 30],
-        target: [1, 2, 3],
-        up: [0, 0, 1],
-        hasExplicitCenter: true,
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          position: [10, 20, 30],
+          target: [1, 2, 3],
+          up: [0, 0, 1],
+          hasExplicitCenter: true,
+        }),
+      ),
     );
 
     mockInvalidate.mockClear();
     rerender(
-      createElement(SystemCameraController, {
-        position: [0, -20, 10],
-        target: [0, 0, 0],
-        up: [0, 0, 1],
-        hasExplicitCenter: false,
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          position: [0, -20, 10],
+          target: [0, 0, 0],
+          up: [0, 0, 1],
+          hasExplicitCenter: false,
+        }),
+      ),
     );
 
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
@@ -240,37 +256,65 @@ describe('SystemCameraController Component', () => {
     mockCamera.fov = 45;
     mockCamera.zoom = 2.5;
     const updateProjSpy = vi.spyOn(mockCamera, 'updateProjectionMatrix');
-    render(createElement(SystemCameraController, { position: [10, 20, 30], target: [0, 0, 0], up: [0, 0, 1], fov: 35 }));
+    render(
+      withTransitionProvider(
+        createElement(SystemCameraController, { position: [10, 20, 30], target: [0, 0, 0], up: [0, 0, 1], fov: 35 }),
+      ),
+    );
     expect(mockCamera.fov).toBe(35);
     expect(mockCamera.zoom).toBe(1);
     expect(updateProjSpy).toHaveBeenCalled();
   });
 
   it('glides when hasExplicitCenter transitions false -> true after panning away, and skips if already within 1e-3', () => {
-    const { rerender } = render(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }));
+    const { rerender } = render(
+      withTransitionProvider(
+        createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }),
+      ),
+    );
     mockControls.target.set(5, 5, 0);
     mockInvalidate.mockClear();
 
-    rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }));
+    rerender(
+      withTransitionProvider(
+        createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }),
+      ),
+    );
     expect(useUIStore.getState().isCameraTransitioning).toBe(true);
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
 
     act(() => { useUIStore.getState().setCameraTransitioning(false); });
-    rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }));
+    rerender(
+      withTransitionProvider(
+        createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }),
+      ),
+    );
     mockControls.target.set(0, 0, 0);
     mockInvalidate.mockClear();
 
-    rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }));
+    rerender(
+      withTransitionProvider(
+        createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }),
+      ),
+    );
     expect(mockInvalidate).not.toHaveBeenCalled();
   });
 
   it('updates prevTickRef during !hasExplicitCenter early return so stale tick does not trigger later', () => {
-    const { rerender } = render(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }));
+    const { rerender } = render(
+      withTransitionProvider(
+        createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }),
+      ),
+    );
     act(() => { useCameraStore.getState().focusFromSearch('earth'); });
     mockControls.target.set(0, 0, 0);
     mockInvalidate.mockClear();
 
-    rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }));
+    rerender(
+      withTransitionProvider(
+        createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }),
+      ),
+    );
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(mockInvalidate).not.toHaveBeenCalled();
   });
@@ -310,17 +354,19 @@ describe('SystemCameraController Component', () => {
     };
 
     render(
-      createElement(
-        'div',
-        null,
-        createElement(PassiveProbe),
-        createElement(SystemCameraController, {
-          scope: 'system',
-          position: landingPos,
-          target: landingTarget,
-          up: landingUp,
-          fov: 35,
-        }),
+      withTransitionProvider(
+        createElement(
+          'div',
+          null,
+          createElement(PassiveProbe),
+          createElement(SystemCameraController, {
+            scope: 'system',
+            position: landingPos,
+            target: landingTarget,
+            up: landingUp,
+            fov: 35,
+          }),
+        ),
       ),
     );
 
@@ -400,13 +446,15 @@ describe('SystemCameraController Component', () => {
 
     // scope="system" must not consume a planet arrival
     const { unmount } = render(
-      createElement(SystemCameraController, {
-        scope: 'system',
-        position: [0, -20, 10],
-        target: [0, 0, 0],
-        up: [0, 0, 1],
-        fov: 35,
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          scope: 'system',
+          position: [0, -20, 10],
+          target: [0, 0, 0],
+          up: [0, 0, 1],
+          fov: 35,
+        }),
+      ),
     );
     expect(hasPendingCrossScaleArrival()).toBe(true);
     expect(getCrossScaleInstrumentFade()).toBe(1);
@@ -423,13 +471,15 @@ describe('SystemCameraController Component', () => {
       mode: 'holding',
     });
     render(
-      createElement(SystemCameraController, {
-        scope: 'planet',
-        position: [0, -100, 60],
-        target: [0, 0, 0],
-        up: [0, 0, 1],
-        fov: 30,
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          scope: 'planet',
+          position: [0, -100, 60],
+          target: [0, 0, 0],
+          up: [0, 0, 1],
+          fov: 30,
+        }),
+      ),
     );
     expect(hasPendingCrossScaleArrival()).toBe(false);
     expect(mockCamera.fov).toBe(30);
@@ -472,13 +522,15 @@ describe('SystemCameraController Component', () => {
     });
 
     render(
-      createElement(SystemCameraController, {
-        scope: 'system',
-        position: [0, -20, 10],
-        target: [0, 0, 0],
-        up: [0, 0, 1],
-        fov: 35,
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          scope: 'system',
+          position: [0, -20, 10],
+          target: [0, 0, 0],
+          up: [0, 0, 1],
+          fov: 35,
+        }),
+      ),
     );
 
     expect(getCrossScaleSceneScale()).toBe(1);
@@ -511,13 +563,15 @@ describe('SystemCameraController Component', () => {
     });
 
     const { rerender } = render(
-      createElement(SystemCameraController, {
-        scope: 'system',
-        position: landingPos,
-        target: landingTarget,
-        up: [0, 0, 1],
-        fov: 35,
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          scope: 'system',
+          position: landingPos,
+          target: landingTarget,
+          up: [0, 0, 1],
+          fov: 35,
+        }),
+      ),
     );
 
     expect(getCrossScaleSceneScale()).toBeCloseTo(config.minSceneScale, 6);
@@ -527,13 +581,15 @@ describe('SystemCameraController Component', () => {
     // Render 2: OrbitControls attaches (`controls` changes from undefined -> mockControls)
     activeMockControls = mockControls;
     rerender(
-      createElement(SystemCameraController, {
-        scope: 'system',
-        position: landingPos,
-        target: landingTarget,
-        up: [0, 0, 1],
-        fov: 35,
-      }),
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          scope: 'system',
+          position: landingPos,
+          target: landingTarget,
+          up: [0, 0, 1],
+          fov: 35,
+        }),
+      ),
     );
 
     expect(transitionToSpy).not.toHaveBeenCalled();
@@ -552,5 +608,102 @@ describe('SystemCameraController Component', () => {
     expect(mockCamera.position.x).toBeCloseTo(landingPos[0], 4);
     expect(mockCamera.position.y).toBeCloseTo(landingPos[1], 4);
     expect(mockCamera.position.z).toBeCloseTo(landingPos[2], 4);
+  });
+
+  it('does not cancel active Stage 2 arrival glide or snap sceneScale when target props update mid-flight', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(9000);
+    const transitionToSpy = vi.spyOn(CameraTransitionController.prototype, 'start');
+    const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
+    const landingPos: [number, number, number] = [0, -20, 10];
+
+    setPendingCrossScaleArrival({
+      direction: 'in',
+      targetScope: 'system',
+      durationSec: 0.9,
+      config,
+    });
+
+    const { rerender } = render(
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          scope: 'system',
+          position: landingPos,
+          target: [0, 0, 0],
+          up: [0, 0, 1],
+          fov: 35,
+        }),
+      ),
+    );
+
+    act(() => {
+      advanceTransitionFrames([9000, 9200], nowSpy);
+    });
+    const inFlightScale = getCrossScaleSceneScale();
+    expect(inFlightScale).toBeGreaterThan(config.minSceneScale);
+    expect(inFlightScale).toBeLessThan(1);
+
+    rerender(
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          scope: 'system',
+          position: [5, -18, 9],
+          target: [5, 2, -1],
+          up: [0, 0, 1],
+          fov: 35,
+        }),
+      ),
+    );
+
+    expect(transitionToSpy).not.toHaveBeenCalled();
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+    expect(getCrossScaleSceneScale()).toBeCloseTo(inFlightScale, 6);
+
+    act(() => {
+      advanceTransitionFrames([9900], nowSpy);
+    });
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(getCrossScaleSceneScale()).toBe(1);
+    expect(getCrossScaleInstrumentFade()).toBe(1);
+    expect(mockCamera.position.x).toBeCloseTo(landingPos[0], 4);
+    expect(mockCamera.position.y).toBeCloseTo(landingPos[1], 4);
+    expect(mockCamera.position.z).toBeCloseTo(landingPos[2], 4);
+  });
+
+  it('does not invoke an extra invalidate() after the glide completes on the settle frame', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    const { rerender } = render(
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          position: [0, 0, 20],
+          target: [1, 2, 3],
+          up: [0, 0, 1],
+          hasExplicitCenter: true,
+        }),
+      ),
+    );
+
+    rerender(
+      withTransitionProvider(
+        createElement(SystemCameraController, {
+          position: [20, 30, 40],
+          target: [11, 2, 3],
+          up: [0, 0, 1],
+          hasExplicitCenter: true,
+        }),
+      ),
+    );
+
+    act(() => {
+      advanceTransitionFrames([1000, 1200], nowSpy);
+    });
+    mockInvalidate.mockClear();
+
+    act(() => {
+      advanceTransitionFrames([2500], nowSpy);
+    });
+
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(mockInvalidate).not.toHaveBeenCalled();
+    nowSpy.mockRestore();
   });
 });

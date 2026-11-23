@@ -6,6 +6,7 @@ import { getMergedCorpusParts } from '../services/details/activeStarsCorpus';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { parseCenterCoordinatesString } from '../utils/url';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { resolveEffectiveScaleCenterSlug } from './useColdLoadCenterId';
 
 export const corpusSystemFirstChildCache = new WeakMap<
   readonly CompactSearchEntry[],
@@ -118,18 +119,14 @@ export function resolveGalaxyCenterCoordinates({
     return parsedCenterCoords;
   }
 
-  const isCanvasClickFocus =
-    urlFocusSlug !== null &&
-    (canvasFocusedSlugs.has(urlFocusSlug) ||
-      canvasFocusedSlugs.has(toUrlSlug(urlFocusSlug))) &&
-    pendingCenterSlug !== urlFocusSlug;
-
-  const effectiveCenterSlug =
-    (center ? toUrlSlug(center) : undefined) ??
-    cameraState.center ??
-    pendingCenterSlug ??
-    (!isCanvasClickFocus && isColdLoadFocus && urlFocusSlug ? toUrlSlug(urlFocusSlug) : undefined) ??
-    undefined;
+  const effectiveCenterSlug = resolveEffectiveScaleCenterSlug({
+    center,
+    cameraCenter: cameraState.center,
+    pendingCenterSlug,
+    urlFocusSlug,
+    isColdLoadFocus,
+    canvasFocusedSlugs,
+  });
 
   if (
     effectiveCenterSlug &&

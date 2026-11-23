@@ -141,9 +141,8 @@ describe('useCameraRigProjection', () => {
       result.current.glideToCardinal('bottom');
     });
 
-    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
 
-    // Mid-flight frame: no NaN on up or position
     act(() => {
       transitionFrameCb?.(liveThreeState as never, 0.016);
       perfSpy.mockReturnValue(1250);
@@ -154,7 +153,6 @@ describe('useCameraRigProjection', () => {
     expect(Number.isNaN(camera.up.y)).toBe(false);
     expect(Number.isNaN(camera.up.z)).toBe(false);
 
-    // Completion frame: locks to orthographic 'bottom'
     perfSpy.mockReturnValue(1500);
     act(() => {
       transitionFrameCb?.(liveThreeState as never, 0.016);
@@ -165,13 +163,12 @@ describe('useCameraRigProjection', () => {
     expect(useCameraStore.getState().activeCardinal).toBe('bottom');
     expect(liveThreeState.camera).toBe(result.current.orthoCamRef.current);
 
-    // Switching from locked ortho 'bottom' to 'front' unlocks controls to perspCam before gliding
     act(() => {
       result.current.glideToCardinal('front');
     });
     expect(mockControls.object).toBe(camera);
     expect(mockControls.enableRotate).toBe(true);
-    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
 
     perfSpy.mockReturnValue(2000);
     act(() => {
@@ -181,5 +178,53 @@ describe('useCameraRigProjection', () => {
     });
     expect(useCameraStore.getState().isLocked).toBe(true);
     expect(useCameraStore.getState().activeCardinal).toBe('front');
+  });
+
+  it('does not mutate controls minDistance or maxDistance synchronously during render', () => {
+    let minVal = 0;
+    let maxVal = 0;
+    const minCallsDuringRender: number[] = [];
+    const maxCallsDuringRender: number[] = [];
+    let isRendering = true;
+
+    const trackedControls: OrbitControlsLike = {
+      ...mockControls,
+      get minDistance() {
+        return minVal;
+      },
+      set minDistance(v: number) {
+        minVal = v;
+        if (isRendering) minCallsDuringRender.push(v);
+      },
+      get maxDistance() {
+        return maxVal;
+      },
+      set maxDistance(v: number) {
+        maxVal = v;
+        if (isRendering) maxCallsDuringRender.push(v);
+      },
+    };
+
+    renderHook(
+      () => {
+        isRendering = true;
+        const hookResult = useCameraRigProjection({
+          camera,
+          controls: trackedControls,
+          sizeWidth: 1920,
+          sizeHeight: 1080,
+          get: threeGet,
+          frame: GALACTIC_FRAME,
+        });
+        isRendering = false;
+        return hookResult;
+      },
+      { wrapper },
+    );
+
+    expect(minCallsDuringRender).toEqual([]);
+    expect(maxCallsDuringRender).toEqual([]);
+    expect(minVal).toBe(GALACTIC_FRAME.camera.minDistance);
+    expect(maxVal).toBe(GALACTIC_FRAME.camera.maxDistance);
   });
 });

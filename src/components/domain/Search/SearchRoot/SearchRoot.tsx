@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FocusEvent,
@@ -17,18 +18,16 @@ import type { SearchResultItem } from '../../../../services/search/searchTypes';
 import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
 import { useSpatialEntityStoreApi } from '../../../canvas/entity/SpatialEntityContext';
 import { escalateSearchBackgroundWarmup } from '../../../../data/searchBackgroundWarmup';
+import { useCameraStore } from '../../../../stores/useCameraStore';
 import {
   SearchContext,
   type SearchContextValue,
 } from '../SearchContext';
 import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
 import {
-  consumeSearchFocusForViewTransition,
-  peekSearchFocusForViewTransition,
-} from '../searchFocusContinuity';
-import {
   resolveInitialFilter,
   resolveInitialQuery,
+  type SelfWrittenSearchParams,
 } from '../searchUrlSync';
 import { useSearchExecution } from '../useSearchExecution';
 import { useSearchFraming } from '../useSearchFraming';
@@ -64,23 +63,24 @@ export const SearchRoot = ({
 }: SearchRootProps) => {
   const store = useSpatialEntityStoreApi();
   const searchRootRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastSelfWrittenSearchRef = useRef<SelfWrittenSearchParams | null>(null);
   const [isFocused, setIsFocused] = useState<boolean>(() =>
-    peekSearchFocusForViewTransition(),
+    useCameraStore.getState().pendingViewTransitionFocus,
   );
 
   useEffect(() => {
-    if (!consumeSearchFocusForViewTransition()) {
+    if (!useCameraStore.getState().consumeSearchFocusForViewTransition()) {
       return;
     }
-    const input =
-      searchRootRef.current?.querySelector<HTMLInputElement>('input[name="query"]');
+    const input = searchInputRef.current;
     if (input) {
       input.focus({ preventScroll: true });
       const endPos = input.value.length;
       try {
         input.setSelectionRange(endPos, endPos);
       } catch {
-        // Ignore selection range errors on non-selectable input types
+        return;
       }
     }
   }, []);
@@ -141,6 +141,7 @@ export const SearchRoot = ({
     onSelectResult: onSelectResult ? handleSelectResult : undefined,
     searchRootRef,
     setIsFocused,
+    lastSelfWrittenSearchRef,
   });
 
   const { markUserSearchActivity, cancelSearchFraming, discardPreSearchPose } =
@@ -214,6 +215,7 @@ export const SearchRoot = ({
     setStatus,
     submitSearch,
     updateResultsAndSelection,
+    lastSelfWrittenSearchRef,
   });
 
   const handleFocusCapture = useCallback((): void => {
@@ -246,20 +248,37 @@ export const SearchRoot = ({
     };
   }, []);
 
-  const contextValue: SearchContextValue = {
-    query,
-    filter,
-    status,
-    errorMessage,
-    results,
-    isFocused,
-    setIsFocused,
-    dismissSearch: handleDismissSearch,
-    setQuery: handleSetQuery,
-    setFilter: handleSetFilter,
-    submitSearch,
-    onSelectResult: onSelectResult ? handleSelectResult : undefined,
-  };
+  const contextValue = useMemo<SearchContextValue>(
+    () => ({
+      query,
+      filter,
+      status,
+      errorMessage,
+      results,
+      isFocused,
+      setIsFocused,
+      searchInputRef,
+      dismissSearch: handleDismissSearch,
+      setQuery: handleSetQuery,
+      setFilter: handleSetFilter,
+      submitSearch,
+      onSelectResult: onSelectResult ? handleSelectResult : undefined,
+    }),
+    [
+      query,
+      filter,
+      status,
+      errorMessage,
+      results,
+      isFocused,
+      handleDismissSearch,
+      handleSetQuery,
+      handleSetFilter,
+      submitSearch,
+      onSelectResult,
+      handleSelectResult,
+    ],
+  );
 
   return (
     <SearchContext.Provider value={contextValue}>

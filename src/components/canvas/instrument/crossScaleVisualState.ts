@@ -1,7 +1,11 @@
 import { easeOutCubic } from '../../../utils/cameraEasing';
+import {
+  getActiveChoreographyController,
+  type CrossScaleChoreographyController,
+} from './CrossScaleChoreographyContext';
 
 /**
- * Mutable module-level visual state for cross-scale choreography.
+ * Mutable visual state for cross-scale choreography.
  *
  * Read directly inside `useFrame` loops with zero heap allocations and zero React re-renders.
  */
@@ -44,22 +48,6 @@ export interface CrossScalePlanePreviewExpandParams {
 const MAX_PREVIEW_STEP_SEC = 0.05;
 const MIN_DURATION_SEC = 1e-4;
 
-let crossScaleSceneScale = 1.0;
-
-const planePreviewState: CrossScalePlanePreviewState = {
-  active: false,
-  mode: 'idle',
-  position: [0, 0, 0],
-  inclinationRad: 0,
-  ascendingNodeRad: 0,
-  maxRadius: 1,
-  radiusProgress: 0,
-  opacity: 0,
-  durationSec: 0,
-  elapsedSec: 0,
-  onPhaseComplete: undefined,
-};
-
 function clampSceneScale(value: number): number {
   if (Number.isNaN(value)) return 1.0;
   if (value <= 0.001) return 0.001;
@@ -73,120 +61,144 @@ function clampUnit(value: number): number {
   return value;
 }
 
-/** Returns the current global cross-scale scene scale multiplier in `[0.001, 1]`. */
-export function getCrossScaleSceneScale(): number {
-  return crossScaleSceneScale;
+/** Returns the current cross-scale scene scale multiplier in `[0.001, 1]`. */
+export function getCrossScaleSceneScale(
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): number {
+  return controller.sceneScale;
 }
 
-/** Sets the global cross-scale scene scale multiplier, clamped to `[0.001, 1]`. */
-export function setCrossScaleSceneScale(scale: number): void {
-  crossScaleSceneScale = clampSceneScale(scale);
+/** Sets the cross-scale scene scale multiplier, clamped to `[0.001, 1]`. */
+export function setCrossScaleSceneScale(
+  scale: number,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  controller.sceneScale = clampSceneScale(scale);
 }
 
-/** Resets the global cross-scale scene scale multiplier back to `1`. */
-export function resetCrossScaleSceneScale(): void {
-  crossScaleSceneScale = 1.0;
+/** Resets the cross-scale scene scale multiplier back to `1`. */
+export function resetCrossScaleSceneScale(
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  controller.sceneScale = 1.0;
 }
 
-/** Returns the mutable singleton plane preview state for zero-allocation reads inside `useFrame`. */
-export function getCrossScalePlanePreviewState(): Readonly<CrossScalePlanePreviewState> {
-  return planePreviewState;
+/** Returns the mutable plane preview state for zero-allocation reads inside `useFrame`. */
+export function getCrossScalePlanePreviewState(
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): Readonly<CrossScalePlanePreviewState> {
+  return controller.planePreview;
 }
 
 function writePlanePreviewGeometry(
+  preview: CrossScalePlanePreviewState,
   position: readonly [number, number, number],
   inclinationRad: number,
   ascendingNodeRad: number,
   maxRadius: number,
 ): void {
-  planePreviewState.position[0] = position[0];
-  planePreviewState.position[1] = position[1];
-  planePreviewState.position[2] = position[2];
-  planePreviewState.inclinationRad = Number.isFinite(inclinationRad) ? inclinationRad : 0;
-  planePreviewState.ascendingNodeRad = Number.isFinite(ascendingNodeRad) ? ascendingNodeRad : 0;
-  planePreviewState.maxRadius =
-    Number.isFinite(maxRadius) && maxRadius > 0 ? maxRadius : 0.001;
+  preview.position[0] = position[0];
+  preview.position[1] = position[1];
+  preview.position[2] = position[2];
+  preview.inclinationRad = Number.isFinite(inclinationRad) ? inclinationRad : 0;
+  preview.ascendingNodeRad = Number.isFinite(ascendingNodeRad) ? ascendingNodeRad : 0;
+  preview.maxRadius = Number.isFinite(maxRadius) && maxRadius > 0 ? maxRadius : 0.001;
 }
 
 /** Activates and updates the target reference plane preview state in-place. */
-export function setCrossScalePlanePreview(params: CrossScalePlanePreviewParams): void {
-  planePreviewState.active = true;
-  planePreviewState.mode = params.mode ?? 'idle';
+export function setCrossScalePlanePreview(
+  params: CrossScalePlanePreviewParams,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  const preview = controller.planePreview;
+  preview.active = true;
+  preview.mode = params.mode ?? 'idle';
   writePlanePreviewGeometry(
+    preview,
     params.position,
     params.inclinationRad,
     params.ascendingNodeRad,
     params.maxRadius,
   );
-  planePreviewState.radiusProgress = clampUnit(params.radiusProgress ?? 0);
-  planePreviewState.opacity = clampUnit(params.opacity ?? 1);
-  planePreviewState.durationSec = 0;
-  planePreviewState.elapsedSec = 0;
-  planePreviewState.onPhaseComplete = undefined;
+  preview.radiusProgress = clampUnit(params.radiusProgress ?? 0);
+  preview.opacity = clampUnit(params.opacity ?? 1);
+  preview.durationSec = 0;
+  preview.elapsedSec = 0;
+  preview.onPhaseComplete = undefined;
 }
 
 /** Starts a self-animating radial expand preview and invokes `onComplete` upon reaching holding state. */
 export function startCrossScalePlanePreviewExpand(
   params: CrossScalePlanePreviewExpandParams,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
 ): void {
-  planePreviewState.active = true;
-  planePreviewState.mode = 'expanding';
+  const preview = controller.planePreview;
+  preview.active = true;
+  preview.mode = 'expanding';
   writePlanePreviewGeometry(
+    preview,
     params.position,
     params.inclinationRad,
     params.ascendingNodeRad,
     params.maxRadius,
   );
-  planePreviewState.radiusProgress = 0;
-  planePreviewState.opacity = 1;
-  planePreviewState.durationSec =
+  preview.radiusProgress = 0;
+  preview.opacity = 1;
+  preview.durationSec =
     Number.isFinite(params.durationSec) && params.durationSec > 0 ? params.durationSec : 0;
-  planePreviewState.elapsedSec = 0;
-  planePreviewState.onPhaseComplete = params.onComplete;
+  preview.elapsedSec = 0;
+  preview.onPhaseComplete = params.onComplete;
 }
 
 /** Transitions an active plane preview into self-animating contraction and fade-out. */
-export function startCrossScalePlanePreviewContract(durationSec: number): void {
-  if (!planePreviewState.active) return;
-  planePreviewState.mode = 'contracting';
-  planePreviewState.elapsedSec = 0;
-  planePreviewState.durationSec =
-    Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 0;
-  planePreviewState.onPhaseComplete = undefined;
+export function startCrossScalePlanePreviewContract(
+  durationSec: number,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  const preview = controller.planePreview;
+  if (!preview.active) return;
+  preview.mode = 'contracting';
+  preview.elapsedSec = 0;
+  preview.durationSec = Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 0;
+  preview.onPhaseComplete = undefined;
 }
 
 /**
  * Advances self-animating plane preview expand/contract modes in-place.
  * Returns `true` when the preview is actively animating and requires a canvas invalidation.
  */
-export function stepCrossScalePlanePreview(deltaSec: number): boolean {
-  if (!planePreviewState.active) return false;
-  if (planePreviewState.mode !== 'expanding' && planePreviewState.mode !== 'contracting') {
+export function stepCrossScalePlanePreview(
+  deltaSec: number,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): boolean {
+  const preview = controller.planePreview;
+  if (!preview.active) return false;
+  if (preview.mode !== 'expanding' && preview.mode !== 'contracting') {
     return false;
   }
 
   const dt = Number.isFinite(deltaSec) && deltaSec > 0 ? Math.min(deltaSec, MAX_PREVIEW_STEP_SEC) : 0;
-  planePreviewState.elapsedSec += dt;
+  preview.elapsedSec += dt;
   const p = Math.min(
     1,
-    planePreviewState.elapsedSec / Math.max(MIN_DURATION_SEC, planePreviewState.durationSec),
+    preview.elapsedSec / Math.max(MIN_DURATION_SEC, preview.durationSec),
   );
 
-  if (planePreviewState.mode === 'expanding') {
-    planePreviewState.radiusProgress = p;
+  if (preview.mode === 'expanding') {
+    preview.radiusProgress = p;
     if (p >= 1) {
-      planePreviewState.mode = 'holding';
-      const onComplete = planePreviewState.onPhaseComplete;
-      planePreviewState.onPhaseComplete = undefined;
+      preview.mode = 'holding';
+      const onComplete = preview.onPhaseComplete;
+      preview.onPhaseComplete = undefined;
       onComplete?.();
     }
     return true;
   }
 
-  planePreviewState.radiusProgress = 1;
-  planePreviewState.opacity = 1 - easeOutCubic(p);
+  preview.radiusProgress = 1;
+  preview.opacity = 1 - easeOutCubic(p);
   if (p >= 1) {
-    clearCrossScalePlanePreview();
+    clearCrossScalePlanePreview(controller);
   }
   return true;
 }
@@ -195,29 +207,37 @@ export function stepCrossScalePlanePreview(deltaSec: number): boolean {
 export function updateCrossScalePlanePreviewProgress(
   radiusProgress: number,
   opacity: number,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
 ): void {
-  planePreviewState.radiusProgress = clampUnit(radiusProgress);
-  planePreviewState.opacity = clampUnit(opacity);
+  const preview = controller.planePreview;
+  preview.radiusProgress = clampUnit(radiusProgress);
+  preview.opacity = clampUnit(opacity);
 }
 
 /** Updates only `maxRadius` of the plane preview in-place with zero allocations. */
-export function setCrossScalePlanePreviewRadius(radius: number): void {
-  planePreviewState.maxRadius = Number.isFinite(radius) && radius > 0 ? radius : 0.001;
+export function setCrossScalePlanePreviewRadius(
+  radius: number,
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  controller.planePreview.maxRadius = Number.isFinite(radius) && radius > 0 ? radius : 0.001;
 }
 
 /** Deactivates and resets the plane preview state in-place. */
-export function clearCrossScalePlanePreview(): void {
-  planePreviewState.active = false;
-  planePreviewState.mode = 'idle';
-  planePreviewState.position[0] = 0;
-  planePreviewState.position[1] = 0;
-  planePreviewState.position[2] = 0;
-  planePreviewState.inclinationRad = 0;
-  planePreviewState.ascendingNodeRad = 0;
-  planePreviewState.maxRadius = 1;
-  planePreviewState.radiusProgress = 0;
-  planePreviewState.opacity = 0;
-  planePreviewState.durationSec = 0;
-  planePreviewState.elapsedSec = 0;
-  planePreviewState.onPhaseComplete = undefined;
+export function clearCrossScalePlanePreview(
+  controller: CrossScaleChoreographyController = getActiveChoreographyController(),
+): void {
+  const preview = controller.planePreview;
+  preview.active = false;
+  preview.mode = 'idle';
+  preview.position[0] = 0;
+  preview.position[1] = 0;
+  preview.position[2] = 0;
+  preview.inclinationRad = 0;
+  preview.ascendingNodeRad = 0;
+  preview.maxRadius = 1;
+  preview.radiusProgress = 0;
+  preview.opacity = 0;
+  preview.durationSec = 0;
+  preview.elapsedSec = 0;
+  preview.onPhaseComplete = undefined;
 }

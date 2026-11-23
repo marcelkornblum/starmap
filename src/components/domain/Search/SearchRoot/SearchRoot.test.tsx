@@ -7,11 +7,6 @@ import { SearchResults } from '../SearchResults';
 import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
 import { SEARCH_FRAMING_SETTLE_MS } from '../../../../utils/searchFraming';
 import { SOL_REFERENCE_TARGET } from '../../../../config/referenceTargets';
-import {
-  consumeSearchFocusForViewTransition,
-  markSearchFocusForViewTransition,
-  resetSearchFocusContinuity,
-} from '../searchFocusContinuity';
 import { useCameraStore } from '../../../../stores/useCameraStore';
 import { SpatialEntityProvider } from '../../../canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../../../canvas/entity/SpatialEntityStore';
@@ -49,7 +44,7 @@ const TEST_CORPUS: readonly CompactSearchEntry[] = [
 describe('<SearchRoot />', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    resetSearchFocusContinuity();
+    useCameraStore.getState().reset();
   });
 
   afterEach(() => {
@@ -305,7 +300,7 @@ describe('<SearchRoot />', () => {
 
   it('restores search focus, opens SearchResults, and focuses the query input at end of text when mounted after a cross-scale transition', () => {
     const store = createSpatialEntityStore();
-    markSearchFocusForViewTransition();
+    useCameraStore.getState().markSearchFocusForViewTransition();
 
     const { unmount } = render(
       <SpatialEntityProvider store={store}>
@@ -334,7 +329,7 @@ describe('<SearchRoot />', () => {
     expect(input.value).toBe('Earth');
     expect(input.selectionStart).toBe('Earth'.length);
     expect(input.selectionEnd).toBe('Earth'.length);
-    expect(consumeSearchFocusForViewTransition()).toBe(false);
+    expect(useCameraStore.getState().consumeSearchFocusForViewTransition()).toBe(false);
 
     unmount();
 

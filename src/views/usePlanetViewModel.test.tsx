@@ -71,7 +71,7 @@ describe('usePlanetViewModel', () => {
     seedSummaryNode('sol', SOL_SUMMARY);
     seedDetailRecord('earth', { kind: 'system', record: SOL_FIXTURE });
     useUIStore.setState({ detailsDetent: 'collapsed' });
-    useCameraStore.setState({ lastGalaxySearch: '' });
+    useCameraStore.getState().reset();
   });
 
   const createWrapper = (store: ReturnType<typeof createSpatialEntityStore>) => {
@@ -219,6 +219,37 @@ describe('usePlanetViewModel', () => {
       hookResult.rerender({ search: '?focus=earth' });
     });
 
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
+
+  it('sets effectiveCenterId on intra-view focusFromSearch and records canvas focus without setting effectiveCenterId on handleSelectEntity', async () => {
+    useCameraStore.getState().reset();
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof usePlanetViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          usePlanetViewModel({
+            planetId: 'saturn',
+            locationPathname: '/planet/saturn',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+
+    act(() => {
+      useCameraStore.getState().focusFromSearch('titan');
+    });
+    expect(hookResult.result.current.effectiveCenterId).toBe('titan');
+
+    act(() => {
+      hookResult.result.current.handleSelectEntity('mars');
+    });
+    expect(useCameraStore.getState().canvasFocusedSlugs.has('mars')).toBe(true);
+    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
     expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
   });
 

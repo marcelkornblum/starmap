@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
+import * as spaLocationModule from '../../../hooks/useSpaLocation';
 import * as prefetchModule from '../../../services/details/prefetchEntitySelection';
 import { useSearchExecution } from './useSearchExecution';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
@@ -210,5 +211,58 @@ describe('useSearchExecution', () => {
     });
 
     expect(prefetchSpy).toHaveBeenCalledWith('tau-ceti', undefined);
+  });
+
+  it('records lastSelfWrittenSearchRef when setQuery and setFilter sync URL params', () => {
+    const navigateSpy = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(spaLocationModule, 'useOptionalRouter').mockReturnValue({
+      navigate: navigateSpy,
+      state: { location: { pathname: '/galaxy', searchStr: '' } },
+    } as never);
+
+    const store = createSpatialEntityStore();
+    const searchRootRef = { current: document.createElement('div') };
+    const lastSelfWrittenSearchRef = { current: null };
+
+    const { result } = renderHook(() =>
+      useSearchExecution({
+        initialQuery: '',
+        initialFilter: 'all',
+        initialCorpus: TEST_CORPUS,
+        syncUrl: true,
+        isSync: true,
+        effectiveDebounceMs: 0,
+        activePathname: '/galaxy',
+        activeSearch: '',
+        store,
+        layerIndex: [],
+        loadedLayers: [],
+        searchRootRef,
+        setIsFocused: vi.fn(),
+        lastSelfWrittenSearchRef,
+      }),
+    );
+
+    act(() => {
+      result.current.setQuery('Tau');
+    });
+
+    expect(lastSelfWrittenSearchRef.current).toEqual({
+      pathname: '/galaxy',
+      q: 'Tau',
+      cat: '',
+      layer: '',
+    });
+
+    act(() => {
+      result.current.setFilter('stars');
+    });
+
+    expect(lastSelfWrittenSearchRef.current).toEqual({
+      pathname: '/galaxy',
+      q: 'Tau',
+      cat: 'stars',
+      layer: '',
+    });
   });
 });

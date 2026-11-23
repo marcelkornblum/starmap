@@ -52,5 +52,51 @@ describe('useSearchUrlSyncEffect', () => {
         );
       }).not.toThrow();
     });
+
+    it('suppresses duplicate submitSearch when URL update echoes self-written query and filter', () => {
+      const store = createSpatialEntityStore();
+      const setQueryState = vi.fn();
+      const setFilterState = vi.fn();
+      const setStatus = vi.fn();
+      const submitSearch = vi.fn().mockResolvedValue(undefined);
+      const updateResultsAndSelection = vi.fn();
+      const results = executeCatalogSearch([], { query: '', filter: 'all' });
+      const lastSelfWrittenSearchRef = {
+        current: { pathname: '/galaxy', q: 'Tau', cat: 'stars', layer: '' },
+      };
+
+      const { rerender } = renderHook(
+        ({ activeSearch }: { activeSearch: string }) =>
+          useSearchUrlSyncEffect({
+            activePathname: '/galaxy',
+            activeSearch,
+            syncUrl: true,
+            initialQuery: '',
+            initialFilter: 'all',
+            store,
+            layerIndex: [],
+            loadedLayers: [],
+            results,
+            filter: 'stars',
+            setQueryState,
+            setFilterState,
+            setStatus,
+            submitSearch,
+            updateResultsAndSelection,
+            lastSelfWrittenSearchRef,
+          }),
+        { initialProps: { activeSearch: '' } },
+      );
+
+      rerender({ activeSearch: '?q=Tau&select=search&searchCategory=stars' });
+      expect(submitSearch).not.toHaveBeenCalled();
+      expect(setQueryState).not.toHaveBeenCalled();
+      expect(setFilterState).not.toHaveBeenCalled();
+      expect(lastSelfWrittenSearchRef.current).toBeNull();
+
+      rerender({ activeSearch: '?q=Sirius&select=search' });
+      expect(submitSearch).toHaveBeenCalledTimes(1);
+      expect(submitSearch).toHaveBeenCalledWith('Sirius', 'all');
+    });
   });
 });

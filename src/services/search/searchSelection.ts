@@ -40,6 +40,7 @@ export const toSearchResultItem = (
   score: number,
   systemName?: string,
   tagSlug?: string,
+  hostPosition?: readonly [number, number, number],
 ): SearchResultItem => {
   const displayName = resolveResultDisplayTitle(entry);
   const category = resolveEntryCategory(entry);
@@ -48,10 +49,11 @@ export const toSearchResultItem = (
 
   let distancePc: number | undefined;
   let position: readonly [number, number, number] | undefined;
-  if (entry.p) {
-    const [x, y, z] = entry.p;
+  const resolvedCoords = entry.p ?? hostPosition;
+  if (resolvedCoords) {
+    const [x, y, z] = resolvedCoords;
     position = [x, y, z];
-    distancePc = Math.round(computeDistance3D(entry.p, ORIGIN_3D) * 100) / 100;
+    distancePc = Math.round(computeDistance3D(resolvedCoords, ORIGIN_3D) * 100) / 100;
   } else if (entry.h === 1) {
     position = ORIGIN_3D;
     distancePc = 0;

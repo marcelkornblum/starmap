@@ -13,21 +13,32 @@ describe('cameraEasing', () => {
   it('exposes the expected defaults and easeOutCubic curve', () => {
     expect(DEFAULT_CAMERA_EASING_CURVE).toBe('easeOutCubic');
     expect(DEFAULT_CAMERA_TRANSITION_DURATION_SEC).toBe(0.8);
-    expect(evaluateCameraEasing('easeOutCubic', 0)).toBe(0);
-    expect(evaluateCameraEasing('easeOutCubic', 1)).toBe(1);
-    expect(evaluateCameraEasing('easeOutCubic', -0.5)).toBe(0);
-    expect(evaluateCameraEasing('easeOutCubic', 1.5)).toBe(1);
-    expect(evaluateCameraEasing('easeOutCubic', Number.NaN)).toBe(0);
+    expect(evaluateCameraEasing(0)).toBe(0);
+    expect(evaluateCameraEasing(0.5)).toBeCloseTo(0.875, 6);
+    expect(evaluateCameraEasing(0, 'easeOutCubic')).toBe(0);
+    expect(evaluateCameraEasing(1, 'easeOutCubic')).toBe(1);
+    expect(evaluateCameraEasing(-0.5, 'easeOutCubic')).toBe(0);
+    expect(evaluateCameraEasing(1.5, 'easeOutCubic')).toBe(1);
+    expect(evaluateCameraEasing(Number.NaN, 'easeOutCubic')).toBe(0);
     expect(easeOutCubic(0.5)).toBeCloseTo(0.875, 6);
   });
 
   it('is monotonically non-decreasing across [0, 1] for easeOutCubic', () => {
     let prev = 0;
     for (let i = 1; i <= 20; i += 1) {
-      const val = evaluateCameraEasing('easeOutCubic', i / 20);
+      const val = evaluateCameraEasing(i / 20, 'easeOutCubic');
       expect(val).toBeGreaterThanOrEqual(prev);
       prev = val;
     }
+  });
+
+  it('dispatches evaluateCameraEasing to easeInQuad when curve is easeInQuad', () => {
+    expect(evaluateCameraEasing(0, 'easeInQuad')).toBe(0);
+    expect(evaluateCameraEasing(0.5, 'easeInQuad')).toBe(0.25);
+    expect(evaluateCameraEasing(1, 'easeInQuad')).toBe(1);
+    expect(evaluateCameraEasing(-0.5, 'easeInQuad')).toBe(0);
+    expect(evaluateCameraEasing(1.5, 'easeInQuad')).toBe(1);
+    expect(evaluateCameraEasing(Number.NaN, 'easeInQuad')).toBe(0);
   });
 
   it('exposes easeInQuad with quadratic acceleration and unit clamping', () => {
