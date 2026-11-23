@@ -140,7 +140,7 @@
   - Update `DetailsActionControls` stories/tests and verify `audit:ui` quads.
 - [x] **Task 5.2: End-to-End Playwright Verification**
   - Add Playwright coverage for intra-view and cross-scale glides, `prefers-reduced-motion`, search framing (`FS-003`), and the conditional `Centre` CTA + `DEC-R014a` `center` vs. `focused` contract (`FS-013`).
-- [ ] **Task 5.3: End-of-Track Dual Review, Changelog & PR Delivery**
+- [x] **Task 5.3: End-of-Track Dual Review, Changelog & PR Delivery**
   - Run `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, `npm run test:coverage`, and `npm run capture:views`.
   - Run dual `code-review` + `architecture-review` skills and address findings.
   - Update `CHANGELOG.md`, update track status in `metadata.json` / `tracks.md`, push `feat/camera-choreography`, and open PR via `gh pr create`.

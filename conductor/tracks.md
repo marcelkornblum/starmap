@@ -3,7 +3,6 @@
 ## Active Tracks
 
 ### Product & Spatial Feature Tracks
-- [~] **Track: Camera Choreography** *Link: [conductor/tracks/camera-choreography_20261117/index.md](./tracks/camera-choreography_20261117/index.md)* *(Cross-scale glides, HUD retraction + viewport compensation, search framing `FS-003`, conditional `Centre` CTA `FS-013`; owns backlog item `FS-012`; coordinate with `render-loop-and-r3f-hot-paths_20261121`)*
 - [ ] **Track: Orientation Instruments** *Link: [conductor/tracks/orientation-instruments_20261117/index.md](./tracks/orientation-instruments_20261117/index.md)* *(Compass / attitude widget and datum-plane tilt indicators; coordinate with `scene-draw-calls-and-gpu-tiering_20261121` `P-08`)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)* *(Input-capability detection, shortcut registry + keyboard help modal, navigation modes)*
 
@@ -62,3 +61,4 @@ Single backlog list: see [conductor/backlog.md](./backlog.md).
 - [x] **Track: Spatial Data Delivery, Search & Hydration** *(archived complete 2026-11-21; PR #124)* *Link: [conductor/archive/tracks/spatial-data-delivery-and-search_20261121/index.md](./archive/tracks/spatial-data-delivery-and-search_20261121/index.md)*
 - [x] **Track: Scene Draw-Call Reduction & Adaptive GPU Tiering** *(archived complete 2026-11-21; PR #125)* *Link: [conductor/archive/tracks/scene-draw-calls-and-gpu-tiering_20261121/index.md](./archive/tracks/scene-draw-calls-and-gpu-tiering_20261121/index.md)*
 - [x] **Track: State, Layering & Legacy Surface Cleanup** *(archived complete 2026-11-21)* *Link: [conductor/archive/tracks/state-layering-and-legacy-cleanup_20261121/index.md](./archive/tracks/state-layering-and-legacy-cleanup_20261121/index.md)*
+- [x] **Track: Camera Choreography** *(archived complete 2026-11-23)* *Link: [conductor/archive/tracks/camera-choreography_20261117/index.md](./archive/tracks/camera-choreography_20261117/index.md)*
