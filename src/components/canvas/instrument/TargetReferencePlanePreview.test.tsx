@@ -303,4 +303,29 @@ describe('TargetReferencePlanePreview', () => {
 
     await renderer.unmount();
   });
+
+  it('skips redundant material opacity writes across idle frames when preview remains hidden', async () => {
+    const renderer = await ReactThreeTest.create(<TargetReferencePlanePreview />);
+    const discMesh = renderer.scene.find(
+      (node) => node.instance instanceof THREE.Mesh && node.instance.geometry instanceof THREE.CircleGeometry,
+    ).instance as THREE.Mesh;
+    const discMat = discMesh.material as THREE.MeshBasicMaterial;
+
+    await renderer.advanceFrames(1, 0.016);
+    let opacityWrites = 0;
+    let currentOpacity = discMat.opacity;
+    Object.defineProperty(discMat, 'opacity', {
+      configurable: true,
+      get: () => currentOpacity,
+      set: (value: number) => {
+        opacityWrites += 1;
+        currentOpacity = value;
+      },
+    });
+
+    await renderer.advanceFrames(3, 0.016);
+    expect(opacityWrites).toBe(0);
+
+    await renderer.unmount();
+  });
 });

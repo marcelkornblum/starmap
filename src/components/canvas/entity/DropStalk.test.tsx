@@ -333,4 +333,24 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
     await renderer.unmount();
   });
+
+  it('skips redundant lineMaterial.updateResolution calls when viewport height and projection are unchanged', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="res-stalk" position={[0, 0, 5]} state="selected" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const stalkLine = renderer.scene.find((node) => node.props.name === 'stalk-line');
+    const stalkMat = (stalkLine.instance as THREE.LineSegments).material as CartoHairlineMaterial;
+    const updateSpy = vi.spyOn(stalkMat, 'updateResolution');
+
+    await renderer.advanceFrames(3, 0.016);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+
+    updateSpy.mockRestore();
+    await renderer.unmount();
+  });
 });

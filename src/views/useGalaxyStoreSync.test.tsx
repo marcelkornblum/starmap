@@ -159,7 +159,7 @@ describe('useGalaxyStoreSync', () => {
     expect(store.getState().apertureIds).toEqual(apertureIds);
   });
 
-  it('clears pendingCenterSlug when actualUrlFocusSlug becomes falsy or matches pending', () => {
+  it('preserves pendingCenterSlug across URL sync for GalacticCameraController, and clears it when focus clears from truthy to null', () => {
     const store = createSpatialEntityStore();
     useCameraStore.setState({ pendingCenterSlug: 'sirius' });
 
@@ -168,7 +168,7 @@ describe('useGalaxyStoreSync', () => {
       {
         initialProps: {
           ...createParams(store),
-          actualUrlFocusSlug: 'vega',
+          actualUrlFocusSlug: null,
         },
       },
     );
@@ -181,9 +181,8 @@ describe('useGalaxyStoreSync', () => {
         actualUrlFocusSlug: 'sirius',
       });
     });
-    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
+    expect(useCameraStore.getState().pendingCenterSlug).toBe('sirius');
 
-    useCameraStore.setState({ pendingCenterSlug: 'tau-ceti' });
     act(() => {
       rerender({
         ...createParams(store),

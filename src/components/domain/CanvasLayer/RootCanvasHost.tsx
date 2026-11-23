@@ -12,6 +12,8 @@ import {
   subscribeStageCallbacks,
 } from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useUIStore } from '../../../stores/useUIStore';
+import { computeOpticalCenterOffsetPx } from '../../../utils/viewportSafeRect';
 import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
 import { isSpatialRoutePathname, parseSpatialRouteTarget } from '../../../utils/spatialRoute';
 import { CanvasLayer } from './CanvasLayer';
@@ -50,11 +52,24 @@ export const RootCanvasHost: React.FC = () => {
 
   useEffect(() => {
     if (!hasActivatedSpatialCanvas || import.meta.env.MODE === 'test') return;
+    let idleHandle: number | null = null;
     const idleTimer = setTimeout(() => {
-      void preloadTargetScaleEntry('system');
-      void preloadTargetScaleEntry('planet');
-    }, 600);
-    return () => clearTimeout(idleTimer);
+      const runPreload = () => {
+        void preloadTargetScaleEntry('system');
+        void preloadTargetScaleEntry('planet');
+      };
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(runPreload, { timeout: 1000 });
+      } else {
+        runPreload();
+      }
+    }, 2500);
+    return () => {
+      clearTimeout(idleTimer);
+      if (idleHandle !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleHandle);
+      }
+    };
   }, [hasActivatedSpatialCanvas]);
   const { onInspect, onSelect, onFocusChange } = useSyncExternalStore(
     subscribeStageCallbacks,
@@ -139,6 +154,24 @@ export const RootCanvasHost: React.FC = () => {
       }
     };
   }, []);
+
+  const viewportSafeRect = useUIStore((s) => s.viewportSafeRect);
+
+  useIsomorphicLayoutEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    const fullW = viewportSafeRect
+      ? viewportSafeRect.left + viewportSafeRect.width + viewportSafeRect.right
+      : el.clientWidth;
+    const fullH = viewportSafeRect
+      ? viewportSafeRect.top + viewportSafeRect.height + viewportSafeRect.bottom
+      : el.clientHeight;
+    const { offsetX, offsetY } = computeOpticalCenterOffsetPx(viewportSafeRect);
+    const safeCenterX = fullW > 0 ? fullW / 2 - offsetX : 0;
+    const safeCenterY = fullH > 0 ? fullH / 2 - offsetY : 0;
+    el.setAttribute('data-view-offset', `${offsetX.toFixed(2)},${offsetY.toFixed(2)}`);
+    el.setAttribute('data-safe-center', `${safeCenterX.toFixed(2)},${safeCenterY.toFixed(2)}`);
+  }, [viewportSafeRect]);
 
   const canvasLayerContent = useMemo(
     () => (

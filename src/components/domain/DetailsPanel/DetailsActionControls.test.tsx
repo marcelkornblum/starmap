@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Profiler } from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
@@ -170,5 +171,41 @@ describe('<DetailsActionControls />', () => {
     });
 
     expect(resolveSpy.mock.calls.length).toBe(callsAfterMount);
+  });
+
+  it('does not re-render during orbit drag when camera position changes with unchanged target', () => {
+    const store = createSpatialEntityStore();
+    store.getState().registerEntity({
+      id: 'sol',
+      name: 'Sol',
+      classification: 'star',
+      position: [0, 0, 0],
+    });
+    useCanvasStageStore.getState().setActiveSceneStore(store);
+    useCameraStore.getState().setCameraPose({
+      position: [0, -18, 12],
+      target: [0, 0, 0],
+    });
+
+    const onRender = vi.fn();
+    render(
+      <Profiler id="details-actions" onRender={onRender}>
+        <DetailsActionControls
+          id="sol"
+          coordinatesPc={[0, 0, 0]}
+          centerHref="/system/sol?center=sol&focus=sol"
+          directionsHref="/galaxy?focus=sol"
+        />
+      </Profiler>,
+    );
+
+    const rendersAfterMount = onRender.mock.calls.length;
+    expect(rendersAfterMount).toBeGreaterThanOrEqual(1);
+
+    act(() => {
+      useCameraStore.getState().setCameraTransform([5, -16, 12], [0, 0, 0]);
+      useCameraStore.getState().setCameraTransform([8, -14, 12], [0, 0, 0]);
+    });
+    expect(onRender).toHaveBeenCalledTimes(rendersAfterMount);
   });
 });

@@ -1,4 +1,5 @@
 import { test, expect } from 'playwright/test';
+import { panCanvasOffCenter } from './helpers/safeCanvasCenter';
 
 test.describe('Journey 2: The Author Flow (Candidate Hunting & Territory Mapping)', () => {
   test('inspects anchor system relative galactic distances, circumstellar belts, and nested bodies', async ({
@@ -6,14 +7,21 @@ test.describe('Journey 2: The Author Flow (Candidate Hunting & Territory Mapping
   }) => {
     test.setTimeout(60_000);
 
-    // 1. User navigates to galaxy with Tau Ceti focused and centres it via the "Centre" link
+    // 1. User navigates to galaxy with Tau Ceti focused, pans off-centre so FS-013 reveals "Centre", and centres it
     await page.goto('/galaxy?focus=tau-ceti');
+
+    const rootHost = page.getByTestId('root-canvas-host');
+    await expect(rootHost.locator('canvas')).toBeVisible({ timeout: 15_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-target', /3\.1[56],\s*1\.5[40],\s*-1\.00?/, {
+      timeout: 10_000,
+    });
 
     const detailsPane = page.getByRole('complementary', { name: 'Details' });
     await expect(detailsPane).toBeVisible();
 
+    await panCanvasOffCenter(page);
     const centreLink = detailsPane.getByRole('link', { name: 'Centre' });
-    await expect(centreLink).toBeVisible();
+    await expect(centreLink).toBeVisible({ timeout: 5_000 });
     await centreLink.click();
     await expect(page).toHaveURL(/center=/);
 

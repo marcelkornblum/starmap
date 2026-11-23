@@ -264,11 +264,15 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     }
 
     const resolvedDistance = resolvePositiveFiniteDistance(distance);
+    const consumedPendingSlug = useCameraStore.getState().pendingCenterSlug;
 
     transitionTo([targetX, targetY, targetZ], {
       ...(resolvedDistance !== undefined ? { targetDistance: resolvedDistance } : {}),
       onComplete: () => {
         hasRestoredRef.current = true;
+        if (consumedPendingSlug && useCameraStore.getState().pendingCenterSlug === consumedPendingSlug) {
+          useCameraStore.getState().setPendingCenterSlug(null);
+        }
         syncCameraPoseSnapshotToStore(camera, controls, [targetX, targetY, targetZ]);
         saveCurrentGalaxyPose(true);
         invalidate?.();

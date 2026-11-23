@@ -361,5 +361,18 @@ describe('Camera Store: useCameraStore.ts', () => {
       expect(useCameraStore.getState().pendingViewTransitionFocus).toBe(false);
       expect(getPendingSpatialRouteTarget()).toBeNull();
     });
+
+    it('preserves unchanged target and position tuple references across setCameraTransform / setCameraPose', () => {
+      useCameraStore.getState().setCameraTransform([0, 0, 10], [1, 2, 3]);
+      const firstTargetRef = useCameraStore.getState().target;
+
+      useCameraStore.getState().setCameraTransform([4, 5, 10], [1, 2, 3]);
+      expect(useCameraStore.getState().target).toBe(firstTargetRef);
+
+      const firstPosRef = useCameraStore.getState().position;
+      useCameraStore.getState().setCameraPose({ position: [4, 5, 10], target: [1, 2, 3] });
+      expect(useCameraStore.getState().position).toBe(firstPosRef);
+      expect(useCameraStore.getState().target).toBe(firstTargetRef);
+    });
   });
 });

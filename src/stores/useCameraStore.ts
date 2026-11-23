@@ -139,6 +139,11 @@ export const INITIAL_CAMERA_STATE: CameraState = {
 };
 
 let nextSearchFrameTick = 0;
+const reuseTuple = (
+  prev: [number, number, number],
+  next: [number, number, number],
+): [number, number, number] =>
+  prev[0] === next[0] && prev[1] === next[1] && prev[2] === next[2] ? prev : next;
 
 export const useCameraStore = create<CameraStore>()((set, get) => ({
   ...INITIAL_CAMERA_STATE,
@@ -161,12 +166,12 @@ export const useCameraStore = create<CameraStore>()((set, get) => ({
       state.activeCardinal === activeCardinal ? state : { activeCardinal },
     ),
   setCameraTransform: (position: [number, number, number], target: [number, number, number], zoom?: number) =>
-    set({
-      position,
-      target,
+    set((state) => ({
+      position: reuseTuple(state.position, position),
+      target: reuseTuple(state.target, target),
       focalDistance: Math.hypot(position[0] - target[0], position[1] - target[1], position[2] - target[2]),
       ...(zoom !== undefined ? { zoom } : {}),
-    }),
+    })),
   setCameraPose: (pose: {
     position: [number, number, number];
     target: [number, number, number];
@@ -174,15 +179,15 @@ export const useCameraStore = create<CameraStore>()((set, get) => ({
     zoom?: number;
     focalDistance?: number;
   }) =>
-    set({
-      position: pose.position,
-      target: pose.target,
-      ...(pose.up !== undefined ? { up: pose.up } : {}),
+    set((state) => ({
+      position: reuseTuple(state.position, pose.position),
+      target: reuseTuple(state.target, pose.target),
+      ...(pose.up !== undefined ? { up: reuseTuple(state.up, pose.up) } : {}),
       focalDistance:
         pose.focalDistance ??
         Math.hypot(pose.position[0] - pose.target[0], pose.position[1] - pose.target[1], pose.position[2] - pose.target[2]),
       ...(pose.zoom !== undefined ? { zoom: pose.zoom } : {}),
-    }),
+    })),
   setSavedGalaxyCamera: (savedGalaxyCamera: SavedGalaxyCameraPose | null) =>
     set({ savedGalaxyCamera }),
   setLastGalaxySearch: (lastGalaxySearch: string) =>

@@ -9,6 +9,7 @@ import { RootCanvasHost } from './RootCanvasHost';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { getStageCallbacks } from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useUIStore } from '../../../stores/useUIStore';
 import {
   CanvasRouterBridgeContext,
   type AppRouterAdapter,
@@ -491,5 +492,31 @@ describe('RootCanvasHost Domain Component', () => {
     expect(host.getAttribute('data-camera-pos')).toBe('5.00,6.00,7.00');
     expect(host.getAttribute('data-camera-target')).toBe('1.00,2.00,3.00');
     expect(host.getAttribute('data-camera-dist')).toBe('9.50');
+  });
+
+  it('publishes data-view-offset and data-safe-center from useUIStore.viewportSafeRect', () => {
+    act(() => {
+      useUIStore.getState().resetUI();
+    });
+
+    render(<RootCanvasHost />);
+    const host = screen.getByTestId('root-canvas-host');
+
+    expect(host.getAttribute('data-view-offset')).toBe('0.00,0.00');
+
+    act(() => {
+      useUIStore.getState().setViewportSafeRect({
+        top: 0,
+        right: 384,
+        bottom: 56,
+        left: 0,
+        width: 896,
+        height: 664,
+        bypass: false,
+      });
+    });
+
+    expect(host.getAttribute('data-view-offset')).toBe('192.00,28.00');
+    expect(host.getAttribute('data-safe-center')).toBe('448.00,332.00');
   });
 });

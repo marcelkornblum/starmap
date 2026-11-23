@@ -34,10 +34,13 @@ export function useGalaxyStoreSync({
   isExplicitLocation,
 }: UseGalaxyStoreSyncParams): void {
   const prevUrlFocusSlugRef = useRef<string | null>(urlFocusSlug);
+  const prevActualUrlFocusSlugRef = useRef<string | null | undefined>(actualUrlFocusSlug);
 
   useEffect(() => {
+    const prevActual = prevActualUrlFocusSlugRef.current;
+    prevActualUrlFocusSlugRef.current = actualUrlFocusSlug;
     const pending = useCameraStore.getState().pendingCenterSlug;
-    if (pending && (!actualUrlFocusSlug || pending === actualUrlFocusSlug)) {
+    if (pending && prevActual !== null && prevActual !== undefined && !actualUrlFocusSlug) {
       useCameraStore.getState().setPendingCenterSlug(null);
     }
   }, [actualUrlFocusSlug]);

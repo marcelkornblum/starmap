@@ -79,6 +79,7 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   const lastProgressRef = useRef<number>(Number.NaN);
   const lastFootprintOpacityRef = useRef<number>(Number.NaN);
   const lastStalkOpacityRef = useRef<number>(Number.NaN);
+  const lastResolutionRef = useRef({ height: -1, proj11: Number.NaN });
   const lineMeshRef = useRef<THREE.LineSegments>(null);
   const footprintRef = useLazyRef(() => {
     const g = new THREE.Group();
@@ -241,7 +242,13 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
       lastStalkOpacityRef.current = nextStalkOpacity;
     }
 
-    lineMaterial.updateResolution(camera, size.height);
+    const proj11 = camera.projectionMatrix.elements[5];
+    const lastRes = lastResolutionRef.current;
+    if (lastRes.height !== size.height || lastRes.proj11 !== proj11) {
+      lineMaterial.updateResolution(camera, size.height);
+      lastRes.height = size.height;
+      lastRes.proj11 = proj11;
+    }
 
     if (Math.abs(deltaZ) > 1e-4 && Math.abs(target - p) > 1e-4) {
       invalidate();

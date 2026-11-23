@@ -46,7 +46,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   lineStyle,
   showPeriapsisTick = true,
   showDirectionIndicator = true,
-  segments = 256,
+  segments = 96,
   position = [0, 0, 0],
 }) => {
   const orbitColor = useThreeTokenStore((s) => s.tokens.orbitColor);
@@ -62,6 +62,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   const lastLineOpacityRef = useRef<number>(Number.NaN);
   const lastDirectionOpacityRef = useRef<number>(Number.NaN);
   const lastPeriapsisOpacityRef = useRef<number>(Number.NaN);
+  const lastResolutionRef = useRef({ width: -1, height: -1, proj11: Number.NaN });
   const frameCtx = useSpatialFrameSafe();
 
   const scratchWorldTangent = useLazyRef(() => new THREE.Vector3());
@@ -144,7 +145,18 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
 
   useFrame(({ camera, size }) => {
     if (!shouldRender) return;
-    lineMat.updateResolution(camera, size.width, size.height);
+    const proj11 = camera.projectionMatrix.elements[5];
+    const lastRes = lastResolutionRef.current;
+    if (
+      lastRes.width !== size.width ||
+      lastRes.height !== size.height ||
+      lastRes.proj11 !== proj11
+    ) {
+      lineMat.updateResolution(camera, size.width, size.height);
+      lastRes.width = size.width;
+      lastRes.height = size.height;
+      lastRes.proj11 = proj11;
+    }
 
     const frameState = frameCtx?.frameRef?.current;
     const instrumentFade = frameState?.instrumentFade ?? 1;

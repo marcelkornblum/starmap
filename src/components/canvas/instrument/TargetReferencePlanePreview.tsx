@@ -40,6 +40,7 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
   const outerRingMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const innerRing1MatRef = useRef<THREE.MeshBasicMaterial>(null);
   const innerRing2MatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const wasVisibleRef = useRef(true);
 
   const tiltAxisRef = useLazyRef(() => new THREE.Vector3(1, 0, 0));
   const orientationQuatRef = useLazyRef(() => new THREE.Quaternion());
@@ -121,9 +122,11 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
 
     const preview = getCrossScalePlanePreviewState(choreography);
     const isVisible = preview.active && preview.opacity > OPACITY_EPSILON;
-    group.visible = isVisible;
 
     if (!isVisible) {
+      if (!wasVisibleRef.current) return;
+      wasVisibleRef.current = false;
+      group.visible = false;
       if (discMatRef.current) discMatRef.current.opacity = 0;
       if (outerRingMatRef.current) outerRingMatRef.current.opacity = 0;
       if (innerRing1MatRef.current) innerRing1MatRef.current.opacity = 0;
@@ -132,6 +135,9 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
       minorLineMat.opacity = 0;
       return;
     }
+
+    wasVisibleRef.current = true;
+    group.visible = true;
 
     group.position.set(preview.position[0], preview.position[1], preview.position[2]);
 

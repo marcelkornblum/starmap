@@ -755,4 +755,39 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     const settledDist = mockCamera.position.distanceTo(mockControls.target);
     expect(settledDist).toBeCloseTo(48, 3);
   });
+
+  it('clears pendingCenterSlug once the explicit-target transition completes', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(12000);
+    const { rerender } = render(
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+          hasExplicitCenter: false,
+        }),
+      ),
+    );
+
+    act(() => {
+      useCameraStore.getState().focusFromSearch('tau-ceti');
+    });
+
+    rerender(
+      withTransitionProvider(
+        createElement(GalacticCameraController, {
+          target: [3.16, 1.54, -1.0],
+          hasExplicitCenter: true,
+        }),
+      ),
+    );
+
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    act(() => {
+      advanceTransitionFrames([12000, 13500], nowSpy);
+    });
+
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
+    expect(mockControls.target.x).toBeCloseTo(3.16, 2);
+  });
 });

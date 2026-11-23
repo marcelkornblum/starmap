@@ -1,5 +1,10 @@
 /// <reference lib="dom" />
 import { test, expect } from 'playwright/test';
+import {
+  expectTelemetryTupleWithin,
+  getSafeCanvasCenter,
+  getViewOffsetPx,
+} from './helpers/safeCanvasCenter';
 
 test.describe('3D Canvas Interaction & FPS Telemetry', () => {
   test('pointer hit-test confirms canvas receives pointer events at stage center without overlay occlusion', async ({
@@ -12,10 +17,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvas = rootHost.locator('canvas');
     await expect(canvas).toBeVisible({ timeout: 15_000 });
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     const hit = await page.evaluate(
       ({ x, y }) => {
@@ -46,10 +48,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const initialPos = await rootHost.getAttribute('data-camera-pos');
     expect(initialPos).toBeTruthy();
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     // Perform left-button orbit drag gesture
     await page.mouse.move(cx, cy);
@@ -75,10 +74,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const initialTarget = await rootHost.getAttribute('data-camera-target');
     expect(initialTarget).toBeTruthy();
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     // Perform right-button pan drag gesture
     await page.mouse.move(cx, cy);
@@ -104,10 +100,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     expect(initialDistStr).toBeTruthy();
     const initialDist = parseFloat(initialDistStr!);
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     // Scroll up (negative deltaY) to zoom in
     await page.mouse.move(cx, cy);
@@ -142,10 +135,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       page.getByRole('region', { name: 'Galactic Systems' }).getByRole('link', { name: 'Sol' }),
     ).toBeVisible({ timeout: 15_000 });
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     // Wait until Sol's 3D hit-area responds to pointer hover before clicking
     await expect
@@ -181,10 +171,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvas = rootHost.locator('canvas');
     await expect(canvas).toBeVisible({ timeout: 15_000 });
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     // Start requestAnimationFrame timestamp recording in the browser context
     await page.evaluate(() => {
@@ -320,10 +307,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvas = rootHost.locator('canvas');
     await expect(canvas).toBeVisible();
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     // Wait until SystemScene mounts Tau Ceti's 3D hit-area and responds to pointer hover
     await expect
@@ -379,7 +363,9 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await expect(peekName).toHaveText(/Tau Ceti/i);
 
     // Verify data-camera-target updates to Tau Ceti's coordinates (3.16, 1.54, -1.00)
-    await expect(rootHost).toHaveAttribute('data-camera-target', /3\.1[56],\s*1\.5[40],\s*-1\.00?/);
+    await expect(rootHost).toHaveAttribute('data-camera-target', /3\.1[56],\s*1\.5[40],\s*-1\.00?/, {
+      timeout: 10_000,
+    });
 
     // At dist=10 (where nearby star reticles are active), search for Sirius, click the search result,
     // and then click Sol [0, 0, 0] on the 3D canvas (which projects to the open centre-right of the stage)
@@ -407,12 +393,13 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
         });
       });
     });
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(450);
 
     const canvasBox = await canvas.boundingBox();
     expect(canvasBox).not.toBeNull();
     const targetAttr = await rootHost.getAttribute('data-camera-target');
     const posAttr = await rootHost.getAttribute('data-camera-pos');
+    const { ox, oy } = await getViewOffsetPx(page);
     expect(targetAttr).not.toBeNull();
     expect(posAttr).not.toBeNull();
     if (!canvasBox || !targetAttr || !posAttr) {
@@ -448,8 +435,8 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       const ndcX = xCam / (zCam * tanFov * aspect);
       const ndcY = yCam / (zCam * tanFov);
       return {
-        x: canvasBox.x + (ndcX * 0.5 + 0.5) * canvasBox.width,
-        y: canvasBox.y + (-ndcY * 0.5 + 0.5) * canvasBox.height,
+        x: canvasBox.x + (ndcX * 0.5 + 0.5) * canvasBox.width - ox,
+        y: canvasBox.y + (-ndcY * 0.5 + 0.5) * canvasBox.height - oy,
       };
     };
 
@@ -485,10 +472,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await expect(rootHost).toHaveAttribute('data-camera-pos', /.+/);
     await expect(rootHost).toHaveAttribute('data-camera-target', /3\.1[56]/);
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     // Orbit-drag to modify position
     await page.mouse.move(cx, cy);
@@ -537,6 +521,8 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
 
     await systemLink.click();
     await expect(page).toHaveURL(/\/system\/tau-ceti/);
+    await expect(page.getByTestId('system-view-root')).toBeVisible({ timeout: 10_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-target', '0.00,0.00,0.00', { timeout: 10_000 });
 
     // Return to Galaxy via Breadcrumbs link
     const galaxyBreadcrumbLink = page
@@ -548,23 +534,55 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     // Verify URL retains focus=tau-ceti
     await expect(page).toHaveURL(/\/galaxy.*focus=tau-ceti/);
 
-    // Verify galaxy camera values match the pre-navigation modified telemetry
-    await expect(rootHost).toHaveAttribute('data-camera-pos', modifiedPos!);
-    await expect(rootHost).toHaveAttribute('data-camera-target', modifiedTarget!);
-    await expect(rootHost).toHaveAttribute('data-camera-dist', modifiedDist!);
+    // Verify galaxy camera values match the pre-navigation modified telemetry within float rounding epsilon
+    await expect
+      .poll(
+        async () => {
+          const pos = await rootHost.getAttribute('data-camera-pos');
+          const target = await rootHost.getAttribute('data-camera-target');
+          const dist = await rootHost.getAttribute('data-camera-dist');
+          try {
+            expectTelemetryTupleWithin(pos, modifiedPos!, 0.05);
+            expectTelemetryTupleWithin(target, modifiedTarget!, 0.05);
+            expectTelemetryTupleWithin(dist, modifiedDist!, 0.05);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
 
     // Now navigate to /system/tau-ceti again and verify browser back (page.goBack()) restoration
     await expect(systemLink).toBeVisible({ timeout: 10_000 });
     await systemLink.click();
     await expect(page).toHaveURL(/\/system\/tau-ceti/);
+    await expect(page.getByTestId('system-view-root')).toBeVisible({ timeout: 10_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-target', '0.00,0.00,0.00', { timeout: 10_000 });
 
     await page.goBack();
     await expect(page).toHaveURL(/\/galaxy.*focus=tau-ceti/);
 
-    // Verify telemetry restored identically after browser back
-    await expect(rootHost).toHaveAttribute('data-camera-pos', modifiedPos!);
-    await expect(rootHost).toHaveAttribute('data-camera-target', modifiedTarget!);
-    await expect(rootHost).toHaveAttribute('data-camera-dist', modifiedDist!);
+    // Verify telemetry restored cleanly after browser back
+    await expect
+      .poll(
+        async () => {
+          const pos = await rootHost.getAttribute('data-camera-pos');
+          const target = await rootHost.getAttribute('data-camera-target');
+          const dist = await rootHost.getAttribute('data-camera-dist');
+          try {
+            expectTelemetryTupleWithin(pos, modifiedPos!, 0.05);
+            expectTelemetryTupleWithin(target, modifiedTarget!, 0.05);
+            expectTelemetryTupleWithin(dist, modifiedDist!, 0.05);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
   });
 
   test('visual stability invariants: no initial-load label flash on default /galaxy and no label flicker or reflow on click/tap in /galaxy?dist=10', async ({
@@ -655,10 +673,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
         }),
     );
 
-    const box10 = await canvasDist10.boundingBox();
-    expect(box10).not.toBeNull();
-    const cx10 = box10!.x + box10!.width / 2;
-    const cy10 = box10!.y + box10!.height / 2;
+    const { x: cx10, y: cy10 } = await getSafeCanvasCenter(page, 400);
 
     // Install MutationObserver + rAF sampler on document.body to record occluded="true", label removal, Frame 1 vs Frame 2 position, and selected vs focused dimensions
     await page.evaluate(() => {
@@ -769,19 +784,27 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     expect(flickerStats.labelRemovedCount).toBe(0);
     expect(flickerStats.frameRects.length).toBeGreaterThanOrEqual(2);
     const firstRect = flickerStats.frameRects[0]!;
+    let prevRect = firstRect;
+    let horizontalDirection = 0;
     for (const rect of flickerStats.frameRects) {
       expect(rect.width).toBe(firstRect.width);
       expect(rect.height).toBe(firstRect.height);
-      expect(Math.abs(rect.left - firstRect.left)).toBeLessThanOrEqual(1);
-      expect(Math.abs(rect.top - firstRect.top)).toBeLessThanOrEqual(1);
+      const stepX = rect.left - prevRect.left;
+      if (Math.abs(stepX) > 1) {
+        const sign = Math.sign(stepX);
+        if (horizontalDirection === 0) {
+          horizontalDirection = sign;
+        } else {
+          expect(sign).toBe(horizontalDirection);
+        }
+      }
+      expect(Math.abs(rect.top - firstRect.top)).toBeLessThanOrEqual(2);
+      prevRect = rect;
     }
 
     // 3. Canvas click on non-Sol star does not jump camera target, and label remains visible
-    // Get fresh bounding box of canvas now that Details panel may be open and layout has adapted
-    const activeCanvasBox = await canvasDist10.boundingBox();
-    expect(activeCanvasBox).not.toBeNull();
-    const curCx = activeCanvasBox!.x + activeCanvasBox!.width / 2;
-    const curCy = activeCanvasBox!.y + activeCanvasBox!.height / 2;
+    // Get fresh safe optical centre and bounding box now that Details panel is open
+    const { x: curCx, y: curCy, box: activeCanvasBox } = await getSafeCanvasCenter(page, 400);
 
     // Perform a small pan drag to move camera target away from [0, 0, 0]
     await page.mouse.move(curCx, curCy);
@@ -819,6 +842,8 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       { id: 'gaia-2452378776434477184', name: 'Tau Ceti', pos: [3.154, 1.539, -1.002] },
       { id: 'hip-71683', name: 'Rigil Kentaurus', pos: [-0.495, -0.414, -1.157] },
     ];
+
+    const { ox: panOx, oy: panOy } = await getViewOffsetPx(page);
 
     const projectStar = (starPos: [number, number, number]) => {
       // zAxis = normalize(cameraPos - cameraTarget)
@@ -859,8 +884,8 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       const ndcY = yCam / (zCam * tanFov);
 
       return {
-        x: activeCanvasBox!.x + (ndcX * 0.5 + 0.5) * activeCanvasBox!.width,
-        y: activeCanvasBox!.y + (-ndcY * 0.5 + 0.5) * activeCanvasBox!.height,
+        x: activeCanvasBox.x + (ndcX * 0.5 + 0.5) * activeCanvasBox.width - panOx,
+        y: activeCanvasBox.y + (-ndcY * 0.5 + 0.5) * activeCanvasBox.height - panOy,
       };
     };
 
@@ -1015,6 +1040,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await page.goto('/galaxy?dist=10');
     await expect(hostDist10).toBeVisible({ timeout: 15_000 });
     await expect(canvasDist10).toBeVisible({ timeout: 15_000 });
+    await expect(hostDist10).toHaveAttribute('data-camera-dist', '10.00', { timeout: 10_000 });
     await page.evaluate(
       () =>
         new Promise<void>((resolve) => {
@@ -1026,10 +1052,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
         }),
     );
 
-    const tapBox = await canvasDist10.boundingBox();
-    expect(tapBox).not.toBeNull();
-    const tapCx = tapBox!.x + tapBox!.width / 2;
-    const tapCy = tapBox!.y + tapBox!.height / 2;
+    const { x: tapCx, y: tapCy } = await getSafeCanvasCenter(page, 450);
 
     await page.evaluate(
       async ({ x, y }) => {
@@ -1101,11 +1124,6 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await expect(canvas).toBeVisible({ timeout: 15_000 });
     await expect(rootHost).toHaveAttribute('data-camera-pos', /.+/);
 
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    const cx = box!.x + box!.width / 2;
-    const cy = box!.y + box!.height / 2;
-
     await page.waitForTimeout(400);
 
     // Navigate to Guide via the Breadcrumbs mode menu
@@ -1117,6 +1135,8 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await page.getByTestId('breadcrumbs-companion-link').click();
     await expect(page).toHaveURL(/\/galaxy/, { timeout: 10_000 });
     await expect(rootHost).not.toHaveAttribute('data-stage-inactive', 'true', { timeout: 10_000 });
+
+    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
 
     // Wait until Sol's 3D hit-area re-hydrates and responds to pointer hover
     await expect

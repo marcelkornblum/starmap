@@ -59,7 +59,6 @@ export const DetailsActionControls = memo(function DetailsActionControls({
   systemDetailsHref,
   coordinatesPc,
 }: DetailsActionControlsProps) {
-  const cameraTarget = useCameraStore((s) => s.target);
   const activeSceneStore = useCanvasStageStore((s) => s.activeSceneStore);
   const outerStore = useOptionalSpatialEntityStoreApi();
   const effectiveEntityStore = activeSceneStore ?? outerStore;
@@ -108,13 +107,16 @@ export const DetailsActionControls = memo(function DetailsActionControls({
     extractTuple(storePosition) ??
     resolveFallbackEntityCoordinates(id, centerHref, coordinatesPc);
 
-  const isOffCenter = entityPosition
-    ? Math.hypot(
-        cameraTarget[0] - entityPosition[0],
-        cameraTarget[1] - entityPosition[1],
-        cameraTarget[2] - entityPosition[2],
+  const isOffCenter = useCameraStore((s) => {
+    if (!entityPosition) return true;
+    return (
+      Math.hypot(
+        s.target[0] - entityPosition[0],
+        s.target[1] - entityPosition[1],
+        s.target[2] - entityPosition[2],
       ) > CENTER_TOLERANCE
-    : true;
+    );
+  });
 
   const shouldRenderCenter = Boolean(centerHref) && isOffCenter;
 

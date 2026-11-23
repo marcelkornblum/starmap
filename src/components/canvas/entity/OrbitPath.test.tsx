@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
@@ -161,6 +161,32 @@ describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
     expect(tickMat.opacity).toBeCloseTo(tokens.orbitAlpha);
     expect(arrowMat.opacity).toBeCloseTo(tokens.orbitAlpha);
 
+    await renderer.unmount();
+  });
+
+  it('skips redundant lineMat.updateResolution calls when size and projection are unchanged', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath id="orbit-cache" semiMajorAxis={2.0} state="passive" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const lineGroup = renderer.scene.find((node) => node.props.name === 'orbit-path-line');
+    const line2 = lineGroup.children.find(
+      (child) => child.instance instanceof Line2 || (child.instance && 'isLine2' in child.instance),
+    )?.instance as Line2;
+    const lineMat = line2.material as CartoLineMaterial;
+    const resSpy = vi.spyOn(lineMat, 'updateResolution');
+
+    await renderer.advanceFrames(1, 0.016);
+    expect(resSpy).toHaveBeenCalledTimes(1);
+
+    await renderer.advanceFrames(3, 0.016);
+    expect(resSpy).toHaveBeenCalledTimes(1);
+
+    resSpy.mockRestore();
     await renderer.unmount();
   });
 });
