@@ -135,7 +135,8 @@ export function buildMinimapProjection(
     );
 
   const coordsPc = orientation.coordinatesPc ?? [0, 0, 0];
-  const planeZ = Math.max(-0.4, Math.min(0.4, -coordsPc[2] / 250));
+  const zCoord = Number.isFinite(coordsPc[2]) ? coordsPc[2] : 0;
+  const planeZ = Math.max(-0.4, Math.min(0.4, -zCoord / 250));
 
   const projectPolarFromCore = (r: number, thetaRad: number, z = planeZ) =>
     projectLocalGalactic(CORE_ARC_RADIUS + r * Math.cos(thetaRad), r * Math.sin(thetaRad), z);
@@ -230,7 +231,8 @@ function computeZoomNormalized(scope: MinimapScope, distance: number): number {
   const { minDistance, maxDistance } = FRAME_BY_SCOPE[scope].camera;
   const minLog = Math.log10(Math.max(0.1, minDistance));
   const maxLog = Math.log10(Math.max(minDistance + 1, maxDistance));
-  const clampedDist = Math.max(minDistance, Math.min(maxDistance, distance));
+  const safeDistance = Number.isFinite(distance) && distance > 0 ? distance : minDistance;
+  const clampedDist = Math.max(minDistance, Math.min(maxDistance, safeDistance));
   const t = (maxLog - Math.log10(clampedDist)) / Math.max(1e-4, maxLog - minLog);
   return Math.max(0.05, Math.min(1, t));
 }

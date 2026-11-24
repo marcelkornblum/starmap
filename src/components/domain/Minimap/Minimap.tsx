@@ -1,10 +1,12 @@
 import React, { memo, useId, useMemo } from 'react';
 import { useLiveCameraPose } from '../../../hooks/useLiveCameraPose';
+import { useSpaLinkClick } from '../../../hooks/spaNavigation';
 import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import {
   CANONICAL_ISOMETRIC_POSE,
   buildCameraBasis,
 } from '../../../utils/orientationProjectionMath';
+import { resolveAppHref } from '../../../utils/url';
 import { Heading } from '../../interface';
 import {
   FRAME_BY_SCOPE,
@@ -27,6 +29,7 @@ export const Minimap = memo(function Minimap({
   orientation,
 }: MinimapProps): React.ReactElement | null {
   const headingId = useId();
+  const handleSpaLinkClick = useSpaLinkClick();
   const livePose = useLiveCameraPose(orientation !== null);
 
   const effectiveCamera = useMemo(() => {
@@ -191,7 +194,11 @@ export const Minimap = memo(function Minimap({
                 data-marker-id={marker.id}
                 data-marker-role={marker.role}
               >
-                <a href={marker.href} data-testid="minimap-marker-link">
+                <a
+                  href={resolveAppHref(marker.href)}
+                  onClick={(e) => handleSpaLinkClick(e, marker.href)}
+                  data-testid="minimap-marker-link"
+                >
                   {marker.name}
                 </a>
                 <span data-testid="minimap-marker-role">{marker.role}</span>
