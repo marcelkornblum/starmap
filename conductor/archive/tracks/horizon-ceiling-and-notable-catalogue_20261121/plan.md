@@ -64,6 +64,6 @@ Follow strict Red-Green-Refactor TDD per [`conductor/workflow.md`](../../workflo
 
 ## Finalisation
 
-- [ ] **Task 4.1: Dual review & `CHANGELOG.md` update**
+- [x] **Task 4.1: Dual review & `CHANGELOG.md` update** *(Completed: dual `code-review` + `architecture-review` resolved all High/Medium findings across CI workflows, `useRoutingSummaryFallback.ts`, `gaiaPipeline.ts`, `build-fixture-data.ts`, and `searchCorpusHelpers.ts`; updated `CHANGELOG.md`, `metadata.json`, and archived standalone track)*
   - Run `code-review` and `architecture-review` across the full track diff; resolve any findings.
   - Append a concise summary of shipped changes to root `CHANGELOG.md`.

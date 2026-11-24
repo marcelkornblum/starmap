@@ -6,12 +6,8 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages and PR comments
 permissions:
   contents: read
-  pages: write
-  id-token: write
-  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -38,6 +34,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
       - name: Setup Node.js
@@ -103,8 +102,6 @@ jobs:
             data/raw
             data/hygdata_v3.csv
           key: ${{ runner.os }}-source-catalogues-${{ hashFiles('scripts/sources.config.ts') }}
-          restore-keys: |
-            ${{ runner.os }}-source-catalogues-
       - name: Build full data pipeline and verify budgets (main)
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
@@ -126,6 +123,10 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

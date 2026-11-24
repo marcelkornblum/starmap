@@ -20,7 +20,7 @@ import type {
 } from '../src/utils/compactDataTypes';
 import { formatSectorId } from '../src/utils/sectorMath';
 import { auditDataManifestAndBudgets, loadBudgetsConfig } from './audit-budgets';
-import { buildFixtureData } from './build-fixture-data';
+import { buildFixtureData, parseBuildFixtureArgs } from './build-fixture-data';
 import { computeContentHash8, type DataManifestFile } from './pipeline/dataManifestWriter';
 
 const SEARCH_TRIGGERS = [
@@ -206,5 +206,15 @@ describe('buildFixtureData - Compact Deterministic Pipeline Fixture', () => {
     expect(Object.keys(examples.sections.planetTypes)).toHaveLength(4);
     expect(Object.keys(examples.sections.metricTypes)).toHaveLength(13);
     expect(Object.keys(examples.sections.hazardTypes)).toHaveLength(8);
+  });
+
+  it('guards --data-dir CLI parsing against missing or flag-like values', () => {
+    expect(parseBuildFixtureArgs([])).toEqual({ dataDir: undefined, ifMissing: false });
+    expect(parseBuildFixtureArgs(['--if-missing', '--data-dir', '/tmp/custom-data'])).toEqual({
+      dataDir: '/tmp/custom-data',
+      ifMissing: true,
+    });
+    expect(() => parseBuildFixtureArgs(['--data-dir'])).toThrow(/--data-dir/);
+    expect(() => parseBuildFixtureArgs(['--data-dir', '--if-missing'])).toThrow(/--data-dir/);
   });
 });

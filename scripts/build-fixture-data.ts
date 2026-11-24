@@ -56,14 +56,25 @@ export async function buildFixtureData(
   );
 }
 
+export function parseBuildFixtureArgs(argv: readonly string[]): BuildFixtureDataOptions {
+  const ifMissing = argv.includes('--if-missing');
+  const dirFlagIdx = argv.indexOf('--data-dir');
+  let dataDir: string | undefined;
+  if (dirFlagIdx !== -1) {
+    const candidate = argv[dirFlagIdx + 1];
+    if (!candidate || candidate.startsWith('--')) {
+      throw new Error('--data-dir requires a directory path argument');
+    }
+    dataDir = candidate;
+  }
+  return { dataDir, ifMissing };
+}
+
 const isDirectExecution =
   Boolean(process.argv[1]) && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]!);
 
 if (isDirectExecution) {
-  const argv = process.argv.slice(2);
-  const ifMissing = argv.includes('--if-missing');
-  const dirFlagIdx = argv.indexOf('--data-dir');
-  const dataDir = dirFlagIdx >= 0 ? argv[dirFlagIdx + 1] : undefined;
+  const { dataDir, ifMissing } = parseBuildFixtureArgs(process.argv.slice(2));
 
   const startTime = Date.now();
   buildFixtureData({ dataDir, ifMissing })

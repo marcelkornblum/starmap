@@ -198,12 +198,24 @@ export async function buildGaiaDataPipeline(
     }
 
     let settled = false;
+    const readStream = fs.createReadStream(resolvedGcns);
+    const gunzipStream = zlib.createGunzip();
+    const rl = readline.createInterface({ input: readStream.pipe(gunzipStream), crlfDelay: Infinity });
+
     const failPipeline = (err: Error) => {
       if (settled) return;
       settled = true;
+      rl.close();
+      readStream.destroy();
+      gunzipStream.destroy();
       writeStream?.destroy();
       reject(err);
     };
+
+    readStream.on('error', failPipeline);
+    gunzipStream.on('error', failPipeline);
+    rl.on('error', failPipeline);
+    writeStream?.on('error', failPipeline);
 
     let multiStarConsolidationResult: ReturnType<typeof consolidateMultiStarSystems> | null = null;
     const finalizeArtifacts = () => {
@@ -227,14 +239,8 @@ export async function buildGaiaDataPipeline(
       }
     };
 
-    const readStream = fs.createReadStream(resolvedGcns);
-    const gunzipStream = zlib.createGunzip();
-    readStream.on('error', failPipeline);
-    gunzipStream.on('error', failPipeline);
-    const rl = readline.createInterface({ input: readStream.pipe(gunzipStream), crlfDelay: Infinity });
-
     rl.on('line', (line: string) => {
-      if (line.length < 130) return;
+      if (settled || line.length < 130) return;
       const sourceId = line.substring(2, 21).trim();
       const [ra, dec, plx] = [parseFloat(line.substring(22, 36)), parseFloat(line.substring(45, 59)), parseFloat(line.substring(68, 77))];
       if (isNaN(ra) || isNaN(dec) || isNaN(plx) || plx <= 0 || 1000.0 / plx > maxPartitionDist) return;
@@ -249,6 +255,8 @@ export async function buildGaiaDataPipeline(
     });
 
     rl.on('close', () => {
+      if (settled) return;
+      const emittedHygSystemIds = new Set<string>();
       for (const hyg of hygCrossMatch.allItems) {
         if (hyg.id === 0 || matchedHygIds.has(hyg.id) || !hyg.dist || hyg.dist <= 0 || hyg.dist >= 10000 || hyg.ra === undefined || hyg.dec === undefined) continue;
         const officialMatch = findOfficialStarName(hyg);
@@ -256,7 +264,11 @@ export async function buildGaiaDataPipeline(
         if (!officialMatch && !hasExoplanets && (hyg.mag === undefined || hyg.mag > 6.5) && hyg.dist > 10 && !hyg.proper && !hyg.bayer && !hyg.flam) continue;
 
         matchedHygIds.add(hyg.id);
-        const [sysId, sourceId] = hyg.hip ? [`hip-${hyg.hip}`, String(hyg.hip)] : [`hyg-${hyg.id}`, String(hyg.id)];
+        const hipSysId = hyg.hip ? `hip-${hyg.hip}` : undefined;
+        const useHipId = Boolean(hipSysId && !emittedHygSystemIds.has(hipSysId));
+        const sysId = useHipId ? hipSysId! : `hyg-${hyg.id}`;
+        const sourceId = useHipId ? String(hyg.hip) : String(hyg.id);
+        emittedHygSystemIds.add(sysId);
         ingestStarEntry(sysId, sourceId, hyg.ra * 15, hyg.dec, hyg.dist, hyg.pmra ?? 0, hyg.pmdec ?? 0, hyg.rv ?? 0, hyg.mag ?? 6.5, NaN, NaN, hyg);
       }
 
@@ -308,8 +320,6 @@ export async function buildGaiaDataPipeline(
 
     if (writeStream) {
       writeStream.on('finish', finalizeArtifacts);
-      writeStream.on('error', failPipeline);
     }
-    rl.on('error', failPipeline);
   });
 }

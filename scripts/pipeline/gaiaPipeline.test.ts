@@ -567,13 +567,72 @@ describe('Data Pipeline - buildGaiaDataPipeline (Streaming & Active Shards)', ()
     }
   }, 10000);
 
-  it('rejects cleanly when GCNS input file does not exist', async () => {
+  it('falls back to hyg-${id} when a second unmatched HYG row shares an already emitted hip', async () => {
+    const dupHipRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-dup-hip-'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const gcnsPath = path.join(dupHipRoot, 'empty_gcns.dat.gz');
+      fs.writeFileSync(gcnsPath, zlib.gzipSync(''));
+
+      const hygPath = path.join(dupHipRoot, 'hyg_dup_hip.csv');
+      fs.writeFileSync(
+        hygPath,
+        [
+          'id,hip,hd,hr,gl,bf,proper,ra,dec,dist,pmra,pmdec,rv,mag,absmag,spect,ci,x,y,z,vx,vy,vz,rarad,decrad,pmrarad,pmdecrad,bayer,flam,con,comp,comp_primary,base,lum,var,var_min,var_max',
+          '91001,55555,,,,,Shared Primary,10.0,20.0,150,0,0,0,4.1,-1.8,G2V,0.65,0,0,0,0,0,0,0,0,0,0,,,Leo,1,91001,,4.0,,,',
+          '91002,55555,,,,,Shared Companion,11.0,25.0,150,0,0,0,5.8,-0.1,K1V,0.85,0,0,0,0,0,0,0,0,0,0,,,Leo,2,91001,,0.8,,,',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const jsonPath = path.join(dupHipRoot, 'stars.json');
+      const dataDir = path.join(dupHipRoot, 'data');
+
+      await buildGaiaDataPipeline(gcnsPath, jsonPath, {
+        partitionsDir: path.join(dataDir, 'partitions'),
+        summariesDir: path.join(dataDir, 'summaries'),
+        detailsDir: path.join(dataDir, 'details'),
+        searchDir: path.join(dataDir, 'search'),
+        overlaysDir: path.join(dataDir, 'overlays'),
+        maxPartitionDistancePc: 100,
+        hygCsvPath: hygPath,
+        oecCsvPath: '',
+        nasaCsvPath: '',
+        euCsvPath: '',
+        iauCsvPath: '',
+      });
+
+      const starsSearch = JSON.parse(
+        fs.readFileSync(path.join(dataDir, 'search/stars.json'), 'utf8'),
+      ) as { d: Array<{ i: string; n: string }> };
+
+      expect(starsSearch.d.filter((e) => e.i === 'hip-55555')).toHaveLength(1);
+      expect(starsSearch.d.filter((e) => e.i === 'hyg-91002')).toHaveLength(1);
+    } finally {
+      warnSpy.mockRestore();
+      fs.rmSync(dupHipRoot, { recursive: true, force: true });
+    }
+  }, 15000);
+
+  it('rejects cleanly when GCNS input file does not exist or is corrupt gzip', async () => {
     const missingRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-missing-'));
     try {
       const missingGcns = path.join(missingRoot, 'nonexistent_gcns.dat.gz');
       const jsonPath = path.join(missingRoot, 'stars.json');
       await expect(
         buildGaiaDataPipeline(missingGcns, jsonPath, {
+          hygCsvPath: '',
+          iauCsvPath: '',
+          oecCsvPath: '',
+          nasaCsvPath: '',
+          euCsvPath: '',
+        }),
+      ).rejects.toThrow();
+
+      const corruptGcns = path.join(missingRoot, 'corrupt_gcns.dat.gz');
+      fs.writeFileSync(corruptGcns, Buffer.from('not-valid-gzip-data'));
+      await expect(
+        buildGaiaDataPipeline(corruptGcns, path.join(missingRoot, 'corrupt_stars.json'), {
           hygCsvPath: '',
           iauCsvPath: '',
           oecCsvPath: '',

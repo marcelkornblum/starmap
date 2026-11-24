@@ -31,11 +31,16 @@ export function collectUnresolvedUrlSlugs(params: {
 }): readonly string[] {
   const candidates = new Set<string>();
   if (params.centerId && params.centerId !== 'search') {
-    candidates.add(params.centerId);
+    const normalizedCenter = toUrlSlug(params.centerId);
+    if (normalizedCenter && normalizedCenter !== 'search') {
+      candidates.add(normalizedCenter);
+    }
   }
   if (params.optimisticFocusSlug && params.optimisticFocusSlug !== 'search') {
     const normalizedFocus = toUrlSlug(params.optimisticFocusSlug);
-    if (normalizedFocus) candidates.add(normalizedFocus);
+    if (normalizedFocus && normalizedFocus !== 'search') {
+      candidates.add(normalizedFocus);
+    }
   }
   if (params.selectQuery) {
     const { entitySlugs } = extractUrlSelectSlugs(params.selectQuery, params.layerIndex);
@@ -136,21 +141,22 @@ export function summaryNodeToCompactSearchEntry(node: SystemSummaryNode): Compac
 export function useRoutingSummaryFallback(
   unresolvedSlugs: readonly string[],
 ): readonly CompactSearchEntry[] {
+  const slugsKey = unresolvedSlugs.join('\0');
+
   const normalizedSlugs = useMemo(() => {
-    if (unresolvedSlugs.length === 0) return [];
+    if (!slugsKey) return EMPTY_SLUGS;
     const seen = new Set<string>();
     const list: string[] = [];
-    for (const raw of unresolvedSlugs) {
+    for (const raw of slugsKey.split('\0')) {
       const slug = raw.trim().toLowerCase();
       if (slug && !seen.has(slug)) {
         seen.add(slug);
         list.push(slug);
       }
     }
-    return list;
-  }, [unresolvedSlugs]);
+    return list.length > 0 ? list : EMPTY_SLUGS;
+  }, [slugsKey]);
 
-  const slugsKey = normalizedSlugs.join('\0');
   const [resolvedBySlug, setResolvedBySlug] = useState<ReadonlyMap<string, CompactSearchEntry>>(
     () => new Map(),
   );
@@ -179,12 +185,9 @@ export function useRoutingSummaryFallback(
         if (unprefixedSlugs.length > 0) {
           const routing = await fetchDetailsRoutingTable(fetch, controller.signal).catch(() => null);
           if (controller.signal.aborted) return;
-          if (routing) {
+          if (routing?.s) {
             for (const slug of unprefixedSlugs) {
-              if (
-                Object.prototype.hasOwnProperty.call(routing.s, slug) ||
-                Object.prototype.hasOwnProperty.call(routing.d, slug)
-              ) {
+              if (Object.prototype.hasOwnProperty.call(routing.s, slug)) {
                 candidateSlugs.push(slug);
               }
             }
@@ -241,8 +244,7 @@ export function useRoutingSummaryFallback(
     return () => {
       controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slugsKey]);
+  }, [normalizedSlugs]);
 
   return useMemo(() => {
     if (normalizedSlugs.length === 0) {

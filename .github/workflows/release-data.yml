@@ -23,6 +23,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+      - name: Validate release tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          if [[ -z "$RELEASE_TAG" ]]; then
+            echo "RELEASE_TAG is empty" >&2
+            exit 1
+          fi
+          gh release view "$RELEASE_TAG" >/dev/null
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -37,8 +49,6 @@ jobs:
             data/raw
             data/hygdata_v3.csv
           key: ${{ runner.os }}-source-catalogues-${{ hashFiles('scripts/sources.config.ts') }}
-          restore-keys: |
-            ${{ runner.os }}-source-catalogues-
       - name: Build data pipeline with stars.json output
         env:
           WRITE_STARS_JSON: '1'
@@ -52,4 +62,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: gh release upload "$RELEASE_TAG" /tmp/stars.json.gz /tmp/stars.json.gz.sha256 --clobber
+        run: gh release upload "$RELEASE_TAG" --clobber -- /tmp/stars.json.gz /tmp/stars.json.gz.sha256

@@ -25,15 +25,6 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: Cache source catalogues
-        uses: actions/cache@v4
-        with:
-          path: |
-            data/raw
-            data/hygdata_v3.csv
-          key: ${{ runner.os }}-source-catalogues-${{ hashFiles('scripts/sources.config.ts') }}
-          restore-keys: |
-            ${{ runner.os }}-source-catalogues-
       - name: Fetch source catalogues and build data artefacts (pass 1)
         run: npm run data:pipeline
       - name: Verify data budgets
