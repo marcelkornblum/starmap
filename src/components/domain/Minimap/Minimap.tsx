@@ -183,7 +183,7 @@ export const Minimap = memo(function Minimap({
         </div>
 
         {markers.length > 0 ? (
-          <div className={styles.srOnlyMarkers} aria-hidden="true">
+          <div className={styles.srOnlyMarkers}>
             {markers.map((marker) => (
               <span
                 key={`${marker.id}-${marker.role}`}

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { FRAME_PRIORITY } from '../engineConfig';
@@ -282,15 +282,15 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
     };
   }, [controls, get, snapOnRelease, snapThresholdRad, glideToCardinal, isOrthoAllowed, perspCamRef, syncPoseToStore]);
 
+  const isCameraTransitioning = useUIStore((s) => s.isCameraTransitioning);
+  const wasTransitioningRef = useRef(isCameraTransitioning);
+
   useEffect(() => {
-    let wasTransitioning = useUIStore.getState().isCameraTransitioning;
-    return useUIStore.subscribe((state) => {
-      if (wasTransitioning && !state.isCameraTransitioning) {
-        syncPoseToStore();
-      }
-      wasTransitioning = state.isCameraTransitioning;
-    });
-  }, [syncPoseToStore]);
+    if (wasTransitioningRef.current && !isCameraTransitioning) {
+      syncPoseToStore();
+    }
+    wasTransitioningRef.current = isCameraTransitioning;
+  }, [isCameraTransitioning, syncPoseToStore]);
 
   useFrame((state) => {
     const activeControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
