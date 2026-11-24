@@ -133,7 +133,33 @@ describe('ScreenEdgeCue safe-rect alignment', () => {
     const safeHtmlContainer = coreEl!.parentElement?.parentElement;
     expect(safeHtmlContainer).not.toBeNull();
     expect(safeHtmlContainer?.style.display).toBe('');
+    expect(safeHtmlContainer?.style.transform).toMatch(/^translate3d\(0px,\s*0px,\s*0(?:px)?\)$/);
     expect(coreEl!.style.display).toBe('block');
+    expect(coreEl!.style.opacity).toBe('');
+
+    await renderer.unmount();
+    unmountOutlet();
+  });
+
+  it('pins the full-viewport SafeHtml wrapper to (0, 0) without centering offset and defers visible opacity to CSS', async () => {
+    const coreBearing = GALACTIC_FRAME.bearings[0];
+
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <ScreenEdgeCue bearing={coreBearing} margin={28} />
+      </SpatialFrameProvider>,
+      { width: 1440, height: 900 },
+    );
+
+    await renderer.advanceFrames(1, 0.016);
+
+    const coreEl = document.querySelector<HTMLElement>('[data-name="bearing-indicator-core"]');
+    expect(coreEl).not.toBeNull();
+    const safeHtmlContainer = coreEl!.parentElement?.parentElement;
+    expect(safeHtmlContainer).not.toBeNull();
+    expect(safeHtmlContainer?.style.transform).toMatch(/^translate3d\(0px,\s*0px,\s*0(?:px)?\)$/);
+    expect(coreEl!.style.opacity).toBe('');
 
     await renderer.unmount();
     unmountOutlet();
