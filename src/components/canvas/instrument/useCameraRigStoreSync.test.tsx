@@ -222,7 +222,7 @@ describe('useCameraRigStoreSync', () => {
     expect(mockControls.target.toArray()).toEqual([...defTarget]);
   });
 
-  it('suppresses syncPoseToStore in OrbitControls change and end, but syncs in useFrame while isCameraTransitioning is true', () => {
+  it('suppresses syncPoseToStore during isCameraTransitioning and syncs once when the transition completes', () => {
     renderSyncHook();
     const changeListener = mockControls.addEventListener.mock.calls.find(([event]) => event === 'change')?.[1];
     const endListener = mockControls.addEventListener.mock.calls.find(([event]) => event === 'end')?.[1];
@@ -239,13 +239,12 @@ describe('useCameraRigStoreSync', () => {
     act(() => {
       changeListener?.();
       endListener?.();
+      rigFrameCb?.(liveThreeState as never, 0.016);
     });
     expect(setPoseSpy).not.toHaveBeenCalled();
     expect(mockGlideToCardinal).not.toHaveBeenCalled();
 
-    act(() => {
-      rigFrameCb?.(liveThreeState as never, 0.016);
-    });
+    act(() => { useUIStore.getState().setCameraTransitioning(false); });
     expect(setPoseSpy).toHaveBeenCalledTimes(1);
     expect(useCameraStore.getState().position).toEqual([0, 0, 50]);
     expect(useCameraStore.getState().up).toEqual([0, 0, 1]);

@@ -282,6 +282,16 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
     };
   }, [controls, get, snapOnRelease, snapThresholdRad, glideToCardinal, isOrthoAllowed, perspCamRef, syncPoseToStore]);
 
+  useEffect(() => {
+    let wasTransitioning = useUIStore.getState().isCameraTransitioning;
+    return useUIStore.subscribe((state) => {
+      if (wasTransitioning && !state.isCameraTransitioning) {
+        syncPoseToStore();
+      }
+      wasTransitioning = state.isCameraTransitioning;
+    });
+  }, [syncPoseToStore]);
+
   useFrame((state) => {
     const activeControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
     if (activeControls?.target) {
@@ -294,10 +304,6 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
       } else {
         persistentTargetRef.current.copy(activeControls.target);
       }
-    }
-
-    if (useUIStore.getState().isCameraTransitioning) {
-      syncPoseToStore();
     }
 
     if (isLocked && isOrthoProjectionActive && activeControls) {
