@@ -27,7 +27,7 @@ export type RegisterExoplanetFn = (
 ) => void;
 
 export function computeEsi(rEarth?: number, temperature?: number): number | undefined {
-  if (rEarth !== undefined && temperature !== undefined && !isNaN(rEarth) && !isNaN(temperature)) {
+  if (rEarth !== undefined && temperature !== undefined && Number.isFinite(rEarth) && Number.isFinite(temperature)) {
     const rTerm = 1 - Math.abs((rEarth - 1) / (rEarth + 1));
     const tTerm = 1 - Math.abs((temperature - 288) / (temperature + 288));
     return Math.max(0, Math.min(1, Math.sqrt(Math.max(0, rTerm * tTerm))));
@@ -47,13 +47,13 @@ export function makeOrbit(
   semiMajorAxis = 0, eccentricity = 0, inclination = 0, ascendingNode = 0, argumentOfPeriapsis = 0, periodDays = 0,
 ): KeplerianOrbit {
   return {
-    semiMajorAxis: isNaN(semiMajorAxis) ? 0 : semiMajorAxis,
-    eccentricity: isNaN(eccentricity) ? 0 : eccentricity,
-    inclination: isNaN(inclination) ? 0 : inclination,
-    ascendingNode: isNaN(ascendingNode) ? 0 : ascendingNode,
-    argumentOfPeriapsis: isNaN(argumentOfPeriapsis) ? 0 : argumentOfPeriapsis,
+    semiMajorAxis: Number.isFinite(semiMajorAxis) ? semiMajorAxis : 0,
+    eccentricity: Number.isFinite(eccentricity) ? eccentricity : 0,
+    inclination: Number.isFinite(inclination) ? inclination : 0,
+    ascendingNode: Number.isFinite(ascendingNode) ? ascendingNode : 0,
+    argumentOfPeriapsis: Number.isFinite(argumentOfPeriapsis) ? argumentOfPeriapsis : 0,
     meanAnomaly: 0,
-    periodDays: isNaN(periodDays) ? 0 : periodDays,
+    periodDays: Number.isFinite(periodDays) ? periodDays : 0,
   };
 }
 

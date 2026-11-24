@@ -70,8 +70,9 @@ export function parseBuildFixtureArgs(argv: readonly string[]): BuildFixtureData
   return { dataDir, ifMissing };
 }
 
+const entryPath = process.argv[1];
 const isDirectExecution =
-  Boolean(process.argv[1]) && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]!);
+  Boolean(entryPath) && fileURLToPath(import.meta.url) === path.resolve(entryPath);
 
 if (isDirectExecution) {
   const { dataDir, ifMissing } = parseBuildFixtureArgs(process.argv.slice(2));

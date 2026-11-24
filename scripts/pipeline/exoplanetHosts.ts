@@ -53,7 +53,7 @@ export function parseSexagesimalRaDeg(raw?: string): number {
   const h = parseFloat(parts[0] ?? '');
   const m = parts.length > 1 ? parseFloat(parts[1] ?? '') : 0;
   const s = parts.length > 2 ? parseFloat(parts[2] ?? '') : 0;
-  if (isNaN(h) || isNaN(m) || isNaN(s)) return NaN;
+  if (!Number.isFinite(h) || !Number.isFinite(m) || !Number.isFinite(s)) return NaN;
   return (h + m / 60 + s / 3600) * 15;
 }
 
@@ -66,7 +66,7 @@ export function parseSexagesimalDecDeg(raw?: string): number {
   const d = parseFloat(parts[0] ?? '');
   const m = parts.length > 1 ? parseFloat(parts[1] ?? '') : 0;
   const s = parts.length > 2 ? parseFloat(parts[2] ?? '') : 0;
-  if (isNaN(d) || isNaN(m) || isNaN(s)) return NaN;
+  if (!Number.isFinite(d) || !Number.isFinite(m) || !Number.isFinite(s)) return NaN;
   return sign * (Math.abs(d) + m / 60 + s / 3600);
 }
 

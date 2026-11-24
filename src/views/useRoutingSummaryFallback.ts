@@ -175,7 +175,9 @@ export function useRoutingSummaryFallback(
 
         for (const slug of normalizedSlugs) {
           if (CANONICAL_ID_PREFIX_RE.test(slug)) {
-            prefixedSlugs.push(slug);
+            if (!getCachedSummaryNode(slug)) {
+              prefixedSlugs.push(slug);
+            }
           } else {
             unprefixedSlugs.push(slug);
           }
