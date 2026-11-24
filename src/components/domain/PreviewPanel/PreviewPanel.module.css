@@ -2,18 +2,120 @@
   .previewPanel {
     display: flex;
     flex-direction: column;
-    gap: var(--space-fib-2);
-    padding: var(--space-inset-panel-tight);
-    background: var(--surface-panel-bg);
-    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
-    border-radius: var(--radius-container);
-    box-shadow: var(--surface-panel-shadow);
   }
-
 
   .canvasSlot {
     display: flex;
     flex-direction: column;
-    gap: var(--space-fib-1);
+  }
+
+  .previewLink {
+    display: block;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .previewLink:hover {
+    opacity: var(--opacity-90);
+  }
+
+  .previewLink:focus-visible {
+    outline: var(--border-width-2) solid var(--state-focus);
+    outline-offset: var(--space-fib-1);
+  }
+
+  .previewSvg {
+    display: block;
+    inline-size: 100%;
+    max-block-size: calc(var(--space-fib-9) + var(--space-fib-3));
+  }
+
+  .parentPlaneRing {
+    fill: none;
+    stroke: var(--chrome-axis-line-color);
+    stroke-opacity: var(--opacity-15);
+    stroke-width: var(--stroke-width-1);
+  }
+
+  .targetPlaneDisc {
+    fill: var(--chrome-datum-plane-fill-color);
+    fill-opacity: var(--chrome-datum-plane-fill-alpha);
+    stroke: var(--chrome-datum-plane-minor-color);
+    stroke-opacity: var(--opacity-40);
+    stroke-width: var(--stroke-width-1);
+  }
+
+  .concentricRing {
+    fill: none;
+    stroke: var(--chrome-datum-plane-minor-color);
+    stroke-opacity: var(--opacity-25);
+    stroke-width: var(--stroke-width-1);
+  }
+
+  .reticleBackdrop {
+    fill: var(--surface-dock-bg);
+    fill-opacity: var(--opacity-85);
+  }
+
+  .primaryReticle {
+    fill: none;
+    stroke: var(--content-prominent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    overflow: visible;
+  }
+
+  .bodyReticle {
+    fill: none;
+    stroke: var(--content-prominent);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    overflow: visible;
+  }
+}
+
+@layer exceptions {
+  .primaryReticle[data-category="planet"],
+  .bodyReticle[data-category="planet"] {
+    stroke: var(--category-planet);
+  }
+
+  .primaryReticle[data-category="star"],
+  .bodyReticle[data-category="star"] {
+    stroke: var(--category-star);
+  }
+
+  .primaryReticle[data-category="nebula"],
+  .bodyReticle[data-category="nebula"] {
+    stroke: var(--category-orbit);
+  }
+
+  .primaryReticle[data-category="constellation"],
+  .bodyReticle[data-category="constellation"] {
+    stroke: var(--category-planet);
+  }
+
+  .primaryReticle[data-status="nominal"],
+  .bodyReticle[data-status="nominal"] {
+    stroke: var(--status-nominal);
+  }
+
+  .primaryReticle[data-status="info"],
+  .bodyReticle[data-status="info"] {
+    stroke: var(--status-info);
+  }
+
+  .primaryReticle[data-status="caution"],
+  .bodyReticle[data-status="caution"] {
+    stroke: var(--status-caution);
+  }
+
+  .primaryReticle[data-status="critical"],
+  .bodyReticle[data-status="critical"] {
+    stroke: var(--status-critical);
   }
 }

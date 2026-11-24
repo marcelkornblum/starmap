@@ -7,7 +7,7 @@ import {
 import type {
   FocusedSystemEntityDetails,
 } from '../../../services/details/detailsEntityTypes';
-import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
+import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 
 const mockSystemDetails: FocusedSystemEntityDetails = {
   id: 'tau-ceti',
@@ -72,23 +72,32 @@ describe('DetailsDeferredSections', () => {
     expect(screen.getByText('Tau Ceti e')).toBeInTheDocument();
   });
 
-  it('renders DetailsDeferredFull with preview when provided', () => {
-    const mockPreview: FocusedPreviewSummary = {
-      targetId: 'tau-ceti-e',
-      targetName: 'Tau Ceti e',
+  it('renders DetailsDeferredFull with orbital schematic when non-system entity is focused', () => {
+    const mockSchematic: OrbitalSchematicSummary = {
+      scope: 'system',
       systemId: 'tau-ceti',
       systemName: 'Tau Ceti',
-      focusedKind: 'planet',
-      previewMode: 'planetary-system',
-      orbitElements: [],
+      items: [
+        {
+          id: 'tau-ceti-e',
+          name: 'Tau Ceti e',
+          kind: 'planet',
+          href: '/system/tau-ceti?focus=tau-ceti-e',
+          orbitRank: 1,
+          summaryLabel: '0.538 AU',
+          inHabitableZone: true,
+          isFocused: true,
+          isSelected: false,
+        },
+      ],
     };
     render(
       <DetailsDeferredFull
         isSystemFocus={false}
-        preview={mockPreview}
+        schematic={mockSchematic}
       />,
     );
 
-    expect(screen.getByTestId('preview-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
   });
 });

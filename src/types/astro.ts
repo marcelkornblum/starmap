@@ -145,6 +145,7 @@ export interface SystemSummaryNode {
   hazardMask?: number;
   classification?: StellarClassification;
   reticleType?: CelestialSymbolType;
+  planeInclinationDeg?: number;
 }
 
 /** Orbital elements defining a Keplerian orbit in 3D space. */
@@ -198,6 +199,7 @@ export interface ExoplanetRecord {
   hazardMask?: number;
   composition?: PlanetComposition;
   isHabitableCandidate?: boolean;
+  axialTiltDeg?: number;
   orbit?: KeplerianOrbit;
   satellites?: SatelliteRecord[];
   reticleType?: CelestialSymbolType;
@@ -239,6 +241,7 @@ export interface SystemManifest {
   overviewText?: string;
   hazardMask?: number;
   disks?: CircumstellarDiskRecord[];
+  planeInclinationDeg?: number;
 }
 
 /** Kind of circumstellar disk or belt (DEC-035). */

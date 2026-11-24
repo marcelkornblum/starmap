@@ -73,6 +73,7 @@ export interface SolarSystemBodyEntry {
   gm?: number;
   albedo?: number;
   rotationalPeriodHours?: number;
+  axialTiltDeg?: number;
   spectralType?: string;
   mag?: number;
   absmag?: number;

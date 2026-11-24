@@ -69,6 +69,7 @@ export interface SolarSystemBodyRecord {
   gm?: number;
   albedo?: number;
   rotationalPeriodHours?: number;
+  axialTiltDeg?: number;
   orbit?: KeplerianOrbit;
   tags?: string[];
   confidence?: ObservationalConfidence;

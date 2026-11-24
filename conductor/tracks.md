@@ -3,7 +3,6 @@
 ## Active Tracks
 
 ### Product & Spatial Feature Tracks
-- [~] **Track: Orientation Instruments** *Link: [conductor/tracks/orientation-instruments_20261117/index.md](./tracks/orientation-instruments_20261117/index.md)* *(3D-projected SVG `<Minimap />` Galactic Frame arc + `<PreviewPanel />` outer-view reticle tilt preview + precalculated planetary obliquity / system plane tilts)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)* *(Input-capability detection, shortcut registry + keyboard help modal, navigation modes)*
 
 ## Backlog
@@ -63,3 +62,4 @@ Single backlog list: see [conductor/backlog.md](./backlog.md).
 - [x] **Track: State, Layering & Legacy Surface Cleanup** *(archived complete 2026-11-21)* *Link: [conductor/archive/tracks/state-layering-and-legacy-cleanup_20261121/index.md](./archive/tracks/state-layering-and-legacy-cleanup_20261121/index.md)*
 - [x] **Track: Camera Choreography** *(archived complete 2026-11-23)* *Link: [conductor/archive/tracks/camera-choreography_20261117/index.md](./archive/tracks/camera-choreography_20261117/index.md)*
 - [x] **Track: Horizon Ceiling, Notable Catalogue Expansion & CI Data Artefacts** *(archived complete 2026-11-24)* *Link: [conductor/archive/tracks/horizon-ceiling-and-notable-catalogue_20261121/index.md](./archive/tracks/horizon-ceiling-and-notable-catalogue_20261121/index.md)*
+- [x] **Track: Orientation Instruments** *(archived complete 2026-11-24)* *Link: [conductor/archive/tracks/orientation-instruments_20261117/index.md](./archive/tracks/orientation-instruments_20261117/index.md)*

@@ -35,6 +35,7 @@
     "gm": 22031.868,
     "albedo": 0.106,
     "rotationalPeriodHours": 1407.6,
+    "axialTiltDeg": 0.03,
     "orbit": {
       "semiMajorAxis": 0.387098,
       "eccentricity": 0.20563,
@@ -60,6 +61,7 @@
     "gm": 324858.592,
     "albedo": 0.689,
     "rotationalPeriodHours": -5832.5,
+    "axialTiltDeg": 177.36,
     "orbit": {
       "semiMajorAxis": 0.723332,
       "eccentricity": 0.006772,
@@ -86,6 +88,7 @@
     "gm": 398600.4418,
     "albedo": 0.367,
     "rotationalPeriodHours": 23.934,
+    "axialTiltDeg": 23.44,
     "orbit": {
       "semiMajorAxis": 1.00000261,
       "eccentricity": 0.01671123,
@@ -112,6 +115,7 @@
     "gm": 4902.8,
     "albedo": 0.12,
     "rotationalPeriodHours": 655.728,
+    "axialTiltDeg": 6.68,
     "orbit": {
       "semiMajorAxis": 0.00257,
       "eccentricity": 0.0549,
@@ -136,6 +140,7 @@
     "gm": 42828.375,
     "albedo": 0.17,
     "rotationalPeriodHours": 24.623,
+    "axialTiltDeg": 25.19,
     "orbit": {
       "semiMajorAxis": 1.523679,
       "eccentricity": 0.0934,
@@ -207,6 +212,7 @@
     "gm": 126686534.921,
     "albedo": 0.538,
     "rotationalPeriodHours": 9.925,
+    "axialTiltDeg": 3.13,
     "orbit": {
       "semiMajorAxis": 5.2044,
       "eccentricity": 0.0489,
@@ -332,6 +338,7 @@
     "gm": 37931187.9,
     "albedo": 0.499,
     "rotationalPeriodHours": 10.656,
+    "axialTiltDeg": 26.73,
     "orbit": {
       "semiMajorAxis": 9.5826,
       "eccentricity": 0.0565,
@@ -560,6 +567,7 @@
     "gm": 5793939.3,
     "albedo": 0.488,
     "rotationalPeriodHours": -17.24,
+    "axialTiltDeg": 97.77,
     "orbit": {
       "semiMajorAxis": 19.2184,
       "eccentricity": 0.0463,
@@ -706,6 +714,7 @@
     "gm": 6836529,
     "albedo": 0.442,
     "rotationalPeriodHours": 16.11,
+    "axialTiltDeg": 28.32,
     "orbit": {
       "semiMajorAxis": 30.1104,
       "eccentricity": 0.009456,
@@ -781,6 +790,7 @@
     "gm": 871,
     "albedo": 0.52,
     "rotationalPeriodHours": -153.29,
+    "axialTiltDeg": 122.53,
     "orbit": {
       "semiMajorAxis": 39.482,
       "eccentricity": 0.2488,

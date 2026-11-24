@@ -271,4 +271,79 @@ describe('compactDataCodec - Manifests, Structures, Solar Bodies & Sectors', () 
     const decodedTheoStruct = decodeGalacticStructure(compactTheoStruct, 'snr-g006-4-00-1');
     expect(decodedTheoStruct.confidence).toBe('theoretical');
   });
+
+  it('round-trips axialTiltDeg and planeInclinationDeg across solar bodies, exoplanets, summaries, and manifests', () => {
+    const uranusBody: SolarSystemBodyRecord = {
+      id: 'uranus',
+      name: 'Uranus',
+      classification: 'Planet',
+      parentBodyId: 'sol',
+      meanRadiusKm: 25362,
+      axialTiltDeg: 97.77,
+    };
+    const encodedUranus = encodeSolarSystemBody(uranusBody);
+    expect(encodedUranus.at).toBe(97.77);
+    const decodedUranus = decodeSolarSystemBody(encodedUranus, 'uranus');
+    expect(decodedUranus.axialTiltDeg).toBe(97.77);
+
+    const solSummary: SystemSummaryNode = {
+      id: 'sol',
+      name: 'Sol',
+      x: 0,
+      y: 0,
+      z: 0,
+      dist: 0,
+      mag: -26.74,
+      absmag: 4.83,
+      spect: 'G2V',
+      starCount: 1,
+      planetCount: 8,
+      hasHabitableCandidate: true,
+      sectorId: 'sector_+000_+000_+000',
+      planeInclinationDeg: 60.19,
+    };
+    const encodedSolSummary = encodeSummaryNode(solSummary);
+    expect(encodedSolSummary.pi).toBe(60.19);
+    const decodedSolSummary = decodeSummaryNode(encodedSolSummary);
+    expect(decodedSolSummary.planeInclinationDeg).toBe(60.19);
+
+    const exoSummary: SystemSummaryNode = {
+      ...solSummary,
+      id: 'tau-ceti',
+      name: 'Tau Ceti',
+      planeInclinationDeg: undefined,
+    };
+    const encodedExoSummary = encodeSummaryNode(exoSummary);
+    expect(encodedExoSummary.pi).toBeUndefined();
+    const decodedExoSummary = decodeSummaryNode(encodedExoSummary);
+    expect(decodedExoSummary.planeInclinationDeg).toBeUndefined();
+
+    const solManifest: SystemManifest = {
+      id: 'sol',
+      name: 'Sol',
+      x: 0,
+      y: 0,
+      z: 0,
+      dist: 0,
+      sectorId: 'sector_+000_+000_+000',
+      planeInclinationDeg: 60.19,
+      stars: [],
+      planets: [
+        {
+          id: 'uranus',
+          name: 'Uranus',
+          letter: '',
+          composition: 'ice-giant',
+          reticleType: 'ice-giant',
+          axialTiltDeg: 97.77,
+        },
+      ],
+    };
+    const encodedSolManifest = encodeSystemManifest(solManifest);
+    expect(encodedSolManifest.pi).toBe(60.19);
+    expect(encodedSolManifest.E[0]?.at).toBe(97.77);
+    const decodedSolManifest = decodeSystemManifest(encodedSolManifest);
+    expect(decodedSolManifest.planeInclinationDeg).toBe(60.19);
+    expect(decodedSolManifest.planets[0]?.axialTiltDeg).toBe(97.77);
+  });
 });

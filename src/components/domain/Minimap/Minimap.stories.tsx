@@ -17,7 +17,7 @@ const galaxyOrientationFixture: MinimapOrientationSummary = {
   orbitingBodyCount: 382,
   cameraAzimuthDeg: 45,
   cameraElevationDeg: 30,
-  cameraDistance: 1200,
+  cameraDistance: 40,
   focusedMarker: {
     id: 'sol',
     name: 'Sol',
@@ -54,6 +54,7 @@ const systemOrientationFixture: MinimapOrientationSummary = {
   anchorName: 'Sol System',
   systemId: 'sol',
   systemName: 'Sol',
+  planeInclinationDeg: 60.19,
   outerOrbitalRadiusAu: 39.48,
   habitableZoneAu: [0.95, 1.37],
   orbitingBodyCount: 8,
@@ -112,6 +113,8 @@ const planetOrientationFixture: MinimapOrientationSummary = {
   anchorName: 'Earth',
   systemId: 'sol',
   systemName: 'Sol',
+  planeInclinationDeg: 60.19,
+  axialTiltDeg: 23.44,
   parentSemiMajorAxisAu: 1.0,
   orbitingBodyCount: 2,
   cameraAzimuthDeg: 15,
@@ -156,7 +159,7 @@ const meta: Meta<MinimapStoryArgs> = {
     scope: {
       control: 'radio',
       options: ['galaxy', 'system', 'planet'],
-      description: 'Orientation scope for the minimap radar display',
+      description: 'Spatial scope for the minimap orientation instrument',
     },
   },
 };
@@ -182,7 +185,7 @@ export const MinimapStory: Story = {
         <header className={storyStyles.header}>
           <h1 className={storyStyles.title}>Minimap</h1>
           <p className={storyStyles.description}>
-            Tactical orientation radar showing camera vector, celestial anchors, and spatial position.
+            3D-projected Galactic Frame polar arc, perpendicular north (+Z) stalk, CORE/ORB bearings, and logarithmic zoom bar.
           </p>
         </header>
 

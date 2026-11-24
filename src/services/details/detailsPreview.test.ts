@@ -107,4 +107,120 @@ describe('detailsPreview', () => {
     expect(summary?.orbitElements).toHaveLength(1);
     expect(summary?.orbitElements[0]?.id).toBe('moon');
   });
+
+  it('uses planeInclinationDeg for system/star focus (Sol = 60.19°, unmeasured exoplanet = 0°)', () => {
+    const solDetails: FocusedSystemEntityDetails = {
+      id: 'sol',
+      name: 'Sol',
+      systemId: 'sol',
+      systemName: 'Sol',
+      focusedKind: 'system',
+      planeInclinationDeg: 60.19,
+      hazardCount: 0,
+      hazards: [],
+      hazardSummaryLabel: '0 hazards',
+      spectralType: 'G2V',
+      reticleType: 'stellar-system',
+      starCount: 1,
+      planetCount: 8,
+      planetCompositionBreakdown: [],
+      planetCompositionSummary: '',
+      hasHabitableCandidate: true,
+      systemSummary: 'Sol system',
+      systemSummarySegments: [],
+      coordinatesPc: [0, 0, 0],
+      sectorId: 'sector_+000_+000_+000',
+      tags: [],
+      directionsHref: '/system/sol?select=route',
+      canonAnnotations: [],
+      stars: [],
+      planets: [],
+      disks: [],
+    };
+    expect(buildFocusedPreviewSummary(solDetails)?.primaryInclinationDeg).toBe(60.19);
+
+    const tauCetiDetails: FocusedSystemEntityDetails = {
+      ...solDetails,
+      id: 'tau-ceti',
+      name: 'Tau Ceti',
+      systemId: 'tau-ceti',
+      systemName: 'Tau Ceti',
+      planeInclinationDeg: undefined,
+    };
+    expect(buildFocusedPreviewSummary(tauCetiDetails)?.primaryInclinationDeg).toBe(0);
+
+    const solWithoutPlaneDetails: FocusedSystemEntityDetails = {
+      ...solDetails,
+      planeInclinationDeg: undefined,
+    };
+    expect(buildFocusedPreviewSummary(solWithoutPlaneDetails)?.primaryInclinationDeg).toBe(0);
+  });
+
+  it('prefers planetTelemetry.axialTiltDeg or solar-body axialTiltDeg over orbital inclination (Uranus = 97.77°)', () => {
+    const uranusDetails: FocusedPlanetEntityDetails = {
+      id: 'uranus',
+      name: 'Uranus',
+      systemId: 'sol',
+      systemName: 'Sol',
+      focusedKind: 'planet',
+      hazardCount: 0,
+      hazards: [],
+      hazardSummaryLabel: '0 hazards',
+      reticleType: 'ice-giant',
+      starCount: 1,
+      planetCount: 8,
+      planetCompositionBreakdown: [],
+      planetCompositionSummary: '',
+      hasHabitableCandidate: false,
+      systemSummary: 'Sol system',
+      systemSummarySegments: [],
+      coordinatesPc: [0, 0, 0],
+      sectorId: 'sector_+000_+000_+000',
+      tags: [],
+      directionsHref: '/planet/uranus?select=route',
+      canonAnnotations: [],
+      stars: [],
+      planets: [],
+      planetTelemetry: {
+        composition: 'ice-giant',
+        inclinationDeg: 0.773,
+        axialTiltDeg: 97.77,
+        isHabitableCandidate: false,
+        isTidallyLocked: false,
+        hazardCount: 0,
+        hazards: [],
+      },
+      orbitingBodies: [],
+    };
+    expect(buildFocusedPreviewSummary(uranusDetails)?.primaryInclinationDeg).toBe(97.77);
+
+    const uranusWithoutTelemetryTilt: FocusedPlanetEntityDetails = {
+      ...uranusDetails,
+      planetTelemetry: {
+        ...uranusDetails.planetTelemetry,
+        axialTiltDeg: undefined,
+      },
+    };
+    const summaryWithSolarBody = buildFocusedPreviewSummary(uranusWithoutTelemetryTilt, {
+      kind: 'solar-body',
+      record: {
+        id: 'uranus',
+        name: 'Uranus',
+        classification: 'Planet',
+        parentBodyId: 'sol',
+        meanRadiusKm: 25362,
+        axialTiltDeg: 97.77,
+        orbit: {
+          semiMajorAxis: 19.2184,
+          eccentricity: 0.0463,
+          inclination: 0.773,
+          ascendingNode: 74.006,
+          argumentOfPeriapsis: 96.998,
+          meanAnomaly: 142.238,
+          periodDays: 30685.4,
+        },
+      },
+    });
+    expect(summaryWithSolarBody?.primaryInclinationDeg).toBe(97.77);
+  });
 });

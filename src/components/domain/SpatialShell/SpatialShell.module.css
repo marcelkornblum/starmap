@@ -150,11 +150,9 @@
   }
 
   .minimapRegion {
-    bottom: calc(var(--space-fib-6) + var(--space-fib-4));
+    bottom: calc(var(--space-fib-8) + var(--space-fib-5));
     right: var(--space-fib-4);
-    width: var(--size-measure-md);
-    max-height: var(--size-measure-sm);
-    overflow: auto;
+    width: var(--size-measure-sm);
     padding: var(--space-inset-panel-tight);
     border-radius: var(--radius-container);
     contain: layout style;

@@ -17,6 +17,7 @@ export const buildPlanetMinimapOrientation = (
   focusedEntity: SpatialEntityDefinition | null | undefined,
   selectedEntities: readonly SpatialEntityDefinition[] = [],
   cameraState?: SceneCameraUrlState,
+  planeInclinationDeg?: number,
 ): MinimapOrientationSummary => {
   const scope: MinimapScope = 'planet';
   const primaryId = bodiesSummary.scope === 'planet' ? bodiesSummary.planetId : bodiesSummary.systemId;
@@ -120,6 +121,11 @@ export const buildPlanetMinimapOrientation = (
     ),
   ];
 
+  const axialTiltDeg =
+    bodiesSummary.scope === 'planet'
+      ? bodiesSummary.planetDetail?.axialTiltDeg
+      : undefined;
+
   return {
     scope,
     anchorId,
@@ -128,6 +134,8 @@ export const buildPlanetMinimapOrientation = (
     systemName,
     ...(coordinatesPc !== undefined ? { coordinatesPc } : {}),
     ...(parentSemiMajorAxisAu !== undefined ? { parentSemiMajorAxisAu } : {}),
+    ...(planeInclinationDeg !== undefined ? { planeInclinationDeg } : {}),
+    ...(axialTiltDeg !== undefined ? { axialTiltDeg } : {}),
     ...(cameraState?.az !== undefined ? { cameraAzimuthDeg: cameraState.az } : {}),
     ...(cameraState?.el !== undefined ? { cameraElevationDeg: cameraState.el } : {}),
     ...(cameraState?.dist !== undefined ? { cameraDistance: cameraState.dist } : {}),

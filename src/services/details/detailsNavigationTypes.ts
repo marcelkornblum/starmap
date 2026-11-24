@@ -35,6 +35,7 @@ export interface PreviewOrbitElement {
   readonly id: string;
   readonly name: string;
   readonly kind: OrbitalSchematicEntityKind;
+  readonly symbolType?: CelestialSymbolType;
   readonly orbitRank: number;
   readonly semiMajorAxisAu?: number;
   readonly inclinationDeg?: number;
@@ -49,6 +50,7 @@ export interface FocusedPreviewSummary {
   readonly systemName: string;
   readonly focusedKind: FocusedEntityKind;
   readonly previewMode: PreviewMode;
+  readonly detailsHref?: string;
   readonly reticleType?: CelestialClassification;
   readonly primaryInclinationDeg?: number;
   readonly primaryEccentricity?: number;
@@ -81,6 +83,8 @@ export interface MinimapOrientationSummary {
   readonly outerOrbitalRadiusAu?: number;
   readonly habitableZoneAu?: readonly [number, number];
   readonly parentSemiMajorAxisAu?: number;
+  readonly planeInclinationDeg?: number;
+  readonly axialTiltDeg?: number;
   readonly orbitingBodyCount?: number;
   readonly cameraAzimuthDeg?: number;
   readonly cameraElevationDeg?: number;

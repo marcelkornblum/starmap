@@ -25,9 +25,10 @@ describe('Data Pipeline - starNodeToSystemSummary', () => {
     expect(summary.sectorId).toBe('sector_+000_+000_+000');
     expect(summary.tags).toContain('HomeSystem');
     expect(summary.planetCount).toBe(8);
+    expect(summary.planeInclinationDeg).toBe(60.19);
   });
 
-  it('attaches matched exoplanets and ExoplanetHost tag to SystemSummaryNode', () => {
+  it('attaches matched exoplanets and ExoplanetHost tag to SystemSummaryNode and omits planeInclinationDeg when unmeasured', () => {
     const starNode: StarmapNode = {
       id: 12345,
       name: 'HD 154857',
@@ -47,21 +48,28 @@ describe('Data Pipeline - starNodeToSystemSummary', () => {
     const summary = starNodeToSystemSummary(starNode, matched);
     expect(summary.planetCount).toBe(1);
     expect(summary.tags).toContain('ExoplanetHost');
+    expect(summary.planeInclinationDeg).toBeUndefined();
   });
 });
 
 describe('Sol System Manifest & Satellites (AUD-051, DEC-R029)', () => {
-  it('attaches satellites and reticleType to solar system bodies', () => {
+  it('attaches satellites, reticleType, axialTiltDeg, and planeInclinationDeg to Sol system', () => {
     const sol = buildSolSystemManifest();
     expect(sol.id).toBe('sol');
+    expect(sol.planeInclinationDeg).toBe(60.19);
     expect(sol.planets.length).toBeGreaterThanOrEqual(8);
 
     const earth = sol.planets.find((p) => p.id === 'earth');
     expect(earth?.reticleType).toBeDefined();
+    expect(earth?.axialTiltDeg).toBe(23.44);
     expect(earth?.satellites?.some((s) => s.id === 'moon')).toBe(true);
+
+    const uranus = sol.planets.find((p) => p.id === 'uranus');
+    expect(uranus?.axialTiltDeg).toBe(97.77);
 
     const jupiter = sol.planets.find((p) => p.id === 'jupiter');
     expect(jupiter?.reticleType).toBeDefined();
+    expect(jupiter?.axialTiltDeg).toBe(3.13);
     const moonIds = jupiter?.satellites?.map((s) => s.id) ?? [];
     expect(moonIds).toContain('io');
     expect(moonIds).toContain('europa');

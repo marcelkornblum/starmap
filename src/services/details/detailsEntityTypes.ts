@@ -91,6 +91,7 @@ export interface FocusedPlanetDetail {
   readonly periodDays?: number;
   readonly eccentricity?: number;
   readonly inclinationDeg?: number;
+  readonly axialTiltDeg?: number;
   readonly massMearth?: number;
   readonly radiusRearth?: number;
   readonly equilibriumTempK?: number;
@@ -111,6 +112,7 @@ export interface FocusedEntityDetailsBase {
   readonly systemName: string;
   readonly spectralType?: string;
   readonly reticleType: CelestialClassification;
+  readonly planeInclinationDeg?: number;
   readonly starCount: number;
   readonly planetCount: number;
   readonly planetCompositionBreakdown: readonly PlanetCompositionCount[];

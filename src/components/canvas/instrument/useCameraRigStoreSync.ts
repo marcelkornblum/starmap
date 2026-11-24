@@ -60,34 +60,50 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
   const isOrthoProjectionActive = projection === 'top-down' || enableOrthographicProjection;
 
   const syncPoseToStore = useCallback(() => {
-    const currentCam = get().camera ?? camera;
+    const threeState = get();
+    const currentCam = threeState.camera ?? camera;
     if (!currentCam) return;
-    const targetVec = controls?.target;
+    const liveControls = isOrbitControlsLike(threeState.controls)
+      ? threeState.controls
+      : controls;
+    const targetVec = liveControls?.target;
     const store = useCameraStore.getState();
-    const currentPos: [number, number, number] = [
-      currentCam.position.x,
-      currentCam.position.y,
-      currentCam.position.z,
-    ];
-    const currentTarget: [number, number, number] = targetVec
-      ? [targetVec.x, targetVec.y, targetVec.z]
-      : [store.target[0], store.target[1], store.target[2]];
+
+    const cx = currentCam.position.x;
+    const cy = currentCam.position.y;
+    const cz = currentCam.position.z;
+    const tx = targetVec ? targetVec.x : store.target[0];
+    const ty = targetVec ? targetVec.y : store.target[1];
+    const tz = targetVec ? targetVec.z : store.target[2];
+    const ux = currentCam.up.x;
+    const uy = currentCam.up.y;
+    const uz = currentCam.up.z;
     const currentZoom = getCameraZoom(currentCam);
 
     const posDiff = Math.hypot(
-      currentPos[0] - store.position[0],
-      currentPos[1] - store.position[1],
-      currentPos[2] - store.position[2],
+      cx - store.position[0],
+      cy - store.position[1],
+      cz - store.position[2],
     );
     const targetDiff = Math.hypot(
-      currentTarget[0] - store.target[0],
-      currentTarget[1] - store.target[1],
-      currentTarget[2] - store.target[2],
+      tx - store.target[0],
+      ty - store.target[1],
+      tz - store.target[2],
+    );
+    const upDiff = Math.hypot(
+      ux - store.up[0],
+      uy - store.up[1],
+      uz - store.up[2],
     );
     const zoomDiff = Math.abs(currentZoom - (store.zoom ?? 1));
 
-    if (posDiff > 1e-3 || targetDiff > 1e-3 || zoomDiff > 1e-3) {
-      store.setCameraTransform(currentPos, currentTarget, currentZoom);
+    if (posDiff > 1e-3 || targetDiff > 1e-3 || zoomDiff > 1e-3 || upDiff > 1e-3) {
+      store.setCameraPose({
+        position: [cx, cy, cz],
+        target: [tx, ty, tz],
+        up: [ux, uy, uz],
+        zoom: currentZoom,
+      });
     }
   }, [camera, controls, get]);
 
@@ -278,6 +294,10 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
       } else {
         persistentTargetRef.current.copy(activeControls.target);
       }
+    }
+
+    if (useUIStore.getState().isCameraTransitioning) {
+      syncPoseToStore();
     }
 
     if (isLocked && isOrthoProjectionActive && activeControls) {

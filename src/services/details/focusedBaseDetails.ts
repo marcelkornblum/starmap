@@ -173,6 +173,8 @@ export function buildFocusedBaseDetails(
   const hazardCount = hazards.length;
   const hazardSummaryLabel =
     hazardCount <= 0 ? '0 hazards' : `${hazardCount} ${hazardCount === 1 ? 'hazard' : 'hazards'}`;
+  const planeInclinationDeg =
+    sysManifest?.planeInclinationDeg ?? input.summaryNode?.planeInclinationDeg;
 
   const baseDetails: FocusedEntityDetailsBase = {
     id: resolvedTargetId,
@@ -181,6 +183,7 @@ export function buildFocusedBaseDetails(
     systemName,
     ...(spectralType && spectralType !== 'Unknown' ? { spectralType } : {}),
     reticleType,
+    ...(planeInclinationDeg !== undefined ? { planeInclinationDeg } : {}),
     starCount,
     planetCount,
     planetCompositionBreakdown,

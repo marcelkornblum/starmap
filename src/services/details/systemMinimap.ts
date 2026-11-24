@@ -175,6 +175,9 @@ export const buildSystemMinimapOrientation = (
     ...(outerOrbitalRadiusAu !== undefined ? { outerOrbitalRadiusAu } : {}),
     ...(habitableZoneAu !== undefined ? { habitableZoneAu } : {}),
     ...(parentSemiMajorAxisAu !== undefined ? { parentSemiMajorAxisAu } : {}),
+    ...(systemDetails?.planeInclinationDeg !== undefined
+      ? { planeInclinationDeg: systemDetails.planeInclinationDeg }
+      : {}),
     ...(cameraState?.az !== undefined ? { cameraAzimuthDeg: cameraState.az } : {}),
     ...(cameraState?.el !== undefined ? { cameraElevationDeg: cameraState.el } : {}),
     ...(cameraState?.dist !== undefined ? { cameraDistance: cameraState.dist } : {}),
