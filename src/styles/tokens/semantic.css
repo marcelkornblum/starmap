@@ -220,6 +220,8 @@
     --chrome-node-label-gap:             var(--space-fib-1);
     --chrome-node-facet-padding:         var(--space-inset-badge);
     --chrome-node-facet-gap:             var(--space-fib-1);
+    --chrome-clamp-glow-depth:           calc(var(--space-fib-8) + var(--space-fib-5));
+    --chrome-clamp-glow-rim-width:       var(--stroke-width-2);
 
     /* Motion Semantics */
     --motion-duration-none:        var(--time-0);
@@ -476,6 +478,9 @@
     --chrome-bearing-cue-opacity-attached: var(--opacity-100);
     --chrome-bearing-cue-opacity-detached: var(--opacity-85);
     --chrome-bearing-cue-label-opacity:  var(--opacity-50);
+    --chrome-clamp-glow-color-edge:      oklch(from var(--state-focus) l c h / 0.90);
+    --chrome-clamp-glow-color-strong:    oklch(from var(--state-focus) l c h / 0.56);
+    --chrome-clamp-glow-color-mid:       oklch(from var(--state-focus) l c h / 0.18);
 
     --chrome-node-label-bg:              var(--surface-hud-bg);
     --chrome-node-label-color:           var(--status-nominal);
@@ -990,6 +995,9 @@
     --chrome-bearing-cue-opacity-attached: var(--opacity-100);
     --chrome-bearing-cue-opacity-detached: var(--opacity-85);
     --chrome-bearing-cue-label-opacity:  var(--opacity-50);
+    --chrome-clamp-glow-color-edge:      oklch(from var(--state-focus) l c h / 0.78);
+    --chrome-clamp-glow-color-strong:    oklch(from var(--state-focus) l c h / 0.42);
+    --chrome-clamp-glow-color-mid:       oklch(from var(--state-focus) l c h / 0.14);
 
     --chrome-node-label-bg:              var(--surface-hud-bg);
     --chrome-node-label-color:           var(--status-nominal);

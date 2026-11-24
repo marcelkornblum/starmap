@@ -1,0 +1,80 @@
+@layer blocks {
+  .overlay {
+    --clamp-glow-depth: var(--chrome-clamp-glow-depth);
+    --clamp-glow-rim: var(--chrome-clamp-glow-rim-width);
+    --clamp-glow-edge: var(--chrome-clamp-glow-color-edge);
+    --clamp-glow-strong: var(--chrome-clamp-glow-color-strong);
+    --clamp-glow-mid: var(--chrome-clamp-glow-color-mid);
+
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: var(--layer-hud);
+  }
+
+  .edgeGlow {
+    position: absolute;
+    pointer-events: none;
+    opacity: var(--opacity-0);
+    will-change: transform, opacity;
+  }
+}
+
+@layer exceptions {
+  .edgeGlow[data-edge='top'] {
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: var(--clamp-glow-depth);
+    border-block-start: var(--clamp-glow-rim) solid var(--clamp-glow-edge);
+    transform-origin: center top;
+    background: linear-gradient(
+      to bottom,
+      var(--clamp-glow-strong) 0%,
+      var(--clamp-glow-mid) 45%,
+      transparent 100%
+    );
+  }
+
+  .edgeGlow[data-edge='bottom'] {
+    inset-block-end: 0;
+    inset-inline: 0;
+    block-size: var(--clamp-glow-depth);
+    border-block-end: var(--clamp-glow-rim) solid var(--clamp-glow-edge);
+    transform-origin: center bottom;
+    background: linear-gradient(
+      to top,
+      var(--clamp-glow-strong) 0%,
+      var(--clamp-glow-mid) 45%,
+      transparent 100%
+    );
+  }
+
+  .edgeGlow[data-edge='left'] {
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: var(--clamp-glow-depth);
+    border-inline-start: var(--clamp-glow-rim) solid var(--clamp-glow-edge);
+    transform-origin: left center;
+    background: linear-gradient(
+      to right,
+      var(--clamp-glow-strong) 0%,
+      var(--clamp-glow-mid) 45%,
+      transparent 100%
+    );
+  }
+
+  .edgeGlow[data-edge='right'] {
+    inset-block: 0;
+    inset-inline-end: 0;
+    inline-size: var(--clamp-glow-depth);
+    border-inline-end: var(--clamp-glow-rim) solid var(--clamp-glow-edge);
+    transform-origin: right center;
+    background: linear-gradient(
+      to left,
+      var(--clamp-glow-strong) 0%,
+      var(--clamp-glow-mid) 45%,
+      transparent 100%
+    );
+  }
+}

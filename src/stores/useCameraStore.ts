@@ -4,6 +4,15 @@ import { setPendingSpatialNavigationHref } from '../utils/spatialRoute';
 
 export type CameraProjectionMode = 'perspective' | 'orthographic';
 
+export type CanvasClampEdge = 'top' | 'right' | 'bottom' | 'left';
+export const ALL_CANVAS_CLAMP_EDGES: readonly CanvasClampEdge[] = ['top', 'right', 'bottom', 'left'];
+export interface CanvasClampBumpEvent {
+  readonly edges: readonly CanvasClampEdge[];
+  readonly reason: 'zoom-out' | 'pan';
+  readonly impulse: number;
+  readonly seq: number;
+}
+
 export interface PreSearchOrigin {
   readonly pathname: string;
   readonly search: string;
@@ -65,6 +74,8 @@ export interface CameraState {
   preSearchOrigin: PreSearchOrigin | null;
   /** One-shot flag indicating cross-scale search navigation should restore search focus */
   pendingViewTransitionFocus: boolean;
+  /** Latest canvas boundary clamp bump event (zoom-out ceiling or directional pan clamp) */
+  clampBump: CanvasClampBumpEvent | null;
 }
 
 export type CameraPreset = 'top-down' | 'reset' | 'orbital-lock' | 'radial';
@@ -111,6 +122,7 @@ export interface CameraActions {
   setOrbitalLockView: () => void;
   setRadialView: () => void;
   triggerRecenter: () => void;
+  triggerClampBump: (edges: readonly CanvasClampEdge[], reason: 'zoom-out' | 'pan', impulse?: number) => void;
   reset: () => void;
 }
 
@@ -136,9 +148,11 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   canvasFocusedSlugs: new Set<string>(),
   preSearchOrigin: null,
   pendingViewTransitionFocus: false,
+  clampBump: null,
 };
 
 let nextSearchFrameTick = 0;
+let nextClampBumpSeq = 0;
 const reuseTuple = (
   prev: [number, number, number],
   next: [number, number, number],
@@ -287,8 +301,15 @@ export const useCameraStore = create<CameraStore>()((set, get) => ({
   setOrbitalLockView: () => set({ pendingPresetRequest: 'orbital-lock' }),
   setRadialView: () => set({ pendingPresetRequest: 'radial' }),
   triggerRecenter: () => set((state) => ({ recenterTick: state.recenterTick + 1 })),
+  triggerClampBump: (edges: readonly CanvasClampEdge[], reason: 'zoom-out' | 'pan', impulse = 1) => {
+    if (edges.length === 0) return;
+    const safeImpulse = Number.isFinite(impulse) && impulse > 0 ? impulse : 1;
+    nextClampBumpSeq += 1;
+    set({ clampBump: { edges: [...edges], reason, impulse: safeImpulse, seq: nextClampBumpSeq } });
+  },
   reset: () => {
     nextSearchFrameTick = 0;
+    nextClampBumpSeq = 0;
     setPendingSpatialNavigationHref(null);
     set({ ...INITIAL_CAMERA_STATE });
   },

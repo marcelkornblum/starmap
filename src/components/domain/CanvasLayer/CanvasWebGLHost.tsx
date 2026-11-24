@@ -22,6 +22,7 @@ import {
   useOptionalRouter,
 } from '../../../hooks/useSpaLocation';
 import { CrossScaleStageHost } from './CanvasLayerStageContent';
+import { CanvasClampGlow } from './CanvasClampGlow';
 import styles from './CanvasLayer.module.css';
 
 export interface CanvasWebGLHostProps {
@@ -119,6 +120,7 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
         </CanvasRouterBridgeContext.Provider>
       </Canvas>
       <SafeHtmlPortalOutlet />
+      <CanvasClampGlow />
     </div>
   );
 });
