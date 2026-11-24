@@ -10,6 +10,7 @@ import {
 import { useCameraRigProjection } from './useCameraRigProjection';
 import { useCameraRigStoreSync } from './useCameraRigStoreSync';
 import { useCameraRigViewOffset } from './useCameraRigViewOffset';
+import { useCameraClampBump } from './useCameraClampBump';
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 
@@ -36,6 +37,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   const sizeWidth = useThree((s) => s.size?.width);
   const sizeHeight = useThree((s) => s.size?.height);
   const invalidate = useThree((s) => s.invalidate);
+  const gl = useThree((s) => s.gl);
   const get = useThree((s) => s.get);
   const { frame } = useSpatialFrame();
 
@@ -75,6 +77,11 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     sizeWidth,
     sizeHeight,
     invalidate,
+  });
+
+  useCameraClampBump({
+    domElement: gl?.domElement,
+    get,
   });
 
   useEffect(() => {
