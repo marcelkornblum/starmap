@@ -39,6 +39,7 @@ export interface CompactSummaryNode {
   C?: 2 | 3 | 4;
   f?: number;
   H?: number;
+  pi?: number;
 }
 
 export interface CompactSectorPartition {
@@ -93,6 +94,7 @@ export interface CompactExoplanet {
   tl?: 1;
   H?: number;
   h?: 1;
+  at?: number;
   o?: OrbitTuple;
   C?: 2 | 3 | 4;
   f?: number;
@@ -127,6 +129,7 @@ export interface CompactSystemManifest {
   g?: number;
   o?: string;
   H?: number;
+  pi?: number;
 }
 
 export interface CompactGalacticStructure {
@@ -156,6 +159,7 @@ export interface CompactSolarSystemBody {
   g?: number;
   a?: number;
   R?: number;
+  at?: number;
   o?: OrbitTuple;
   tags?: string[];
   C?: 2 | 3 | 4;

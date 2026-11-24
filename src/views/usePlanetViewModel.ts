@@ -127,9 +127,16 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
             focusedEntity,
             selectedEntities,
             cameraState,
+            focusedDetails?.planeInclinationDeg,
           )
         : null,
-    [planetaryBodies, focusedEntity, selectedEntities, cameraState],
+    [
+      planetaryBodies,
+      focusedEntity,
+      selectedEntities,
+      cameraState,
+      focusedDetails?.planeInclinationDeg,
+    ],
   );
 
   const breadcrumbs = useMemo(

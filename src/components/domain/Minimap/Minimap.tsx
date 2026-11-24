@@ -1,15 +1,24 @@
-import React, { memo } from 'react';
+import React, { memo, useId, useMemo } from 'react';
+import { useLiveCameraPose } from '../../../hooks/useLiveCameraPose';
+import { useSpaLinkClick } from '../../../hooks/spaNavigation';
 import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import {
-  Badge,
-  Cluster,
-  DataTable,
-  Datum,
-  Heading,
-  Quantity,
-  Stack,
-  Unit,
-} from '../../interface';
+  CANONICAL_ISOMETRIC_POSE,
+  buildCameraBasis,
+} from '../../../utils/orientationProjectionMath';
+import { resolveAppHref } from '../../../utils/url';
+import { Heading, Quantity, Unit } from '../../interface';
+import {
+  FRAME_BY_SCOPE,
+  SVG_HEIGHT,
+  SVG_WIDTH,
+  ZOOM_TRACK_WIDTH,
+  buildMinimapProjection,
+  computeZoomBarFillWidth,
+  formatDistanceValue,
+  isInitialUntouchedPose,
+  resolveSphericalFallbackPose,
+} from './minimapHudHelpers';
 import styles from './Minimap.module.css';
 
 export interface MinimapProps {
@@ -19,43 +28,67 @@ export interface MinimapProps {
 export const Minimap = memo(function Minimap({
   orientation,
 }: MinimapProps): React.ReactElement | null {
-  if (!orientation) {
+  const headingId = useId();
+  const handleSpaLinkClick = useSpaLinkClick();
+  const livePose = useLiveCameraPose(orientation !== null);
+
+  const effectiveCamera = useMemo(() => {
+    if (!orientation) {
+      return {
+        basis: buildCameraBasis(
+          CANONICAL_ISOMETRIC_POSE.position,
+          CANONICAL_ISOMETRIC_POSE.target,
+          CANONICAL_ISOMETRIC_POSE.up,
+        ),
+        distance: 20,
+      };
+    }
+
+    if (isInitialUntouchedPose(livePose.position, livePose.target, livePose.up)) {
+      const fallback = resolveSphericalFallbackPose(orientation);
+      return {
+        basis: buildCameraBasis(fallback.position, fallback.target, fallback.up),
+        distance: fallback.distance,
+      };
+    }
+
+    return {
+      basis: buildCameraBasis(livePose.position, livePose.target, livePose.up),
+      distance: livePose.focalDistance,
+    };
+  }, [orientation, livePose]);
+
+  const geometry = useMemo(
+    () =>
+      orientation
+        ? buildMinimapProjection(
+            orientation,
+            effectiveCamera.basis,
+            effectiveCamera.distance,
+          )
+        : null,
+    [orientation, effectiveCamera],
+  );
+
+  if (!orientation || !geometry) {
     return null;
   }
 
-  const {
-    scope,
-    anchorId,
-    anchorName,
-    systemId,
-    systemName,
-    coordinatesPc,
-    distanceFromOriginPc,
-    outerOrbitalRadiusAu,
-    habitableZoneAu,
-    parentSemiMajorAxisAu,
-    orbitingBodyCount,
-    markers,
-  } = orientation;
-
-  const hasTelemetry =
-    coordinatesPc !== undefined ||
-    distanceFromOriginPc !== undefined ||
-    outerOrbitalRadiusAu !== undefined ||
-    habitableZoneAu !== undefined ||
-    parentSemiMajorAxisAu !== undefined ||
-    orbitingBodyCount !== undefined;
+  const { scope, anchorId, systemId, markers } = orientation;
+  const { distance } = effectiveCamera;
+  const unit = FRAME_BY_SCOPE[scope].unit;
+  const fillWidth = computeZoomBarFillWidth(scope, distance);
 
   return (
     <section
       className={styles.minimapPanel}
-      aria-labelledby="minimap-panel-heading"
+      aria-labelledby={headingId}
       data-testid="minimap-panel"
       data-scope={scope}
       data-anchor-id={anchorId}
       data-system-id={systemId}
     >
-      <Heading as="h2" id="minimap-panel-heading" visuallyHidden>
+      <Heading as="h2" id={headingId} visuallyHidden>
         Minimap
       </Heading>
       <div
@@ -64,102 +97,114 @@ export const Minimap = memo(function Minimap({
         data-scope={scope}
         data-anchor-id={anchorId}
       >
-        <Cluster gap="tight" align="center" data-testid="minimap-reference-frame">
-          <strong data-testid="minimap-anchor-name">{anchorName}</strong>
-          <Badge status="info">{scope}</Badge>
-          {scope === 'planet' && systemName ? (
-            <Badge status="neutral">{systemName}</Badge>
-          ) : null}
-        </Cluster>
+        <svg
+          viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+          className={styles.hudSvg}
+          role="img"
+          aria-label="Galactic frame orientation minimap"
+        >
+          {/* Zoomed-in Polar Sector of the Sparse Galactic Frame (origin at Galactic Core) */}
+          <polygon points={geometry.sectorPolygon} className={styles.galacticSector} />
+          <path d={geometry.midInnerArcPath} className={styles.galacticArc} />
+          <path d={geometry.midOuterArcPath} className={styles.galacticArc} />
+          <path d={geometry.midArcPath} className={styles.solarCircleArc} strokeDasharray="2 3" />
 
-        {hasTelemetry ? (
-          <Stack gap="none" data-telemetry data-testid="minimap-telemetry">
-            {coordinatesPc ? (
-              <Datum
-                label="Coordinates"
-                valueTestId="minimap-coordinates"
-                value={`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
-                unit={<Unit href="/guide/metrics/galactic-coordinates">pc</Unit>}
-              />
-            ) : null}
-            {distanceFromOriginPc !== undefined ? (
-              <Datum
-                label="Distance from Origin"
-                value={distanceFromOriginPc}
-                unit={<Unit href="/guide/metrics/galactic-coordinates">pc</Unit>}
-              />
-            ) : null}
-            {outerOrbitalRadiusAu !== undefined ? (
-              <Datum
-                label="Outer Orbit"
-                value={outerOrbitalRadiusAu}
-                unit={<Unit href="/guide/metrics/semi-major-axis">AU</Unit>}
-              />
-            ) : null}
-            {habitableZoneAu ? (
-              <Datum
-                label="Habitable Zone (CHZ)"
-                valueTestId="minimap-habitable-zone"
-                value={`${habitableZoneAu[0]}–${habitableZoneAu[1]}`}
-                unit={<Unit href="/guide/metrics/semi-major-axis">AU</Unit>}
-              />
-            ) : null}
-            {parentSemiMajorAxisAu !== undefined ? (
-              <Datum
-                label="Semi-Major Axis (a)"
-                value={parentSemiMajorAxisAu}
-                unit={<Unit href="/guide/metrics/semi-major-axis">AU</Unit>}
-              />
-            ) : null}
-            {orbitingBodyCount !== undefined ? (
-              <Datum
-                label="Orbiting Bodies"
-                value={
-                  <Quantity
-                    data-testid="minimap-orbiting-count"
-                    value={orbitingBodyCount}
-                    unit="orbiting bodies"
-                  />
-                }
-              />
-            ) : null}
-          </Stack>
-        ) : null}
+          {/* Sparse Converging Galactocentric Radials Pointing Toward Galactic Core */}
+          {geometry.sparseRadials.map((radial, idx) => (
+            <line
+              key={idx}
+              x1={radial.outPt.x}
+              y1={radial.outPt.y}
+              x2={radial.inPt.x}
+              y2={radial.inPt.y}
+              className={styles.coreRadial}
+              strokeDasharray="2 3"
+            />
+          ))}
+
+          {/* Inward CORE Bearing Vector */}
+          <line
+            x1={geometry.coreVecStart.x}
+            y1={geometry.coreVecStart.y}
+            x2={geometry.coreVecTip.x}
+            y2={geometry.coreVecTip.y}
+            className={styles.toCoreVector}
+          />
+          {geometry.coreVecArrow ? (
+            <polygon points={geometry.coreVecArrow} className={styles.toCoreArrow} />
+          ) : null}
+          <text x={geometry.coreLabelPos.x} y={geometry.coreLabelPos.y} className={styles.coreLabel}>
+            CORE
+          </text>
+
+          {/* Curved ORB Rotation Vector Along Galactic Arc */}
+          <path d={geometry.orbArcPath} className={styles.orbArc} />
+          {geometry.orbArrow ? (
+            <polygon points={geometry.orbArrow} className={styles.orbArrow} />
+          ) : null}
+          <text x={geometry.orbLabelPos.x} y={geometry.orbLabelPos.y} className={styles.orbLabel}>
+            ORB
+          </text>
+
+          {/* Z-Offset Stalk When Current Position Sits Above/Below Galactic Midplane */}
+          {geometry.hasPlaneZOffset ? (
+            <line
+              x1={geometry.observerPos.x}
+              y1={geometry.observerPos.y}
+              x2={geometry.observerPlaneFootprint.x}
+              y2={geometry.observerPlaneFootprint.y}
+              className={styles.zStalk}
+            />
+          ) : null}
+
+          {/* Perpendicular North (+Z) Stalk Normal to Galactic Plane */}
+          <line
+            x1={geometry.observerPlaneFootprint.x}
+            y1={geometry.observerPlaneFootprint.y}
+            x2={geometry.northStalkTip.x}
+            y2={geometry.northStalkTip.y}
+            className={styles.northStalk}
+          />
+          <circle cx={geometry.northStalkTip.x} cy={geometry.northStalkTip.y} r={1.6} className={styles.northTipDot} />
+          <text x={geometry.northLabelPos.x} y={geometry.northLabelPos.y} className={styles.northLabel}>
+            N
+          </text>
+
+          {/* Framed Current Position & Zoom-Coupled Local Footprint Ring */}
+          <polygon points={geometry.localViewportPolygon} className={styles.localViewportRing} strokeDasharray="3 2" />
+          <circle cx={geometry.observerPos.x} cy={geometry.observerPos.y} r={2.1} className={styles.observerDot} />
+        </svg>
+
+        <div className={styles.zoomRow} data-telemetry="true" data-testid="minimap-telemetry">
+          <svg viewBox={`0 0 ${ZOOM_TRACK_WIDTH} 4`} className={styles.zoomBarSvg} aria-hidden="true" data-testid="minimap-zoom-bar">
+            <rect x="0" y="1" width={ZOOM_TRACK_WIDTH} height="2" rx="1" className={styles.zoomTrack} />
+            <rect x="0" y="1" width={fillWidth} height="2" rx="1" className={styles.zoomFill} />
+          </svg>
+          <span className={styles.focalDistance} data-testid="minimap-focal-distance">
+            <Quantity value={formatDistanceValue(distance)} unit={<Unit>{unit}</Unit>} />
+          </span>
+        </div>
 
         {markers.length > 0 ? (
-          <DataTable data-testid="minimap-markers-list">
-            <DataTable.Head>
-              <DataTable.Row>
-                <DataTable.HeaderCell>Marker</DataTable.HeaderCell>
-                <DataTable.HeaderCell>Role</DataTable.HeaderCell>
-              </DataTable.Row>
-            </DataTable.Head>
-            <DataTable.Body>
-              {markers.map((marker) => (
-                <DataTable.Row
-                  key={`${marker.id}-${marker.role}`}
-                  data-testid="minimap-marker-item"
-                  data-marker-id={marker.id}
-                  data-marker-role={marker.role}
+          <div className={styles.srOnlyMarkers}>
+            {markers.map((marker) => (
+              <span
+                key={`${marker.id}-${marker.role}`}
+                data-testid="minimap-marker-item"
+                data-marker-id={marker.id}
+                data-marker-role={marker.role}
+              >
+                <a
+                  href={resolveAppHref(marker.href)}
+                  onClick={(e) => handleSpaLinkClick(e, marker.href)}
+                  data-testid="minimap-marker-link"
                 >
-                  <DataTable.Cell>
-                    <a
-                      href={marker.href}
-                      className={styles.markerLink}
-                      data-testid="minimap-marker-link"
-                    >
-                      {marker.name}
-                    </a>
-                  </DataTable.Cell>
-                  <DataTable.Cell>
-                    <Badge status="neutral" data-testid="minimap-marker-role">
-                      {marker.role}
-                    </Badge>
-                  </DataTable.Cell>
-                </DataTable.Row>
-              ))}
-            </DataTable.Body>
-          </DataTable>
+                  {marker.name}
+                </a>
+                <span data-testid="minimap-marker-role">{marker.role}</span>
+              </span>
+            ))}
+          </div>
         ) : null}
       </div>
     </section>

@@ -195,6 +195,7 @@ export function buildSolSystemManifest(
         composition,
         reticleType: resolvePlanetReticleType(composition),
         isHabitableCandidate,
+        ...(b.axialTiltDeg !== undefined ? { axialTiltDeg: b.axialTiltDeg } : {}),
         orbit: b.orbit,
         ...(satellites.length > 0 ? { satellites } : {}),
         confidence: 'confirmed',
@@ -247,6 +248,7 @@ export function buildSolSystemManifest(
     tags: solTags,
     ...(solHazardMask > 0 ? { hazardMask: solHazardMask } : {}),
     disks: CIRCUMSTELLAR_DISKS_CATALOG[solSystemName] ?? CIRCUMSTELLAR_DISKS_CATALOG['Sol'],
+    planeInclinationDeg: 60.19,
   };
 }
 
@@ -299,5 +301,6 @@ export function starNodeToSystemSummary(
     ...(hazardMask > 0 ? { hazardMask } : {}),
     classification,
     reticleType: resolveStellarReticleType(classification, false),
+    ...(star.name === 'Sol' ? { planeInclinationDeg: 60.19 } : {}),
   };
 }

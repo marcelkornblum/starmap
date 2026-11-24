@@ -7,7 +7,6 @@ import type {
   FocusedStarDetail,
 } from '../../../services/details/detailsEntityTypes';
 import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
-import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
 import type {
   OrbitalSchematicSummary,
   SystemElementBodyItem,
@@ -15,7 +14,6 @@ import type {
 import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
 import { Heading } from '../../interface';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
-import { PreviewPanel } from '../PreviewPanel';
 import { DetailsCanonLayersSection } from './DetailsCanonLayersSection';
 import {
   DetailsPlanetHierarchy,
@@ -103,14 +101,12 @@ export const DetailsDeferredPartialLower = memo(function DetailsDeferredPartialL
 export interface DetailsDeferredFullProps {
   readonly isSystemFocus: boolean;
   readonly schematic?: OrbitalSchematicSummary | null;
-  readonly preview?: FocusedPreviewSummary | null;
   readonly details?: FocusedEntityDetails;
 }
 
 const DetailsDeferredFullInner = memo(function DetailsDeferredFullInner({
   isSystemFocus,
   schematic,
-  preview,
 }: DetailsDeferredFullProps) {
   return (
     <>
@@ -131,7 +127,6 @@ const DetailsDeferredFullInner = memo(function DetailsDeferredFullInner({
           <OrbitalSchematicList items={schematic.items} />
         </section>
       ) : null}
-      {preview ? <PreviewPanel preview={preview} /> : null}
     </>
   );
 });
@@ -143,10 +138,9 @@ export const DetailsDeferredFull = memo(function DetailsDeferredFull(
     () => ({
       isSystemFocus: props.isSystemFocus,
       schematic: props.schematic,
-      preview: props.preview,
       details: props.details,
     }),
-    [props.isSystemFocus, props.schematic, props.preview, props.details],
+    [props.isSystemFocus, props.schematic, props.details],
   );
 
   const effectiveBundle = useBoundedDeferredValue(bundle, null, 900);

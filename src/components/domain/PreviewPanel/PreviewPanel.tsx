@@ -1,164 +1,172 @@
-import React, { memo } from 'react';
+import React, { memo, useId, useMemo } from 'react';
+import { useSpaLinkClick } from '../../../hooks/spaNavigation';
 import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
-import { buildMetricGuideHref } from '../../../content/guide';
+import { resolveAppHref } from '../../../utils/url';
+import { CELESTIAL_SYMBOL_META, Heading } from '../../interface';
+import { renderGlyphContent } from '../../interface/information/CelestialSymbol/celestialSymbolGlyphs';
 import {
-  Badge,
-  CelestialSymbol,
-  Cluster,
-  DataTable,
-  Datum,
-  Heading,
-  Quantity,
-  Stack,
-  Unit,
-} from '../../interface';
+  SVG_HEIGHT,
+  SVG_WIDTH,
+  buildPreviewProjection,
+} from './previewPanelHelpers';
 import styles from './PreviewPanel.module.css';
 
 export interface PreviewPanelProps {
   readonly preview: FocusedPreviewSummary | null;
 }
 
-export const PreviewPanel: React.FC<PreviewPanelProps> = memo(function PreviewPanel({ preview }) {
-  if (!preview) {
+const PRIMARY_RETICLE_SIZE = 13;
+const BODY_RETICLE_SIZE = 11;
+
+export const PreviewPanel = memo(function PreviewPanel({
+  preview,
+}: PreviewPanelProps): React.ReactElement | null {
+  const headingId = useId();
+  const handleSpaLinkClick = useSpaLinkClick();
+  const projection = useMemo(
+    () => (preview ? buildPreviewProjection(preview) : null),
+    [preview],
+  );
+
+  if (!preview || !projection) {
     return null;
   }
 
-  const hasPrimaryOrbit =
-    preview.primaryInclinationDeg !== undefined ||
-    preview.primaryEccentricity !== undefined ||
-    preview.primarySemiMajorAxisAu !== undefined;
+  const { primarySymbolType } = projection;
+  const primaryMeta = CELESTIAL_SYMBOL_META[primarySymbolType];
+  const primaryCategory = primaryMeta?.badgeCategory;
+  const primaryStatus = !primaryCategory
+    ? (primaryMeta?.badgeStatus ?? 'neutral')
+    : undefined;
+  const { detailsHref } = preview;
+  const primaryHalf = PRIMARY_RETICLE_SIZE / 2;
+  const bodyHalf = BODY_RETICLE_SIZE / 2;
+
+  const svgGraphic = (
+    <svg
+      viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+      className={styles.previewSvg}
+      role="img"
+      aria-label={`${preview.targetName} orientation preview`}
+    >
+      {/* Faint Outer Reference Plane */}
+      <polygon
+        points={projection.parentRing.polygonPoints}
+        className={styles.parentPlaneRing}
+        strokeDasharray="3 3"
+      />
+
+      {/* Tilted Target Orbital Plane */}
+      <polygon
+        points={projection.targetRing.polygonPoints}
+        className={styles.targetPlaneDisc}
+        data-testid="preview-target-plane-front"
+      />
+
+      {/* Two Light Concentric Reference Circles on the Orbital Plane */}
+      {projection.concentricRings.map((ring, idx) => (
+        <polygon
+          key={idx}
+          points={ring.polygonPoints}
+          className={styles.concentricRing}
+        />
+      ))}
+
+      {/* Primary Star / Planet Reticle */}
+      <g data-testid="preview-primary-reticle">
+        <circle
+          cx={projection.origin.x}
+          cy={projection.origin.y}
+          r={primaryHalf + 0.5}
+          className={styles.reticleBackdrop}
+        />
+        <svg
+          x={projection.origin.x - primaryHalf}
+          y={projection.origin.y - primaryHalf}
+          width={PRIMARY_RETICLE_SIZE}
+          height={PRIMARY_RETICLE_SIZE}
+          viewBox="-12 -12 24 24"
+          className={styles.primaryReticle}
+          data-category={primaryCategory}
+          data-status={primaryStatus}
+          data-celestial-symbol={primarySymbolType}
+          aria-label={preview.targetName}
+        >
+          {renderGlyphContent(primarySymbolType)}
+        </svg>
+      </g>
+
+      {/* Child Body Reticles / Symbols on the Tilted Orbital Plane */}
+      {projection.bodies.map((body) => {
+        const meta = CELESTIAL_SYMBOL_META[body.symbolType];
+        const category = meta?.badgeCategory;
+        const status = body.inHabitableZone
+          ? 'nominal'
+          : !category
+            ? (meta?.badgeStatus ?? 'neutral')
+            : undefined;
+
+        return (
+          <g key={body.id} data-testid="preview-body-dot" data-symbol-type={body.symbolType}>
+            <circle
+              cx={body.point.x}
+              cy={body.point.y}
+              r={bodyHalf}
+              className={styles.reticleBackdrop}
+            />
+            <svg
+              x={body.point.x - bodyHalf}
+              y={body.point.y - bodyHalf}
+              width={BODY_RETICLE_SIZE}
+              height={BODY_RETICLE_SIZE}
+              viewBox="-12 -12 24 24"
+              className={styles.bodyReticle}
+              data-category={category}
+              data-status={status}
+              data-celestial-symbol={body.symbolType}
+              aria-label={`${body.name} (${meta?.label ?? body.symbolType})`}
+            >
+              {renderGlyphContent(body.symbolType)}
+            </svg>
+          </g>
+        );
+      })}
+    </svg>
+  );
 
   return (
     <section
       className={styles.previewPanel}
-      aria-labelledby="preview-panel-heading"
+      aria-labelledby={headingId}
       data-testid="preview-panel"
       data-target-id={preview.targetId}
       data-focused-kind={preview.focusedKind}
       data-preview-mode={preview.previewMode}
+      data-camera-mode="fixed"
     >
-      <Heading as="h2" id="preview-panel-heading" visuallyHidden>
+      <Heading as="h2" id={headingId} visuallyHidden>
         Focus Preview
       </Heading>
+
       <div
         className={styles.canvasSlot}
         data-testid="preview-canvas-slot"
         data-preview-mode={preview.previewMode}
         data-target-id={preview.targetId}
       >
-        <Cluster gap="tight" align="center" data-testid="preview-target-title">
-          <CelestialSymbol
-            type={preview.reticleType ?? 'stellar-system'}
-            size="sm"
-            showTooltip={false}
-          />
-          <strong data-testid="preview-target-name">{preview.targetName}</strong>
-          <Badge status="info">{preview.previewMode}</Badge>
-        </Cluster>
-
-        {hasPrimaryOrbit ? (
-          <Stack gap="none" data-testid="preview-primary-orbit-telemetry">
-            {preview.primarySemiMajorAxisAu !== undefined ? (
-              <Datum
-                label="Semi-Major Axis (a)"
-                value={preview.primarySemiMajorAxisAu}
-                unit={
-                  <Unit href={buildMetricGuideHref('semi-major-axis', preview.targetId)}>
-                    AU
-                  </Unit>
-                }
-              />
-            ) : null}
-            {preview.primaryEccentricity !== undefined ? (
-              <Datum
-                label="Eccentricity (e)"
-                valueTestId="preview-primary-eccentricity"
-                value={preview.primaryEccentricity}
-              />
-            ) : null}
-            {preview.primaryInclinationDeg !== undefined ? (
-              <Datum
-                label="Inclination (i)"
-                value={preview.primaryInclinationDeg}
-                unit={
-                  <Unit href={buildMetricGuideHref('orbital-inclination', preview.targetId)}>
-                    °
-                  </Unit>
-                }
-              />
-            ) : null}
-          </Stack>
-        ) : null}
-
-        {preview.orbitElements.length > 0 ? (
-          <DataTable data-testid="preview-orbits-list">
-            <DataTable.Head>
-              <DataTable.Row>
-                <DataTable.HeaderCell>Body</DataTable.HeaderCell>
-                <DataTable.HeaderCell align="end" unit={<Unit href="/guide/metrics/semi-major-axis">AU</Unit>}>a</DataTable.HeaderCell>
-                <DataTable.HeaderCell align="end">e</DataTable.HeaderCell>
-                <DataTable.HeaderCell align="end" unit={<Unit href="/guide/metrics/orbital-inclination">°</Unit>}>i</DataTable.HeaderCell>
-              </DataTable.Row>
-            </DataTable.Head>
-            <DataTable.Body>
-              {preview.orbitElements.map((orb) => (
-                <DataTable.Row
-                  key={orb.id}
-                  data-testid="preview-orbit-item"
-                  data-entity-id={orb.id}
-                  data-kind={orb.kind}
-                  data-orbit-rank={orb.orbitRank}
-                  data-in-habitable-zone={orb.inHabitableZone ? 'true' : undefined}
-                >
-                  <DataTable.Cell>
-                    <Cluster as="span" gap="tight" align="center">
-                      <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
-                      <strong>{orb.name}</strong>
-                    </Cluster>
-                  </DataTable.Cell>
-                  <DataTable.Cell numeric>
-                    {orb.semiMajorAxisAu !== undefined ? (
-                      <Quantity
-                        value={orb.semiMajorAxisAu}
-                        unit={
-                          <Unit href={buildMetricGuideHref('semi-major-axis', orb.id)}>
-                            AU
-                          </Unit>
-                        }
-                      />
-                    ) : (
-                      '—'
-                    )}
-                  </DataTable.Cell>
-                  <DataTable.Cell numeric>
-                    {orb.eccentricity !== undefined ? (
-                      <Quantity
-                        data-testid="preview-orbit-eccentricity"
-                        value={orb.eccentricity}
-                      />
-                    ) : (
-                      '—'
-                    )}
-                  </DataTable.Cell>
-                  <DataTable.Cell numeric>
-                    {orb.inclinationDeg !== undefined ? (
-                      <Quantity
-                        value={orb.inclinationDeg}
-                        unit={
-                          <Unit href={buildMetricGuideHref('orbital-inclination', orb.id)}>
-                            °
-                          </Unit>
-                        }
-                      />
-                    ) : (
-                      '—'
-                    )}
-                  </DataTable.Cell>
-                </DataTable.Row>
-              ))}
-            </DataTable.Body>
-          </DataTable>
-        ) : null}
+        {detailsHref ? (
+          <a
+            href={resolveAppHref(detailsHref)}
+            className={styles.previewLink}
+            onClick={(e) => handleSpaLinkClick(e, detailsHref)}
+            aria-label={`Inspect ${preview.targetName}`}
+            data-testid="preview-details-link"
+          >
+            {svgGraphic}
+          </a>
+        ) : (
+          svgGraphic
+        )}
       </div>
     </section>
   );

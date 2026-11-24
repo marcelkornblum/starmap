@@ -66,6 +66,8 @@ export function buildFocusedPlanetDetails(
     matchedPlanetDetail?.eccentricity ?? fallbackEccentricity;
   const inclinationDeg =
     matchedPlanetDetail?.inclinationDeg ?? fallbackInclination;
+  const axialTiltDeg =
+    matchedPlanetDetail?.axialTiltDeg ?? solarBodyRecord?.axialTiltDeg;
 
   const surfaceGravityG =
     matchedPlanetDetail?.surfaceGravityG ?? solarBodyRecord?.surfaceGravityG;
@@ -89,6 +91,7 @@ export function buildFocusedPlanetDetails(
       ...(periodDays !== undefined ? { periodDays } : {}),
       ...(eccentricity !== undefined ? { eccentricity } : {}),
       ...(inclinationDeg !== undefined ? { inclinationDeg } : {}),
+      ...(axialTiltDeg !== undefined ? { axialTiltDeg } : {}),
       ...(matchedPlanetDetail?.massMearth !== undefined
         ? { massMearth: matchedPlanetDetail.massMearth }
         : {}),

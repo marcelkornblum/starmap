@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildSystemMinimapOrientation } from './systemMinimap';
+import type { FocusedSystemEntityDetails } from './detailsEntityTypes';
 import type { SystemBodiesSummary } from './detailsHierarchyTypes';
 
 describe('systemMinimap', () => {
@@ -40,5 +41,56 @@ describe('systemMinimap', () => {
     expect(orientation.anchorId).toBe('sol');
     expect(orientation.focusedMarker?.id).toBe('earth');
     expect(orientation.outerOrbitalRadiusAu).toBe(1.0);
+    expect(orientation.planeInclinationDeg).toBeUndefined();
+  });
+
+  it('populates planeInclinationDeg from systemDetails when measured', () => {
+    const bodiesSummary: SystemBodiesSummary = {
+      scope: 'system',
+      systemId: 'sol',
+      systemName: 'Sol',
+      systemHref: '/system/sol',
+      stars: [],
+      planets: [],
+      moonsAndDwarfPlanets: [],
+      minorBodiesAndSpacecraft: [],
+      canonAnnotations: [],
+    };
+
+    const systemDetails: FocusedSystemEntityDetails = {
+      id: 'sol',
+      name: 'Sol',
+      systemId: 'sol',
+      systemName: 'Sol',
+      focusedKind: 'system',
+      reticleType: 'stellar-system',
+      planeInclinationDeg: 60.19,
+      starCount: 1,
+      planetCount: 0,
+      planetCompositionBreakdown: [],
+      planetCompositionSummary: '0 planets',
+      hasHabitableCandidate: false,
+      hazardCount: 0,
+      hazards: [],
+      hazardSummaryLabel: 'None',
+      systemSummary: 'Sol',
+      systemSummarySegments: [],
+      coordinatesPc: [0, 0, 0],
+      sectorId: 'sector_+000_+000_+000',
+      tags: [],
+      directionsHref: '/galaxy?route=sol',
+      stars: [],
+      planets: [],
+      canonAnnotations: [],
+    };
+
+    const orientation = buildSystemMinimapOrientation(
+      bodiesSummary,
+      null,
+      systemDetails,
+      null,
+    );
+
+    expect(orientation.planeInclinationDeg).toBe(60.19);
   });
 });

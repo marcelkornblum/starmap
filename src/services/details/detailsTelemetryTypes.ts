@@ -21,6 +21,7 @@ export interface FocusedPlanetTelemetry {
   readonly periodDays?: number;
   readonly eccentricity?: number;
   readonly inclinationDeg?: number;
+  readonly axialTiltDeg?: number;
   readonly massMearth?: number;
   readonly radiusRearth?: number;
   readonly equilibriumTempK?: number;

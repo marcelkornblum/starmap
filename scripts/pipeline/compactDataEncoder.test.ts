@@ -324,4 +324,82 @@ describe('compactDataEncoder & compactEntityEncoder', () => {
     expect(result.routing.d['pha-00433']).toBeUndefined();
     expect(result.routing.d['custom-minor']).toBe(-3);
   });
+
+  it('encodes axialTiltDeg -> at and planeInclinationDeg -> pi and omits undefined values', () => {
+    const uranusCompact = encodeSolarSystemBody({
+      id: 'uranus',
+      name: 'Uranus',
+      classification: 'Planet',
+      parentBodyId: 'sol',
+      meanRadiusKm: 25362,
+      axialTiltDeg: 97.77,
+    });
+    expect(uranusCompact.at).toBe(97.77);
+
+    const noTiltCompact = encodeSolarSystemBody({
+      id: 'ceres',
+      name: '1 Ceres',
+      classification: 'DwarfPlanet',
+      parentBodyId: 'sol',
+      meanRadiusKm: 469.73,
+    });
+    expect(noTiltCompact.at).toBeUndefined();
+
+    const exoplanetWithTilt = encodeExoplanet({
+      id: 'uranus',
+      name: 'Uranus',
+      letter: '',
+      axialTiltDeg: 97.77,
+    });
+    expect(exoplanetWithTilt.at).toBe(97.77);
+
+    const solSummary = encodeSummaryNode({
+      id: 'sol',
+      name: 'Sol',
+      x: 0,
+      y: 0,
+      z: 0,
+      dist: 0,
+      mag: -26.74,
+      absmag: 4.83,
+      spect: 'G2V',
+      starCount: 1,
+      planetCount: 8,
+      hasHabitableCandidate: true,
+      sectorId: 'sector_+000_+000_+000',
+      planeInclinationDeg: 60.19,
+    });
+    expect(solSummary.pi).toBe(60.19);
+
+    const unmeasuredSummary = encodeSummaryNode({
+      id: 'tau-ceti',
+      name: 'Tau Ceti',
+      x: 3.15,
+      y: 1.54,
+      z: -1.0,
+      dist: 3.65,
+      mag: 3.5,
+      absmag: 5.69,
+      spect: 'G8V',
+      starCount: 1,
+      planetCount: 4,
+      hasHabitableCandidate: true,
+      sectorId: 'sector_+000_+000_-025',
+    });
+    expect(unmeasuredSummary.pi).toBeUndefined();
+
+    const solManifest = encodeSystemManifest({
+      id: 'sol',
+      name: 'Sol',
+      x: 0,
+      y: 0,
+      z: 0,
+      dist: 0,
+      sectorId: 'sector_+000_+000_+000',
+      stars: [],
+      planets: [],
+      planeInclinationDeg: 60.19,
+    });
+    expect(solManifest.pi).toBe(60.19);
+  });
 });

@@ -141,6 +141,7 @@ export function decodeSummaryNode(
   if (tags) result.tags = tags;
   if (compact.f && compact.f > 0) result.theoreticalFlags = compact.f;
   if (compact.H && compact.H > 0) result.hazardMask = compact.H;
+  if (compact.pi !== undefined) result.planeInclinationDeg = compact.pi;
 
   return result;
 }
@@ -242,6 +243,7 @@ export function decodeSystemManifest(
     ...(tags ? { tags } : {}),
     overviewText: compact.o,
     ...(compact.H && compact.H > 0 ? { hazardMask: compact.H } : {}),
+    ...(compact.pi !== undefined ? { planeInclinationDeg: compact.pi } : {}),
   };
 
   if (compact.v) {

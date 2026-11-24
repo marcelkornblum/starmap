@@ -104,6 +104,7 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
     ...(hazardMask > 0 ? { hazardMask } : {}),
     composition,
     isHabitableCandidate,
+    ...(compact.at !== undefined ? { axialTiltDeg: compact.at } : {}),
     orbit,
     confidence: compact.C ? (CODE_TO_CONFIDENCE[compact.C] ?? 'confirmed') : 'confirmed',
   };
@@ -169,6 +170,7 @@ export function decodeSolarSystemBody(
     gm: compact.g,
     albedo: compact.a,
     rotationalPeriodHours: compact.R,
+    ...(compact.at !== undefined ? { axialTiltDeg: compact.at } : {}),
     orbit: decodeOrbitTuple(compact.o),
     tags: compact.tags,
     confidence: compact.C ? (CODE_TO_CONFIDENCE[compact.C] ?? 'confirmed') : 'confirmed',

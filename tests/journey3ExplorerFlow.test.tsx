@@ -549,27 +549,16 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
     expect(prevPanel?.getAttribute('data-target-id')).toBe('earth');
     expect(prevPanel?.getAttribute('data-focused-kind')).toBe('planet');
     expect(prevPanel?.getAttribute('data-preview-mode')).toBe('planetary-system');
+    expect(prevPanel?.getAttribute('data-camera-mode')).toBe('fixed');
     expect(prevContainer.textContent).toContain('Focus Preview');
     expect(prevContainer.querySelector('[data-testid="preview-canvas-slot"]')).not.toBeNull();
-    expect(prevContainer.querySelector('[data-testid="preview-target-title"]')).not.toBeNull();
-    expect(prevContainer.querySelector('[data-testid="preview-target-name"]')).not.toBeNull();
-    expect(prevContainer.textContent).toContain('Earth');
-    expect(prevContainer.textContent).toContain('planetary-system');
-    expect(prevContainer.querySelector('[data-testid="preview-primary-orbit-telemetry"]')).not.toBeNull();
-    expect(prevContainer.textContent).toContain('Semi-Major Axis (a)');
-    expect(prevContainer.textContent).toContain('AU');
-    expect(prevContainer.textContent).toContain('0.0167');
-    expect(prevContainer.textContent).toContain('Inclination (i)');
-    expect(prevContainer.textContent).toContain('°');
-    expect(prevContainer.querySelector('a[href^="/guide/metrics/semi-major-axis?focus="]')).not.toBeNull();
-    expect(prevContainer.querySelector('a[href^="/guide/metrics/orbital-inclination?focus="]')).not.toBeNull();
-    expect(prevContainer.querySelector('[data-testid="preview-orbits-list"]')).not.toBeNull();
-    const moonOrbit = prevContainer.querySelector('[data-testid="preview-orbit-item"]');
-    expect(moonOrbit).not.toBeNull();
-    expect(moonOrbit?.getAttribute('data-entity-id')).toBe('moon');
-    expect(moonOrbit?.getAttribute('data-kind')).toBe('moon');
-    expect(moonOrbit?.getAttribute('data-orbit-rank')).toBe('1');
-    expect(prevContainer.textContent).toContain('Moon');
+    expect(prevContainer.querySelector('svg[viewBox="0 0 260 156"]')).not.toBeNull();
+    expect(prevContainer.querySelector('[data-testid="preview-primary-reticle"]')).not.toBeNull();
+    expect(prevContainer.querySelector('[data-testid="preview-target-plane-front"]')).not.toBeNull();
+    const moonDot = prevContainer.querySelector('[data-testid="preview-body-dot"]');
+    expect(moonDot).not.toBeNull();
+    expect(moonDot?.getAttribute('data-symbol-type')).toBe('moon');
+    expect(moonDot?.querySelector('svg')?.getAttribute('aria-label')).toContain('Moon');
     unmountPrev();
   });
 
@@ -660,7 +649,7 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
     plan2!.unmount();
   });
 
-  it('renders PreviewPanel and system OrbitalSchematic inside the draggable DetailsPanel full detent', () => {
+  it('renders PreviewPanel in DetailsPanel partial detent and system OrbitalSchematic in full detent', () => {
     const dummyDetails = buildFocusedEntityDetails({
       focusedEntity: { id: 'earth', name: 'Earth', position: [0, 0, 0], classification: 'terrestrial' },
       corpus: SAMPLE_CORPUS,
@@ -704,9 +693,11 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
       }),
     );
 
+    const partialDetent = detentContainer.querySelector('[data-testid="details-detent-partial"]');
     const fullDetent = detentContainer.querySelector('[data-testid="details-detent-full"]');
+    expect(partialDetent).not.toBeNull();
     expect(fullDetent).not.toBeNull();
-    const previewInside = fullDetent?.querySelector('[data-testid="preview-panel"]');
+    const previewInside = partialDetent?.querySelector('[data-testid="preview-panel"]');
     const schematicInside = fullDetent?.querySelector('[data-testid="orbital-schematic-panel"]');
     expect(previewInside).not.toBeNull();
     expect(schematicInside).not.toBeNull();
@@ -944,26 +935,19 @@ describe('Journey 3: Explorer Flow - Minimap Global Spatial Orientation Panel (D
     expect(panel?.getAttribute('data-anchor-id')).toBe('earth');
     expect(panel?.getAttribute('data-system-id')).toBe('sol');
     expect(mapContainer.querySelector('[data-testid="minimap-viewport-slot"]')).not.toBeNull();
-    const anchorName = mapContainer.querySelector('[data-testid="minimap-anchor-name"]');
-    expect(anchorName).not.toBeNull();
-    expect(mapContainer.textContent).toContain('Earth');
-    expect(mapContainer.textContent).toContain('Sol');
+    expect(mapContainer.querySelector('svg[viewBox="0 0 196 128"]')).not.toBeNull();
+    expect(mapContainer.textContent).toContain('CORE');
+    expect(mapContainer.textContent).toContain('ORB');
+    expect(mapContainer.textContent).toContain('N');
     expect(mapContainer.querySelector('[data-testid="minimap-telemetry"]')).not.toBeNull();
-    expect(mapContainer.textContent).toContain('Semi-Major Axis (a)');
-    expect(mapContainer.textContent).toContain('AU');
-    const orbitingCount = mapContainer.querySelector('[data-testid="minimap-orbiting-count"]');
-    expect(orbitingCount).not.toBeNull();
-    expect(orbitingCount?.textContent).toContain('2');
-    expect(orbitingCount?.textContent).toContain('orbiting bodies');
-    expect(mapContainer.querySelector('[data-testid="minimap-markers-list"]')).not.toBeNull();
+    expect(mapContainer.querySelector('[data-testid="minimap-zoom-bar"]')).not.toBeNull();
+    expect(mapContainer.querySelector('[data-testid="minimap-focal-distance"]')?.textContent).toContain('km');
     const earthMarker = mapContainer.querySelector('[data-marker-id="earth"]');
     expect(earthMarker).not.toBeNull();
     expect(earthMarker?.getAttribute('data-marker-role')).toBe('anchor');
-    expect(earthMarker?.textContent).toContain('anchor');
     const moonMarker = mapContainer.querySelector('[data-marker-id="moon"]');
     expect(moonMarker).not.toBeNull();
     expect(moonMarker?.getAttribute('data-marker-role')).toBe('focused');
-    expect(moonMarker?.textContent).toContain('focused');
     unmountMap();
   });
 

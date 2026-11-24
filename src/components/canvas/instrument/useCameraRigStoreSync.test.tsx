@@ -222,7 +222,7 @@ describe('useCameraRigStoreSync', () => {
     expect(mockControls.target.toArray()).toEqual([...defTarget]);
   });
 
-  it('suppresses syncPoseToStore in OrbitControls change, end, and useFrame while isCameraTransitioning is true', () => {
+  it('suppresses syncPoseToStore during isCameraTransitioning and syncs once when the transition completes', () => {
     renderSyncHook();
     const changeListener = mockControls.addEventListener.mock.calls.find(([event]) => event === 'change')?.[1];
     const endListener = mockControls.addEventListener.mock.calls.find(([event]) => event === 'end')?.[1];
@@ -230,8 +230,8 @@ describe('useCameraRigStoreSync', () => {
     expect(changeListener).toBeDefined();
     expect(endListener).toBeDefined();
 
-    const setTransformSpy = vi.spyOn(useCameraStore.getState(), 'setCameraTransform');
-    setTransformSpy.mockClear();
+    const setPoseSpy = vi.spyOn(useCameraStore.getState(), 'setCameraPose');
+    setPoseSpy.mockClear();
 
     act(() => { useUIStore.getState().setCameraTransitioning(true); });
     camera.position.set(0, 0, 50);
@@ -241,17 +241,40 @@ describe('useCameraRigStoreSync', () => {
       endListener?.();
       rigFrameCb?.(liveThreeState as never, 0.016);
     });
-    expect(setTransformSpy).not.toHaveBeenCalled();
+    expect(setPoseSpy).not.toHaveBeenCalled();
     expect(mockGlideToCardinal).not.toHaveBeenCalled();
+
+    act(() => { useUIStore.getState().setCameraTransitioning(false); });
+    expect(setPoseSpy).toHaveBeenCalledTimes(1);
+    expect(useCameraStore.getState().position).toEqual([0, 0, 50]);
+    expect(useCameraStore.getState().up).toEqual([0, 0, 1]);
 
     camera.position.set(50, 60, 70);
     act(() => {
       useUIStore.getState().setCameraTransitioning(false);
       endListener?.();
     });
-    expect(setTransformSpy).toHaveBeenCalledTimes(1);
+    expect(setPoseSpy).toHaveBeenCalledTimes(2);
     expect(useCameraStore.getState().position).toEqual([50, 60, 70]);
-    setTransformSpy.mockRestore();
+    setPoseSpy.mockRestore();
+  });
+
+  it('syncs camera.up changes to useCameraStore via setCameraPose when upDiff exceeds 1e-3', () => {
+    renderSyncHook();
+    const endListener = mockControls.addEventListener.mock.calls.find(([event]) => event === 'end')?.[1];
+    expect(useCameraStore.getState().up).toEqual([0, 0, 1]);
+
+    const setPoseSpy = vi.spyOn(useCameraStore.getState(), 'setCameraPose');
+    setPoseSpy.mockClear();
+
+    camera.up.set(0, 1, 0);
+    act(() => {
+      endListener?.();
+    });
+
+    expect(setPoseSpy).toHaveBeenCalledTimes(1);
+    expect(useCameraStore.getState().up).toEqual([0, 1, 0]);
+    setPoseSpy.mockRestore();
   });
 
   it('exits 2D top-down projection back to 3d when reset or radial preset runs', () => {
@@ -298,5 +321,29 @@ describe('useCameraRigStoreSync', () => {
     expect(mockControls.mouseButtons?.LEFT).toBe(THREE.MOUSE.PAN);
     expect(mockControls.touches?.ONE).toBe(THREE.TOUCH.PAN);
     expect(mockControls.object).toBe(orthoCamera);
+  });
+
+  it('reads live get().controls target in syncPoseToStore and avoids setCameraPose when pose is unchanged', () => {
+    const { result } = renderSyncHook();
+    const setPoseSpy = vi.spyOn(useCameraStore.getState(), 'setCameraPose');
+    setPoseSpy.mockClear();
+
+    act(() => {
+      result.current.syncPoseToStore();
+    });
+    expect(setPoseSpy).not.toHaveBeenCalled();
+
+    const replacementTarget = new THREE.Vector3(12, -4, 7);
+    liveThreeState.controls = {
+      ...mockControls,
+      target: replacementTarget,
+    };
+
+    act(() => {
+      result.current.syncPoseToStore();
+    });
+    expect(setPoseSpy).toHaveBeenCalledTimes(1);
+    expect(useCameraStore.getState().target).toEqual([12, -4, 7]);
+    setPoseSpy.mockRestore();
   });
 });

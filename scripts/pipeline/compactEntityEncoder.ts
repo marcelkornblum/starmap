@@ -149,6 +149,7 @@ export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
       semiMajorAxis: planet.orbit?.semiMajorAxis,
     });
   if (isHz) compact.h = 1;
+  if (planet.axialTiltDeg !== undefined) compact.at = planet.axialTiltDeg;
 
   const orbitTuple = encodeOrbitTuple(planet.orbit);
   if (orbitTuple) compact.o = orbitTuple;
@@ -215,6 +216,7 @@ export function encodeSolarSystemBody(
   if (body.gm !== undefined) compact.g = body.gm;
   if (body.albedo !== undefined) compact.a = body.albedo;
   if (body.rotationalPeriodHours !== undefined) compact.R = body.rotationalPeriodHours;
+  if (body.axialTiltDeg !== undefined) compact.at = body.axialTiltDeg;
   const orbitTuple = encodeOrbitTuple(body.orbit);
   if (orbitTuple) compact.o = orbitTuple;
   if (body.tags && body.tags.length > 0) compact.tags = body.tags;

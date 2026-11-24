@@ -49,6 +49,7 @@ export function createSolPipelineEntries() {
     planetCompositionCounts: solManifest.planetCompositionCounts,
     hasHabitableCandidate: Boolean(solManifest.hasHabitableCandidate),
     ...(solManifest.hazardMask && solManifest.hazardMask > 0 ? { hazardMask: solManifest.hazardMask } : {}),
+    ...(solManifest.planeInclinationDeg !== undefined ? { planeInclinationDeg: solManifest.planeInclinationDeg } : {}),
     sectorId: solManifest.sectorId, tags: solManifest.tags, velocity: solNode.velocity,
   };
   return { solManifest, solNode, solSummary };

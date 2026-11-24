@@ -110,6 +110,9 @@ export const mapManifestToStarsAndPlanets = (
       ...(p.orbit?.inclination !== undefined
         ? { inclinationDeg: p.orbit.inclination }
         : {}),
+      ...(p.axialTiltDeg !== undefined
+        ? { axialTiltDeg: p.axialTiltDeg }
+        : {}),
       ...(p.massMearth !== undefined ? { massMearth: p.massMearth } : {}),
       ...(p.radiusRearth !== undefined ? { radiusRearth: p.radiusRearth } : {}),
       ...(p.equilibriumTempK !== undefined

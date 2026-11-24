@@ -248,4 +248,33 @@ describe('<DetailsPanel />', () => {
     expect(onDetentChange).toHaveBeenCalledWith('partial');
     expect(useUIStore.getState().detailsDetent).toBe('partial');
   });
+
+  it('renders PreviewPanel inside partial detent immediately below DetailsActionControls, not in full detent', () => {
+    const mockPreview = {
+      targetId: 'tau-ceti',
+      targetName: 'Tau Ceti',
+      systemId: 'tau-ceti',
+      systemName: 'Tau Ceti',
+      focusedKind: 'system' as const,
+      previewMode: 'system-orbits' as const,
+      orbitElements: [],
+    };
+    const { container } = render(
+      <DetailsPanel
+        details={mockSystemDetails}
+        isOpen={true}
+        activeDetent="full"
+        preview={mockPreview}
+      />,
+    );
+
+    const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
+    const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
+    expect(partialDetent?.querySelector('[data-testid="preview-panel"]')).not.toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
+
+    const ctaGroup = partialDetent?.querySelector('[data-testid="details-cta-group"]');
+    const previewPanel = partialDetent?.querySelector('[data-testid="preview-panel"]');
+    expect(ctaGroup?.nextElementSibling).toBe(previewPanel);
+  });
 });

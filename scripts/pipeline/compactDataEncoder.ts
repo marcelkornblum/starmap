@@ -122,6 +122,7 @@ export function encodeSummaryNode(
   }
   if (node.theoreticalFlags && node.theoreticalFlags > 0) compact.f = node.theoreticalFlags;
   if (node.hazardMask && node.hazardMask > 0) compact.H = node.hazardMask;
+  if (node.planeInclinationDeg !== undefined) compact.pi = node.planeInclinationDeg;
 
   return compact;
 }
@@ -217,6 +218,7 @@ export function encodeSystemManifest(
   if (tagsMask !== undefined) compact.g = tagsMask;
   if (sys.overviewText) compact.o = sys.overviewText;
   if (sys.hazardMask && sys.hazardMask > 0) compact.H = sys.hazardMask;
+  if (sys.planeInclinationDeg !== undefined) compact.pi = sys.planeInclinationDeg;
   if (sys.disks && sys.disks.length > 0) compact.D = sys.disks.map(encodeCircumstellarDisk);
 
   return compact;

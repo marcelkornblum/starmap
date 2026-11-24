@@ -9,6 +9,7 @@ import { DetailsHazardsSection } from './DetailsCanonSection';
 import { DetailsIdentityHeader } from './DetailsIdentityHeader';
 import { DetailsQuickTelemetrySection } from './DetailsQuickTelemetrySection';
 import { DetailsTelemetrySections } from './DetailsTelemetrySections';
+import { PreviewPanel } from '../PreviewPanel';
 import {
   DetailsDeferredFull,
   DetailsDeferredPartialLower,
@@ -101,6 +102,7 @@ export const DetailsPanel = memo(function DetailsPanel({
         systemDetailsHref={details.systemDetailsHref}
         coordinatesPc={details.coordinatesPc}
       />
+      {preview ? <PreviewPanel preview={preview} /> : null}
       <DetailsHazardsSection hazards={details.hazards} />
       <DetailsDeferredPartialLower
         canonAnnotations={canonAnnotations}
@@ -122,7 +124,6 @@ export const DetailsPanel = memo(function DetailsPanel({
       <DetailsDeferredFull
         isSystemFocus={isSystemFocus}
         schematic={schematic}
-        preview={preview}
       />
     </>
   );

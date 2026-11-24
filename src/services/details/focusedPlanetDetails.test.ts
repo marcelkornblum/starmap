@@ -58,4 +58,45 @@ describe('focusedPlanetDetails', () => {
     expect(details.planetTelemetry.esi).toBe(0.87);
     expect(details.planetTelemetry.isTidallyLocked).toBe(true);
   });
+
+  it('propagates axialTiltDeg from matchedPlanetDetail or solarBodyRecord onto planetTelemetry', () => {
+    const fromSolarBody = buildFocusedPlanetDetails(
+      base,
+      undefined,
+      {
+        id: 'uranus',
+        name: 'Uranus',
+        classification: 'Planet',
+        parentBodyId: 'sol',
+        meanRadiusKm: 25362,
+        axialTiltDeg: 97.77,
+      },
+      undefined,
+      undefined,
+      'ice-giant',
+      false,
+      [],
+      [],
+    );
+    expect(fromSolarBody.planetTelemetry.axialTiltDeg).toBe(97.77);
+
+    const fromMatchedPlanet = buildFocusedPlanetDetails(
+      base,
+      {
+        id: 'earth',
+        name: 'Earth',
+        composition: 'terrestrial',
+        isHabitableCandidate: true,
+        axialTiltDeg: 23.44,
+      },
+      undefined,
+      undefined,
+      undefined,
+      'terrestrial',
+      true,
+      [],
+      [],
+    );
+    expect(fromMatchedPlanet.planetTelemetry.axialTiltDeg).toBe(23.44);
+  });
 });

@@ -30,14 +30,21 @@ export const buildFocusedPreviewSummary = (
 
   const solarOrbit =
     entityDetail?.kind === 'solar-body' ? entityDetail.record.orbit : undefined;
+  const solarBodyAxialTiltDeg =
+    entityDetail?.kind === 'solar-body' ? entityDetail.record.axialTiltDeg : undefined;
 
   let primaryInclinationDeg: number | undefined;
   let primaryEccentricity: number | undefined;
   let primarySemiMajorAxisAu: number | undefined;
 
-  if (focusedKind === 'planet') {
+  if (focusedKind === 'system' || focusedKind === 'star') {
+    primaryInclinationDeg = details.planeInclinationDeg ?? 0;
+  } else if (focusedKind === 'planet') {
     primaryInclinationDeg =
-      details.planetTelemetry?.inclinationDeg ?? solarOrbit?.inclination;
+      details.planetTelemetry?.axialTiltDeg ??
+      solarBodyAxialTiltDeg ??
+      details.planetTelemetry?.inclinationDeg ??
+      solarOrbit?.inclination;
     primaryEccentricity =
       details.planetTelemetry?.eccentricity ?? solarOrbit?.eccentricity;
     primarySemiMajorAxisAu =
@@ -54,6 +61,7 @@ export const buildFocusedPreviewSummary = (
       id: p.id,
       name: p.name,
       kind: 'planet',
+      symbolType: p.composition,
       orbitRank: index + 1,
       ...(p.semiMajorAxisAu !== undefined ? { semiMajorAxisAu: p.semiMajorAxisAu } : {}),
       ...(p.inclinationDeg !== undefined ? { inclinationDeg: p.inclinationDeg } : {}),
@@ -68,10 +76,14 @@ export const buildFocusedPreviewSummary = (
           : b.categoryLabel === 'Spacecraft'
             ? 'spacecraft'
             : 'minor-body';
+      const symbolType =
+        b.categoryKey ??
+        (kind === 'moon' ? 'moon' : kind === 'spacecraft' ? 'spacecraft' : 'asteroid');
       return {
         id: b.id,
         name: b.name,
         kind,
+        symbolType,
         orbitRank: index + 1,
         inHabitableZone: false,
       };
@@ -85,6 +97,7 @@ export const buildFocusedPreviewSummary = (
     systemName,
     focusedKind,
     previewMode,
+    ...(details.systemDetailsHref ? { detailsHref: details.systemDetailsHref } : {}),
     reticleType: details.reticleType,
     ...(primaryInclinationDeg !== undefined ? { primaryInclinationDeg } : {}),
     ...(primaryEccentricity !== undefined ? { primaryEccentricity } : {}),
