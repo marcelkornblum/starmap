@@ -35,7 +35,7 @@ export interface CachedSectorEntry {
 export interface SectorRingPlan {
   readonly centerSectorId: string;
   readonly centerOrigin: readonly [number, number, number];
-  /** Active sectors (up to 2-ring) sorted nearest-first, capped to budget.maxActiveSectors */
+  /** Active 1-ring sectors sorted nearest-first, capped to budget.maxActiveSectors */
   readonly activeSectorIds: readonly string[];
   /** Outer prefetch ring sectors sorted nearest-first, capped to remaining LRU capacity */
   readonly prefetchSectorIds: readonly string[];
@@ -79,7 +79,7 @@ export function getSectorCenterFromId(sectorId: string, sectorSize: number): [nu
 }
 
 /**
- * Computes the active (up to 2-ring) and outer prefetch rings around a camera position in parsecs.
+ * Computes the active 1-ring and outer prefetch rings around a camera position in parsecs.
  */
 export function computeSectorRings(
   positionPc: readonly [number, number, number],
@@ -108,13 +108,13 @@ export function computeSectorRings(
   const centerOrigin: readonly [number, number, number] = [cx, cy, cz];
 
   const maxDistFromOrigin = maxRadius + size * 0.87;
-  const clipToCatalogRadius = Math.hypot(posX, posY, posZ) <= maxRadius;
-  const ringRadius = Math.max(2, budget.prefetchRingRadius);
+  const skipOriginRadiusClip = Math.hypot(posX, posY, posZ) > maxRadius;
 
-  const candidates: SectorCandidate[] = [];
-  for (let dx = -ringRadius; dx <= ringRadius; dx++) {
-    for (let dy = -ringRadius; dy <= ringRadius; dy++) {
-      for (let dz = -ringRadius; dz <= ringRadius; dz++) {
+  // 1-ring generation (dx, dy, dz in [-1, 0, 1])
+  const candidates1Ring: SectorCandidate[] = [];
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dz = -1; dz <= 1; dz++) {
         const sx = cx + dx * size;
         const sy = cy + dy * size;
         const sz = cz + dz * size;
@@ -123,19 +123,19 @@ export function computeSectorRings(
         const scy = sy + size * 0.5;
         const scz = sz + size * 0.5;
 
-        if (clipToCatalogRadius && Math.hypot(scx, scy, scz) > maxDistFromOrigin) {
+        if (!skipOriginRadiusClip && Math.hypot(scx, scy, scz) > maxDistFromOrigin) {
           continue;
         }
 
         const sectorId = formatSectorId(sx, sy, sz, size);
         const distSq = (posX - scx) ** 2 + (posY - scy) ** 2 + (posZ - scz) ** 2;
-        candidates.push({ sectorId, distSq });
+        candidates1Ring.push({ sectorId, distSq });
       }
     }
   }
 
-  // Sort candidates nearest-first, prioritizing center sector in boundary ties
-  candidates.sort((a, b) => {
+  // Sort 1-ring candidates nearest-first, prioritizing center sector in boundary ties
+  candidates1Ring.sort((a, b) => {
     if (Math.abs(a.distSq - b.distSq) > 1e-6) {
       return a.distSq - b.distSq;
     }
@@ -144,11 +144,46 @@ export function computeSectorRings(
     return a.sectorId.localeCompare(b.sectorId);
   });
 
-  const activeSectorIds = candidates.slice(0, budget.maxActiveSectors).map((c) => c.sectorId);
+  const activeSectorCandidates = candidates1Ring.slice(0, budget.maxActiveSectors);
+  const activeSectorIds = activeSectorCandidates.map((c) => c.sectorId);
+  const overflow1Ring = candidates1Ring.slice(budget.maxActiveSectors);
+
+  // Outer prefetch ring generation
+  const ringRadius = Math.max(1, budget.prefetchRingRadius);
+  const outerPrefetchCandidates: SectorCandidate[] = [];
+
+  for (let dx = -ringRadius; dx <= ringRadius; dx++) {
+    for (let dy = -ringRadius; dy <= ringRadius; dy++) {
+      for (let dz = -ringRadius; dz <= ringRadius; dz++) {
+        const chebyshev = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+        if (chebyshev <= 1) {
+          continue; // Already processed in 1-ring
+        }
+
+        const sx = cx + dx * size;
+        const sy = cy + dy * size;
+        const sz = cz + dz * size;
+
+        const scx = sx + size * 0.5;
+        const scy = sy + size * 0.5;
+        const scz = sz + size * 0.5;
+
+        if (!skipOriginRadiusClip && Math.hypot(scx, scy, scz) > maxDistFromOrigin) {
+          continue;
+        }
+
+        const sectorId = formatSectorId(sx, sy, sz, size);
+        const distSq = (posX - scx) ** 2 + (posY - scy) ** 2 + (posZ - scz) ** 2;
+        outerPrefetchCandidates.push({ sectorId, distSq });
+      }
+    }
+  }
+
+  const allPrefetchCandidates = [...overflow1Ring, ...outerPrefetchCandidates];
+  allPrefetchCandidates.sort((a, b) => a.distSq - b.distSq || a.sectorId.localeCompare(b.sectorId));
+
   const prefetchCap = Math.max(0, budget.lruCacheMaxSectors - activeSectorIds.length);
-  const prefetchSectorIds = candidates
-    .slice(activeSectorIds.length, activeSectorIds.length + prefetchCap)
-    .map((c) => c.sectorId);
+  const prefetchSectorIds = allPrefetchCandidates.slice(0, prefetchCap).map((c) => c.sectorId);
 
   return {
     centerSectorId,

@@ -27,8 +27,6 @@ export {
   DEFAULT_HORIZON_APERTURE_RATIO,
   DEFAULT_GALACTIC_FOV_DEG,
   DEFAULT_AVG_BYTES_PER_SECTOR,
-  DEFAULT_GALACTIC_REFERENCE_CAMERA_DISTANCE_PC,
-  DEFAULT_GALACTIC_MIN_CAMERA_DISTANCE_PC,
   ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER,
   MEAN_CATALOG_STARS_PER_CUBIC_PC,
   DEFAULT_MIN_CAMERA_DISTANCE_PC,
@@ -37,13 +35,11 @@ export {
   clampDenseVolumeCeilingDistancePc,
   computeMaxSafeCameraDistancePc,
   computeCeilingMaxCameraDistancePc,
-  computeGalacticCeilingDistancePc,
   type HorizonReachOptions,
   type ActiveSectorHorizonCoverOptions,
   type DenseHorizonCeilingClampOptions,
   type CameraDistanceBudgetOptions,
   type CeilingCameraDistanceOptions,
-  type GalacticCeilingDistanceOptions,
 } from './deviceTierHorizonMath';
 
 export type DevicePerformanceTier = 'tier1' | 'tier2' | 'tier3';

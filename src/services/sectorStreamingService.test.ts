@@ -396,7 +396,7 @@ describe('SectorStreamingManager', () => {
     });
   });
 
-  it('streams 64 active + 16 prefetch sectors on tier3 with rate-limited uploads within budget', async () => {
+  it('streams 27 active + 53 prefetch sectors on tier3 with rate-limited uploads within budget', async () => {
     const fetcher = createMockFetcher();
     const tier3Budget = DEVICE_TIER_BUDGETS.tier3;
     const manager = new SectorStreamingManager({
@@ -406,17 +406,17 @@ describe('SectorStreamingManager', () => {
     });
 
     const plan = await manager.updateCameraPosition([0, 0, 0]);
-    expect(plan.activeSectorIds.length).toBe(64);
-    expect(plan.prefetchSectorIds.length).toBe(16);
+    expect(plan.activeSectorIds.length).toBe(27);
+    expect(plan.prefetchSectorIds.length).toBe(53);
 
     const highCalls = fetchCalls.filter((c) => c.priority === 'high');
     const lowCalls = fetchCalls.filter((c) => c.priority === 'low');
-    expect(highCalls.length).toBe(64);
-    expect(lowCalls.length).toBe(16);
+    expect(highCalls.length).toBe(27);
+    expect(lowCalls.length).toBe(53);
 
     const initialTelemetry = manager.getTelemetry();
     expect(initialTelemetry.cachedSectorCount).toBe(80);
-    expect(initialTelemetry.pendingUploadCount).toBe(64);
+    expect(initialTelemetry.pendingUploadCount).toBe(27);
     expect(initialTelemetry.uploadedSectorCount).toBe(0);
 
     let frames = 0;
@@ -424,15 +424,15 @@ describe('SectorStreamingManager', () => {
       const uploadedThisFrame = manager.processFrameUploads();
       expect(uploadedThisFrame.length).toBeLessThanOrEqual(tier3Budget.maxGpuUploadsPerFrame);
       const telemetry = manager.getTelemetry();
-      expect(telemetry.uploadedSectorCount).toBeLessThanOrEqual(64);
+      expect(telemetry.uploadedSectorCount).toBeLessThanOrEqual(27);
       expect(telemetry.allocatedGpuBytes).toBeLessThanOrEqual(tier3Budget.maxBufferBytes);
       expect(telemetry.activePointCount).toBeLessThanOrEqual(tier3Budget.maxActivePoints);
       frames++;
     }
 
-    expect(frames).toBe(32);
+    expect(frames).toBe(14);
     const finalTelemetry = manager.getTelemetry();
-    expect(finalTelemetry.uploadedSectorCount).toBe(64);
+    expect(finalTelemetry.uploadedSectorCount).toBe(27);
     expect(finalTelemetry.cachedSectorCount).toBe(80);
     expect(finalTelemetry.pendingUploadCount).toBe(0);
 
@@ -440,7 +440,7 @@ describe('SectorStreamingManager', () => {
   });
 
   describe('Reactive Device Tier Subscription', () => {
-    it('expands activeSet to 64 sectors and notifies listeners on tier2 -> tier3 upgrade when options.budget is omitted', async () => {
+    it('keeps 1-ring activeSet at 27, expands prefetch cache to 80, and notifies listeners on tier2 -> tier3 upgrade when options.budget is omitted', async () => {
       vi.stubGlobal('navigator', { hardwareConcurrency: 6, deviceMemory: 8 });
       const fetcher = createMockFetcher();
       const manager = new SectorStreamingManager({
@@ -451,6 +451,7 @@ describe('SectorStreamingManager', () => {
       const initialPlan = await manager.updateCameraPosition([0, 0, 0]);
       expect(initialPlan.activeSectorIds.length).toBe(27);
       expect(manager.getTelemetry().tier).toBe('tier2');
+      expect(manager.getTelemetry().cachedSectorCount).toBe(40);
 
       const listener = vi.fn();
       manager.subscribe(listener);
@@ -467,8 +468,9 @@ describe('SectorStreamingManager', () => {
 
       const upgraded = manager.getTelemetry();
       expect(upgraded.tier).toBe('tier3');
-      expect(upgraded.activeSectorCount).toBe(64);
-      expect(upgraded.pendingUploadCount).toBe(64);
+      expect(upgraded.activeSectorCount).toBe(27);
+      expect(upgraded.pendingUploadCount).toBe(27);
+      expect(upgraded.cachedSectorCount).toBe(80);
       expect(listener).toHaveBeenCalled();
 
       manager.dispose();
@@ -682,7 +684,7 @@ describe('SectorStreamingManager', () => {
       while (manager.hasPendingUploads()) {
         manager.processFrameUploads(20);
       }
-      expect(manager.getTelemetry().uploadedSectorCount).toBe(35);
+      expect(manager.getTelemetry().uploadedSectorCount).toBe(27);
       expect(manager.hasPendingUploads()).toBe(false);
 
       manager.dispose();

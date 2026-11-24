@@ -29,7 +29,6 @@ import {
   DEFAULT_GALACTIC_FOV_DEG,
   computeHorizonReachPerCameraDist,
   computeActiveSectorHorizonCoverPc,
-  computeGalacticCeilingDistancePc,
   type DevicePerformanceTier,
   type DeviceTierBudget,
 } from './deviceTierService';
@@ -626,7 +625,6 @@ describe('deviceTierService', () => {
       expect(DEFAULT_DENSE_EDGE_MARGIN_PC).toBe(8);
       expect(DEFAULT_HORIZON_APERTURE_RATIO).toBe(2.4);
       expect(DEFAULT_GALACTIC_FOV_DEG).toBe(45);
-      expect(typeof computeGalacticCeilingDistancePc).toBe('function');
     });
 
     it('computes horizon reach per camera distance across mobile portrait and wide/ultrawide aspects', () => {

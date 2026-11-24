@@ -6,14 +6,11 @@ import {
   DEFAULT_DENSE_CATALOG_RADIUS_PC,
   DEFAULT_DENSE_EDGE_MARGIN_PC,
   DEFAULT_GALACTIC_FOV_DEG,
-  DEFAULT_GALACTIC_MIN_CAMERA_DISTANCE_PC,
-  DEFAULT_GALACTIC_REFERENCE_CAMERA_DISTANCE_PC,
   DEFAULT_HORIZON_APERTURE_RATIO,
   computeHorizonReachPerCameraDist,
   computeActiveSectorHorizonCoverPc,
   clampDenseVolumeCeilingDistancePc,
   computeCeilingMaxCameraDistancePc,
-  computeGalacticCeilingDistancePc,
 } from './deviceTierHorizonMath';
 
 describe('deviceTierHorizonMath', () => {
@@ -23,8 +20,6 @@ describe('deviceTierHorizonMath', () => {
     expect(DEFAULT_DENSE_EDGE_MARGIN_PC).toBe(8);
     expect(DEFAULT_HORIZON_APERTURE_RATIO).toBe(2.4);
     expect(DEFAULT_GALACTIC_FOV_DEG).toBe(45);
-    expect(DEFAULT_GALACTIC_REFERENCE_CAMERA_DISTANCE_PC).toBe(28);
-    expect(DEFAULT_GALACTIC_MIN_CAMERA_DISTANCE_PC).toBe(2.5);
   });
 
   describe('computeHorizonReachPerCameraDist', () => {
@@ -97,55 +92,12 @@ describe('deviceTierHorizonMath', () => {
     });
   });
 
-  describe('computeGalacticCeilingDistancePc', () => {
-    it('computes targetDistFromSolPc from targetCoords and matches computeCeilingMaxCameraDistancePc with galactic defaults', () => {
+  describe('computeCeilingMaxCameraDistancePc', () => {
+    it('returns the hardware-budget ceiling without dense-volume clamping when denseCatalogRadiusPc is omitted', () => {
       const tier3 = TIER_PROFILE_RECORDS.tier3;
-      const targetCoords: readonly [number, number, number] = [30, 40, 0]; // hypot = 50 pc
-      const viaCoords = computeGalacticCeilingDistancePc(tier3, {
-        targetCoords,
-        viewportAspect: 16 / 9,
-      });
-      const direct = computeCeilingMaxCameraDistancePc(tier3, {
-        denseCatalogRadiusPc: DEFAULT_DENSE_CATALOG_RADIUS_PC,
-        referenceCameraDistancePc: 28,
-        minDistancePc: 2.5,
-        targetDistFromSolPc: 50,
-        viewportAspect: 16 / 9,
-      });
-      expect(viaCoords).toBeCloseTo(direct, 8);
-    });
-
-    it('bypasses dense-volume clamp when targetCoords are >= 92 pc from Sol', () => {
-      const tier3 = TIER_PROFILE_RECORDS.tier3;
-      const solCeiling = computeGalacticCeilingDistancePc(tier3, {
-        targetCoords: [0, 0, 0],
-        viewportAspect: 16 / 9,
-      });
-      const distantCeiling = computeGalacticCeilingDistancePc(tier3, {
-        targetCoords: [200, 0, 0],
-        viewportAspect: 16 / 9,
-      });
-      expect(distantCeiling).toBeGreaterThan(solCeiling);
-    });
-
-    it('honours explicit targetDistFromSolPc, ceilingApertureRadiusPc, referenceCameraDistancePc, and minDistancePc overrides', () => {
-      const tier2 = TIER_PROFILE_RECORDS.tier2;
-      const custom = computeGalacticCeilingDistancePc(tier2, {
-        ceilingApertureRadiusPc: 12,
-        targetDistFromSolPc: 95,
-        referenceCameraDistancePc: 28,
-        minDistancePc: 3,
-        viewportAspect: 1440 / 900,
-      });
-      const expected = computeCeilingMaxCameraDistancePc(tier2, {
-        ceilingApertureRadiusPc: 12,
-        denseCatalogRadiusPc: DEFAULT_DENSE_CATALOG_RADIUS_PC,
-        targetDistFromSolPc: 95,
-        referenceCameraDistancePc: 28,
-        minDistancePc: 3,
-        viewportAspect: 1440 / 900,
-      });
-      expect(custom).toBeCloseTo(expected, 8);
+      const dist = computeCeilingMaxCameraDistancePc(tier3);
+      expect(dist).toBeGreaterThan(100);
+      expect(dist).toBeLessThanOrEqual(tier3.maxCameraDistancePc);
     });
   });
 });

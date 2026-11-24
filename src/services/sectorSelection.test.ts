@@ -83,19 +83,19 @@ describe('sectorSelection', () => {
       );
     });
 
-    it('expands tier3 to 64 active sectors and 16 prefetch sectors sorted nearest-first with disjoint sets', () => {
+    it('keeps tier3 at 27 active 1-ring sectors and 53 prefetch sectors sorted nearest-first with disjoint sets', () => {
       for (const pos of [
         [0, 0, 0],
         [12.5, 12.5, 12.5],
       ] as const) {
         const plan = computeSectorRings(pos, tier3Budget);
-        expect(plan.activeSectorIds.length).toBe(64);
-        expect(plan.prefetchSectorIds.length).toBe(16);
+        expect(plan.activeSectorIds.length).toBe(27);
+        expect(plan.prefetchSectorIds.length).toBe(53);
         expect(plan.activeSectorIds.length + plan.prefetchSectorIds.length).toBe(80);
         expect(plan.activeSectorIds[0]).toBe(plan.centerSectorId);
 
         const activeSet = new Set(plan.activeSectorIds);
-        expect(activeSet.size).toBe(64);
+        expect(activeSet.size).toBe(27);
         for (const pref of plan.prefetchSectorIds) {
           expect(activeSet.has(pref)).toBe(false);
         }
@@ -124,12 +124,22 @@ describe('sectorSelection', () => {
           }
           expect(curr).toBeGreaterThanOrEqual(prev - 1e-6);
         }
-        const firstPrefetchDist = prefetchDistances[0];
-        const lastActiveDist = activeDistances[activeDistances.length - 1];
-        if (firstPrefetchDist === undefined || lastActiveDist === undefined) {
-          throw new Error('Expected boundary distance entries');
+
+        const [cx, cy, cz] = plan.centerOrigin;
+        for (const activeId of plan.activeSectorIds) {
+          const [scx, scy, scz] = getSectorCenterFromId(activeId, 25);
+          const dx = Math.round((scx - 12.5 - cx) / 25);
+          const dy = Math.round((scy - 12.5 - cy) / 25);
+          const dz = Math.round((scz - 12.5 - cz) / 25);
+          expect(Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz))).toBeLessThanOrEqual(1);
         }
-        expect(firstPrefetchDist).toBeGreaterThanOrEqual(lastActiveDist - 1e-6);
+        for (const prefId of plan.prefetchSectorIds) {
+          const [scx, scy, scz] = getSectorCenterFromId(prefId, 25);
+          const dx = Math.round((scx - 12.5 - cx) / 25);
+          const dy = Math.round((scy - 12.5 - cy) / 25);
+          const dz = Math.round((scz - 12.5 - cz) / 25);
+          expect(Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz))).toBeGreaterThan(1);
+        }
       }
     });
 
@@ -157,8 +167,8 @@ describe('sectorSelection', () => {
       const distantPlan = computeSectorRings([250, 0, 0], tier3Budget);
       expect(distantPlan.centerSectorId).toBe('sector_+250_+000_+000');
       expect(distantPlan.activeSectorIds[0]).toBe('sector_+250_+000_+000');
-      expect(distantPlan.activeSectorIds.length).toBe(64);
-      expect(distantPlan.prefetchSectorIds.length).toBe(16);
+      expect(distantPlan.activeSectorIds.length).toBe(27);
+      expect(distantPlan.prefetchSectorIds.length).toBe(53);
 
       const boundaryPlan = computeSectorRings([95, 0, 0], tier3Budget);
       expect(boundaryPlan.centerSectorId).toBe('sector_+075_+000_+000');

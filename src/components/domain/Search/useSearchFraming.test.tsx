@@ -1158,12 +1158,12 @@ describe('useSearchFraming', () => {
     expect(getPendingSpatialRouteTarget()).toBeNull();
   });
 
-  it('clamps search framing distance using computeGalacticCeilingDistancePc with framing centroid, STANDARD_CAMERA_DISTANCES.galactic, and viewportAspect', () => {
+  it('clamps search framing distance using computeCeilingMaxCameraDistancePc hardware budget without dense-volume choke', () => {
     vi.stubGlobal('navigator', { hardwareConcurrency: 8, deviceMemory: 16 });
     vi.stubGlobal('innerWidth', 1440);
     vi.stubGlobal('innerHeight', 900);
 
-    // Distant >100 pc cluster: centroid at [200, 0, 0], radius = 80 pc -> bypasses dense edge clamp
+    // Distant >100 pc cluster: centroid at [200, 0, 0], radius = 80 pc -> framed using hardware ceiling
     const distantCorpus: readonly CompactSearchEntry[] = [
       {
         i: 'distant-1',
@@ -1225,10 +1225,9 @@ describe('useSearchFraming', () => {
     const frame = useCameraStore.getState().pendingSearchFrame;
     expect(frame).not.toBeNull();
     expect(frame?.target).toEqual([200, 0, 0]);
-    // At Sol, tier3 dense ceiling is ~53 pc; distant >92 pc centroid must bypass dense clamp (> 100 pc)
     expect(frame?.distance).toBeGreaterThan(100);
 
-    // Inside-100 pc cluster: centroid at [50, 0, 0], radius = 30 pc -> must clamp to dense-volume ceiling (~53.7 pc on 1440x900)
+    // Inside-100 pc wide cluster: centroid at [50, 0, 0], radius = 30 pc -> NOT choked to ~53 pc dense ceiling
     const denseCorpus: readonly CompactSearchEntry[] = [
       {
         i: 'dense-1',
@@ -1274,6 +1273,6 @@ describe('useSearchFraming', () => {
     const denseFrame = useCameraStore.getState().pendingSearchFrame;
     expect(denseFrame).not.toBeNull();
     expect(denseFrame?.target).toEqual([50, 0, 0]);
-    expect(denseFrame?.distance).toBeLessThan(60);
+    expect(denseFrame?.distance).toBeGreaterThan(60);
   });
 });
