@@ -189,7 +189,7 @@ describe('<Minimap />', () => {
     // Zoom bar and focal distance footer
     expect(screen.getByTestId('minimap-telemetry')).toBeInTheDocument();
     expect(screen.getByTestId('minimap-zoom-bar')).toBeInTheDocument();
-    expect(screen.getByTestId('minimap-focal-distance').textContent).toBe('40.3 pc');
+    expect(screen.getByTestId('minimap-focal-distance').textContent).toBe('40.3pc');
   });
 
   it('renders Z-offset stalk when coordinatesPc.z sits above or below Galactic midplane and omits empty .srOnlyMarkers', () => {
@@ -217,7 +217,7 @@ describe('<Minimap />', () => {
 
   it('uses spherical fallback pose when camera store is at initial untouched defaults', () => {
     render(<Minimap orientation={mockGalaxyOrientation} />);
-    expect(screen.getByTestId('minimap-focal-distance').textContent).toBe('42.0 pc');
+    expect(screen.getByTestId('minimap-focal-distance').textContent).toBe('42.0pc');
   });
 
   it('renders system and planet scopes with cumulative Galactic Frame tilt and scope focal distance units', () => {
@@ -257,7 +257,7 @@ describe('<Minimap />', () => {
       const slot = screen.getByTestId('minimap-viewport-slot');
       const initialNorthY2 = slot.querySelector(`.${styles.northStalk}`)?.getAttribute('y2');
       const initialCoreX2 = slot.querySelector(`.${styles.toCoreVector}`)?.getAttribute('x2');
-      expect(screen.getByTestId('minimap-focal-distance').textContent).toBe('42.0 pc');
+      expect(screen.getByTestId('minimap-focal-distance').textContent).toBe('42.0pc');
 
       act(() => {
         useCameraStore.getState().setCameraPose({
@@ -273,7 +273,7 @@ describe('<Minimap />', () => {
 
       const updatedNorthY2 = slot.querySelector(`.${styles.northStalk}`)?.getAttribute('y2');
       const updatedCoreX2 = slot.querySelector(`.${styles.toCoreVector}`)?.getAttribute('x2');
-      expect(screen.getByTestId('minimap-focal-distance').textContent).toBe('80.0 pc');
+      expect(screen.getByTestId('minimap-focal-distance').textContent).toBe('80.0pc');
       expect(updatedNorthY2).not.toBe(initialNorthY2);
       expect(updatedCoreX2).not.toBe(initialCoreX2);
     } finally {

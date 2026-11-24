@@ -237,7 +237,7 @@ describe('<PreviewPanel />', () => {
     const link = screen.getByTestId('preview-details-link');
     expect(link.tagName).toBe('A');
     expect(link).toHaveAttribute('href', '/system/sol');
-    expect(link).toHaveAttribute('aria-label', 'Open Sol System details');
+    expect(link).toHaveAttribute('aria-label', 'Inspect Sol System');
 
     const wasNotPrevented = fireEvent.click(link);
     expect(wasNotPrevented).toBe(false);

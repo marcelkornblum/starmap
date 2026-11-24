@@ -18,7 +18,9 @@ export interface PreviewPanelProps {
 const PRIMARY_RETICLE_SIZE = 13;
 const BODY_RETICLE_SIZE = 11;
 
-export const PreviewPanel: React.FC<PreviewPanelProps> = memo(function PreviewPanel({ preview }) {
+export const PreviewPanel = memo(function PreviewPanel({
+  preview,
+}: PreviewPanelProps): React.ReactElement | null {
   const headingId = useId();
   const handleSpaLinkClick = useSpaLinkClick();
   const projection = useMemo(
@@ -88,8 +90,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = memo(function PreviewPa
           data-category={primaryCategory}
           data-status={primaryStatus}
           data-celestial-symbol={primarySymbolType}
+          aria-label={preview.targetName}
         >
-          <title>{preview.targetName}</title>
           {renderGlyphContent(primarySymbolType)}
         </svg>
       </g>
@@ -122,8 +124,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = memo(function PreviewPa
               data-category={category}
               data-status={status}
               data-celestial-symbol={body.symbolType}
+              aria-label={`${body.name} (${meta?.label ?? body.symbolType})`}
             >
-              <title>{`${body.name} (${meta?.label ?? body.symbolType})`}</title>
               {renderGlyphContent(body.symbolType)}
             </svg>
           </g>
@@ -157,7 +159,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = memo(function PreviewPa
             href={resolveAppHref(detailsHref)}
             className={styles.previewLink}
             onClick={(e) => handleSpaLinkClick(e, detailsHref)}
-            aria-label={`Open ${preview.targetName} details`}
+            aria-label={`Inspect ${preview.targetName}`}
             data-testid="preview-details-link"
           >
             {svgGraphic}

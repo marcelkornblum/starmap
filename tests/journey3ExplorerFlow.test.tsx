@@ -558,7 +558,7 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
     const moonDot = prevContainer.querySelector('[data-testid="preview-body-dot"]');
     expect(moonDot).not.toBeNull();
     expect(moonDot?.getAttribute('data-symbol-type')).toBe('moon');
-    expect(prevContainer.textContent).toContain('Moon');
+    expect(moonDot?.querySelector('svg')?.getAttribute('aria-label')).toContain('Moon');
     unmountPrev();
   });
 

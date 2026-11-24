@@ -7,7 +7,7 @@ import {
   buildCameraBasis,
 } from '../../../utils/orientationProjectionMath';
 import { resolveAppHref } from '../../../utils/url';
-import { Heading } from '../../interface';
+import { Heading, Quantity, Unit } from '../../interface';
 import {
   FRAME_BY_SCOPE,
   SVG_HEIGHT,
@@ -181,7 +181,7 @@ export const Minimap = memo(function Minimap({
             <rect x="0" y="1" width={fillWidth} height="2" rx="1" className={styles.zoomFill} />
           </svg>
           <span className={styles.focalDistance} data-testid="minimap-focal-distance">
-            {`${formatDistanceValue(distance)} ${unit}`}
+            <Quantity value={formatDistanceValue(distance)} unit={<Unit>{unit}</Unit>} />
           </span>
         </div>
 
