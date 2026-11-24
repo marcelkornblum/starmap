@@ -229,10 +229,12 @@ export function buildMinimapProjection(
 
 function computeZoomNormalized(scope: MinimapScope, distance: number): number {
   const { minDistance, maxDistance } = FRAME_BY_SCOPE[scope].camera;
-  const minLog = Math.log10(Math.max(0.1, minDistance));
-  const maxLog = Math.log10(Math.max(minDistance + 1, maxDistance));
-  const safeDistance = Number.isFinite(distance) && distance > 0 ? distance : minDistance;
-  const clampedDist = Math.max(minDistance, Math.min(maxDistance, safeDistance));
+  const safeMin = Math.max(1e-6, minDistance);
+  const safeMax = Math.max(safeMin * 10, maxDistance);
+  const minLog = Math.log10(safeMin);
+  const maxLog = Math.log10(safeMax);
+  const safeDistance = Number.isFinite(distance) && distance > 0 ? distance : safeMin;
+  const clampedDist = Math.max(safeMin, Math.min(safeMax, safeDistance));
   const t = (maxLog - Math.log10(clampedDist)) / Math.max(1e-4, maxLog - minLog);
   return Math.max(0.05, Math.min(1, t));
 }
