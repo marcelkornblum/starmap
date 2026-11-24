@@ -40,12 +40,20 @@ export interface BuildPipelineOptions {
   detailsDir?: string;
   searchDir?: string;
   compactFormat?: boolean;
+  writeStarsJson?: boolean;
   exoplanetsCsvPath?: string;
   hygCsvPath?: string;
   iauCsvPath?: string;
   oecCsvPath?: string;
   nasaCsvPath?: string;
   euCsvPath?: string;
+  cantatGaudinPath?: string;
+  harrisGlobularsPath?: string;
+  atnfPulsarsPath?: string;
+  openNgcPath?: string;
+  mpcPhaPath?: string;
+  mpcDistantPath?: string;
+  mpcCometsPath?: string;
   maxPartitionDistancePc?: number;
 }
 

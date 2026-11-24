@@ -167,6 +167,57 @@ describe('Data Pipeline - buildGaiaDataPipeline (Streaming & Active Shards)', ()
     }
   }, 60000);
 
+  it('skips writing outputJsonPath when writeStarsJson is false while still emitting shards and manifest.json', async () => {
+    const skipRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-skip-stars-'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const fixtureRawDir = path.resolve(process.cwd(), 'tests/fixtures/pipeline-raw');
+      const skippedJsonPath = path.join(skipRoot, 'never_created', 'stars.json');
+      const dataDir = path.join(skipRoot, 'data');
+      const summary = await buildGaiaDataPipeline(
+        path.join(fixtureRawDir, 'gaia_gcns_fixture.dat.gz'),
+        skippedJsonPath,
+        {
+          dataDir,
+          partitionsDir: path.join(dataDir, 'partitions'),
+          summariesDir: path.join(dataDir, 'summaries'),
+          detailsDir: path.join(dataDir, 'details'),
+          searchDir: path.join(dataDir, 'search'),
+          overlaysDir: path.join(dataDir, 'overlays'),
+          maxPartitionDistancePc: 100,
+          writeStarsJson: false,
+          hygCsvPath: path.join(fixtureRawDir, 'hyg_fixture.csv'),
+          iauCsvPath: '',
+          oecCsvPath: path.join(fixtureRawDir, 'oec_fixture.csv'),
+          nasaCsvPath: path.join(fixtureRawDir, 'nasa_exo_fixture.csv'),
+          euCsvPath: path.join(fixtureRawDir, 'eu_exo_fixture.csv'),
+          mpcPhaPath: path.join(fixtureRawDir, 'mpc_pha_fixture.txt'),
+          mpcDistantPath: '',
+          mpcCometsPath: '',
+          cantatGaudinPath: '',
+          harrisGlobularsPath: '',
+          atnfPulsarsPath: '',
+          openNgcPath: '',
+        },
+      );
+
+      expect(summary.validStars).toBeGreaterThanOrEqual(3);
+      expect(summary.outputPath).toBe('');
+      expect(fs.existsSync(skippedJsonPath)).toBe(false);
+      expect(fs.existsSync(path.dirname(skippedJsonPath))).toBe(false);
+      expect(fs.existsSync(path.join(dataDir, 'manifest.json'))).toBe(true);
+      expect(
+        fs.readdirSync(path.join(dataDir, 'partitions')).some((f) => f.startsWith('sector_+000_+000_+000') && f.endsWith('.bin')),
+      ).toBe(true);
+      expect(
+        fs.readdirSync(path.join(dataDir, 'search')).some((f) => f.startsWith('core.') && f.endsWith('.json')),
+      ).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+      fs.rmSync(skipRoot, { recursive: true, force: true });
+    }
+  }, 60000);
+
   it('rounds [x, y, z] with round3 before formatSectorId so boundary coordinates never drift across a 25 pc sector', async () => {
     const boundaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-boundary-'));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

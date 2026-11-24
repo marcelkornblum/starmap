@@ -36,9 +36,13 @@ export async function buildGaiaDataPipeline(
   outputJsonPath: string,
   options?: BuildPipelineOptions,
 ): Promise<PipelineSummary> {
-  const [resolvedGcns, resolvedOutput] = [path.resolve(gcnsGzPath), path.resolve(outputJsonPath)];
+  const shouldWriteStarsJson = options?.writeStarsJson ?? Boolean(outputJsonPath);
+  const resolvedGcns = path.resolve(gcnsGzPath);
+  const resolvedOutput = shouldWriteStarsJson ? path.resolve(outputJsonPath) : '';
   const maxPartitionDist = options?.maxPartitionDistancePc ?? 100;
-  fs.mkdirSync(path.dirname(resolvedOutput), { recursive: true });
+  if (shouldWriteStarsJson) {
+    fs.mkdirSync(path.dirname(resolvedOutput), { recursive: true });
+  }
 
   console.log('Loading cross-match reference catalogs...');
   const iauProperStars = loadIauStarNames(options?.iauCsvPath ?? 'data/raw/iau_proper_stars.csv');
@@ -64,8 +68,10 @@ export async function buildGaiaDataPipeline(
       sectorManifestsMap.set('sector_+000_+000_+000', [solManifest]); allSystemManifests.push(solManifest);
     }
 
-    const writeStream = fs.createWriteStream(resolvedOutput, { encoding: 'utf-8' });
-    writeStream.write(`[${JSON.stringify(solNode)}`); totalStars++; totalKinematics++;
+    const writeStream = shouldWriteStarsJson
+      ? fs.createWriteStream(resolvedOutput, { encoding: 'utf-8' })
+      : null;
+    writeStream?.write(`[${JSON.stringify(solNode)}`); totalStars++; totalKinematics++;
     const matchedHygIds = new Set<number>();
 
     function ingestStarEntry(
@@ -181,7 +187,7 @@ export async function buildGaiaDataPipeline(
         allSystemManifests.push(manifest);
       }
 
-      writeStream.write(`,${JSON.stringify({
+      writeStream?.write(`,${JSON.stringify({
         id: totalStars, name, ra: round3(ra / 15), dec: round3(dec), dist: round3(dist), mag: round2(mag), absmag: round2(absmag),
         x, y, z, properName, hip: hygMatch?.hip, hd: hygMatch?.hd, hr: hygMatch?.hr,
         gl: hygMatch?.gl, bayer: hygMatch?.bayer, flam: hygMatch?.flam, con: hygMatch?.con, spect,
@@ -195,11 +201,32 @@ export async function buildGaiaDataPipeline(
     const failPipeline = (err: Error) => {
       if (settled) return;
       settled = true;
-      writeStream.destroy();
+      writeStream?.destroy();
       reject(err);
     };
 
     let multiStarConsolidationResult: ReturnType<typeof consolidateMultiStarSystems> | null = null;
+    const finalizeArtifacts = () => {
+      if (settled) return;
+      try {
+        const { galacticCount, solarBodiesCount } = writePipelineArtifacts({
+          options, sectorMap, cataloguedSummaries, allSystemManifests, starAliasesById,
+          multiStarConsolidationResult: multiStarConsolidationResult ?? undefined,
+        });
+        settled = true;
+        resolve({
+          totalStars, totalRows: totalStars, validStars: totalStars, skippedRows: 0,
+          kinematicCount: totalKinematics, totalKinematics, localVolume10pcCount: local10pcCount, local10pcCount,
+          referenceBrightCount, sectorPartitionCount: sectorMap.size, exoplanetSystemCount: exoplanetHostSummaries.length,
+          totalExoplanets, totalExoplanetsAttached: totalExoplanets,
+          galacticStructuresCount: galacticCount, solarSystemBodiesCount: solarBodiesCount, outputPath: resolvedOutput,
+        });
+      } catch (err) {
+        settled = true;
+        reject(err);
+      }
+    };
+
     const readStream = fs.createReadStream(resolvedGcns);
     const gunzipStream = zlib.createGunzip();
     readStream.on('error', failPipeline);
@@ -240,7 +267,7 @@ export async function buildGaiaDataPipeline(
         exoplanetHostMap, matchedExoplanetIds, cataloguedSummaries, starAliasesById,
         local10pcSystems, exoplanetHostSummaries, sectorMap, sectorManifestsMap, allSystemManifests,
         getTotalStars: () => totalStars,
-        onEmitNode: (nodeJson) => { writeStream.write(`,${nodeJson}`); totalStars++; },
+        onEmitNode: (nodeJson) => { writeStream?.write(`,${nodeJson}`); totalStars++; },
       });
       local10pcCount += reconsCounts.addedLocal10pc;
       totalExoplanets += reconsCounts.addedExoplanets;
@@ -271,31 +298,18 @@ export async function buildGaiaDataPipeline(
         local10pcSystems, referenceBrightSystems, exoplanetHostSummaries, starAliasesById,
       });
       console.log(`Consolidated ${multiStarConsolidationResult.consolidatedCount} systems (reduced ${multiStarConsolidationResult.totalSystemsReduced} nodes).`);
-      writeStream.write(']'); writeStream.end();
-    });
-
-    writeStream.on('finish', () => {
-      if (settled) return;
-      try {
-        const { galacticCount, solarBodiesCount } = writePipelineArtifacts({
-          options, sectorMap, cataloguedSummaries, allSystemManifests, starAliasesById,
-          multiStarConsolidationResult: multiStarConsolidationResult ?? undefined,
-        });
-        settled = true;
-        resolve({
-          totalStars, totalRows: totalStars, validStars: totalStars, skippedRows: 0,
-          kinematicCount: totalKinematics, totalKinematics, localVolume10pcCount: local10pcCount, local10pcCount,
-          referenceBrightCount, sectorPartitionCount: sectorMap.size, exoplanetSystemCount: exoplanetHostSummaries.length,
-          totalExoplanets, totalExoplanetsAttached: totalExoplanets,
-          galacticStructuresCount: galacticCount, solarSystemBodiesCount: solarBodiesCount, outputPath: resolvedOutput,
-        });
-      } catch (err) {
-        settled = true;
-        reject(err);
+      if (writeStream) {
+        writeStream.write(']');
+        writeStream.end();
+      } else {
+        finalizeArtifacts();
       }
     });
 
-    writeStream.on('error', failPipeline);
+    if (writeStream) {
+      writeStream.on('finish', finalizeArtifacts);
+      writeStream.on('error', failPipeline);
+    }
     rl.on('error', failPipeline);
   });
 }

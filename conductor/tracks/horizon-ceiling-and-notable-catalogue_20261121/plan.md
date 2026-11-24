@@ -48,17 +48,17 @@ Follow strict Red-Green-Refactor TDD per [`conductor/workflow.md`](../../workflo
 
 ## Phase 3: CI-Built Runtime Data Artefacts & GitHub Release Asset
 
-- [ ] **Task 3.1: Create compact deterministic test fixture set & decouple tests from `public/data/`**
+- [x] **Task 3.1: Create compact deterministic test fixture set & decouple tests from `public/data/`** *(Shipped: curated ~300 KiB raw slice under `tests/fixtures/pipeline-raw/`, `scripts/build-fixture-data.ts` (`npm run data:fixture`, <1s build) + 4 unit tests, `.gitignore` excluding generated `public/data/*` while preserving `.gitkeep` & `README.md`, untracked generated shards from Git, and verified `389/389` Vitest + `48/48` Playwright E2E offline against the fixture)*
   - **Red:** Identify all unit/E2E tests reading `public/data/` directly and add fixture-loading assertions so `npm run test` and `npm run test:e2e` run cleanly on a fresh checkout without generated `public/data/` shards.
   - **Green:** Introduce a compact deterministic fixture generator/directory for tests, add `public/data/` generated paths to `.gitignore` (preserving `.gitkeep` and `README.md`), and untrack generated shards from Git.
   - **Refactor:** Verify `npm run data:build` reproduces `public/data/` locally on demand and update `public/data/README.md`.
 
-- [ ] **Task 3.2: CI shard build, `.br` precompression & `stars.json` GitHub Release asset**
+- [x] **Task 3.2: CI shard build, `.br` precompression & `stars.json` GitHub Release asset** *(Shipped: opt-in `WRITE_STARS_JSON=1` in `scripts/build-data.ts` / `gaiaPipeline.ts`, post-build `scripts/precompress-dist-data.ts` (`npm run data:precompress`) + unit tests, updated `ci.yml` & `data-reproducibility.yml`, and added `release-data.yml` for `stars.json.gz` + `.sha256` GitHub Release uploads)*
   - **Red:** Add/update script tests verifying opt-in `stars.json` emission and `.br` precompression manifest/budget integrity.
   - **Green:** Update GitHub Actions deploy workflow to run `npm run data:build`, precompress shards (`.br`), and publish directly into the deploy artefact; update `.github/workflows/data-reproducibility.yml` to verify deterministic build hashes without requiring tracked `public/data/` files; add GitHub Release asset upload for `data/stars.json`.
   - **Refactor:** Verify `scripts/audit-budgets.ts` handles both local dev and CI artefact validation cleanly.
 
-- [ ] **Phase 3 Checkpoint:** Run `standards` cleanup, full quality suite (`npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, `npm run audit:budgets`, `npm run test:coverage`), and multi-viewport visual review (`npm run capture:views`).
+- [x] **Phase 3 Checkpoint:** Run `standards` cleanup, full quality suite (`npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, `npm run audit:budgets`, `npm run test:coverage`), and multi-viewport visual review (`npm run capture:views`). *(All 10 CI gates + `48/48` Playwright E2E passed on compact fixture; `389/389` test files, `93.22%` line coverage, `data:precompress` 68% Brotli reduction, 5-viewport screenshots captured)*
 
 ---
 

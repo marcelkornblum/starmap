@@ -86,7 +86,7 @@ export function writePipelineArtifacts(params: WritePipelineArtifactsParams): {
   let galacticCount = 0;
   let allStructures: GalacticStructureRecord[] = [];
   if (options?.overlaysDir || options?.detailsDir || options?.searchDir || options?.dataDir) {
-    allStructures = loadAllGalacticStructures();
+    allStructures = loadAllGalacticStructures(options);
     galacticCount = allStructures.length;
   }
 
@@ -96,7 +96,7 @@ export function writePipelineArtifacts(params: WritePipelineArtifactsParams): {
   let minorSolarBodies: SolarSystemBodyRecord[] = [];
   let allSolarBodies: SolarSystemBodyRecord[] = [];
   if (options?.detailsDir || options?.searchDir || options?.overlaysDir || options?.dataDir) {
-    const { primaryBodies, phaAsteroids, distantAsteroids, comets } = loadAllSolarSystemBodies();
+    const { primaryBodies, phaAsteroids, distantAsteroids, comets } = loadAllSolarSystemBodies(options);
     primarySolarBodies = primaryBodies;
     minorSolarBodies = [...phaAsteroids, ...distantAsteroids, ...comets];
     allSolarBodies = [...primarySolarBodies, ...minorSolarBodies];

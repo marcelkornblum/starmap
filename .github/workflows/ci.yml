@@ -30,6 +30,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Build fixture data
+        run: npm run data:fixture
       - name: Run quality checks
         run: npm run check
 
@@ -45,6 +47,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Build fixture data
+        run: npm run data:fixture
       - name: Test with Coverage
         run: npm run test:coverage
       - name: Coverage comment
@@ -67,6 +71,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Build fixture data
+        run: npm run data:fixture
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - name: Run E2E tests
@@ -86,10 +92,30 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Build fixture data (PR)
+        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
+        run: npm run data:fixture
+      - name: Cache source catalogues
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/raw
+            data/hygdata_v3.csv
+          key: ${{ runner.os }}-source-catalogues-${{ hashFiles('scripts/sources.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-source-catalogues-
+      - name: Build full data pipeline and verify budgets (main)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          npm run data:pipeline
+          npm run audit:budgets
       - name: Build
         run: npm run build
       - name: Verify bundle budgets
         run: npm run audit:bundle
+      - name: Precompress dist/data artefacts
+        run: npm run data:precompress
       - name: Build Storybook
         run: npm run build-storybook
       - name: Upload artifact

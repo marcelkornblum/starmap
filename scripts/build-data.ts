@@ -18,6 +18,7 @@ const isDirectExecution = process.argv[1]?.endsWith('build-data.ts');
 if (isDirectExecution) {
   const gcnsGz = process.env.GCNS_GZ || 'data/raw/gaia_dr3_gcns.dat.gz';
   const outputJson = process.env.OUTPUT_JSON || 'data/stars.json';
+  const writeStarsJson = process.env.WRITE_STARS_JSON === '1';
   const dataDir = process.env.DATA_DIR || 'public/data';
   const partitionsDir = process.env.PARTITIONS_DIR || 'public/data/partitions';
   const overlaysDir = process.env.OVERLAYS_DIR || 'public/data/overlays';
@@ -37,13 +38,16 @@ if (isDirectExecution) {
     searchDir,
     maxPartitionDistancePc: 100,
     compactFormat: true,
+    writeStarsJson,
   })
     .then((summary) => {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
       console.log(`\nPipeline complete in ${elapsed}s:`);
       console.log(`  - Total Stars Processed: ${summary.totalStars}`);
       console.log(`  - 3D Kinematic Space Velocities: ${summary.totalKinematics} (100%)`);
-      console.log(`  - Base Catalog Output: ${summary.outputPath}`);
+      console.log(
+        `  - Base Catalog Output: ${writeStarsJson ? summary.outputPath : '(skipped; set WRITE_STARS_JSON=1 to emit)'}`,
+      );
       console.log(`  - Layer 1 (<= 10 pc Census): ${summary.local10pcCount} systems`);
       console.log(`  - Layer 1 (Naked-eye V <= 6.5): ${summary.referenceBrightCount} systems`);
       console.log(`  - Spatial 25 pc Sectors: ${summary.sectorPartitionCount} partitions`);

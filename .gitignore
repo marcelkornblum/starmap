@@ -13,6 +13,9 @@ dist-ssr
 coverage
 /data/*
 !/data/seed/
+/public/data/*
+!/public/data/.gitkeep
+!/public/data/README.md
 *.local
 
 # Python
