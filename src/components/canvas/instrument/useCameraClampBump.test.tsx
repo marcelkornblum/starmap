@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import { renderHook, act } from '@testing-library/react';
 import { ALL_CANVAS_CLAMP_EDGES, useCameraStore } from '../../../stores/useCameraStore';
 import {
-  CLAMP_BUMP_COOLDOWN_MS,
   isAtZoomOutCeiling,
   useCameraClampBump,
 } from './useCameraClampBump';
@@ -37,14 +36,11 @@ describe('useCameraClampBump', () => {
     vi.restoreAllMocks();
   });
 
-  it('triggers a zoom-out bump on wheel zoom-out at ceiling and respects cooldown between pulses', () => {
+  it('streams continuous wheel zoom-out impulses at ceiling without pulsing cooldown drops', () => {
     const domElement = document.createElement('canvas');
     const cam = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
     cam.position.set(0, 0, 100);
     const controls = { target: new THREE.Vector3(0, 0, 0), maxDistance: 100 };
-
-    let now = 1000;
-    vi.spyOn(performance, 'now').mockImplementation(() => now);
 
     const { unmount } = renderHook(() =>
       useCameraClampBump({
@@ -59,27 +55,19 @@ describe('useCameraClampBump', () => {
     });
     expect(useCameraStore.getState().clampBump).toBeNull();
 
-    // First zoom-out push at ceiling triggers bump seq 1
+    // First zoom-out wheel tick feeds impulse with seq 1
     act(() => {
-      domElement.dispatchEvent(new WheelEvent('wheel', { deltaY: 120 }));
+      domElement.dispatchEvent(new WheelEvent('wheel', { deltaY: 80 }));
     });
-    expect(useCameraStore.getState().clampBump).toEqual({
-      edges: ALL_CANVAS_CLAMP_EDGES,
-      reason: 'zoom-out',
-      seq: 1,
-    });
+    const first = useCameraStore.getState().clampBump;
+    expect(first?.edges).toEqual(ALL_CANVAS_CLAMP_EDGES);
+    expect(first?.reason).toBe('zoom-out');
+    expect(first?.impulse).toBeCloseTo(0.5, 2);
+    expect(first?.seq).toBe(1);
 
-    // Immediate second push inside cooldown does not spam
-    now += CLAMP_BUMP_COOLDOWN_MS - 50;
+    // Immediate next wheel tick feeds continuous pressure (seq 2)
     act(() => {
-      domElement.dispatchEvent(new WheelEvent('wheel', { deltaY: 120 }));
-    });
-    expect(useCameraStore.getState().clampBump?.seq).toBe(1);
-
-    // Push after cooldown re-pulses with seq 2
-    now += 60;
-    act(() => {
-      domElement.dispatchEvent(new WheelEvent('wheel', { deltaY: 120 }));
+      domElement.dispatchEvent(new WheelEvent('wheel', { deltaY: 80 }));
     });
     expect(useCameraStore.getState().clampBump?.seq).toBe(2);
 

@@ -1,78 +1,94 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { ALL_CANVAS_CLAMP_EDGES, useCameraStore } from '../../../stores/useCameraStore';
-import { CLAMP_GLOW_CLEANUP_MS, CanvasClampGlow } from './CanvasClampGlow';
+import { CanvasClampGlow } from './CanvasClampGlow';
 
 describe('CanvasClampGlow', () => {
+  let rafQueue: FrameRequestCallback[] = [];
+  let nowMs = 1000;
+
   beforeEach(() => {
-    vi.useFakeTimers();
+    rafQueue = [];
+    nowMs = 1000;
     useCameraStore.getState().reset();
+    vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
-  it('renders no active edge pulses initially', () => {
+  const stepFrames = (count: number, stepMs = 16) => {
+    for (let i = 0; i < count; i++) {
+      nowMs += stepMs;
+      const batch = rafQueue;
+      rafQueue = [];
+      for (const cb of batch) cb(nowMs);
+    }
+  };
+
+  it('renders all four edge elements inactive initially', () => {
     render(<CanvasClampGlow />);
 
     expect(screen.getByTestId('canvas-clamp-glow')).toBeInTheDocument();
     for (const edge of ALL_CANVAS_CLAMP_EDGES) {
-      expect(screen.queryByTestId(`canvas-clamp-glow-${edge}`)).toBeNull();
+      expect(screen.getByTestId(`canvas-clamp-glow-${edge}`)).toHaveAttribute('data-active', 'false');
     }
   });
 
-  it('pulses all four inner edges on a zoom-out ceiling bump and clears them after pulse duration', () => {
+  it('slowly rubber-bands larger under continuous zoom-out pressure and relaxes back to inactive on release', () => {
     render(<CanvasClampGlow />);
 
     act(() => {
-      useCameraStore.getState().triggerClampBump(ALL_CANVAS_CLAMP_EDGES, 'zoom-out');
+      useCameraStore.getState().triggerClampBump(ALL_CANVAS_CLAMP_EDGES, 'zoom-out', 0.4);
+      stepFrames(2);
     });
 
-    for (const edge of ALL_CANVAS_CLAMP_EDGES) {
-      const el = screen.getByTestId(`canvas-clamp-glow-${edge}`);
-      expect(el).toHaveAttribute('data-edge', edge);
-      expect(el).toHaveAttribute('data-pulse-seq', '1');
-    }
+    const topEl = screen.getByTestId('canvas-clamp-glow-top');
+    expect(topEl).toHaveAttribute('data-active', 'true');
+    const initialOpacity = Number(topEl.style.opacity);
+    expect(initialOpacity).toBeGreaterThan(0);
 
+    // Continued pushing rubber-bands smoothly bigger without resetting
     act(() => {
-      vi.advanceTimersByTime(CLAMP_GLOW_CLEANUP_MS);
+      for (let i = 0; i < 6; i++) {
+        useCameraStore.getState().triggerClampBump(ALL_CANVAS_CLAMP_EDGES, 'zoom-out', 0.4);
+        stepFrames(1);
+      }
+    });
+
+    const stretchedOpacity = Number(topEl.style.opacity);
+    expect(stretchedOpacity).toBeGreaterThan(initialOpacity);
+    expect(topEl.style.transform).toMatch(/^scaleY\(/);
+
+    // After input stops, smoothly relaxes back to inactive
+    act(() => {
+      stepFrames(80, 25);
     });
 
     for (const edge of ALL_CANVAS_CLAMP_EDGES) {
-      expect(screen.queryByTestId(`canvas-clamp-glow-${edge}`)).toBeNull();
+      expect(screen.getByTestId(`canvas-clamp-glow-${edge}`)).toHaveAttribute('data-active', 'false');
     }
   });
 
-  it('pulses only the clamped directional edge on a pan clamp bump and restarts seq on repeated pushes', () => {
+  it('stretches only the clamped directional edge on a pan clamp bump', () => {
     render(<CanvasClampGlow />);
 
     act(() => {
-      useCameraStore.getState().triggerClampBump(['right'], 'pan');
+      useCameraStore.getState().triggerClampBump(['right'], 'pan', 0.8);
+      stepFrames(2);
     });
 
-    expect(screen.getByTestId('canvas-clamp-glow-right')).toHaveAttribute('data-pulse-seq', '1');
-    expect(screen.queryByTestId('canvas-clamp-glow-left')).toBeNull();
-    expect(screen.queryByTestId('canvas-clamp-glow-top')).toBeNull();
-    expect(screen.queryByTestId('canvas-clamp-glow-bottom')).toBeNull();
-
-    act(() => {
-      vi.advanceTimersByTime(CLAMP_GLOW_CLEANUP_MS / 2);
-      useCameraStore.getState().triggerClampBump(['right'], 'pan');
-    });
-
-    expect(screen.getByTestId('canvas-clamp-glow-right')).toHaveAttribute('data-pulse-seq', '2');
-
-    // Original timer should have been cancelled so seq 2 remains active past the first expiry
-    act(() => {
-      vi.advanceTimersByTime(CLAMP_GLOW_CLEANUP_MS / 2 + 10);
-    });
-    expect(screen.getByTestId('canvas-clamp-glow-right')).toHaveAttribute('data-pulse-seq', '2');
-
-    // Clears after seq 2's full duration
-    act(() => {
-      vi.advanceTimersByTime(CLAMP_GLOW_CLEANUP_MS / 2);
-    });
-    expect(screen.queryByTestId('canvas-clamp-glow-right')).toBeNull();
+    const rightEl = screen.getByTestId('canvas-clamp-glow-right');
+    expect(rightEl).toHaveAttribute('data-active', 'true');
+    expect(rightEl.style.transform).toMatch(/^scaleX\(/);
+    expect(screen.getByTestId('canvas-clamp-glow-left')).toHaveAttribute('data-active', 'false');
+    expect(screen.getByTestId('canvas-clamp-glow-top')).toHaveAttribute('data-active', 'false');
+    expect(screen.getByTestId('canvas-clamp-glow-bottom')).toHaveAttribute('data-active', 'false');
   });
 });

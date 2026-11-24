@@ -6,8 +6,13 @@ import type { CameraRigThreeState } from './useCameraRigProjection';
 
 const ZOOM_OUT_PERSPECTIVE_RATIO = 0.995;
 const ZOOM_OUT_ORTHO_RATIO = 1.005;
-const PINCH_DELTA_THRESHOLD_PX = 1;
-export const CLAMP_BUMP_COOLDOWN_MS = 200;
+const WHEEL_LINE_PX = 16;
+const WHEEL_PAGE_PX = 240;
+const WHEEL_IMPULSE_SCALE_PX = 160;
+const WHEEL_MAX_IMPULSE = 0.85;
+const PINCH_IMPULSE_SCALE_PX = 60;
+const PINCH_MAX_IMPULSE = 0.85;
+const PINCH_DELTA_THRESHOLD_PX = 0.5;
 
 /**
  * Returns true when the active camera is parked at (or beyond) its configured
@@ -41,6 +46,16 @@ export function isAtZoomOutCeiling(
   return camera.position.distanceTo(target) >= maxDistance * ZOOM_OUT_PERSPECTIVE_RATIO;
 }
 
+function normalizeWheelImpulse(event: WheelEvent): number {
+  let pxDelta = event.deltaY;
+  if (event.deltaMode === 1) {
+    pxDelta *= WHEEL_LINE_PX;
+  } else if (event.deltaMode === 2) {
+    pxDelta *= WHEEL_PAGE_PX;
+  }
+  return Math.min(WHEEL_MAX_IMPULSE, Math.max(0.05, pxDelta / WHEEL_IMPULSE_SCALE_PX));
+}
+
 function getTouchPinchDistance(touches: TouchList): number {
   const dx = touches[0].clientX - touches[1].clientX;
   const dy = touches[0].clientY - touches[1].clientY;
@@ -53,22 +68,19 @@ export interface UseCameraClampBumpOptions {
 }
 
 /**
- * Detects user zoom-out attempts (mouse wheel or two-finger pinch-in) against the
- * active zoom-out ceiling and emits a directional canvas clamp bump event.
+ * Detects continuous user zoom-out pressure (mouse wheel or two-finger pinch-in)
+ * against the active zoom-out ceiling and feeds rubber-band impulses into `useCameraStore`.
  */
 export function useCameraClampBump({ domElement, get }: UseCameraClampBumpOptions): void {
-  const lastBumpAtRef = useRef<number>(-Infinity);
   const prevPinchDistRef = useRef<number | null>(null);
   const pendingRafRef = useRef<number | null>(null);
+  const pendingImpulseRef = useRef<number>(0);
 
   useEffect(() => {
     if (!domElement) return;
 
-    const emitZoomOutBump = () => {
-      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      if (now - lastBumpAtRef.current < CLAMP_BUMP_COOLDOWN_MS) return;
-      lastBumpAtRef.current = now;
-      useCameraStore.getState().triggerClampBump(ALL_CANVAS_CLAMP_EDGES, 'zoom-out');
+    const emitZoomOutPressure = (impulse: number) => {
+      useCameraStore.getState().triggerClampBump(ALL_CANVAS_CLAMP_EDGES, 'zoom-out', impulse);
     };
 
     const checkCeilingNow = (): boolean => {
@@ -77,22 +89,26 @@ export function useCameraClampBump({ domElement, get }: UseCameraClampBumpOption
       return isAtZoomOutCeiling(state.camera, activeControls);
     };
 
-    const schedulePostInputCheck = () => {
+    const schedulePostInputCheck = (impulse: number) => {
+      pendingImpulseRef.current = Math.min(WHEEL_MAX_IMPULSE, pendingImpulseRef.current + impulse);
       if (pendingRafRef.current !== null || typeof requestAnimationFrame === 'undefined') return;
       pendingRafRef.current = requestAnimationFrame(() => {
         pendingRafRef.current = null;
-        if (checkCeilingNow()) {
-          emitZoomOutBump();
+        const queued = pendingImpulseRef.current;
+        pendingImpulseRef.current = 0;
+        if (queued > 0 && checkCeilingNow()) {
+          emitZoomOutPressure(queued);
         }
       });
     };
 
     const handleWheel = (event: WheelEvent) => {
       if (event.deltaY <= 0) return;
+      const impulse = normalizeWheelImpulse(event);
       if (checkCeilingNow()) {
-        emitZoomOutBump();
+        emitZoomOutPressure(impulse);
       } else {
-        schedulePostInputCheck();
+        schedulePostInputCheck(impulse);
       }
     };
 
@@ -112,11 +128,15 @@ export function useCameraClampBump({ domElement, get }: UseCameraClampBumpOption
       const nextDist = getTouchPinchDistance(event.touches);
       const prevDist = prevPinchDistRef.current;
       prevPinchDistRef.current = nextDist;
-      if (prevDist !== null && nextDist < prevDist - PINCH_DELTA_THRESHOLD_PX) {
+      if (prevDist !== null && prevDist - nextDist > PINCH_DELTA_THRESHOLD_PX) {
+        const impulse = Math.min(
+          PINCH_MAX_IMPULSE,
+          Math.max(0.05, (prevDist - nextDist) / PINCH_IMPULSE_SCALE_PX),
+        );
         if (checkCeilingNow()) {
-          emitZoomOutBump();
+          emitZoomOutPressure(impulse);
         } else {
-          schedulePostInputCheck();
+          schedulePostInputCheck(impulse);
         }
       }
     };
@@ -143,6 +163,7 @@ export function useCameraClampBump({ domElement, get }: UseCameraClampBumpOption
         cancelAnimationFrame(pendingRafRef.current);
         pendingRafRef.current = null;
       }
+      pendingImpulseRef.current = 0;
     };
   }, [domElement, get]);
 }

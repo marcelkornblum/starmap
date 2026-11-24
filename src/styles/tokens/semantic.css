@@ -220,7 +220,7 @@
     --chrome-node-label-gap:             var(--space-fib-1);
     --chrome-node-facet-padding:         var(--space-inset-badge);
     --chrome-node-facet-gap:             var(--space-fib-1);
-    --chrome-clamp-glow-depth:           calc(var(--space-fib-6) + var(--space-fib-4));
+    --chrome-clamp-glow-depth:           calc(var(--space-fib-8) + var(--space-fib-5));
     --chrome-clamp-glow-rim-width:       var(--stroke-width-2);
 
     /* Motion Semantics */
@@ -243,7 +243,6 @@
     --chrome-stalk-retract-duration: var(--motion-duration-feedback);
     --chrome-stalk-retract-ease:     var(--motion-ease-exit);
     --chrome-footprint-stamp-duration: var(--motion-duration-feedback);
-    --chrome-clamp-glow-duration:      var(--motion-duration-spatial);
 
     /* UI Element Optics Defaults */
     --ui-command-palette-opacity:        var(--opacity-100);

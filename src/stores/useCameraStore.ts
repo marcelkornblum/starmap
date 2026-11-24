@@ -5,17 +5,11 @@ import { setPendingSpatialNavigationHref } from '../utils/spatialRoute';
 export type CameraProjectionMode = 'perspective' | 'orthographic';
 
 export type CanvasClampEdge = 'top' | 'right' | 'bottom' | 'left';
-
-export const ALL_CANVAS_CLAMP_EDGES: readonly CanvasClampEdge[] = [
-  'top',
-  'right',
-  'bottom',
-  'left',
-];
-
+export const ALL_CANVAS_CLAMP_EDGES: readonly CanvasClampEdge[] = ['top', 'right', 'bottom', 'left'];
 export interface CanvasClampBumpEvent {
   readonly edges: readonly CanvasClampEdge[];
   readonly reason: 'zoom-out' | 'pan';
+  readonly impulse: number;
   readonly seq: number;
 }
 
@@ -128,7 +122,7 @@ export interface CameraActions {
   setOrbitalLockView: () => void;
   setRadialView: () => void;
   triggerRecenter: () => void;
-  triggerClampBump: (edges: readonly CanvasClampEdge[], reason: 'zoom-out' | 'pan') => void;
+  triggerClampBump: (edges: readonly CanvasClampEdge[], reason: 'zoom-out' | 'pan', impulse?: number) => void;
   reset: () => void;
 }
 
@@ -307,16 +301,11 @@ export const useCameraStore = create<CameraStore>()((set, get) => ({
   setOrbitalLockView: () => set({ pendingPresetRequest: 'orbital-lock' }),
   setRadialView: () => set({ pendingPresetRequest: 'radial' }),
   triggerRecenter: () => set((state) => ({ recenterTick: state.recenterTick + 1 })),
-  triggerClampBump: (edges: readonly CanvasClampEdge[], reason: 'zoom-out' | 'pan') => {
+  triggerClampBump: (edges: readonly CanvasClampEdge[], reason: 'zoom-out' | 'pan', impulse = 1) => {
     if (edges.length === 0) return;
+    const safeImpulse = Number.isFinite(impulse) && impulse > 0 ? impulse : 1;
     nextClampBumpSeq += 1;
-    set({
-      clampBump: {
-        edges: [...edges],
-        reason,
-        seq: nextClampBumpSeq,
-      },
-    });
+    set({ clampBump: { edges: [...edges], reason, impulse: safeImpulse, seq: nextClampBumpSeq } });
   },
   reset: () => {
     nextSearchFrameTick = 0;
