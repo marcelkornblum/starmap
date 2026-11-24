@@ -158,7 +158,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     if (lastVisible.current !== true) {
       lastVisible.current = true;
       rootEl.style.display = 'block';
-      rootEl.style.opacity = '1';
+      rootEl.style.opacity = '';
     }
 
     const qX = Math.round(res.x * 10) / 10;
@@ -250,6 +250,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
       <SafeHtml
         wrapperClass={styles.htmlOverlayContainer}
         calculatePosition={pinToViewportOrigin}
+        center={false}
         zIndexRange={HTML_Z_INDEX_RANGE}
         pointerEvents="none"
         frustumCulled={false}
