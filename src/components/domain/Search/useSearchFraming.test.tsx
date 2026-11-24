@@ -1157,4 +1157,122 @@ describe('useSearchFraming', () => {
 
     expect(getPendingSpatialRouteTarget()).toBeNull();
   });
+
+  it('clamps search framing distance using computeCeilingMaxCameraDistancePc hardware budget without dense-volume choke', () => {
+    vi.stubGlobal('navigator', { hardwareConcurrency: 8, deviceMemory: 16 });
+    vi.stubGlobal('innerWidth', 1440);
+    vi.stubGlobal('innerHeight', 900);
+
+    // Distant >100 pc cluster: centroid at [200, 0, 0], radius = 80 pc -> framed using hardware ceiling
+    const distantCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'distant-1',
+        n: 'Distant One',
+        p: [120, 0, 0],
+        m: [8.0, 'G2V', 1],
+        a: 'distant one',
+      },
+      {
+        i: 'distant-2',
+        n: 'Distant Two',
+        p: [280, 0, 0],
+        m: [8.2, 'G5V', 1],
+        a: 'distant two',
+      },
+    ];
+    const { router } = createMockRouter('/galaxy', '');
+    const distantResults = searchCatalog(distantCorpus, {
+      query: 'Distant',
+      filter: 'all',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: distantCorpus,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=Distant',
+      query: 'Distant',
+      filter: 'all',
+      status: 'ready',
+      results: distantResults,
+      initialCorpus: distantCorpus,
+      router,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+
+    const frame = useCameraStore.getState().pendingSearchFrame;
+    expect(frame).not.toBeNull();
+    expect(frame?.target).toEqual([200, 0, 0]);
+    expect(frame?.distance).toBeGreaterThan(100);
+
+    // Inside-100 pc wide cluster: centroid at [50, 0, 0], radius = 30 pc -> NOT choked to ~53 pc dense ceiling
+    const denseCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'dense-1',
+        n: 'Dense One',
+        p: [20, 0, 0],
+        m: [8.0, 'G2V', 1],
+        a: 'dense one',
+      },
+      {
+        i: 'dense-2',
+        n: 'Dense Two',
+        p: [80, 0, 0],
+        m: [8.2, 'G5V', 1],
+        a: 'dense two',
+      },
+    ];
+    const denseResults = searchCatalog(denseCorpus, {
+      query: 'Dense',
+      filter: 'all',
+    });
+
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+      result.current.cancelSearchFraming();
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=Dense',
+      query: 'Dense',
+      filter: 'all',
+      status: 'ready',
+      results: denseResults,
+      initialCorpus: denseCorpus,
+      router,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+
+    const denseFrame = useCameraStore.getState().pendingSearchFrame;
+    expect(denseFrame).not.toBeNull();
+    expect(denseFrame?.target).toEqual([50, 0, 0]);
+    expect(denseFrame?.distance).toBeGreaterThan(60);
+  });
 });

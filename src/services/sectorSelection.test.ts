@@ -26,6 +26,7 @@ describe('sectorSelection', () => {
   });
 
   describe('computeSectorRings', () => {
+    const tier3Budget = DEVICE_TIER_BUDGETS.tier3; // maxActiveSectors: 64, lruCacheMaxSectors: 80, prefetchRingRadius: 2
     const tier2Budget = DEVICE_TIER_BUDGETS.tier2; // maxActiveSectors: 27, lruCacheMaxSectors: 40, prefetchRingRadius: 2
     const tier1Budget = DEVICE_TIER_BUDGETS.tier1; // maxActiveSectors: 12, lruCacheMaxSectors: 16, prefetchRingRadius: 1
 
@@ -80,6 +81,100 @@ describe('sectorSelection', () => {
       expect(plan.activeSectorIds.length + plan.prefetchSectorIds.length).toBeLessThanOrEqual(
         tier2Budget.lruCacheMaxSectors,
       );
+    });
+
+    it('keeps tier3 at 27 active 1-ring sectors and 53 prefetch sectors sorted nearest-first with disjoint sets', () => {
+      for (const pos of [
+        [0, 0, 0],
+        [12.5, 12.5, 12.5],
+      ] as const) {
+        const plan = computeSectorRings(pos, tier3Budget);
+        expect(plan.activeSectorIds.length).toBe(27);
+        expect(plan.prefetchSectorIds.length).toBe(53);
+        expect(plan.activeSectorIds.length + plan.prefetchSectorIds.length).toBe(80);
+        expect(plan.activeSectorIds[0]).toBe(plan.centerSectorId);
+
+        const activeSet = new Set(plan.activeSectorIds);
+        expect(activeSet.size).toBe(27);
+        for (const pref of plan.prefetchSectorIds) {
+          expect(activeSet.has(pref)).toBe(false);
+        }
+
+        const getDistSq = (sectorId: string) => {
+          const [scx, scy, scz] = getSectorCenterFromId(sectorId, 25);
+          return (pos[0] - scx) ** 2 + (pos[1] - scy) ** 2 + (pos[2] - scz) ** 2;
+        };
+
+        const activeDistances = plan.activeSectorIds.map(getDistSq);
+        for (let i = 1; i < activeDistances.length; i++) {
+          const curr = activeDistances[i];
+          const prev = activeDistances[i - 1];
+          if (curr === undefined || prev === undefined) {
+            throw new Error('Expected active distance entry');
+          }
+          expect(curr).toBeGreaterThanOrEqual(prev - 1e-6);
+        }
+
+        const prefetchDistances = plan.prefetchSectorIds.map(getDistSq);
+        for (let i = 1; i < prefetchDistances.length; i++) {
+          const curr = prefetchDistances[i];
+          const prev = prefetchDistances[i - 1];
+          if (curr === undefined || prev === undefined) {
+            throw new Error('Expected prefetch distance entry');
+          }
+          expect(curr).toBeGreaterThanOrEqual(prev - 1e-6);
+        }
+
+        const [cx, cy, cz] = plan.centerOrigin;
+        for (const activeId of plan.activeSectorIds) {
+          const [scx, scy, scz] = getSectorCenterFromId(activeId, 25);
+          const dx = Math.round((scx - 12.5 - cx) / 25);
+          const dy = Math.round((scy - 12.5 - cy) / 25);
+          const dz = Math.round((scz - 12.5 - cz) / 25);
+          expect(Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz))).toBeLessThanOrEqual(1);
+        }
+        for (const prefId of plan.prefetchSectorIds) {
+          const [scx, scy, scz] = getSectorCenterFromId(prefId, 25);
+          const dx = Math.round((scx - 12.5 - cx) / 25);
+          const dy = Math.round((scy - 12.5 - cy) / 25);
+          const dz = Math.round((scz - 12.5 - cz) / 25);
+          expect(Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz))).toBeGreaterThan(1);
+        }
+      }
+    });
+
+    it('maintains tier1 (12 active, 4 prefetch) and tier2 (27 active, 13 prefetch) caps with disjoint sets', () => {
+      const plan1 = computeSectorRings([0, 0, 0], tier1Budget);
+      expect(plan1.activeSectorIds.length).toBe(12);
+      expect(plan1.prefetchSectorIds.length).toBe(4);
+      expect(plan1.activeSectorIds.length + plan1.prefetchSectorIds.length).toBe(16);
+      const activeSet1 = new Set(plan1.activeSectorIds);
+      for (const pref of plan1.prefetchSectorIds) {
+        expect(activeSet1.has(pref)).toBe(false);
+      }
+
+      const plan2 = computeSectorRings([0, 0, 0], tier2Budget);
+      expect(plan2.activeSectorIds.length).toBe(27);
+      expect(plan2.prefetchSectorIds.length).toBe(13);
+      expect(plan2.activeSectorIds.length + plan2.prefetchSectorIds.length).toBe(40);
+      const activeSet2 = new Set(plan2.activeSectorIds);
+      for (const pref of plan2.prefetchSectorIds) {
+        expect(activeSet2.has(pref)).toBe(false);
+      }
+    });
+
+    it('bypasses origin radius clip when camera is outside maxCatalogRadiusPc and preserves it inside', () => {
+      const distantPlan = computeSectorRings([250, 0, 0], tier3Budget);
+      expect(distantPlan.centerSectorId).toBe('sector_+250_+000_+000');
+      expect(distantPlan.activeSectorIds[0]).toBe('sector_+250_+000_+000');
+      expect(distantPlan.activeSectorIds.length).toBe(27);
+      expect(distantPlan.prefetchSectorIds.length).toBe(53);
+
+      const boundaryPlan = computeSectorRings([95, 0, 0], tier3Budget);
+      expect(boundaryPlan.centerSectorId).toBe('sector_+075_+000_+000');
+      // sector_+125_+050_+050 has center (137.5, 62.5, 62.5), dist ~ 163.46 > 125 + 25*0.87 = 146.75
+      expect(boundaryPlan.activeSectorIds).not.toContain('sector_+125_+050_+050');
+      expect(boundaryPlan.prefetchSectorIds).not.toContain('sector_+125_+050_+050');
     });
   });
 });

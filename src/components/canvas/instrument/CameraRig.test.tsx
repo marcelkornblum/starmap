@@ -11,6 +11,7 @@ import { type OrbitControlsLike } from './cameraRigZoomAndPan';
 import { computeAllPlaneQuadrantWeights } from '../math/cardinal';
 import { CARDINAL_CONFIG } from '../math/cameraMath';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import * as reducedMotion from '../../../utils/reducedMotion';
 
@@ -213,6 +214,34 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(onCancel).not.toHaveBeenCalled();
       expect(transitionApiRef.current?.isTransitioning()).toBe(true);
       expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+    });
+
+    it('resets orthographic lock store flags and controls when unmounting while locked', () => {
+      useSettingsStore.setState({ enableOrthographicProjection: true });
+      const { unmount } = render(
+        createElement(
+          CameraTransitionProvider,
+          null,
+          createElement(SpatialFrameProvider, null, createElement(CameraRig)),
+        ),
+      );
+
+      act(() => {
+        useCameraStore.getState().setLocked(true);
+        useCameraStore.getState().setActiveCardinal('top');
+        useCameraStore.getState().setMode('orthographic');
+        mockControls.enableRotate = false;
+      });
+
+      expect(useCameraStore.getState().isLocked).toBe(true);
+      unmount();
+
+      expect(useCameraStore.getState().isLocked).toBe(false);
+      expect(useCameraStore.getState().activeCardinal).toBeNull();
+      expect(useCameraStore.getState().mode).toBe('perspective');
+      expect(mockControls.object).toBe(camera);
+      expect(mockControls.enableRotate).toBe(true);
+      useSettingsStore.setState({ enableOrthographicProjection: false });
     });
   });
 

@@ -27,6 +27,8 @@
     "coverage:comment": "tsx scripts/coverage-comment.ts",
     "data:fetch": "tsx scripts/fetch-sources.ts",
     "data:build": "tsx scripts/build-data.ts",
+    "data:fixture": "tsx scripts/build-fixture-data.ts",
+    "data:precompress": "tsx scripts/precompress-dist-data.ts",
     "data:refresh": "tsx scripts/fetch-sources.ts --force --refresh-epoch && tsx scripts/build-data.ts",
     "data:pipeline": "npm run data:fetch && npm run data:build",
     "storybook": "storybook dev -p 6006 --host 0.0.0.0 --exact-port --no-open",

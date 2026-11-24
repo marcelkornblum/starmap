@@ -143,6 +143,7 @@ export const fetchSearchShard = async (
     });
   }
 
+  let abortCleanup: (() => void) | undefined;
   const loadPromise: Promise<readonly CompactSearchEntry[]> = (async (): Promise<
     readonly CompactSearchEntry[]
   > => {
@@ -167,21 +168,30 @@ export const fetchSearchShard = async (
     resolvedShardCache.set(shard, payload.d);
     resolvedFilterCache.delete('startup');
     resolvedFilterCache.delete('all');
+    if (shard !== 'core') {
+      resolvedFilterCache.delete(shard);
+    }
     notifySearchListeners();
     return payload.d;
-  })().catch((err: unknown) => {
-    shardCache.delete(shard);
-    throw err;
-  });
+  })()
+    .catch((err: unknown) => {
+      shardCache.delete(shard);
+      throw err;
+    })
+    .finally(() => {
+      abortCleanup?.();
+    });
 
   if (signal) {
     const onAbort = () => {
-      signal.removeEventListener('abort', onAbort);
       if (shardCache.get(shard) === loadPromise) {
         shardCache.delete(shard);
       }
     };
-    signal.addEventListener('abort', onAbort);
+    signal.addEventListener('abort', onAbort, { once: true });
+    abortCleanup = () => {
+      signal.removeEventListener('abort', onAbort);
+    };
   }
 
   shardCache.set(shard, loadPromise);
@@ -235,7 +245,7 @@ export const getCachedCorpusForFilter = (
     const core = resolvedShardCache.get('core');
     const structures = resolvedShardCache.get('structures');
 
-    if (stars || planets || minorBodies || (core && structures)) {
+    if (stars || planets || structures || minorBodies || core) {
       const layersToMerge: (readonly CompactSearchEntry[])[] = [];
       if (startup) layersToMerge.push(startup);
       if (core) layersToMerge.push(core);
@@ -289,7 +299,7 @@ export const getCachedCorpusForFilter = (
 
 /**
  * Loads the appropriate search corpus for the requested category filter or `'startup'` tier.
- * - `'startup'` loads ONLY `search/startup` (~lean focus/layers/Sol/structures corpus).
+ * - `'startup'` loads ONLY `search/startup` (~lean Sol, layers, and layer-referenced corpus).
  * - Specific category filters load only their dedicated category shard.
  * - `'all'` loads `core` + `structures` + `minor-bodies` in parallel.
  */

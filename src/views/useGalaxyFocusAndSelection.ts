@@ -3,6 +3,7 @@ import type { SpatialEntityDefinition } from '../types/spatial';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
 import { resolveFocusedEntityFromCorpus } from '../services/search/searchSelection';
 import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
+import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../types/datasetLayers';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
@@ -50,9 +51,21 @@ export function useGalaxyFocusAndSelection({
       if (realEntry && realEntry.i === storeFocusedEntity.id) {
         const nextName = storeFocusedEntity.name || realEntry.n || realEntry.i;
         const nextSpectral = storeFocusedEntity.spectralType ?? realEntry.m?.[1];
+        const pos = storeFocusedEntity.position;
+        const isPlaceholderZero = Array.isArray(pos)
+          ? pos[0] === 0 && pos[1] === 0 && pos[2] === 0
+          : pos.x === 0 && pos.y === 0 && pos.z === 0;
+        const hasRealNonZeroCoords =
+          realEntry.p !== undefined &&
+          (realEntry.p[0] !== 0 || realEntry.p[1] !== 0 || realEntry.p[2] !== 0);
+        const nextPosition: SpatialEntityDefinition['position'] =
+          isPlaceholderZero && realEntry.i !== SOL_REFERENCE_TARGET.id && hasRealNonZeroCoords && realEntry.p
+            ? [realEntry.p[0], realEntry.p[1], realEntry.p[2]]
+            : storeFocusedEntity.position;
         if (
           nextName === storeFocusedEntity.name &&
-          nextSpectral === storeFocusedEntity.spectralType
+          nextSpectral === storeFocusedEntity.spectralType &&
+          nextPosition === storeFocusedEntity.position
         ) {
           return storeFocusedEntity;
         }
@@ -60,6 +73,7 @@ export function useGalaxyFocusAndSelection({
           ...storeFocusedEntity,
           name: nextName,
           spectralType: nextSpectral,
+          position: nextPosition,
         };
       }
       if (!realEntry) return storeFocusedEntity;

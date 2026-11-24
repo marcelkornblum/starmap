@@ -35,6 +35,7 @@ describe('searchBackgroundWarmup', () => {
 
     expect(fetchShardSpy).toHaveBeenCalledWith('stars');
     expect(fetchShardSpy).toHaveBeenCalledWith('planets');
+    expect(fetchShardSpy).toHaveBeenCalledWith('structures');
     expect(fetchShardSpy).toHaveBeenCalledWith('minor-bodies');
   });
 
@@ -52,6 +53,7 @@ describe('searchBackgroundWarmup', () => {
 
     expect(fetchShardSpy).toHaveBeenCalledWith('stars');
     expect(fetchShardSpy).toHaveBeenCalledWith('planets');
+    expect(fetchShardSpy).toHaveBeenCalledWith('structures');
     expect(fetchShardSpy).not.toHaveBeenCalledWith('minor-bodies');
   });
 
@@ -72,6 +74,7 @@ describe('searchBackgroundWarmup', () => {
 
     expect(fetchShardSpy).toHaveBeenCalledWith('stars');
     expect(fetchShardSpy).toHaveBeenCalledWith('planets');
+    expect(fetchShardSpy).toHaveBeenCalledWith('structures');
     expect(fetchShardSpy).toHaveBeenCalledWith('minor-bodies');
   });
 

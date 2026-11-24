@@ -10,7 +10,22 @@ import {
 import { parseCsvRowsSync } from './csvParser';
 import { FULL_GALACTIC_STRUCTURES } from './seedCatalogs';
 
-export function loadAllGalacticStructures(): GalacticStructureRecord[] {
+export interface GalacticStructureSourcePaths {
+  cantatGaudinPath?: string;
+  harrisGlobularsPath?: string;
+  atnfPulsarsPath?: string;
+  openNgcPath?: string;
+}
+
+function resolveOptionalRawFile(overridePath: string | undefined, defaultRelPath: string): string | null {
+  const target = overridePath ?? defaultRelPath;
+  if (!target) return null;
+  const resolved = path.resolve(target);
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
+  return resolved;
+}
+
+export function loadAllGalacticStructures(paths?: GalacticStructureSourcePaths): GalacticStructureRecord[] {
   const structures: GalacticStructureRecord[] = FULL_GALACTIC_STRUCTURES.map((seed) => ({
     ...seed,
     confidence: 'confirmed' as const,
@@ -30,8 +45,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
   }
 
   // 1. Cantat-Gaudin Open Clusters (AUD-044)
-  const cgPath = path.resolve('data/raw/cantat_gaudin_clusters.dat');
-  if (fs.existsSync(cgPath)) {
+  const cgPath = resolveOptionalRawFile(paths?.cantatGaudinPath, 'data/raw/cantat_gaudin_clusters.dat');
+  if (cgPath) {
     const lines = fs.readFileSync(cgPath, 'utf-8').split('\n');
     for (const line of lines) {
       if (!line.trim()) continue;
@@ -79,8 +94,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
   }
 
   // 2. Harris Globular Clusters
-  const harrisPath = path.resolve('data/raw/harris_globulars.dat.gz');
-  if (fs.existsSync(harrisPath)) {
+  const harrisPath = resolveOptionalRawFile(paths?.harrisGlobularsPath, 'data/raw/harris_globulars.dat.gz');
+  if (harrisPath) {
     const content = zlib.gunzipSync(fs.readFileSync(harrisPath)).toString('utf-8');
     const lines = content.split('\n');
     for (const line of lines) {
@@ -130,8 +145,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
   // 3. Green's Supernova Remnants (DEC-R026: skipped - no real distance column in raw file)
 
   // 4. ATNF Pulsars (AUD-044)
-  const atnfPath = path.resolve('data/raw/atnf_pulsars.dat');
-  if (fs.existsSync(atnfPath)) {
+  const atnfPath = resolveOptionalRawFile(paths?.atnfPulsarsPath, 'data/raw/atnf_pulsars.dat');
+  if (atnfPath) {
     const lines = fs.readFileSync(atnfPath, 'utf-8').split('\n');
     for (const line of lines) {
       if (line.length < 40) continue;
@@ -171,8 +186,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
   // 5. Barnard Dark Nebulae (DEC-R026: skipped - no real distance column in raw file)
 
   // 6. OpenNGC Deep Sky Landmarks (DEC-R026)
-  const ngcPath = path.resolve('data/raw/open_ngc.csv');
-  if (fs.existsSync(ngcPath)) {
+  const ngcPath = resolveOptionalRawFile(paths?.openNgcPath, 'data/raw/open_ngc.csv');
+  if (ngcPath) {
     const rows = parseCsvRowsSync(fs.readFileSync(ngcPath, 'utf-8'), ';');
     for (let i = 1; i < rows.length; i++) {
       const parts = rows[i];

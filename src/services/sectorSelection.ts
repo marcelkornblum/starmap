@@ -86,9 +86,9 @@ export function computeSectorRings(
   budget: DeviceTierBudget,
   options?: { sectorSizePc?: number; maxCatalogRadiusPc?: number },
 ): SectorRingPlan {
-  const posX = Number.isFinite(positionPc?.[0]) ? (positionPc[0] as number) : 0;
-  const posY = Number.isFinite(positionPc?.[1]) ? (positionPc[1] as number) : 0;
-  const posZ = Number.isFinite(positionPc?.[2]) ? (positionPc[2] as number) : 0;
+  const posX = typeof positionPc?.[0] === 'number' && Number.isFinite(positionPc[0]) ? positionPc[0] : 0;
+  const posY = typeof positionPc?.[1] === 'number' && Number.isFinite(positionPc[1]) ? positionPc[1] : 0;
+  const posZ = typeof positionPc?.[2] === 'number' && Number.isFinite(positionPc[2]) ? positionPc[2] : 0;
 
   const size =
     options?.sectorSizePc && Number.isFinite(options.sectorSizePc) && options.sectorSizePc > 0
@@ -108,6 +108,7 @@ export function computeSectorRings(
   const centerOrigin: readonly [number, number, number] = [cx, cy, cz];
 
   const maxDistFromOrigin = maxRadius + size * 0.87;
+  const skipOriginRadiusClip = Math.hypot(posX, posY, posZ) > maxRadius;
 
   // 1-ring generation (dx, dy, dz in [-1, 0, 1])
   const candidates1Ring: SectorCandidate[] = [];
@@ -122,7 +123,7 @@ export function computeSectorRings(
         const scy = sy + size * 0.5;
         const scz = sz + size * 0.5;
 
-        if (Math.hypot(scx, scy, scz) > maxDistFromOrigin) {
+        if (!skipOriginRadiusClip && Math.hypot(scx, scy, scz) > maxDistFromOrigin) {
           continue;
         }
 
@@ -167,7 +168,7 @@ export function computeSectorRings(
         const scy = sy + size * 0.5;
         const scz = sz + size * 0.5;
 
-        if (Math.hypot(scx, scy, scz) > maxDistFromOrigin) {
+        if (!skipOriginRadiusClip && Math.hypot(scx, scy, scz) > maxDistFromOrigin) {
           continue;
         }
 

@@ -94,6 +94,38 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
         { signal: controller.signal },
       );
     });
+
+    it('removes abort event listener in finally() once fetchSearchShard settles without aborting', async () => {
+      const controller = new AbortController();
+      const addSpy = vi.spyOn(controller.signal, 'addEventListener');
+      const removeSpy = vi.spyOn(controller.signal, 'removeEventListener');
+      const fetchMock = vi.fn(async () => makeShardResponse('stars') as unknown as Response);
+
+      await fetchSearchShard('stars', fetchMock as unknown as typeof fetch, controller.signal);
+
+      expect(addSpy).toHaveBeenCalledWith('abort', expect.any(Function), { once: true });
+      const registeredHandler = addSpy.mock.calls[0]?.[1];
+      expect(removeSpy).toHaveBeenCalledWith('abort', registeredHandler);
+    });
+
+    it('removes abort event listener in finally() even when fetchSearchShard rejects with HTTP error', async () => {
+      const controller = new AbortController();
+      const addSpy = vi.spyOn(controller.signal, 'addEventListener');
+      const removeSpy = vi.spyOn(controller.signal, 'removeEventListener');
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      });
+
+      await expect(
+        fetchSearchShard('layers', fetchMock as unknown as typeof fetch, controller.signal),
+      ).rejects.toThrow(/Failed to load search shard "layers"/);
+
+      expect(addSpy).toHaveBeenCalledWith('abort', expect.any(Function), { once: true });
+      const registeredHandler = addSpy.mock.calls[0]?.[1];
+      expect(removeSpy).toHaveBeenCalledWith('abort', registeredHandler);
+    });
   });
 
   describe('Bounded LRU cache', () => {
@@ -256,6 +288,31 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
 
       const upgraded = getCachedCorpusForFilter('startup');
       expect(upgraded?.map((e) => e.i)).toEqual(['sol', 'faint-star', 'faint-planet']);
+    });
+
+    it('upgrades startup corpus as soon as structures shard is cached alone', async () => {
+      clearSearchRepositoryCache();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          v: 1,
+          i: url,
+          n: url,
+          c: 1,
+          t: '2026-10-17T00:00:00Z',
+          d: url.includes('startup')
+            ? [{ i: 'sol', n: 'Sol' }]
+            : [{ i: 'crab-nebula', n: 'Crab Nebula' }],
+        }),
+      }));
+
+      await loadSearchCorpusForFilter('startup', mockFetch as unknown as typeof fetch);
+      await fetchSearchShard('structures', mockFetch as unknown as typeof fetch);
+
+      const upgraded = getCachedCorpusForFilter('startup');
+      expect(upgraded?.map((e) => e.i)).toEqual(['sol', 'crab-nebula']);
     });
 
     it('resolves cached search entries in O(1) via getCachedSearchEntryById and invalidates on cache updates', async () => {

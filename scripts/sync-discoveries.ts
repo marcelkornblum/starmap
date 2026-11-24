@@ -37,13 +37,13 @@ export interface TapQueryOptions {
 
 /**
  * Builds the NASA Exoplanet Archive TAP sync query URL for recent confirmed exoplanet
- * discoveries within a given distance threshold (default: <= 100 pc, >= 2024).
+ * discoveries (default: >= 2024; optional distance threshold when maxDistancePc is provided).
  */
 export function buildTapRecentDiscoveriesQuery(options?: TapQueryOptions): string {
-  const maxDist = options?.maxDistancePc ?? 100;
   const minYear = options?.minDiscoveryYear ?? 2024;
   const fields = 'pl_name,hostname,sy_snum,sy_pnum,discoverymethod,disc_year,pl_orbper,pl_orbsmax,pl_bmasse,pl_rade,pl_eqt,pl_insol,sy_dist';
-  return `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+${fields}+from+pscomppars+where+sy_dist<=${maxDist}+and+disc_year>=${minYear}&format=csv`;
+  const distClause = options?.maxDistancePc !== undefined ? `sy_dist<=${options.maxDistancePc}+and+` : '';
+  return `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+${fields}+from+pscomppars+where+${distClause}disc_year>=${minYear}&format=csv`;
 }
 
 /**
@@ -98,7 +98,7 @@ export function auditRecentDiscoveriesAgainstCatalog(
  */
 export function formatDiscoverySyncReport(audit: DiscoveryAuditResult): string {
   const lines: string[] = [
-    '### Recent Exoplanet Discoveries (< 100 pc) Sync Audit',
+    '### Recent Exoplanet Discoveries Sync Audit',
     '',
     `- **Total Inspected:** ${audit.totalDiscoveries}`,
     `- **Already in Layer:** ${audit.alreadyCurated.length}`,
@@ -152,7 +152,7 @@ export function parseTapDiscoveriesCsv(
     if (!pl_name || !hostname) continue;
 
     if (filterRecentLocal) {
-      if ((sy_dist !== undefined && sy_dist > 100) || (disc_year !== undefined && disc_year < 2024)) {
+      if (disc_year !== undefined && disc_year < 2024) {
         continue;
       }
     }

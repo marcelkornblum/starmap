@@ -4,7 +4,21 @@ import type { SolarSystemBodyRecord } from '../../src/types/astroStructures';
 import { precalculateSolarSystemBodyFlags } from '../../src/utils/astroPrecalculation';
 import { FULL_SOLAR_SYSTEM_BODIES } from './seedCatalogs';
 
-export function loadAllSolarSystemBodies(): {
+export interface SolarBodySourcePaths {
+  mpcPhaPath?: string;
+  mpcDistantPath?: string;
+  mpcCometsPath?: string;
+}
+
+function resolveOptionalMpcFile(overridePath: string | undefined, defaultRelPath: string): string | null {
+  const target = overridePath ?? defaultRelPath;
+  if (!target) return null;
+  const resolved = path.resolve(target);
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
+  return resolved;
+}
+
+export function loadAllSolarSystemBodies(paths?: SolarBodySourcePaths): {
   primaryBodies: SolarSystemBodyRecord[];
   phaAsteroids: SolarSystemBodyRecord[];
   distantAsteroids: SolarSystemBodyRecord[];
@@ -20,8 +34,8 @@ export function loadAllSolarSystemBodies(): {
 
   // 2. Potentially Hazardous Asteroids (PHAs from MPC)
   const phaAsteroids: SolarSystemBodyRecord[] = [];
-  const phaPath = path.resolve('data/raw/mpc_pha.txt');
-  if (fs.existsSync(phaPath)) {
+  const phaPath = resolveOptionalMpcFile(paths?.mpcPhaPath, 'data/raw/mpc_pha.txt');
+  if (phaPath) {
     const lines = fs.readFileSync(phaPath, 'utf-8').split('\n');
     for (const line of lines) {
       if (line.length >= 100) {
@@ -70,8 +84,8 @@ export function loadAllSolarSystemBodies(): {
 
   // 3. Distant Asteroids (Centaurs, Trojans, TNOs from MPC)
   const distantAsteroids: SolarSystemBodyRecord[] = [];
-  const distPath = path.resolve('data/raw/mpc_distant.txt');
-  if (fs.existsSync(distPath)) {
+  const distPath = resolveOptionalMpcFile(paths?.mpcDistantPath, 'data/raw/mpc_distant.txt');
+  if (distPath) {
     const lines = fs.readFileSync(distPath, 'utf-8').split('\n');
     for (const line of lines) {
       if (line.length >= 100) {
@@ -120,8 +134,8 @@ export function loadAllSolarSystemBodies(): {
 
   // 4. Comets (MPC AllCometEls.txt)
   const comets: SolarSystemBodyRecord[] = [];
-  const cometsPath = path.resolve('data/raw/mpc_comets.txt');
-  if (fs.existsSync(cometsPath)) {
+  const cometsPath = resolveOptionalMpcFile(paths?.mpcCometsPath, 'data/raw/mpc_comets.txt');
+  if (cometsPath) {
     const lines = fs.readFileSync(cometsPath, 'utf-8').split('\n');
     for (const line of lines) {
       if (line.length >= 80) {

@@ -11,6 +11,7 @@ import { SceneTokenBridge } from '../../canvas/SceneTokenBridge';
 import { SafeHtmlPortalOutlet } from '../../canvas/SafeHtml';
 import { CameraTransitionProvider } from '../../canvas/instrument/useCameraTransition';
 import { CrossScaleChoreographyProvider } from '../../canvas/instrument/CrossScaleChoreographyContext';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { getInitialCanvasDpr } from '../../../services/deviceTierService';
 import {
   SpatialEntityStoreContext,
@@ -89,6 +90,7 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
           position: initialPersistentCam.position,
           up: initialPersistentCam.up,
           fov: initialPersistentCam.fov,
+          far: GALACTIC_FRAME.camera.far,
         }}
         gl={{ antialias: true, alpha: true }}
         className={styles.persistentCanvas}

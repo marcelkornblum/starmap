@@ -121,6 +121,18 @@ const corpusIndexCache = new WeakMap<
   CorpusSearchIndex
 >();
 
+const ALREADY_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+const computeCorpusSlug = (value: string): string => {
+  if (!value) return '';
+  if (ALREADY_SLUG_RE.test(value)) return value;
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
 export const getOrBuildCorpusIndex = (
   corpus: readonly CompactSearchEntry[],
 ): CorpusSearchIndex => {
@@ -139,12 +151,12 @@ export const getOrBuildCorpusIndex = (
     for (const entry of parts.extras) {
       if (entry.c === 'stars' || resolveEntryCategory(entry) === 'stars') {
         const idLower = entry.i.toLowerCase();
-        const idSlug = toUrlSlug(entry.i);
+        const idSlug = computeCorpusSlug(entry.i);
         if (idLower) idMap.set(idLower, entry);
         if (idSlug) idMap.set(idSlug, entry);
 
         const displayTitle = resolveResultDisplayTitle(entry);
-        const nameSlug = toUrlSlug(displayTitle);
+        const nameSlug = computeCorpusSlug(displayTitle);
         const nameLower = displayTitle.trim().toLowerCase();
         if (nameSlug) nameMap.set(nameSlug, entry);
         if (nameLower) nameMap.set(nameLower, entry);
@@ -152,7 +164,7 @@ export const getOrBuildCorpusIndex = (
         if (displayTitle.includes('(')) {
           const segments = displayTitle
             .split(/[()]/)
-            .map((s) => toUrlSlug(s))
+            .map((s) => computeCorpusSlug(s))
             .filter((s) => s.length > 0);
           for (const seg of segments) {
             segmentMap.set(seg, entry);
@@ -182,27 +194,27 @@ export const getOrBuildCorpusIndex = (
 
   for (const entry of nonStars) {
     const idLower = entry.i.toLowerCase();
-    const idSlug = toUrlSlug(entry.i);
+    const idSlug = computeCorpusSlug(entry.i);
     if (idLower && !idMap.has(idLower)) idMap.set(idLower, entry);
     if (idSlug && !idMap.has(idSlug)) idMap.set(idSlug, entry);
   }
   for (const entry of stars) {
     const idLower = entry.i.toLowerCase();
-    const idSlug = toUrlSlug(entry.i);
+    const idSlug = computeCorpusSlug(entry.i);
     if (idLower) idMap.set(idLower, entry);
     if (idSlug) idMap.set(idSlug, entry);
   }
 
   for (const entry of nonStars) {
     const displayTitle = resolveResultDisplayTitle(entry);
-    const nameSlug = toUrlSlug(displayTitle);
+    const nameSlug = computeCorpusSlug(displayTitle);
     const nameLower = displayTitle.trim().toLowerCase();
     if (nameSlug && !nameMap.has(nameSlug)) nameMap.set(nameSlug, entry);
     if (nameLower && !nameMap.has(nameLower)) nameMap.set(nameLower, entry);
   }
   for (const entry of stars) {
     const displayTitle = resolveResultDisplayTitle(entry);
-    const nameSlug = toUrlSlug(displayTitle);
+    const nameSlug = computeCorpusSlug(displayTitle);
     const nameLower = displayTitle.trim().toLowerCase();
     if (nameSlug) nameMap.set(nameSlug, entry);
     if (nameLower) nameMap.set(nameLower, entry);
@@ -211,7 +223,7 @@ export const getOrBuildCorpusIndex = (
   for (const entry of nonStars) {
     const displayTitle = resolveResultDisplayTitle(entry);
     if (!displayTitle.includes('(')) continue;
-    const segments = displayTitle.split(/[()]/).map((s) => toUrlSlug(s)).filter((s) => s.length > 0);
+    const segments = displayTitle.split(/[()]/).map((s) => computeCorpusSlug(s)).filter((s) => s.length > 0);
     for (const seg of segments) {
       if (!segmentMap.has(seg)) segmentMap.set(seg, entry);
     }
@@ -219,7 +231,7 @@ export const getOrBuildCorpusIndex = (
   for (const entry of stars) {
     const displayTitle = resolveResultDisplayTitle(entry);
     if (!displayTitle.includes('(')) continue;
-    const segments = displayTitle.split(/[()]/).map((s) => toUrlSlug(s)).filter((s) => s.length > 0);
+    const segments = displayTitle.split(/[()]/).map((s) => computeCorpusSlug(s)).filter((s) => s.length > 0);
     for (const seg of segments) {
       const existing = segmentMap.get(seg);
       if (!existing || resolveEntryCategory(existing) !== 'stars') {

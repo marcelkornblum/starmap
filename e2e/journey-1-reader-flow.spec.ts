@@ -93,9 +93,9 @@ test.describe('Journey 1: The Reader Flow (Target Acquisition & Travel Planning)
     // Verifies navigation to /system/tau-ceti
     await expect(page).toHaveURL(/\/system\/tau-ceti/, { timeout: 15000 });
 
-    // Verifies Breadcrumb shows Galaxy -> Tau Ceti
+    // Verifies Breadcrumb shows Galaxy -> Tau Ceti (after cross-scale HUD flight retraction settles)
     const breadcrumb = page.getByRole('navigation', { name: 'Breadcrumb' });
-    await expect(breadcrumb).toBeVisible();
+    await expect(breadcrumb).toBeVisible({ timeout: 15000 });
     await expect(breadcrumb.getByRole('list').getByText('Galaxy')).toBeVisible();
     await expect(breadcrumb.getByRole('list').getByText('Tau Ceti')).toBeVisible();
 

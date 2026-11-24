@@ -8,7 +8,7 @@
     "tsIgnoreOrExpectError": 0
   },
   "data": {
-    "maxTotalBytes": 41943040,
+    "maxTotalBytes": 52428800,
     "maxStartupSearchBytes": 1572864,
     "forbidOrphanFiles": true,
     "allowedNonManifestFiles": [".gitkeep", "README.md"]

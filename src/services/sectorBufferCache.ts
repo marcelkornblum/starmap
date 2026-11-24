@@ -6,20 +6,36 @@
  */
 
 import { decodeBinarySector, type DecodedBinarySector } from '../utils/binarySectorCodec';
-import { resolveManifestDataUrl } from '../data/dataManifestRepository';
+import {
+  fetchDataManifest,
+  getCachedDataManifest,
+  hasManifestDataPath,
+  resolveManifestDataUrl,
+} from '../data/dataManifestRepository';
+import { resolveDataUrl } from '../utils/url';
 import type { CachedSectorEntry } from './sectorSelection';
 
 export async function fetchSectorBinaryBuffer(
   sectorId: string,
   priority: 'high' | 'low' = 'low',
 ): Promise<ArrayBuffer | null> {
-  const url = await resolveManifestDataUrl(`partitions/${sectorId}.bin`);
-  try {
-    const response = await fetch(url, { priority } as RequestInit);
-    return response.ok ? await response.arrayBuffer() : null;
-  } catch {
+  const logicalPath = `partitions/${sectorId}.bin`;
+  const manifest = getCachedDataManifest() ?? (await fetchDataManifest().catch(() => null));
+  if (hasManifestDataPath(logicalPath) === false) {
     return null;
   }
+
+  const url = manifest
+    ? await resolveManifestDataUrl(logicalPath)
+    : resolveDataUrl(`/data/${logicalPath}`);
+  const response = await fetch(url, { priority } as RequestInit);
+  if (response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to fetch sector "${sectorId}" (${response.status})`);
+  }
+  return await response.arrayBuffer();
 }
 
 export type SectorFetcher = (sectorId: string, priority: 'high' | 'low') => Promise<ArrayBuffer | null>;
@@ -28,6 +44,7 @@ export class SectorBufferCache {
   private readonly cache = new Map<string, CachedSectorEntry>();
   private readonly inFlight = new Map<string, Promise<DecodedBinarySector | null>>();
   private readonly latestDistanceSq = new Map<string, number>();
+  private readonly latestTick = new Map<string, number>();
   private readonly missingSectors = new Set<string>();
   private readonly fetcher: SectorFetcher;
 
@@ -50,18 +67,31 @@ export class SectorBufferCache {
   setDistance(sectorId: string, distSq: number): void { this.latestDistanceSq.set(sectorId, distSq); }
   clearDistances(): void { this.latestDistanceSq.clear(); }
 
-  demoteDepartedActive(activeSet: ReadonlySet<string>): void {
+  demoteDepartedActive(activeSet: ReadonlySet<string>): boolean {
+    let demoted = false;
     for (const entry of this.cache.values()) {
       if (entry.state === 'uploaded' && !activeSet.has(entry.sectorId)) {
         entry.gpuResource?.dispose();
         entry.gpuResource = null;
         entry.state = 'decoded';
         this.disposedGpuCount++;
+        demoted = true;
       }
     }
+    return demoted;
   }
 
-  async fetchAndCacheSector(
+  demoteUploadedSector(sectorId: string): boolean {
+    const entry = this.cache.get(sectorId);
+    if (!entry || entry.state !== 'uploaded') return false;
+    entry.gpuResource?.dispose();
+    entry.gpuResource = null;
+    entry.state = 'decoded';
+    this.disposedGpuCount++;
+    return true;
+  }
+
+  fetchAndCacheSector(
     sectorId: string,
     priority: 'high' | 'low',
     distSq: number,
@@ -70,7 +100,11 @@ export class SectorBufferCache {
     maxLruSectors: number,
     onNewlyCached?: (sectorId: string) => void,
   ): Promise<DecodedBinarySector | null> {
-    if (this.isDisposed || this.missingSectors.has(sectorId)) return null;
+    if (this.isDisposed || this.missingSectors.has(sectorId)) {
+      return Promise.resolve(null);
+    }
+
+    this.latestTick.set(sectorId, tick);
 
     const existingPromise = this.inFlight.get(sectorId);
     if (existingPromise) return existingPromise;
@@ -97,17 +131,17 @@ export class SectorBufferCache {
           byteLength: buffer.byteLength,
           state: 'decoded',
           gpuResource: null,
-          lastAccessedTick: relevant ? tick : 0,
+          lastAccessedTick: relevant ? (this.latestTick.get(sectorId) ?? tick) : 0,
           distanceSq: resolvedDistSq,
         });
 
         onNewlyCached?.(sectorId);
         return decoded;
       } catch {
-        if (!this.isDisposed) this.missingSectors.add(sectorId);
         return null;
       } finally {
         this.inFlight.delete(sectorId);
+        this.latestTick.delete(sectorId);
       }
     })();
 
@@ -203,6 +237,7 @@ export class SectorBufferCache {
     this.cache.clear();
     this.inFlight.clear();
     this.latestDistanceSq.clear();
+    this.latestTick.clear();
     this.missingSectors.clear();
   }
 }

@@ -14,7 +14,7 @@ import {
 } from './astroPrecalculation';
 import { buildSearchIndexEnvelope } from '../../scripts/pipeline/searchIndexBuilder';
 import {
-  loadAllExoplanetCatalogs,
+  loadAllExoplanetCatalogsWithHosts,
   matchExoplanetsForStar,
   loadHygCrossMatch,
 } from '../../scripts/build-data';
@@ -215,7 +215,7 @@ describe('nomenclature - Clean Keys, Lookup Collection & Cross-Matching', () => 
       fs.writeFileSync(tmpEu, 'name\n', 'utf-8');
 
       try {
-        const hostMap = loadAllExoplanetCatalogs(tmpOec, tmpNasa, tmpEu);
+        const { hostMap } = loadAllExoplanetCatalogsWithHosts(tmpOec, tmpNasa, tmpEu);
         const tauCetiStar: StarmapNode = {
           id: 8102,
           name: 'Tau Ceti',

@@ -218,12 +218,12 @@ export const DATA_SOURCES_REGISTRY: DataSourceRegistry = {
       layer: 'exoplanetary-systems',
       authority: 'NASA / Caltech Infrared Processing and Analysis Center (IPAC)',
       description:
-        'Official NASA clearinghouse of confirmed exoplanets with composite planetary parameters and transit/RV solution sets within 100 pc.',
+        'Official NASA clearinghouse of confirmed exoplanets with composite planetary parameters and transit/RV solution sets.',
       citation: 'Akeson, R.L. et al. (2013). PASP 125, 989.',
       license: 'NASA Open Data / Public Domain',
       format: 'csv',
       remoteUrl:
-        'https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name,hostname,sy_snum,sy_pnum,discoverymethod,disc_year,pl_orbper,pl_orbsmax,pl_bmasse,pl_rade,pl_eqt,pl_insol,sy_dist+from+pscomppars+where+sy_dist<=100&format=csv',
+        'https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name,hostname,sy_snum,sy_pnum,discoverymethod,disc_year,pl_orbper,pl_orbsmax,pl_bmasse,pl_rade,pl_eqt,pl_insol,sy_dist,ra,dec,st_spectype,st_teff,st_rad,st_mass,st_lum,sy_vmag+from+pscomppars&format=csv',
       localCachePath: 'data/raw/nasa_exoplanet_archive.csv',
       status: 'integrated',
       enabled: true,

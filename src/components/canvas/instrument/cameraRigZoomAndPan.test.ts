@@ -4,6 +4,9 @@ import {
   applyOrthographicLock,
   releaseOrthographicLock,
   syncControlsDistance,
+  syncOrthographicCameraFar,
+  syncOrthographicControlsZoom,
+  syncPerspectiveCameraFar,
   resetPerspectiveCamera,
   orientRadialPerspectiveCamera,
   type OrbitControlsLike,
@@ -122,6 +125,112 @@ describe('cameraRigZoomAndPan', () => {
 
     it('handles undefined controls safely', () => {
       expect(() => syncControlsDistance(undefined, 5, 250)).not.toThrow();
+    });
+  });
+
+  describe('syncOrthographicControlsZoom & releaseOrthographicLock zoom bounds reset', () => {
+    it('computes controls.minZoom and controls.maxZoom from orthoCam.top, baseFov, and distance bounds, clamping zoom', () => {
+      const orthoCam = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+      orthoCam.zoom = 0.05; // below minZoom
+      const baseFov = 45;
+      const halfFovTan = Math.tan((baseFov * Math.PI) / 360);
+
+      syncOrthographicControlsZoom(orthoCam, mockControls, baseFov, 2.5, 100);
+
+      const expectedMinZoom = 10 / (100 * halfFovTan);
+      const expectedMaxZoom = 10 / (2.5 * halfFovTan);
+      expect(mockControls.minZoom).toBeCloseTo(expectedMinZoom, 6);
+      expect(mockControls.maxZoom).toBeCloseTo(expectedMaxZoom, 6);
+      expect(orthoCam.zoom).toBeCloseTo(expectedMinZoom, 6);
+      expect(mockControls.update).toHaveBeenCalledTimes(1);
+
+      // Clamps above maxZoom
+      mockControls.update.mockClear();
+      orthoCam.zoom = expectedMaxZoom * 2;
+      syncOrthographicControlsZoom(orthoCam, mockControls, baseFov, 2.5, 100);
+      expect(orthoCam.zoom).toBeCloseTo(expectedMaxZoom, 6);
+      expect(mockControls.update).toHaveBeenCalledTimes(1);
+
+      // No update when zoom already in bounds
+      mockControls.update.mockClear();
+      syncOrthographicControlsZoom(orthoCam, mockControls, baseFov, 2.5, 100);
+      expect(mockControls.update).not.toHaveBeenCalled();
+    });
+
+    it('resets controls.minZoom = 0 and controls.maxZoom = Infinity on releaseOrthographicLock', () => {
+      const orthoCam = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+      applyOrthographicLock(camera, orthoCam, target, 16 / 9, mockControls);
+      syncOrthographicControlsZoom(orthoCam, mockControls, 45, 2.5, 100);
+      expect(mockControls.minZoom).toBeGreaterThan(0);
+      expect(Number.isFinite(mockControls.maxZoom)).toBe(true);
+
+      releaseOrthographicLock(orthoCam, camera, target, 45, mockControls);
+      expect(mockControls.minZoom).toBe(0);
+      expect(mockControls.maxZoom).toBe(Infinity);
+
+      // Dual-camera release also resets minZoom/maxZoom when bounds were non-default
+      mockControls.minZoom = 0.5;
+      mockControls.maxZoom = 4;
+      releaseOrthographicLock(orthoCam, camera, target, 45, mockControls);
+      expect(mockControls.minZoom).toBe(0);
+      expect(mockControls.maxZoom).toBe(Infinity);
+    });
+  });
+
+  describe('syncPerspectiveCameraFar & syncOrthographicCameraFar', () => {
+    it('syncs PerspectiveCamera.far bidirectionally and updates projection matrix only when changed', () => {
+      const updateSpy = vi.spyOn(camera, 'updateProjectionMatrix');
+      expect(camera.far).toBe(1000);
+
+      syncPerspectiveCameraFar(camera, 25_000);
+      expect(camera.far).toBe(25_000);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+
+      // No-op when equal
+      updateSpy.mockClear();
+      syncPerspectiveCameraFar(camera, 25_000);
+      expect(updateSpy).not.toHaveBeenCalled();
+
+      // Shrinks back down when switching to a shallower frame
+      syncPerspectiveCameraFar(camera, 2_500);
+      expect(camera.far).toBe(2_500);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+
+      // Ignores invalid values and non-PerspectiveCamera inputs
+      updateSpy.mockClear();
+      syncPerspectiveCameraFar(camera, undefined);
+      syncPerspectiveCameraFar(camera, 0);
+      syncPerspectiveCameraFar(camera, -100);
+      syncPerspectiveCameraFar(camera, Number.NaN);
+      syncPerspectiveCameraFar(null, 5000);
+      expect(camera.far).toBe(2_500);
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it('syncs OrthographicCamera.far bidirectionally and updates projection matrix only when changed', () => {
+      const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
+      const updateSpy = vi.spyOn(orthoCam, 'updateProjectionMatrix');
+
+      syncOrthographicCameraFar(orthoCam, 25_000);
+      expect(orthoCam.far).toBe(25_000);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+
+      updateSpy.mockClear();
+      syncOrthographicCameraFar(orthoCam, 25_000);
+      expect(updateSpy).not.toHaveBeenCalled();
+
+      syncOrthographicCameraFar(orthoCam, 2_500);
+      expect(orthoCam.far).toBe(2_500);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+
+      updateSpy.mockClear();
+      syncOrthographicCameraFar(orthoCam, undefined);
+      syncOrthographicCameraFar(orthoCam, 0);
+      syncOrthographicCameraFar(orthoCam, -50);
+      syncOrthographicCameraFar(orthoCam, Number.POSITIVE_INFINITY);
+      syncOrthographicCameraFar(null, 5000);
+      expect(orthoCam.far).toBe(2_500);
+      expect(updateSpy).not.toHaveBeenCalled();
     });
   });
 

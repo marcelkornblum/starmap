@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SectorBufferCache } from './sectorBufferCache';
+import { SectorBufferCache, fetchSectorBinaryBuffer } from './sectorBufferCache';
 import { encodeBinarySector } from '../utils/binarySectorCodec';
 import type { SectorPartitionManifest } from '../types/astroCoordinates';
+import { seedDataManifest, clearDataManifestCache } from '../data/dataManifestRepository';
+import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
 
 function createMockSectorBuffer(sectorId: string, origin: [number, number, number] = [0, 0, 0], starCount = 5): ArrayBuffer {
   const manifest: SectorPartitionManifest = {
@@ -39,11 +41,13 @@ describe('SectorBufferCache', () => {
   let fetchCalls: Array<{ sectorId: string; priority: 'high' | 'low' }>;
 
   beforeEach(() => {
+    clearDataManifestCache();
     mockBuffers = new Map();
     fetchCalls = [];
   });
 
   afterEach(() => {
+    clearDataManifestCache();
     vi.restoreAllMocks();
   });
 
@@ -88,15 +92,73 @@ describe('SectorBufferCache', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it('marks sector missing on fetcher error', async () => {
+  it('does NOT mark sector missing on transient fetcher error and allows subsequent retry', async () => {
+    let shouldFail = true;
+    const mockBuf = createMockSectorBuffer('error_sec');
     const fetcher = vi.fn(async () => {
-      throw new Error('Network error');
+      if (shouldFail) {
+        throw new Error('Network error');
+      }
+      return mockBuf;
     });
     const cache = new SectorBufferCache(fetcher);
 
-    const res = await cache.fetchAndCacheSector('error_sec', 'low', 50, 1, () => true, 10);
-    expect(res).toBeNull();
-    expect(cache.isMissing('error_sec')).toBe(true);
+    const res1 = await cache.fetchAndCacheSector('error_sec', 'low', 50, 1, () => true, 10);
+    expect(res1).toBeNull();
+    expect(cache.isMissing('error_sec')).toBe(false);
+
+    shouldFail = false;
+    const res2 = await cache.fetchAndCacheSector('error_sec', 'low', 50, 2, () => true, 10);
+    expect(res2).not.toBeNull();
+    expect(cache.has('error_sec')).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('does NOT mark sector missing on decode error and allows subsequent retry', async () => {
+    let returnCorrupt = true;
+    const validBuf = createMockSectorBuffer('corrupt_sec');
+    const fetcher = vi.fn(async () => (returnCorrupt ? new ArrayBuffer(4) : validBuf));
+    const cache = new SectorBufferCache(fetcher);
+
+    const res1 = await cache.fetchAndCacheSector('corrupt_sec', 'low', 50, 1, () => true, 10);
+    expect(res1).toBeNull();
+    expect(cache.isMissing('corrupt_sec')).toBe(false);
+
+    returnCorrupt = false;
+    const res2 = await cache.fetchAndCacheSector('corrupt_sec', 'low', 50, 2, () => true, 10);
+    expect(res2).not.toBeNull();
+    expect(cache.has('corrupt_sec')).toBe(true);
+  });
+
+  it('updates lastAccessedTick to latestTick when in-flight sector is re-requested at a newer tick', async () => {
+    let resolveSlow: (buf: ArrayBuffer | null) => void = () => {};
+    const slowPromise = new Promise<ArrayBuffer | null>((resolve) => {
+      resolveSlow = resolve;
+    });
+    const fetcher = vi.fn(async (sectorId: string) => {
+      if (sectorId === 'sec1') return slowPromise;
+      return createMockSectorBuffer(sectorId);
+    });
+    const cache = new SectorBufferCache(fetcher);
+
+    const p1 = cache.fetchAndCacheSector('sec1', 'high', 10, 1, () => true, 2);
+    // Re-requested at tick 10 while still in-flight
+    const p2 = cache.fetchAndCacheSector('sec1', 'high', 10, 10, () => true, 2);
+    expect(p1).toBe(p2);
+
+    // Fetch sec2 at tick 5 (older than sec1's updated tick 10)
+    await cache.fetchAndCacheSector('sec2', 'high', 20, 5, () => true, 2);
+
+    resolveSlow(createMockSectorBuffer('sec1'));
+    await p1;
+
+    expect(cache.get('sec1')?.lastAccessedTick).toBe(10);
+
+    // Fetch sec3 at tick 12 with capacity 2 -> sec2 (tick 5) should be evicted, NOT sec1 (tick 10)
+    await cache.fetchAndCacheSector('sec3', 'high', 30, 12, () => true, 2);
+    const evicted = cache.enforceLruCapacity(2, new Set());
+    expect(evicted).toEqual(['sec2']);
+    expect(cache.has('sec1')).toBe(true);
   });
 
   it('evicts oldest non-active sectors when exceeding LRU capacity', async () => {
@@ -188,5 +250,76 @@ describe('SectorBufferCache', () => {
     cache.dispose();
     expect(disposed).toBe(true);
     expect(cache.size).toBe(0);
+  });
+
+  it('short-circuits fetchSectorBinaryBuffer when seeded manifest omits partitions/<sectorId>.bin', async () => {
+    const mockBuf = createMockSectorBuffer('sector_+000_+000_+000');
+    seedDataManifest({
+      v: COMPACT_SCHEMA_VERSION,
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      files: {
+        'partitions/sector_+000_+000_+000.bin': 'partitions/sector_+000_+000_+000.abc123.bin',
+      },
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => mockBuf,
+    } as Response);
+
+    const missingResult = await fetchSectorBinaryBuffer('sector_+025_+000_+000');
+    expect(missingResult).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    const presentResult = await fetchSectorBinaryBuffer('sector_+000_+000_+000');
+    expect(presentResult).toBe(mockBuf);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls[0]?.[0]).toContain('partitions/sector_+000_+000_+000.abc123.bin');
+  });
+
+  it('falls back to unhashed sector fetch when manifest.json is unavailable', async () => {
+    const mockBuf = createMockSectorBuffer('sector_+000_+000_+000');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes('manifest.json')) {
+        return { ok: false, status: 404 } as Response;
+      }
+      return {
+        ok: true,
+        arrayBuffer: async () => mockBuf,
+      } as Response;
+    });
+
+    const result = await fetchSectorBinaryBuffer('sector_+000_+000_+000', 'high');
+    expect(result).toBe(mockBuf);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(String(fetchSpy.mock.calls[1]?.[0])).toContain('partitions/sector_+000_+000_+000.bin');
+  });
+
+  it('fetchSectorBinaryBuffer returns null on 404 and throws on 500 or network failure', async () => {
+    seedDataManifest({
+      v: COMPACT_SCHEMA_VERSION,
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      files: {
+        'partitions/sec_404.bin': 'partitions/sec_404.bin',
+        'partitions/sec_500.bin': 'partitions/sec_500.bin',
+        'partitions/sec_net.bin': 'partitions/sec_net.bin',
+      },
+    });
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes('sec_404')) {
+        return { ok: false, status: 404 } as Response;
+      }
+      if (url.includes('sec_500')) {
+        return { ok: false, status: 503 } as Response;
+      }
+      throw new Error('ECONNRESET');
+    });
+
+    await expect(fetchSectorBinaryBuffer('sec_404')).resolves.toBeNull();
+    await expect(fetchSectorBinaryBuffer('sec_500')).rejects.toThrow(/503/);
+    await expect(fetchSectorBinaryBuffer('sec_net')).rejects.toThrow(/ECONNRESET/);
   });
 });

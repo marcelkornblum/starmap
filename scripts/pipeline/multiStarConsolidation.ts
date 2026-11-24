@@ -11,7 +11,15 @@ import { formatSectorId } from '../../src/utils/sectorMath';
 import { addKeyVariants, getStrippedSystemBaseName, isDuplicateCatalogRecord, mergeSystemAliases, pruneAbsorbedCollections } from './systemNomenclature';
 import type { ConsolidateMultiStarSystemsParams } from './types';
 
+function getCatalogIdPriority(id: string): number {
+  if (id === 'sol') return 0;
+  if (id.startsWith('exo-')) return 2;
+  return 1;
+}
+
 export function compareComponentsByMagnitude(a: { id: string; mag?: number }, b: { id: string; mag?: number }): number {
+  const priorityDiff = getCatalogIdPriority(a.id) - getCatalogIdPriority(b.id);
+  if (priorityDiff !== 0) return priorityDiff;
   const magA = a.mag;
   const magB = b.mag;
   const finA = magA !== undefined && Number.isFinite(magA);

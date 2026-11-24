@@ -22,6 +22,13 @@ import {
   getRuntimeCutoffMultiplier,
   setRuntimeCutoffMultiplier,
   getInitialCanvasDpr,
+  DEFAULT_AVG_BYTES_PER_SECTOR,
+  DEFAULT_DENSE_CATALOG_RADIUS_PC,
+  DEFAULT_DENSE_EDGE_MARGIN_PC,
+  DEFAULT_HORIZON_APERTURE_RATIO,
+  DEFAULT_GALACTIC_FOV_DEG,
+  computeHorizonReachPerCameraDist,
+  computeActiveSectorHorizonCoverPc,
   type DevicePerformanceTier,
   type DeviceTierBudget,
 } from './deviceTierService';
@@ -608,6 +615,144 @@ describe('deviceTierService', () => {
 
       registerWebGLGpuTelemetry({ gpuRenderer: 'Google SwiftShader', maxTextureSize: 8192 });
       expect(getInitialCanvasDpr(2)).toBe(1);
+    });
+  });
+
+  describe('Horizon-aware dense-catalogue edge clamp & distant-target bypass', () => {
+    it('exports expected horizon math defaults', () => {
+      expect(DEFAULT_AVG_BYTES_PER_SECTOR).toBe(12_024);
+      expect(DEFAULT_DENSE_CATALOG_RADIUS_PC).toBe(100);
+      expect(DEFAULT_DENSE_EDGE_MARGIN_PC).toBe(8);
+      expect(DEFAULT_HORIZON_APERTURE_RATIO).toBe(2.4);
+      expect(DEFAULT_GALACTIC_FOV_DEG).toBe(45);
+    });
+
+    it('computes horizon reach per camera distance across mobile portrait and wide/ultrawide aspects', () => {
+      const baseHorizonRatio = (2.4 * 10) / 34.9;
+      expect(computeHorizonReachPerCameraDist({})).toBeCloseTo(baseHorizonRatio, 6);
+
+      // Mobile portrait (390/844): frustum corner reach < horizonRatio, so horizonRatio dominates
+      const mobileAspect = 390 / 844;
+      expect(computeHorizonReachPerCameraDist({ viewportAspect: mobileAspect })).toBeCloseTo(
+        baseHorizonRatio,
+        6,
+      );
+
+      // Desktop 1440/900, 2560/1440, and 21/9: frustum corner reach exceeds horizonRatio
+      const aspect1440 = 1440 / 900;
+      const aspect2560 = 2560 / 1440;
+      const aspect21x9 = 21 / 9;
+
+      const reach1440 = computeHorizonReachPerCameraDist({ viewportAspect: aspect1440 });
+      const reach2560 = computeHorizonReachPerCameraDist({ viewportAspect: aspect2560 });
+      const reach21x9 = computeHorizonReachPerCameraDist({ viewportAspect: aspect21x9 });
+
+      expect(reach1440).toBeCloseTo(Math.tan((45 * Math.PI) / 360) * Math.hypot(1, aspect1440), 6);
+      expect(reach2560).toBeCloseTo(Math.tan((45 * Math.PI) / 360) * Math.hypot(1, aspect2560), 6);
+      expect(reach21x9).toBeCloseTo(Math.tan((45 * Math.PI) / 360) * Math.hypot(1, aspect21x9), 6);
+
+      expect(reach1440).toBeGreaterThan(baseHorizonRatio);
+      expect(reach2560).toBeGreaterThan(reach1440);
+      expect(reach21x9).toBeGreaterThan(reach2560);
+    });
+
+    it('computes active-sector horizon cover radius across tier1, tier2, and tier3', () => {
+      expect(computeActiveSectorHorizonCoverPc(DEVICE_TIER_BUDGETS.tier1)).toBeCloseTo(28.62, 2);
+      expect(computeActiveSectorHorizonCoverPc(DEVICE_TIER_BUDGETS.tier2)).toBeCloseTo(37.5, 2);
+      expect(computeActiveSectorHorizonCoverPc(DEVICE_TIER_BUDGETS.tier3)).toBeCloseTo(50.0, 2);
+
+      // Memory-constrained budget reduces effective maxSectors below maxActiveSectors
+      const constrained: DeviceTierBudget = {
+        ...DEVICE_TIER_BUDGETS.tier2,
+        maxBufferBytes: 12_024 * 8, // 8 sectors
+      };
+      expect(computeActiveSectorHorizonCoverPc(constrained)).toBeCloseTo(0.5 * 2 * 25, 4);
+    });
+
+    it('clamps ceiling distance inside the 100 pc dense volume so uHorizonRadius stays within edge margin and active-sector cover', () => {
+      const budget = DEVICE_TIER_BUDGETS.tier3; // hardware maxSafe = 375 pc, activeSectorCover = 50 pc
+      const activeSectorCoverPc = computeActiveSectorHorizonCoverPc(budget);
+
+      for (const targetDistFromSolPc of [0, 50, 80]) {
+        const distDefaultRef = computeCeilingMaxCameraDistancePc(budget, {
+          denseCatalogRadiusPc: 100,
+          targetDistFromSolPc,
+          edgeMarginPc: 8,
+        });
+        const expectedLimit = Math.min(100 - targetDistFromSolPc - 8, activeSectorCoverPc);
+        const uHorizonRadiusDefault = 2.4 * 10 * (distDefaultRef / 34.9);
+        expect(uHorizonRadiusDefault).toBeLessThanOrEqual(expectedLimit + 1e-6);
+
+        // Also verify with custom referenceCameraDistancePc = 28
+        const distRef28 = computeCeilingMaxCameraDistancePc(budget, {
+          denseCatalogRadiusPc: 100,
+          targetDistFromSolPc,
+          edgeMarginPc: 8,
+          referenceCameraDistancePc: 28,
+        });
+        const uHorizonRadius28 = 2.4 * 10 * (distRef28 / 28);
+        expect(uHorizonRadius28).toBeLessThanOrEqual(expectedLimit + 1e-6);
+      }
+
+      // When enforceActiveSectorCoverage is false at Sol (targetDist = 0), available dense radius (92 pc) governs
+      const distUnboundedSector = computeCeilingMaxCameraDistancePc(budget, {
+        denseCatalogRadiusPc: 100,
+        targetDistFromSolPc: 0,
+        edgeMarginPc: 8,
+        enforceActiveSectorCoverage: false,
+      });
+      const distBoundedSector = computeCeilingMaxCameraDistancePc(budget, {
+        denseCatalogRadiusPc: 100,
+        targetDistFromSolPc: 0,
+        edgeMarginPc: 8,
+      });
+      expect(distUnboundedSector).toBeGreaterThan(distBoundedSector);
+      expect(2.4 * 10 * (distUnboundedSector / 34.9)).toBeCloseTo(92, 5);
+    });
+
+    it('tightens ceiling distance further on wide/ultrawide aspect ratios when frustum corner reach exceeds horizonRatio', () => {
+      const budget = DEVICE_TIER_BUDGETS.tier3;
+      const distMobile = computeCeilingMaxCameraDistancePc(budget, {
+        denseCatalogRadiusPc: 100,
+        targetDistFromSolPc: 50,
+        viewportAspect: 390 / 844,
+      });
+      const distDesktop = computeCeilingMaxCameraDistancePc(budget, {
+        denseCatalogRadiusPc: 100,
+        targetDistFromSolPc: 50,
+        viewportAspect: 1440 / 900,
+      });
+      const distUltrawide = computeCeilingMaxCameraDistancePc(budget, {
+        denseCatalogRadiusPc: 100,
+        targetDistFromSolPc: 50,
+        viewportAspect: 21 / 9,
+      });
+
+      expect(distDesktop).toBeLessThan(distMobile);
+      expect(distUltrawide).toBeLessThan(distDesktop);
+    });
+
+    it('bypasses the dense-volume edge clamp for distant targets (>= denseCatalogRadiusPc - edgeMarginPc)', () => {
+      const budget = DEVICE_TIER_BUDGETS.tier2;
+      const hardwareCeilingDistPc = computeCeilingMaxCameraDistancePc(budget, {
+        ceilingApertureRadiusPc: 15,
+      });
+
+      const atBoundary = computeCeilingMaxCameraDistancePc(budget, {
+        ceilingApertureRadiusPc: 15,
+        denseCatalogRadiusPc: 100,
+        edgeMarginPc: 8,
+        targetDistFromSolPc: 92,
+      });
+      const farOutside = computeCeilingMaxCameraDistancePc(budget, {
+        ceilingApertureRadiusPc: 15,
+        denseCatalogRadiusPc: 100,
+        edgeMarginPc: 8,
+        targetDistFromSolPc: 180,
+      });
+
+      expect(atBoundary).toBe(hardwareCeilingDistPc);
+      expect(farOutside).toBe(hardwareCeilingDistPc);
     });
   });
 });

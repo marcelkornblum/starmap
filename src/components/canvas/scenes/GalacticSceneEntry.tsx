@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { OrbitControls } from '@react-three/drei';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
+import { DEFAULT_GALACTIC_MIN_DISTANCE_PC } from '../instrument/instrumentDefaults';
 import { GalaxyScene } from './GalaxyScene';
 import { GalacticCameraController } from './GalacticCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
@@ -34,7 +36,7 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = React.m
         makeDefault
         enableDamping
         dampingFactor={CONTROLS_DAMPING_FACTOR}
-        minDistance={2.5}
+        minDistance={DEFAULT_GALACTIC_MIN_DISTANCE_PC}
         maxDistance={maxSafeDistance}
       />
 
@@ -51,6 +53,8 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = React.m
         onFocusChange={onFocusChange}
         additionalEntities={additionalEntities}
         onCeilingApertureRadiusChange={setCeilingApertureRadiusPc}
+        minCameraDistance={DEFAULT_GALACTIC_MIN_DISTANCE_PC}
+        maxCameraDistance={maxSafeDistance}
       />
     </>
   );
@@ -63,7 +67,12 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = (props) => {
     <StandaloneSceneShell
       className={props.className}
       variant={props.variant}
-      camera={{ position: standardCam.position, up: standardCam.up, fov: standardCam.fov }}
+      camera={{
+        position: standardCam.position,
+        up: standardCam.up,
+        fov: standardCam.fov,
+        far: GALACTIC_FRAME.camera.far,
+      }}
     >
       <GalacticSceneContent {...props} />
     </StandaloneSceneShell>
