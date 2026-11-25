@@ -10,7 +10,7 @@ import type {
   SystemBodiesSummary,
   SystemElementBodyItem,
 } from '../../../services/details/detailsHierarchyTypes';
-import { Button, DataTable, Heading } from '../../interface';
+import { Block, Button, Heading, Stack } from '../../interface';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
 import { BodiesGalaxySystemRow } from './BodiesGalaxySystemRow';
@@ -65,18 +65,9 @@ const BodiesGalaxyView = React.memo(function BodiesGalaxyView({
         </p>
       ) : null}
 
-      <DataTable data-testid="bodies-galaxy-systems-list">
-        <DataTable.Head>
-          <DataTable.Row>
-            <DataTable.HeaderCell>System</DataTable.HeaderCell>
-            <DataTable.HeaderCell>Class</DataTable.HeaderCell>
-            <DataTable.HeaderCell align="end">Planets</DataTable.HeaderCell>
-            <DataTable.HeaderCell>Status</DataTable.HeaderCell>
-            <DataTable.HeaderCell align="end">Distance</DataTable.HeaderCell>
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {systems.map((sys) => (
+      <Stack as="ul" gap="fib-2" data-testid="bodies-galaxy-systems-list">
+        {systems.length > 0 ? (
+          systems.map((sys) => (
             <BodiesGalaxySystemRow
               key={sys.id}
               sys={sys}
@@ -85,9 +76,13 @@ const BodiesGalaxyView = React.memo(function BodiesGalaxyView({
               isItemHovered={(activeHoveredId ?? elements.hoveredEntityId) === sys.id}
               onHoverEntity={onHoverEntity}
             />
-          ))}
-        </DataTable.Body>
-      </DataTable>
+          ))
+        ) : (
+          <Block as="li" padding="tight" data-testid="bodies-galaxy-systems-empty">
+            Zoom in to inspect nearby systems
+          </Block>
+        )}
+      </Stack>
     </section>
   );
 });
@@ -144,23 +139,16 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
       <Heading as="h3" size="eyebrow" id="bodies-minor-bodies-heading">
         Minor Bodies &amp; Spacecraft
       </Heading>
-      <DataTable data-testid="bodies-minor-bodies-list">
-        <DataTable.Head>
-          <DataTable.Row>
-            <DataTable.HeaderCell>Body</DataTable.HeaderCell>
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {visibleItems.map((body) => (
-            <BodiesMinorBodyRow
-              key={body.id}
-              body={body}
-              isFocused={focusedMinorBodyId === body.id}
-              isSelected={selectedSet ? selectedSet.has(body.id) : false}
-            />
-          ))}
-        </DataTable.Body>
-      </DataTable>
+      <Stack as="ul" gap="fib-1" data-testid="bodies-minor-bodies-list">
+        {visibleItems.map((body) => (
+          <BodiesMinorBodyRow
+            key={body.id}
+            body={body}
+            isFocused={focusedMinorBodyId === body.id}
+            isSelected={selectedSet ? selectedSet.has(body.id) : false}
+          />
+        ))}
+      </Stack>
       {remainingCount > 0 ? (
         <Button
           variant="subtle"

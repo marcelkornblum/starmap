@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode } from 'react';
 import type { SearchResultItem as SearchResultItemModel } from '../../../services/search/searchTypes';
 import {
   Badge,
+  Block,
   CelestialBadge,
   Cluster,
   Quantity,
@@ -226,8 +227,10 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
   };
 
   return (
-    <li
-      className={styles.searchResultItem}
+    <Block
+      as="li"
+      interactive
+      padding="none"
       data-testid="search-result-item"
       data-entity-id={id}
       data-system-id={systemId}
@@ -255,6 +258,6 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
           {renderVariationContent(result)}
         </Cluster>
       </a>
-    </li>
+    </Block>
   );
 };

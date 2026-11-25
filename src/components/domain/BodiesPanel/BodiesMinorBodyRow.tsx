@@ -1,6 +1,6 @@
 import React from 'react';
 import type { SystemElementBodyItem } from '../../../services/details/detailsHierarchyTypes';
-import { CelestialTitle, DataTable } from '../../interface';
+import { Block, CelestialTitle } from '../../interface';
 
 export interface BodiesMinorBodyRowProps {
   readonly body: SystemElementBodyItem;
@@ -25,26 +25,28 @@ export const BodiesMinorBodyRow = React.memo(function BodiesMinorBodyRow({
   isSelected,
 }: BodiesMinorBodyRowProps) {
   return (
-    <DataTable.Row
+    <Block
+      as="li"
+      interactive
+      selected={isFocused || isSelected}
+      padding="tight"
       data-testid="bodies-minor-body-item"
       data-body-id={body.id}
       data-focused={isFocused ? 'true' : undefined}
       data-selected={isSelected ? 'true' : undefined}
     >
-      <DataTable.Cell>
-        <CelestialTitle
-          type={
-            body.categoryKey === 'spacecraft'
-              ? 'construct'
-              : (body.categoryKey ?? 'asteroid')
-          }
-          title={body.name}
-          href={body.href}
-          showTooltip={false}
-          titleTestId="bodies-minor-body-link"
-        />
-      </DataTable.Cell>
-    </DataTable.Row>
+      <CelestialTitle
+        type={
+          body.categoryKey === 'spacecraft'
+            ? 'construct'
+            : (body.categoryKey ?? 'asteroid')
+        }
+        title={body.name}
+        href={body.href}
+        showTooltip={false}
+        titleTestId="bodies-minor-body-link"
+      />
+    </Block>
   );
 }, areBodiesMinorBodyRowsEqual);
 

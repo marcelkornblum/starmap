@@ -30,6 +30,10 @@
     -webkit-user-select: none;
   }
 
+  body {
+    font-feature-settings: "cv01", "cv02", "cv03", "cv04", "ss01";
+  }
+
   input,
   textarea {
     user-select: text;

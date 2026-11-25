@@ -7,7 +7,7 @@
     flex-wrap: nowrap;
     font-family: var(--font-interface);
     font-size: var(--type-scale-neg-1);
-    line-height: var(--leading-tight);
+    line-height: var(--leading-control);
   }
 
   .breadcrumbItem {
@@ -29,7 +29,7 @@
 
   .breadcrumbItem [aria-current="page"] {
     color: var(--content-prominent);
-    font-weight: var(--weight-semibold);
+    font-weight: 500;
   }
 
   .breadcrumbItem + .breadcrumbItem::before {
@@ -41,10 +41,9 @@
     display: inline-flex;
     align-items: center;
     gap: var(--stroke-width-2);
-    background: var(--surface-dock-bg);
-    border: var(--border-width-1) solid var(--surface-dock-border-color);
-    border-radius: var(--radius-control);
-    padding: var(--stroke-width-2);
+    background: transparent;
+    border: none;
+    padding: 0;
     flex: 0 0 auto;
   }
 
@@ -59,7 +58,7 @@
   }
 
   .modeMenu [data-mode-button][data-active="true"] {
-    --button-font-weight: var(--weight-semibold);
+    --button-font-weight: 500;
   }
 }
 
@@ -71,7 +70,7 @@
     }
 
     .modeMenu {
-      padding: var(--stroke-width-1);
+      padding: 0;
       gap: var(--stroke-width-1);
     }
 

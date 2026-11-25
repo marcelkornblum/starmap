@@ -609,10 +609,51 @@ const HARDCODED_UNIT_REGEX = /(?:^|[^a-zA-Z0-9_-])(\d+(?:\.\d+)?)(px|rem|ms)\b/g
 // Regex to match outer margin declarations
 const MARGIN_DECL_REGEX = /^\s*(?:margin|margin-top|margin-right|margin-bottom|margin-left|margin-inline|margin-block)\s*:\s*([^;]+);?/i;
 
+// Regexes for CSS custom property definitions and var() usages
+const CSS_CUSTOM_PROP_DECL_REGEX = /--[a-zA-Z0-9_-]+(?=\s*:)/g;
+const CSS_VAR_USAGE_REGEX = /var\(\s*(--[a-zA-Z0-9_-]+)\s*(,)?/g;
+const RUNTIME_JS_SET_CSS_TOKENS = new Set<string>(['--detent-sheet-block-size']);
+
+function stripCssCommentsPreserveLines(content: string): string {
+  return content.replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, ' '));
+}
+
+let cachedGlobalCssTokens: Set<string> | null = null;
+
 /**
- * Audits CSS Module content for CUBE @layer blocks, hardcoded tokens, and outer margins.
+ * Collects all CSS custom property definitions from `.css` files under `stylesDir`.
  */
-export function auditCssModuleContent(filePath: string, content: string): AuditDiagnostic[] {
+export function collectDefinedCssTokens(stylesDir = 'src/styles'): Set<string> {
+  const tokens = new Set<string>();
+  const files = collectFiles(stylesDir, (filePath) => filePath.endsWith('.css'));
+  for (const file of files) {
+    const raw = fs.readFileSync(file, 'utf8');
+    const stripped = stripCssCommentsPreserveLines(raw);
+    const matches = stripped.match(CSS_CUSTOM_PROP_DECL_REGEX);
+    if (matches) {
+      for (const token of matches) {
+        tokens.add(token);
+      }
+    }
+  }
+  return tokens;
+}
+
+function getGlobalCssTokens(): Set<string> {
+  if (cachedGlobalCssTokens === null) {
+    cachedGlobalCssTokens = collectDefinedCssTokens('src/styles');
+  }
+  return cachedGlobalCssTokens;
+}
+
+/**
+ * Audits CSS Module content for CUBE @layer blocks, hardcoded tokens, undefined tokens, and outer margins.
+ */
+export function auditCssModuleContent(
+  filePath: string,
+  content: string,
+  definedTokens?: Set<string>
+): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
   const lines = content.split('\n');
   diagnostics.push(...checkInvalidSuppressions(filePath, lines));
@@ -621,6 +662,17 @@ export function auditCssModuleContent(filePath: string, content: string): AuditD
   if (!trimmed) {
     return diagnostics;
   }
+
+  const globalTokens = definedTokens ?? getGlobalCssTokens();
+  const commentStrippedContent = stripCssCommentsPreserveLines(content);
+  const localTokens = new Set<string>();
+  const localMatches = commentStrippedContent.match(CSS_CUSTOM_PROP_DECL_REGEX);
+  if (localMatches) {
+    for (const token of localMatches) {
+      localTokens.add(token);
+    }
+  }
+  const strippedLines = commentStrippedContent.split('\n');
 
   // Check for @layer blocks or @layer exceptions
   const hasLayer = /@layer\s+(?:blocks|exceptions)\b/.test(content);
@@ -640,7 +692,7 @@ export function auditCssModuleContent(filePath: string, content: string): AuditD
   lines.forEach((line, index) => {
     const lineNum = index + 1;
     // Strip comments for checking
-    const strippedLine = line.replace(/\/\*.*?\*\//g, '');
+    const strippedLine = strippedLines[index] ?? '';
 
     // 1. Check for outer margin declarations
     const marginMatch = strippedLine.match(MARGIN_DECL_REGEX);
@@ -737,6 +789,34 @@ export function auditCssModuleContent(filePath: string, content: string): AuditD
           snippet: line.trim().slice(0, 80),
           remediation: 'Replace raw unit with canonical semantic design token var(--space-*) or var(--font-*).',
         });
+      }
+    }
+
+    // 4. Check for undefined CSS custom properties used without fallback
+    CSS_VAR_USAGE_REGEX.lastIndex = 0;
+    let varMatch: RegExpExecArray | null;
+    while ((varMatch = CSS_VAR_USAGE_REGEX.exec(strippedLine)) !== null) {
+      const tokenName = varMatch[1];
+      const hasFallback = Boolean(varMatch[2]);
+      if (
+        !hasFallback &&
+        !globalTokens.has(tokenName) &&
+        !localTokens.has(tokenName) &&
+        !RUNTIME_JS_SET_CSS_TOKENS.has(tokenName)
+      ) {
+        if (!isLineSuppressed(lines, lineNum, 'undefined-css-token')) {
+          diagnostics.push({
+            filePath,
+            line: lineNum,
+            column: varMatch.index + 1,
+            ruleId: 'undefined-css-token',
+            severity: 'error',
+            message: `Undefined CSS custom property "${tokenName}" used without fallback.`,
+            snippet: line.trim().slice(0, 80),
+            remediation:
+              'Use a defined token from src/styles/, declare the custom property locally, or provide a var(--token, fallback).',
+          });
+        }
       }
     }
   });
@@ -861,9 +941,10 @@ export function auditCssModules(targetDirs: string[] = CSS_MODULE_DIRS): AuditDi
     );
   }
 
+  const globalTokens = collectDefinedCssTokens('src/styles');
   for (const file of files) {
     const content = fs.readFileSync(file, 'utf8');
-    diagnostics.push(...auditCssModuleContent(file, content));
+    diagnostics.push(...auditCssModuleContent(file, content, globalTokens));
   }
 
   return diagnostics;

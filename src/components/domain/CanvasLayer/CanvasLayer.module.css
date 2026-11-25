@@ -4,7 +4,7 @@
     inset: 0;
     inline-size: 100%;
     block-size: 100%;
-    background-color: var(--surface-canvas-bg);
+    background: var(--surface-canvas-stage-bg);
     z-index: var(--layer-canvas);
     pointer-events: auto;
     overflow: hidden;
@@ -33,7 +33,7 @@
 
 @layer exceptions {
   .canvasLayer[data-slot='true'] {
-    background-color: transparent;
+    background: transparent;
     pointer-events: none;
   }
 }

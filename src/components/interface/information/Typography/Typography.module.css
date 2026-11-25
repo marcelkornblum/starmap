@@ -1,34 +1,34 @@
 @layer blocks {
   .storyWrapper {
     font-family: var(--font-interface);
-    color: var(--content-primary);
-    padding: var(--space-4);
+    color: var(--content-prominent);
+    padding: var(--space-fib-4);
     block-size: 100dvh;
     overflow-y: auto;
     box-sizing: border-box;
     max-inline-size: calc(var(--space-fib-13) - var(--space-fib-6) + var(--space-fib-2));
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-fib-5);
   }
 
   .header {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--space-fib-1);
   }
 
   .title {
     margin: 0;
-    font-size: var(--text-headline-size);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--tracking-header);
-    color: var(--content-primary);
+    font-size: var(--text-content-title-size);
+    font-weight: 600;
+    letter-spacing: var(--tracking-display);
+    color: var(--content-prominent);
   }
 
   .description {
     margin: 0;
-    font-size: var(--text-body-size);
+    font-size: var(--text-content-body-size);
     line-height: var(--leading-body);
     color: var(--content-muted);
     max-inline-size: 65ch;
@@ -37,21 +37,21 @@
   .section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
-    padding-block-end: var(--space-5);
+    gap: var(--space-fib-3);
+    padding-block-end: var(--space-fib-5);
     border-block-end: var(--stroke-hairline) solid var(--border-color-subtle);
   }
 
   .sectionHeader {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--space-fib-1);
   }
 
   .sectionTitle {
     margin: 0;
-    font-size: var(--text-caption-size);
-    font-weight: var(--font-weight-bold);
+    font-size: var(--text-content-caption-size);
+    font-weight: 600;
     letter-spacing: var(--tracking-control);
     text-transform: uppercase;
     color: var(--content-muted);
@@ -59,15 +59,15 @@
 
   .sectionDescription {
     margin: 0;
-    font-size: var(--text-caption-size);
-    color: var(--content-subtle);
+    font-size: var(--text-content-caption-size);
+    color: var(--content-muted);
   }
 
   .specimenCard {
     background: var(--surface-panel-bg);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
-    border-radius: var(--surface-panel-radius);
-    padding: var(--space-4);
+    border-radius: var(--radius-container);
+    padding: var(--space-fib-4);
     box-sizing: border-box;
   }
 
@@ -75,8 +75,8 @@
   .displayHeader {
     margin: 0;
     font-size: var(--text-content-hero-title-size);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--tracking-header);
+    font-weight: 600;
+    letter-spacing: var(--tracking-display);
     line-height: var(--leading-heading);
     color: var(--content-prominent);
   }
@@ -84,34 +84,34 @@
   .h1Header {
     margin: 0;
     font-size: var(--text-content-title-size);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--tracking-header);
+    font-weight: 600;
+    letter-spacing: var(--tracking-display);
     line-height: var(--leading-heading);
-    color: var(--content-primary);
+    color: var(--content-prominent);
   }
 
   .h2Header {
     margin: 0;
     font-size: var(--text-content-section-title-size);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: var(--tracking-wide);
+    font-weight: 600;
+    letter-spacing: var(--tracking-control);
     line-height: var(--leading-heading);
-    color: var(--content-primary);
+    color: var(--content-prominent);
   }
 
   .h3Header {
     margin: 0;
     font-size: var(--text-content-body-lead-size);
-    font-weight: var(--font-weight-medium);
+    font-weight: 500;
     letter-spacing: var(--tracking-body);
     line-height: var(--leading-heading);
-    color: var(--content-primary);
+    color: var(--content-prominent);
   }
 
   .eyebrow {
     margin: 0;
     font-size: var(--text-content-eyebrow-size);
-    font-weight: var(--font-weight-bold);
+    font-weight: 600;
     letter-spacing: var(--tracking-eyebrow);
     text-transform: var(--text-content-eyebrow-transform);
     color: var(--content-muted);
@@ -119,9 +119,9 @@
 
   .tokenLabel {
     font-family: var(--font-data);
-    font-size: var(--text-micro-size);
+    font-size: var(--text-content-footnote-size);
     color: var(--content-faint);
-    letter-spacing: var(--tracking-normal);
+    letter-spacing: var(--tracking-body);
   }
 
   /* Prose flow */
@@ -129,7 +129,7 @@
     max-inline-size: 65ch;
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-fib-3);
   }
 
   .leadProse {
@@ -160,27 +160,27 @@
     margin: 0;
     font-size: var(--text-content-footnote-size);
     line-height: var(--leading-body);
-    color: var(--content-subtle);
+    color: var(--content-muted);
     font-style: italic;
   }
 
   .codeSnippet {
     font-family: var(--font-data);
-    font-size: var(--text-micro-size);
-    background: var(--surface-well-bg);
+    font-size: var(--text-content-footnote-size);
+    background: var(--surface-inset-bg);
     border: var(--stroke-hairline) solid var(--border-color-subtle);
-    border-radius: var(--surface-well-radius);
+    border-radius: var(--radius-sm);
     padding: 0.1em 0.4em;
-    color: var(--content-primary);
+    color: var(--content-prominent);
   }
 
   /* Mocked tabular data */
   .tableContainer {
     inline-size: 100%;
     overflow-x: auto;
-    background: var(--surface-well-bg);
-    border: var(--surface-well-border-width) var(--surface-well-border-style) var(--surface-well-border-color);
-    border-radius: var(--surface-well-radius);
+    background: var(--surface-inset-bg);
+    border: var(--surface-inset-border-width) var(--surface-inset-border-style) var(--surface-inset-border-color);
+    border-radius: var(--radius-sm);
     box-sizing: border-box;
   }
 
@@ -194,43 +194,43 @@
   }
 
   .caption {
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-fib-3) var(--space-fib-4);
     text-align: start;
     caption-side: top;
     color: var(--content-muted);
-    font-size: var(--text-caption-size);
+    font-size: var(--text-content-caption-size);
     line-height: var(--leading-body);
     border-block-end: var(--stroke-hairline) solid var(--border-color-subtle);
-    background: color-mix(in oklch, var(--surface-well-bg) 95%, var(--content-default) 5%);
+    background: color-mix(in oklch, var(--surface-inset-bg) 95%, var(--content-default) 5%);
   }
 
   .captionTitle {
-    font-weight: var(--font-weight-semibold);
-    color: var(--content-primary);
-    margin-inline-end: var(--space-2);
+    font-weight: 600;
+    color: var(--content-prominent);
+    margin-inline-end: var(--space-fib-2);
   }
 
   .th {
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-fib-2) var(--space-fib-3);
     font-size: var(--type-scale-neg-2);
-    font-weight: var(--font-weight-semibold);
+    font-weight: 600;
     letter-spacing: var(--tracking-control);
     text-transform: uppercase;
     color: var(--content-muted);
     border-block-end: var(--stroke-hairline) solid var(--border-color-subtle);
     white-space: nowrap;
-    background: color-mix(in oklch, var(--surface-well-bg) 97%, var(--content-default) 3%);
+    background: color-mix(in oklch, var(--surface-inset-bg) 97%, var(--content-default) 3%);
   }
 
   .td {
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-fib-2) var(--space-fib-3);
     border-block-end: var(--stroke-hairline) solid var(--border-color-subtle);
     vertical-align: middle;
     white-space: nowrap;
   }
 
   .tr:hover {
-    background: color-mix(in oklch, var(--surface-well-bg) 92%, var(--content-default) 8%);
+    background: color-mix(in oklch, var(--surface-inset-bg) 92%, var(--content-default) 8%);
   }
 
   .tr:last-child .td {
@@ -244,13 +244,13 @@
   }
 
   .targetName {
-    font-weight: var(--font-weight-medium);
-    color: var(--content-primary);
+    font-weight: 500;
+    color: var(--content-prominent);
   }
 
   .classificationTag {
-    font-size: var(--text-micro-size);
-    color: var(--content-subtle);
-    letter-spacing: var(--tracking-wide);
+    font-size: var(--text-content-footnote-size);
+    color: var(--content-muted);
+    letter-spacing: var(--tracking-control);
   }
 }

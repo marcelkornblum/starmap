@@ -1,3 +1,4 @@
+export * from './Block';
 export * from './Card';
 export * from './DetentSheet';
 export * from './Dock';

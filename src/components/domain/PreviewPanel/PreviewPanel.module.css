@@ -2,6 +2,9 @@
   .previewPanel {
     display: flex;
     flex-direction: column;
+    background: var(--surface-block-bg);
+    border: none;
+    border-radius: var(--surface-block-radius);
   }
 
   .canvasSlot {

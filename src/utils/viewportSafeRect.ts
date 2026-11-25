@@ -94,7 +94,12 @@ export function computeViewportSafeRect(
   }
 
   let bottom = 0;
-  if (isValidRect(panels.controlsRegion) && panels.controlsRegion.width >= viewportWidth * 0.5) {
+  if (
+    isValidRect(panels.controlsRegion) &&
+    (panels.controlsRegion.width >= viewportWidth * 0.5 ||
+      (panels.controlsRegion.left < viewportWidth * 0.45 &&
+        panels.controlsRegion.right > viewportWidth * 0.55))
+  ) {
     bottom = Math.max(bottom, clamp(viewportHeight - panels.controlsRegion.top, 0, viewportHeight));
   }
   if (

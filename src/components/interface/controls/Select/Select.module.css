@@ -7,7 +7,7 @@
     --select-border-style: var(--border-style-boundary);
     --select-padding-inline: var(--select-padding-x, var(--space-inset-control-x));
     --select-padding-block: var(--select-padding-y, var(--space-inset-control-y));
-    --select-font-size: var(--type-scale-0);
+    --select-font-size: var(--text-ui-control-size);
     --select-radius: var(--radius-control);
     --select-shadow: var(--ui-control-inset-shadow);
 
@@ -31,12 +31,8 @@
   }
 
   .select:focus {
-    --select-border-color: oklch(from var(--state-focus) l c h / 0.40);
-    --select-shadow:
-      inset 0 -1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
-      inset -1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
-      inset 0 0 var(--radius-2) 0 oklch(from var(--state-focus) l c h / 0.20),
-      var(--ui-control-inset-shadow);
+    --select-border-color: oklch(from var(--state-focus) l c h / 0.55);
+    --select-shadow: var(--state-focus-halo);
     box-shadow: var(--select-shadow);
   }
 
@@ -48,22 +44,14 @@
 
 @layer exceptions {
   .select[data-status="error"] {
-    --select-border-color: oklch(from var(--status-critical) l c h / 0.40);
-    --select-shadow:
-      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
-      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
-      inset 0 0 var(--radius-2) 0 oklch(from var(--status-critical) l c h / 0.20),
-      var(--ui-control-inset-shadow);
+    --select-border-color: var(--status-critical);
+    --select-shadow: var(--ui-control-inset-shadow);
     box-shadow: var(--select-shadow);
   }
 
   .select[data-status="error"]:focus {
-    --select-border-color: oklch(from var(--status-critical) l c h / 0.50);
-    --select-shadow:
-      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.40),
-      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
-      inset 0 0 var(--space-fib-2) 0 oklch(from var(--status-critical) l c h / 0.25),
-      var(--ui-control-inset-shadow);
+    --select-border-color: var(--status-critical);
+    --select-shadow: var(--ui-control-inset-shadow);
     box-shadow: var(--select-shadow);
   }
 

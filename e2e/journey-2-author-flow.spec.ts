@@ -38,12 +38,8 @@ test.describe('Journey 2: The Author Flow (Candidate Hunting & Territory Mapping
     // Verifies relative distances caption ("Distances from Tau Ceti")
     await expect(galacticSystems.getByText(/Distances from Tau Ceti/i)).toBeVisible();
 
-    // Verifies table headers: System, Class, Planets, Status, Distance
-    await expect(galacticSystems.getByRole('columnheader', { name: 'System' })).toBeVisible();
-    await expect(galacticSystems.getByRole('columnheader', { name: 'Class' })).toBeVisible();
-    await expect(galacticSystems.getByRole('columnheader', { name: 'Planets' })).toBeVisible();
-    await expect(galacticSystems.getByRole('columnheader', { name: 'Status' })).toBeVisible();
-    await expect(galacticSystems.getByRole('columnheader', { name: 'Distance' })).toBeVisible();
+    // Verifies Galactic Systems block list region is visible
+    await expect(galacticSystems.getByTestId('bodies-galaxy-systems-list')).toBeVisible();
 
     // 4. Transitions to rich multi-belt system (/system/sol)
     await page.goto('/system/sol');

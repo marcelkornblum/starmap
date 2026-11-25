@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { buildMetricGuideHref } from '../../../content/guide';
 import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
-import { Badge, Datum, Heading, Stack, Unit } from '../../interface';
+import { Badge, Block, Datum, Heading, Stack, Unit } from '../../interface';
 
 export interface DetailsAstrometrySectionProps {
   readonly entityId: string;
@@ -26,60 +26,62 @@ export const DetailsAstrometrySection = ({
       <Heading as="h4" size="eyebrow" id="details-astrometry-heading">
         Astrometry
       </Heading>
-      <Stack gap="none" data-testid="details-astrometry-list">
-        <Datum
-          label="System ID"
-          valueTestId="details-astrometry-system-id"
-          value={systemId}
-        />
-        <Datum
-          label="Sector"
-          valueTestId="details-astrometry-sector"
-          value={sectorId}
-        />
-        <Datum
-          label="Coordinates (J2000 pc)"
-          valueTestId="details-astrometry-coords"
-          value={`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
-          unit={
-            <Unit>
-              <a
-                href={buildMetricGuideHref('galactic-coordinates', entityId)}
-                data-testid="details-metric-unit-link"
-              >
-                pc
-              </a>
-            </Unit>
-          }
-        />
-        {tags.length > 0 ? (
+      <Block padding="tight">
+        <Stack gap="fib-1" data-testid="details-astrometry-list">
           <Datum
-            label="Tags"
-            valueTestId="details-astrometry-tags"
-            value={
-              <>
-                {tags.map((tag, index) => (
-                  <Fragment key={tag}>
-                    {index > 0 ? ' ' : null}
-                    <Badge
-                      status={
-                        tag === 'HabitableCandidate' ? 'nominal' : 'neutral'
-                      }
-                    >
-                      <a
-                        href={buildTagGalaxyHref(tag)}
-                        data-testid="details-astrometry-tag-link"
-                      >
-                        {tag}
-                      </a>
-                    </Badge>
-                  </Fragment>
-                ))}
-              </>
+            label="System ID"
+            valueTestId="details-astrometry-system-id"
+            value={systemId}
+          />
+          <Datum
+            label="Sector"
+            valueTestId="details-astrometry-sector"
+            value={sectorId}
+          />
+          <Datum
+            label="Coordinates (J2000 pc)"
+            valueTestId="details-astrometry-coords"
+            value={`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
+            unit={
+              <Unit>
+                <a
+                  href={buildMetricGuideHref('galactic-coordinates', entityId)}
+                  data-testid="details-metric-unit-link"
+                >
+                  pc
+                </a>
+              </Unit>
             }
           />
-        ) : null}
-      </Stack>
+          {tags.length > 0 ? (
+            <Datum
+              label="Tags"
+              valueTestId="details-astrometry-tags"
+              value={
+                <>
+                  {tags.map((tag, index) => (
+                    <Fragment key={tag}>
+                      {index > 0 ? ' ' : null}
+                      <Badge
+                        status={
+                          tag === 'HabitableCandidate' ? 'nominal' : 'neutral'
+                        }
+                      >
+                        <a
+                          href={buildTagGalaxyHref(tag)}
+                          data-testid="details-astrometry-tag-link"
+                        >
+                          {tag}
+                        </a>
+                      </Badge>
+                    </Fragment>
+                  ))}
+                </>
+              }
+            />
+          ) : null}
+        </Stack>
+      </Block>
     </section>
   );
 };

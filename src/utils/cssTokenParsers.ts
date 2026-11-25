@@ -66,6 +66,9 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
   if (!trimmed) {
     return { colorHex: '#000000', alpha: 1 };
   }
+  if (trimmed.toLowerCase() === 'transparent') {
+    return { colorHex: '#000000', alpha: 0 };
+  }
 
   if (trimmed.startsWith('#')) {
     const hexResult = parseHexColor(trimmed);

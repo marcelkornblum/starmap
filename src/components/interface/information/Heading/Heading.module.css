@@ -36,7 +36,7 @@
   .eyebrow {
     font-family: var(--font-interface);
     font-size: var(--text-content-eyebrow-size);
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: var(--tracking-eyebrow, 0.08em);
     text-transform: var(--text-content-eyebrow-transform, uppercase);
     color: var(--content-muted);
@@ -55,13 +55,13 @@
 @layer exceptions {
   .heading[data-size="hero"] {
     --heading-font-size: var(--text-content-hero-title-size);
-    --heading-font-weight: 700;
+    --heading-font-weight: 600;
     --heading-letter-spacing: var(--tracking-display, -0.02em);
   }
 
   .heading[data-size="title"] {
     --heading-font-size: var(--text-content-title-size);
-    --heading-font-weight: 700;
+    --heading-font-weight: 600;
     --heading-letter-spacing: var(--tracking-display, -0.02em);
   }
 
@@ -79,7 +79,7 @@
 
   .heading[data-size="eyebrow"] {
     --heading-font-size: var(--text-content-eyebrow-size);
-    --heading-font-weight: 700;
+    --heading-font-weight: 600;
     --heading-letter-spacing: var(--tracking-eyebrow, 0.08em);
     --heading-text-transform: var(--text-content-eyebrow-transform, uppercase);
     --heading-color: var(--content-muted);

@@ -5,6 +5,7 @@ import type {
 import { buildMetricGuideHref } from '../../../content/guide';
 import {
   Badge,
+  Block,
   CelestialBadge,
   Cluster,
   Datum,
@@ -32,25 +33,27 @@ export const DetailsMinorBodyTelemetrySection = ({
       <Heading as="h4" size="eyebrow" id="details-minor-body-telemetry-heading">
         Body Telemetry
       </Heading>
-      <Stack gap="none" data-testid="details-minor-body-telemetry-list">
-        <Datum
-          label="Classification"
-          valueTestId="details-minor-body-telemetry-class"
-          value={
-            <CelestialBadge
-              type={minorBodyTelemetry.classification}
-              showLabel
-            />
-          }
-        />
-        {minorBodyTelemetry.parentBodyName ? (
+      <Block padding="tight">
+        <Stack gap="fib-1" data-testid="details-minor-body-telemetry-list">
           <Datum
-            label="Host System"
-            valueTestId="details-minor-body-telemetry-parent"
-            value={minorBodyTelemetry.parentBodyName}
+            label="Classification"
+            valueTestId="details-minor-body-telemetry-class"
+            value={
+              <CelestialBadge
+                type={minorBodyTelemetry.classification}
+                showLabel
+              />
+            }
           />
-        ) : null}
-      </Stack>
+          {minorBodyTelemetry.parentBodyName ? (
+            <Datum
+              label="Host System"
+              valueTestId="details-minor-body-telemetry-parent"
+              value={minorBodyTelemetry.parentBodyName}
+            />
+          ) : null}
+        </Stack>
+      </Block>
     </section>
   );
 };
@@ -76,35 +79,37 @@ export const DetailsStructureTelemetrySection = ({
       <Heading as="h4" size="eyebrow" id="details-structure-telemetry-heading">
         Structure Telemetry
       </Heading>
-      <Stack gap="none" data-testid="details-structure-telemetry-list">
-        <Datum
-          label="Structure Type"
-          valueTestId="details-structure-telemetry-type"
-          value={
-            <Cluster gap="tight" align="center">
-              <CelestialBadge type={structureTelemetry.symbolType} />
-              <Badge status="info">{structureTelemetry.structureType}</Badge>
-            </Cluster>
-          }
-        />
-        {structureTelemetry.radiusPc !== undefined ? (
+      <Block padding="tight">
+        <Stack gap="fib-1" data-testid="details-structure-telemetry-list">
           <Datum
-            label="Radius"
-            valueTestId="details-structure-telemetry-radius"
-            value={structureTelemetry.radiusPc}
-            unit={
-              <Unit>
-                <a
-                  href={buildMetricGuideHref('galactic-coordinates', entityId)}
-                  data-testid="details-metric-unit-link"
-                >
-                  pc
-                </a>
-              </Unit>
+            label="Structure Type"
+            valueTestId="details-structure-telemetry-type"
+            value={
+              <Cluster gap="tight" align="center">
+                <CelestialBadge type={structureTelemetry.symbolType} />
+                <Badge status="info">{structureTelemetry.structureType}</Badge>
+              </Cluster>
             }
           />
-        ) : null}
-      </Stack>
+          {structureTelemetry.radiusPc !== undefined ? (
+            <Datum
+              label="Radius"
+              valueTestId="details-structure-telemetry-radius"
+              value={structureTelemetry.radiusPc}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('galactic-coordinates', entityId)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    pc
+                  </a>
+                </Unit>
+              }
+            />
+          ) : null}
+        </Stack>
+      </Block>
     </section>
   );
 };

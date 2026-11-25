@@ -1,14 +1,15 @@
 @layer blocks {
   .detentSheet {
     --detent-sheet-gap: var(--space-fib-3);
-    --detent-sheet-padding-block: var(--space-inset-panel);
-    --detent-sheet-padding-inline: var(--space-inset-panel);
+    --detent-sheet-padding-block: var(--space-fib-4);
+    --detent-sheet-padding-inline: var(--space-fib-4);
     display: flex;
     flex-direction: column;
     gap: var(--detent-sheet-gap);
     padding-block: var(--detent-sheet-padding-block);
     padding-inline: var(--detent-sheet-padding-inline);
     background: var(--surface-panel-bg);
+    backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     border-radius: var(--radius-container);
     color: var(--content-default);
@@ -43,7 +44,7 @@
 
   .dragHandleBar:hover .dragHandlePill,
   .dragHandleBar:active .dragHandlePill {
-    background-color: var(--border-prominent);
+    background-color: var(--border-color-prominent);
   }
 
   .srOnly {
@@ -111,12 +112,22 @@
       display: none;
     }
 
+    .detentSheet [data-detent-section="peek"] [data-hero-body="true"],
+    .detentSheet [data-detent-section="peek"] [data-hero-extra="true"] {
+      display: none;
+    }
+
+    .detentSheet [data-detent-section="peek"] [data-block="true"] {
+      --block-padding: var(--space-fib-1) var(--space-fib-2);
+      --block-bg: transparent;
+    }
+
     /* ui-audit-disable-next-line hardcoded-css-token -- Container query threshold */
     @container detent-sheet (min-block-size: 240px) {
       .detentSheet {
         --detent-sheet-gap: var(--space-fib-3);
-        --detent-sheet-padding-block: var(--space-inset-panel);
-        --detent-sheet-padding-inline: var(--space-inset-panel);
+        --detent-sheet-padding-block: var(--space-fib-4);
+        --detent-sheet-padding-inline: var(--space-fib-4);
         overflow-y: auto;
         touch-action: pan-y;
       }
@@ -133,6 +144,19 @@
 
       .detentSheet [data-detent-section="peek"] > :nth-child(n + 3) {
         display: revert;
+      }
+
+      .detentSheet [data-detent-section="peek"] [data-hero-body="true"] {
+        display: flex;
+      }
+
+      .detentSheet [data-detent-section="peek"] [data-hero-extra="true"] {
+        display: inline-flex;
+      }
+
+      .detentSheet [data-detent-section="peek"] [data-block="true"] {
+        --block-padding: var(--space-fib-4);
+        --block-bg: var(--surface-block-bg);
       }
     }
 

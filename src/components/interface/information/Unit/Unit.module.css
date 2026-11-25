@@ -1,8 +1,8 @@
 @layer blocks {
   .unit {
-    --unit-font-family: var(--font-interface);
+    --unit-font-family: var(--font-data);
     --unit-font-size: var(--text-unit-size, calc(1em / var(--type-ratio, 1.25)));
-    --unit-color: var(--content-unit, var(--content-muted));
+    --unit-color: oklch(from var(--content-warm-accent) l c h / 0.85);
     --unit-font-weight: 400;
 
     display: inline;

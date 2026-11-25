@@ -1,34 +1,34 @@
 @layer blocks {
   .storyWrapper {
     font-family: var(--font-interface);
-    color: var(--content-primary);
-    padding: var(--space-4);
+    color: var(--content-prominent);
+    padding: var(--space-fib-4);
     block-size: 100dvh;
     overflow-y: auto;
     box-sizing: border-box;
     max-inline-size: calc(var(--space-fib-12) + var(--space-fib-6) - var(--stroke-width-4));
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-fib-4);
   }
 
   .header {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--space-fib-1);
   }
 
   .title {
     margin: 0;
-    font-size: var(--text-headline-size);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--tracking-header);
-    color: var(--content-primary);
+    font-size: var(--text-content-title-size);
+    font-weight: 600;
+    letter-spacing: var(--tracking-display);
+    color: var(--content-prominent);
   }
 
   .description {
     margin: 0;
-    font-size: var(--text-body-size);
+    font-size: var(--text-content-body-size);
     line-height: var(--leading-body);
     color: var(--content-muted);
     max-inline-size: 60ch;
@@ -37,13 +37,13 @@
   .section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-fib-2);
   }
 
   .sectionTitle {
     margin: 0;
-    font-size: var(--text-caption-size);
-    font-weight: var(--font-weight-bold);
+    font-size: var(--text-content-caption-size);
+    font-weight: 600;
     letter-spacing: var(--tracking-control);
     text-transform: uppercase;
     color: var(--content-muted);
@@ -51,8 +51,8 @@
 
   .subSectionTitle {
     margin: 0;
-    font-size: var(--text-caption-size);
-    font-weight: var(--font-weight-medium);
-    color: var(--content-subtle);
+    font-size: var(--text-content-caption-size);
+    font-weight: 500;
+    color: var(--content-muted);
   }
 }

@@ -75,6 +75,11 @@ describe('cssTokenParsers', () => {
       expect(resOklch.colorHex).toBe('#002b36');
     });
 
+    it('parses transparent keyword with zero alpha', () => {
+      expect(parseCssColor('transparent')).toEqual({ colorHex: '#000000', alpha: 0 });
+      expect(parseCssColor('  TRANSPARENT ')).toEqual({ colorHex: '#000000', alpha: 0 });
+    });
+
     it('falls back gracefully on empty or invalid color strings', () => {
       const emptyRes = parseCssColor('');
       expect(emptyRes.alpha).toBe(1);

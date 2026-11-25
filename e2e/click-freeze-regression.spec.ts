@@ -73,12 +73,16 @@ test.describe('Click freeze & anchor navigation regression', () => {
     const voyagerLink = canonSection.getByRole('link', { name: /Voyager 1/i }).first();
     await expect(voyagerLink).toBeVisible();
     await voyagerLink.click();
+    await expect(page).toHaveURL(/interstellar-probes/);
+    await expect(voyagerLink).toBeVisible();
     await voyagerLink.click();
 
     // B. Click "Mars" twice in a row in Canon Layers list
     const marsLink = canonSection.getByRole('link', { name: 'Mars' }).first();
     await expect(marsLink).toBeVisible();
     await marsLink.click();
+    await expect(page.getByRole('complementary', { name: /Mars.*Solar Landmarks/i })).toBeVisible();
+    await expect(marsLink).toBeVisible();
     await marsLink.click();
 
     // C. FS-013 hides "Centre" while Sol is already centred; pan off-centre to reveal it and click "Centre"

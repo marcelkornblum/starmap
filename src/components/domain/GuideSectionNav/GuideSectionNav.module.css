@@ -1,7 +1,7 @@
 @layer blocks {
   .sectionNav {
     display: flex;
-    border-bottom: var(--border-width-1) solid var(--border-subtle);
+    gap: var(--space-fib-1);
     padding-bottom: var(--space-fib-3);
   }
 
@@ -13,20 +13,20 @@
     padding: var(--space-fib-2) var(--space-fib-3);
     border-radius: var(--radius-sm);
     transition:
-      color var(--motion-duration-feedback) var(--motion-ease-out),
-      background-color var(--motion-duration-feedback) var(--motion-ease-out);
+      color var(--motion-duration-feedback) var(--motion-ease-default),
+      background-color var(--motion-duration-feedback) var(--motion-ease-default);
   }
 
   .sectionNavLink:hover {
     color: var(--content-prominent);
-    background-color: var(--surface-overlay);
+    background: var(--surface-block-hover-bg);
   }
 }
 
 @layer exceptions {
   .sectionNavLink[aria-current='page'] {
     color: var(--content-accent);
-    background-color: var(--surface-overlay);
+    background: var(--surface-block-selected-bg);
     font-weight: 600;
   }
 }

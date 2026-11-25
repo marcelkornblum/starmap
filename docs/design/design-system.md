@@ -94,7 +94,7 @@ Maps literal values to UI roles, spatial tiers, and domain meaning. **This is th
 - **Naming Pattern:** `--[category]-[target]-[property]` (e.g. `--surface-panel-bg`, `--text-content-hero-title-size`, `--space-inset-card`, `--chrome-range-ring-color`).
 
 ### Multi-Palette Theme Architecture (`src/styles/tokens/palettes.css`)
-In addition to light and dark theme switching (`data-theme="dark" | "light"`), Starmap supports calibrated multi-palette skins (`data-palette="kepler" | "cygnus" | "carbon" | "obsidian"`) configured in `src/styles/tokens/palettes.css` and managed via `src/styles/tokens/paletteTheme.ts`. Each palette tailors the surface hue angle, focus accent chromaticity, gradients, and specular rims without altering semantic token interfaces.
+In addition to light and dark theme switching (`data-theme="dark" | "light"`), Starmap supports the calibrated `prodigy` palette (`data-palette="prodigy"`) configured in `src/styles/tokens/palettes.css` and managed via `src/styles/tokens/paletteTheme.ts`. The palette defines the surface hue angle, focus accent chromaticity, gradients, and specular rims without altering semantic token interfaces.
 
 ### 3. Component Layer (Local Token Interface)
 Components declare localized CSS variables at the top of their CSS Module rules. Components consume **only** Semantic tokens, never Literal tokens.
@@ -128,6 +128,7 @@ flowchart TD
     Modal["Tier 6: --surface-modal (Dialogues, modals)"]
     Toast["Tier 7: --surface-toast (Transient system alerts)"]
     Inset["Nested: --surface-inset (Sunken wells, inputs)"]
+    Block["Nested Cushion: --surface-block (&lt;Block&gt; borderless groups & rows)"]
 
     Canvas --> HUD --> Dock --> Panel --> Drawer --> Popover --> Modal --> Toast
 ```
