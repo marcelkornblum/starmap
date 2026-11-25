@@ -62,7 +62,7 @@
     "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^6.2.1",
     "@vitest/browser-playwright": "5.1.0",
-    "@vitest/coverage-v8": "^5.0.2",
+    "@vitest/coverage-v8": "^5.1.1",
     "csv-parser": "^3.2.1",
     "jsdom": "^31.0.1",
     "oxlint": "^1.93.0",
