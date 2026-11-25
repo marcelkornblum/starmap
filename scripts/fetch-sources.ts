@@ -142,7 +142,7 @@ export async function downloadFile(
 
       assertValidPayload(outputBuffer, url, destPath);
 
-      const remotePathname = url.split('?')[0].toLowerCase();
+      const remotePathname = new URL(url).pathname.toLowerCase();
       if (remotePathname.endsWith('.gz') && !destPath.toLowerCase().endsWith('.gz')) {
         outputBuffer = zlib.gunzipSync(outputBuffer);
         assertValidPayload(outputBuffer, url, destPath);
@@ -182,7 +182,7 @@ export async function downloadSourceWithFallback(
     return await downloadFile(source.remoteUrl, destPath, options);
   } catch (primaryErr: unknown) {
     if (!source.fallbackUrl) {
-      throw new Error(formatFetchError(primaryErr));
+      throw primaryErr;
     }
     try {
       return await downloadFile(source.fallbackUrl, destPath, options);
