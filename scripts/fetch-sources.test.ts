@@ -1,23 +1,27 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   downloadFile,
+  downloadSourceWithFallback,
   fetchAllDataSources,
+  formatFetchError,
   hasFetchFailures,
   type FetchSummary,
 } from './fetch-sources';
 
 describe('fetch-sources', () => {
   const tempDestFile = path.resolve('/tmp', `starmap-test-fetch-${Date.now()}.txt`);
+  const tempCsvFile = path.resolve('/tmp', `starmap-test-fetch-${Date.now()}.csv`);
+  const tempGzFile = path.resolve('/tmp', `starmap-test-fetch-${Date.now()}.dat.gz`);
   const tempEpochPath = path.resolve('/tmp', `starmap-test-epoch-${Date.now()}.json`);
 
   afterEach(() => {
-    if (fs.existsSync(tempDestFile)) {
-      fs.unlinkSync(tempDestFile);
-    }
-    if (fs.existsSync(tempEpochPath)) {
-      fs.unlinkSync(tempEpochPath);
+    for (const file of [tempDestFile, tempCsvFile, tempGzFile, tempEpochPath]) {
+      if (fs.existsSync(file)) {
+        fs.unlinkSync(file);
+      }
     }
     vi.restoreAllMocks();
   });
@@ -98,6 +102,126 @@ describe('fetch-sources', () => {
       ).rejects.toThrow(/HTTP fetch failed \[500 Server Error\]/);
 
       expect(callCount).toBe(3);
+    });
+
+    it('transparently gunzips remote .csv.gz responses when destination path does not end with .gz', async () => {
+      const csvPayload = 'id,hip\n0,Sol\n';
+      const compressed = zlib.gzipSync(csvPayload);
+      const mockFetch: typeof fetch = vi.fn(async () => new Response(compressed, { status: 200 }));
+
+      const bytes = await downloadFile('https://example.com/catalog/hygdata_v3.csv.gz?download=1', tempCsvFile, {
+        fetchImpl: mockFetch,
+        maxRetries: 0,
+      });
+
+      expect(bytes).toBe(Buffer.byteLength(csvPayload));
+      expect(fs.readFileSync(tempCsvFile, 'utf8')).toBe(csvPayload);
+    });
+
+    it('preserves compressed bytes when both remote URL and destination path end with .gz', async () => {
+      const rawPayload = '00123456 Sol\n';
+      const compressed = zlib.gzipSync(rawPayload);
+      const mockFetch: typeof fetch = vi.fn(async () => new Response(compressed, { status: 200 }));
+
+      const bytes = await downloadFile('https://example.com/catalog/gaia_dr3_gcns.dat.gz', tempGzFile, {
+        fetchImpl: mockFetch,
+        maxRetries: 0,
+      });
+
+      expect(bytes).toBe(compressed.length);
+      expect(fs.readFileSync(tempGzFile)).toEqual(compressed);
+    });
+
+    it('rejects Git LFS pointer payloads instead of writing pointer metadata', async () => {
+      const lfsPointer = 'version https://git-lfs.github.com/spec/v1\noid sha256:abc123\nsize 1024\n';
+      const mockFetch: typeof fetch = vi.fn(async () => new Response(lfsPointer, { status: 200 }));
+
+      await expect(
+        downloadFile('https://example.com/data/hyg.csv.gz', tempCsvFile, {
+          fetchImpl: mockFetch,
+          maxRetries: 0,
+        }),
+      ).rejects.toThrow(/Git LFS pointer/);
+      expect(fs.existsSync(tempCsvFile)).toBe(false);
+    });
+
+    it('rejects unexpected HTML responses for non-HTML targets', async () => {
+      const htmlBody = '  \n<!DOCTYPE html><html><body>Not found</body></html>';
+      const mockFetch: typeof fetch = vi.fn(async () => new Response(htmlBody, { status: 200 }));
+
+      await expect(
+        downloadFile('https://example.com/data/catalog.csv', tempCsvFile, {
+          fetchImpl: mockFetch,
+          maxRetries: 0,
+        }),
+      ).rejects.toThrow(/Unexpected HTML response/);
+      expect(fs.existsSync(tempCsvFile)).toBe(false);
+    });
+  });
+
+  describe('formatFetchError', () => {
+    it('appends nested Error cause code and message when present', () => {
+      const rootCause = Object.assign(new Error('getaddrinfo ENOTFOUND example.org'), {
+        code: 'ENOTFOUND',
+      });
+      const err = new Error('fetch failed', { cause: rootCause });
+
+      expect(formatFetchError(err)).toBe('fetch failed (getaddrinfo ENOTFOUND example.org)');
+      expect(formatFetchError(new Error('plain failure'))).toBe('plain failure');
+      expect(formatFetchError('raw string error')).toBe('raw string error');
+    });
+  });
+
+  describe('downloadSourceWithFallback', () => {
+    it('falls back to fallbackUrl when primary remoteUrl fails', async () => {
+      const mockFetch: typeof fetch = vi.fn(async (input) => {
+        const target = typeof input === 'string' ? input : input.toString();
+        if (target.includes('primary.example')) {
+          throw new Error('fetch failed', {
+            cause: Object.assign(new Error('getaddrinfo ENOTFOUND primary.example'), {
+              code: 'ENOTFOUND',
+            }),
+          });
+        }
+        return new Response('id,name\n1,Sirius\n', { status: 200 });
+      });
+
+      const bytes = await downloadSourceWithFallback(
+        {
+          remoteUrl: 'https://primary.example/catalog.csv',
+          fallbackUrl: 'https://mirror.example/catalog.csv',
+        },
+        tempCsvFile,
+        { fetchImpl: mockFetch, maxRetries: 0 },
+      );
+
+      expect(bytes).toBe(Buffer.byteLength('id,name\n1,Sirius\n'));
+      expect(fs.readFileSync(tempCsvFile, 'utf8')).toBe('id,name\n1,Sirius\n');
+    });
+
+    it('combines primary and fallback errors when both fail', async () => {
+      const mockFetch: typeof fetch = vi.fn(async (input) => {
+        const target = typeof input === 'string' ? input : input.toString();
+        if (target.includes('primary.example')) {
+          throw new Error('fetch failed', {
+            cause: Object.assign(new Error('getaddrinfo ENOTFOUND primary.example'), {
+              code: 'ENOTFOUND',
+            }),
+          });
+        }
+        return new Response('Unavailable', { status: 503, statusText: 'Service Unavailable' });
+      });
+
+      await expect(
+        downloadSourceWithFallback(
+          {
+            remoteUrl: 'https://primary.example/catalog.csv',
+            fallbackUrl: 'https://mirror.example/catalog.csv',
+          },
+          tempCsvFile,
+          { fetchImpl: mockFetch, maxRetries: 0 },
+        ),
+      ).rejects.toThrow(/Primary \(fetch failed \(getaddrinfo ENOTFOUND primary\.example\)\); Fallback \(HTTP fetch failed \[503 Service Unavailable\]/);
     });
   });
 

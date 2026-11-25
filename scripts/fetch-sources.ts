@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
+import type { DataSourceDefinition } from '../src/types/dataSources';
 import { DATA_SOURCES_REGISTRY } from './sources.config';
 import { writeBuildEpochIso } from './pipeline/seedCatalogs';
 
@@ -47,6 +49,9 @@ function resolveSeedPathForSource(sourceId: string): string {
   if (sourceId === 'stellar-recons-10pc') {
     return path.resolve('data/seed/recons-10pc.json');
   }
+  if (sourceId === 'stellar-simbad-identifiers') {
+    return path.resolve('data/seed/system-aliases.json');
+  }
   if (sourceId === 'exoplanet-iau-name-exoworlds') {
     return path.resolve('data/seed/name-exoworlds.json');
   }
@@ -56,15 +61,61 @@ function resolveSeedPathForSource(sourceId: string): string {
   return path.resolve(`data/seed/${sourceId}.json`);
 }
 
+function assertValidPayload(buffer: Buffer, url: string, destPath: string): void {
+  const prefix = buffer.subarray(0, 128).toString('utf8').trimStart().slice(0, 64);
+  if (prefix.startsWith('version https://git-lfs.github.com/spec/')) {
+    throw new Error(`Git LFS pointer returned instead of binary payload for ${url}`);
+  }
+  if (!/\.html?$/i.test(destPath)) {
+    const lowerPrefix = prefix.toLowerCase();
+    if (lowerPrefix.startsWith('<!doctype html') || lowerPrefix.startsWith('<html')) {
+      throw new Error(`Unexpected HTML response returned for ${url}`);
+    }
+  }
+}
+
 /**
- * Downloads a remote file to a local destination with timeout and exponential backoff retry.
+ * Formats a fetch failure, appending nested Error cause code or message when present.
+ */
+export function formatFetchError(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return String(err);
+  }
+  if (err.cause === undefined) {
+    return err.message;
+  }
+  const cause = err.cause;
+  let causeDetail: string;
+  if (cause instanceof Error) {
+    const causeCode =
+      'code' in cause && typeof cause.code === 'string' && cause.code.length > 0
+        ? cause.code
+        : undefined;
+    if (causeCode && cause.message) {
+      causeDetail = cause.message.includes(causeCode)
+        ? cause.message
+        : `${causeCode}: ${cause.message}`;
+    } else {
+      causeDetail = cause.message || causeCode || String(cause);
+    }
+  } else if (typeof cause === 'object' && cause !== null && 'code' in cause) {
+    causeDetail = String((cause as { code?: unknown }).code);
+  } else {
+    causeDetail = String(cause);
+  }
+  return `${err.message} (${causeDetail})`;
+}
+
+/**
+ * Downloads a remote file to a local destination with timeout, payload validation,
+ * transparent gzip decompression, and exponential backoff retry.
  */
 export async function downloadFile(
   url: string,
   destPath: string,
   options?: DownloadFileOptions,
 ): Promise<number> {
-  const timeoutMs = options?.timeoutMs ?? 30_000;
+  const timeoutMs = options?.timeoutMs ?? 60_000;
   const maxRetries = options?.maxRetries ?? 3;
   const retryDelayMs = options?.retryDelayMs ?? 500;
   const fetchFn = options?.fetchImpl ?? fetch;
@@ -87,15 +138,23 @@ export async function downloadFile(
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      let outputBuffer: Buffer = Buffer.from(arrayBuffer);
+
+      assertValidPayload(outputBuffer, url, destPath);
+
+      const remotePathname = new URL(url).pathname.toLowerCase();
+      if (remotePathname.endsWith('.gz') && !destPath.toLowerCase().endsWith('.gz')) {
+        outputBuffer = zlib.gunzipSync(outputBuffer);
+        assertValidPayload(outputBuffer, url, destPath);
+      }
 
       const dir = path.dirname(destPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      fs.writeFileSync(destPath, buffer);
-      return buffer.length;
+      fs.writeFileSync(destPath, outputBuffer);
+      return outputBuffer.length;
     } catch (err: unknown) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < maxRetries) {
@@ -106,6 +165,33 @@ export async function downloadFile(
   }
 
   throw lastError ?? new Error(`Failed to download ${url}`);
+}
+
+/**
+ * Downloads a source's remoteUrl, falling back to fallbackUrl if the primary download fails.
+ */
+export async function downloadSourceWithFallback(
+  source: Pick<DataSourceDefinition, 'remoteUrl' | 'fallbackUrl'>,
+  destPath: string,
+  options?: DownloadFileOptions,
+): Promise<number> {
+  if (!source.remoteUrl) {
+    throw new Error('Source has no remoteUrl configured');
+  }
+  try {
+    return await downloadFile(source.remoteUrl, destPath, options);
+  } catch (primaryErr: unknown) {
+    if (!source.fallbackUrl) {
+      throw primaryErr;
+    }
+    try {
+      return await downloadFile(source.fallbackUrl, destPath, options);
+    } catch (fallbackErr: unknown) {
+      throw new Error(
+        `Primary (${formatFetchError(primaryErr)}); Fallback (${formatFetchError(fallbackErr)})`,
+      );
+    }
+  }
 }
 
 /**
@@ -182,7 +268,7 @@ export async function fetchAllDataSources(
     if (source.remoteUrl) {
       try {
         console.log(`Fetching ${source.name} from ${source.remoteUrl}...`);
-        const bytes = await downloadFile(source.remoteUrl, resolvedLocal, options);
+        const bytes = await downloadSourceWithFallback(source, resolvedLocal, options);
 
         summaries.push({
           sourceId: source.id,
@@ -199,7 +285,7 @@ export async function fetchAllDataSources(
           status: 'error',
           localPath: resolvedLocal,
           bytes: 0,
-          message: err instanceof Error ? err.message : String(err),
+          message: formatFetchError(err),
         });
       }
     }
@@ -208,7 +294,6 @@ export async function fetchAllDataSources(
   return summaries;
 }
 
-// CLI entrypoint
 const isDirectExecution =
   process.argv[1]?.endsWith('fetch-sources.ts') ||
   process.argv[1]?.endsWith('fetch-sources');

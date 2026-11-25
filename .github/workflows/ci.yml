@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+env:
+  DATA_RELEASE_TAG: data-sources-v1
+  RAW_CATALOGUES_SHA256: fc57abc8fae6819e23324e409d6d9bd668213b2920de5715c515bddbca5ab8f5
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
@@ -96,16 +100,27 @@ jobs:
         run: npm run data:fixture
       - name: Cache source catalogues
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        id: raw-cache
         uses: actions/cache@v4
         with:
           path: |
             data/raw
             data/hygdata_v3.csv
-          key: ${{ runner.os }}-source-catalogues-${{ hashFiles('scripts/sources.config.ts') }}
+          key: ${{ runner.os }}-raw-catalogues-${{ env.DATA_RELEASE_TAG }}-${{ env.RAW_CATALOGUES_SHA256 }}
+      - name: Download and verify pinned source catalogues (main)
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && steps.raw-cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/starmap-raw
+          gh release download "$DATA_RELEASE_TAG" --pattern "raw-catalogues.tar.gz" --dir /tmp/starmap-raw
+          echo "${RAW_CATALOGUES_SHA256}  /tmp/starmap-raw/raw-catalogues.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/starmap-raw/raw-catalogues.tar.gz
+          rm -rf /tmp/starmap-raw
       - name: Build full data pipeline and verify budgets (main)
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
-          npm run data:pipeline
+          npm run data:build
           npm run audit:budgets
       - name: Build
         run: npm run build
