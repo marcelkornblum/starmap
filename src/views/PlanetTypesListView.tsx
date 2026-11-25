@@ -2,7 +2,7 @@ import type React from 'react';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
-import { CelestialBadge, Cluster, Datum, Grid, Heading } from '../components/interface';
+import { Block, CelestialBadge, Cluster, Datum, Grid, Heading } from '../components/interface';
 import { PLANET_TYPE_GUIDE_ENTRIES } from '../content/guide';
 import styles from './GuideViews.module.css';
 
@@ -19,11 +19,13 @@ export const PlanetTypesListView: React.FC = () => {
       <Heading as="h1">Planet Types</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="planet-types-guide-list">
         {PLANET_TYPE_GUIDE_ENTRIES.map((entry) => (
-          <li
+          <Block
+            as="li"
+            interactive
+            padding="loose"
             key={entry.id}
             data-testid="planet-types-guide-item"
             data-planet-type={entry.id}
-            className={styles.cardItem}
           >
             <a
               href={entry.href}
@@ -43,7 +45,7 @@ export const PlanetTypesListView: React.FC = () => {
               <Datum label="Mass Range" value={entry.massRangeMearth} />
               <p>{entry.summary}</p>
             </a>
-          </li>
+          </Block>
         ))}
       </Grid>
     </main>

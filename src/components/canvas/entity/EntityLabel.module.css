@@ -20,7 +20,8 @@
     text-transform: var(--text-map-system-transform);
     line-height: var(--leading-metric);
     color: var(--node-label-color);
-    background-color: var(--node-label-bg);
+    background: var(--node-label-bg);
+    text-shadow: var(--shadow-map-label-halo);
     border-width: var(--node-label-border-width, 1px);
     border-style: var(--node-label-border-style, solid);
     border-color: var(--node-label-border-color, var(--status-nominal));
@@ -60,7 +61,7 @@
     letter-spacing: var(--text-content-catalog-id-tracking);
     line-height: var(--leading-metric);
     color: var(--node-facet-color);
-    background-color: var(--node-facet-bg);
+    background: var(--node-facet-bg);
     border-width: var(--node-facet-border-width, 1px);
     border-style: var(--node-facet-border-style, solid);
     border-color: var(--node-facet-border-color, var(--status-nominal));
@@ -120,12 +121,14 @@
   }
 
   .nodeLabel[data-state="focused"] {
-    --node-label-border-color: var(--chrome-node-label-focused-border-color, var(--state-focus));
+    --node-label-bg: var(--surface-panel-bg);
+    --node-label-border-color: oklch(from var(--state-focus) l c h / 0.55);
     --node-label-color: var(--chrome-node-label-focused-color, var(--state-focus));
   }
 
   .nodeLabel[data-state="selected"] {
-    --node-label-border-color: var(--chrome-node-label-selected-border-color, var(--state-selected-border));
+    --node-label-bg: var(--surface-panel-bg);
+    --node-label-border-color: oklch(from var(--state-selected-border) l c h / 0.45);
     --node-label-color: var(--chrome-node-label-selected-color, var(--content-prominent));
   }
 
@@ -136,12 +139,14 @@
   }
 
   .spectralFacet[data-state="focused"] {
-    --node-facet-border-color: var(--chrome-node-label-focused-border-color, var(--state-focus));
+    --node-facet-bg: var(--surface-panel-bg);
+    --node-facet-border-color: oklch(from var(--state-focus) l c h / 0.55);
     --node-facet-color: var(--chrome-node-label-focused-color, var(--state-focus));
   }
 
   .spectralFacet[data-state="selected"] {
-    --node-facet-border-color: var(--chrome-node-label-selected-border-color, var(--state-selected-border));
+    --node-facet-bg: var(--surface-panel-bg);
+    --node-facet-border-color: oklch(from var(--state-selected-border) l c h / 0.45);
     --node-facet-color: var(--content-default);
   }
 

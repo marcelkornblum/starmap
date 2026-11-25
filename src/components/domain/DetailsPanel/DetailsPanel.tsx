@@ -74,35 +74,40 @@ export const DetailsPanel = memo(function DetailsPanel({
     stars,
     planets,
     orbitingBodies,
+    planetTelemetry,
+    systemSummarySegments,
     canonAnnotations = [],
   } = details;
 
   const isSystemFocus = focusedKind === 'system';
 
   const peekContent = (
-    <>
-      <DetailsIdentityHeader
-        name={name}
-        systemName={systemName}
-        reticleType={reticleType}
-        focusedKind={focusedKind}
-        spectralType={spectralType}
-        starCount={starCount}
-      />
-      <DetailsQuickTelemetrySection details={details} />
-    </>
+    <DetailsIdentityHeader
+      name={name}
+      systemName={systemName}
+      reticleType={reticleType}
+      focusedKind={focusedKind}
+      spectralType={spectralType}
+      starCount={starCount}
+      planetComposition={planetTelemetry?.composition}
+      isHabitableCandidate={planetTelemetry?.isHabitableCandidate}
+      systemSummarySegments={systemSummarySegments}
+      actionControls={
+        <DetailsActionControls
+          id={id}
+          directionsHref={details.directionsHref}
+          centerHref={details.centerHref}
+          systemDetailsHref={details.systemDetailsHref}
+          coordinatesPc={details.coordinatesPc}
+        />
+      }
+    />
   );
 
   const partialContent = (
     <>
-      <DetailsActionControls
-        id={id}
-        directionsHref={details.directionsHref}
-        centerHref={details.centerHref}
-        systemDetailsHref={details.systemDetailsHref}
-        coordinatesPc={details.coordinatesPc}
-      />
       {preview ? <PreviewPanel preview={preview} /> : null}
+      <DetailsQuickTelemetrySection details={details} />
       <DetailsHazardsSection hazards={details.hazards} />
       <DetailsDeferredPartialLower
         canonAnnotations={canonAnnotations}

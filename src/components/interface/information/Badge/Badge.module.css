@@ -1,8 +1,8 @@
 @layer blocks {
   .badge {
-    --badge-bg: var(--surface-dock-bg);
+    --badge-bg: var(--surface-block-bg);
     --badge-color: var(--content-default);
-    --badge-border-color: var(--border-color-subtle);
+    --badge-border-color: transparent;
     --badge-border-width: var(--border-width-1);
     --badge-border-style: var(--border-style-boundary);
     --badge-radius: var(--radius-badge, var(--radius-1));
@@ -24,7 +24,7 @@
     background: var(--badge-bg);
     color: var(--badge-color);
     border: var(--badge-border-width) var(--badge-border-style) var(--badge-border-color);
-    box-shadow: var(--bevel-top-rim-subtle);
+    box-shadow: none;
     box-sizing: border-box;
     text-decoration: none;
     white-space: nowrap;
@@ -65,20 +65,20 @@
     --badge-bg: var(--status-neutral-bg);
   }
 
-  /* Confidence variants - tuned-down 30% alpha specular borders */
+  /* Confidence variants - tuned-down 18% alpha specular borders */
   .badge[data-confidence="confirmed"] {
     --badge-color: var(--confidence-confirmed);
-    --badge-border-color: oklch(from var(--confidence-confirmed) l c h / 0.30);
+    --badge-border-color: oklch(from var(--confidence-confirmed) l c h / 0.18);
     --badge-bg: oklch(from var(--confidence-confirmed) l c h / 0.12);
   }
   .badge[data-confidence="candidate"] {
     --badge-color: var(--confidence-candidate);
-    --badge-border-color: oklch(from var(--confidence-candidate) l c h / 0.30);
+    --badge-border-color: oklch(from var(--confidence-candidate) l c h / 0.18);
     --badge-bg: oklch(from var(--confidence-candidate) l c h / 0.12);
   }
   .badge[data-confidence="projected"] {
     --badge-color: var(--confidence-theoretical);
-    --badge-border-color: oklch(from var(--confidence-theoretical) l c h / 0.30);
+    --badge-border-color: oklch(from var(--confidence-theoretical) l c h / 0.18);
     --badge-bg: oklch(from var(--confidence-theoretical) l c h / 0.12);
   }
   .badge[data-confidence="unverified"] {
@@ -87,25 +87,25 @@
     --badge-bg: var(--surface-inset-bg);
   }
 
-  /* Category variants - tuned-down 30% alpha specular borders */
+  /* Category variants - tuned-down 18% alpha specular borders */
   .badge[data-category="star"] {
     --badge-color: var(--category-star);
-    --badge-border-color: oklch(from var(--category-star) l c h / 0.30);
+    --badge-border-color: oklch(from var(--category-star) l c h / 0.18);
     --badge-bg: oklch(from var(--category-star) l c h / 0.12);
   }
   .badge[data-category="planet"] {
     --badge-color: var(--category-planet);
-    --badge-border-color: oklch(from var(--category-planet) l c h / 0.30);
+    --badge-border-color: oklch(from var(--category-planet) l c h / 0.18);
     --badge-bg: oklch(from var(--category-planet) l c h / 0.12);
   }
   .badge[data-category="nebula"] {
     --badge-color: var(--category-orbit);
-    --badge-border-color: oklch(from var(--category-orbit) l c h / 0.30);
+    --badge-border-color: oklch(from var(--category-orbit) l c h / 0.18);
     --badge-bg: oklch(from var(--category-orbit) l c h / 0.12);
   }
   .badge[data-category="constellation"] {
     --badge-color: var(--category-planet);
-    --badge-border-color: oklch(from var(--category-planet) l c h / 0.30);
+    --badge-border-color: oklch(from var(--category-planet) l c h / 0.18);
     --badge-bg: oklch(from var(--category-planet) l c h / 0.12);
   }
 }

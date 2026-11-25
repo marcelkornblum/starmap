@@ -448,13 +448,15 @@ describe('Journey 5: Transit Flow - 3D View Reference Point, Camera URL State & 
     expect(centerBtn).toHaveTextContent('Centre');
 
     // 2. Detents are present
+    const peekDetent = screen.getByTestId('details-detent-peek');
     const partialDetent = screen.getByTestId('details-detent-partial');
     const fullDetent = screen.getByTestId('details-detent-full');
+    expect(peekDetent).toBeInTheDocument();
     expect(partialDetent).toBeInTheDocument();
     expect(fullDetent).toBeInTheDocument();
 
-    // 3. Partial detent contains CTA and canon
-    expect(within(partialDetent).getByTestId('details-button-center')).toBeInTheDocument();
+    // 3. Peek hero block contains CTA; partial detent contains canon
+    expect(within(peekDetent).getByTestId('details-button-center')).toBeInTheDocument();
     expect(within(partialDetent).getByTestId('details-canon-section')).toBeInTheDocument();
 
     // 4. Full detent contains telemetry and astrometry

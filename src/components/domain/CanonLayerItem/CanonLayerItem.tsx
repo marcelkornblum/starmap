@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
 import { buildLayerGalaxyHref } from '../../../services/search/searchUrls';
-import { Badge } from '../../interface';
+import { Badge, Block, Cluster, Stack } from '../../interface';
 import styles from './CanonLayerItem.module.css';
 
 export interface CanonLayerItemProps {
@@ -21,7 +21,6 @@ export const CanonLayerItem = memo(function CanonLayerItem({
   annotation,
   as = 'li',
 }: CanonLayerItemProps): ReactNode {
-  const Component = as;
   const title =
     annotation.inUniverseName ||
     annotation.resolvedName ||
@@ -40,35 +39,36 @@ export const CanonLayerItem = memo(function CanonLayerItem({
   );
 
   return (
-    <Component
-      className={styles.item}
+    <Block
+      as={as}
+      padding="tight"
       data-testid="details-canon-item"
       data-layer-id={annotation.layerId}
       data-layer-kind={annotation.kind}
       data-target-id={annotation.targetId}
     >
-      <div className={styles.content}>
-        {annotation.href ? (
-          <a
-            href={annotation.href}
-            className={styles.titleLink}
-            data-testid="details-canon-item-link"
-          >
-            {titleNode}
-          </a>
-        ) : (
-          titleNode
-        )}
-        {annotation.subtitle ? (
-          <span
-            className={styles.subtitle}
-            data-testid="details-canon-item-subtitle"
-          >
-            {annotation.subtitle}
-          </span>
-        ) : null}
-      </div>
-      <div className={styles.badgeWrapper}>
+      <Cluster justify="between" align="start" gap="fib-3">
+        <Stack gap="fib-1">
+          {annotation.href ? (
+            <a
+              href={annotation.href}
+              className={styles.titleLink}
+              data-testid="details-canon-item-link"
+            >
+              {titleNode}
+            </a>
+          ) : (
+            titleNode
+          )}
+          {annotation.subtitle ? (
+            <span
+              className={styles.subtitle}
+              data-testid="details-canon-item-subtitle"
+            >
+              {annotation.subtitle}
+            </span>
+          ) : null}
+        </Stack>
         <Badge
           status={annotation.kind === 'scientific-overlay' ? 'info' : 'neutral'}
           href={badgeHref}
@@ -76,8 +76,8 @@ export const CanonLayerItem = memo(function CanonLayerItem({
         >
           {annotation.layerTitle}
         </Badge>
-      </div>
-    </Component>
+      </Cluster>
+    </Block>
   );
 });
 

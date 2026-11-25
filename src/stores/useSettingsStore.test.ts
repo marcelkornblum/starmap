@@ -4,6 +4,7 @@ import {
   DEFAULT_SETTINGS,
   fallbackStorage,
   resolveSettingsStorage,
+  migrateSettingsState,
 } from './useSettingsStore';
 
 describe('useSettingsStore (Persistent)', () => {
@@ -15,7 +16,7 @@ describe('useSettingsStore (Persistent)', () => {
   it('initializes with default settings', () => {
     const state = useSettingsStore.getState();
     expect(state.theme).toBe('dark');
-    expect(state.palette).toBe('carbon');
+    expect(state.palette).toBe('prodigy');
     expect(state.showLabels).toBe(true);
     expect(state.showGrid).toBe(true);
     expect(state.showOrbits).toBe(true);
@@ -130,5 +131,25 @@ describe('useSettingsStore (Persistent)', () => {
     delete globalThis.localStorage;
     expect(resolveSettingsStorage()).toBe(fallbackStorage);
     globalThis.localStorage = origLocal;
+  });
+
+  it('migrates legacy persisted palette values to prodigy', async () => {
+    const migrated = migrateSettingsState(
+      { palette: 'carbon', theme: 'light', showLabels: false },
+      0,
+    );
+    expect(migrated.palette).toBe('prodigy');
+    expect(migrated.theme).toBe('light');
+    expect(migrated.showLabels).toBe(false);
+
+    expect(migrateSettingsState(null, 0)).toEqual(DEFAULT_SETTINGS);
+
+    localStorage.setItem(
+      'starmap-settings',
+      JSON.stringify({ state: { palette: 'carbon', theme: 'light' }, version: 0 }),
+    );
+    await useSettingsStore.persist.rehydrate();
+    expect(useSettingsStore.getState().palette).toBe('prodigy');
+    expect(useSettingsStore.getState().theme).toBe('light');
   });
 });

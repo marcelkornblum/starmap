@@ -33,7 +33,7 @@
     width: 100%;
     height: calc(var(--space-fib-9) + var(--space-fib-5));
     border-radius: var(--radius-sm);
-    background: radial-gradient(circle at center, var(--surface-popover-bg) 0%, var(--surface-canvas-bg) 100%);
+    background: radial-gradient(circle at center, var(--surface-block-bg) 0%, var(--surface-canvas-bg) 100%);
     border: var(--border-width-1) solid var(--border-subtle);
     overflow: hidden;
   }

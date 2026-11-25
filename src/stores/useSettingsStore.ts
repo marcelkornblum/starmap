@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type UITheme = 'dark' | 'light' | 'amoled';
-export type ThemePalette = 'kepler' | 'cygnus' | 'carbon' | 'obsidian';
+export type ThemePalette = 'prodigy';
 export type ProjectionMode = '3d' | 'top-down';
 
 export interface SettingsState {
@@ -36,7 +36,7 @@ export type SettingsStore = SettingsState & SettingsActions;
 
 export const DEFAULT_SETTINGS: SettingsState = {
   theme: 'dark',
-  palette: 'carbon',
+  palette: 'prodigy',
   showLabels: true,
   showGrid: true,
   showOrbits: true,
@@ -78,6 +78,18 @@ export function resolveSettingsStorage(): Storage {
   return fallbackStorage;
 }
 
+export function migrateSettingsState(persistedState: unknown, _version: number): SettingsState {
+  if (typeof persistedState === 'object' && persistedState !== null) {
+    const record = persistedState as Partial<SettingsState>;
+    return {
+      ...DEFAULT_SETTINGS,
+      ...record,
+      palette: 'prodigy',
+    };
+  }
+  return { ...DEFAULT_SETTINGS };
+}
+
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
@@ -100,7 +112,19 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'starmap-settings',
+      version: 1,
       storage: createJSONStorage(resolveSettingsStorage),
+      partialize: (state): SettingsState => ({
+        theme: state.theme,
+        palette: state.palette,
+        showLabels: state.showLabels,
+        showGrid: state.showGrid,
+        showOrbits: state.showOrbits,
+        projection: state.projection,
+        enableOrthographicProjection: state.enableOrthographicProjection,
+        volume: state.volume,
+      }),
+      migrate: migrateSettingsState,
     },
   ),
 );

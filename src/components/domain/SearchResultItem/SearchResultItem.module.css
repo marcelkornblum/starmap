@@ -1,21 +1,10 @@
 @layer blocks {
-  .searchResultItem {
-    --search-result-item-gap: var(--space-fib-2);
-    --search-result-item-padding: var(--space-fib-1) var(--space-fib-2);
-    --search-result-item-border-radius: var(--radius-control);
-
-    display: flex;
-    align-items: center;
-    gap: var(--search-result-item-gap);
-    padding: var(--search-result-item-padding);
-    border-radius: var(--search-result-item-border-radius);
-    list-style: none;
-  }
-
   .resultLink {
     display: flex;
     align-items: center;
     inline-size: 100%;
+    padding: var(--space-fib-2) var(--space-fib-3);
+    box-sizing: border-box;
     text-decoration: none;
     color: inherit;
   }

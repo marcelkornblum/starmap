@@ -17,7 +17,7 @@
   .mainTitle {
     margin: 0;
     font-size: var(--type-scale-3);
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--content-prominent);
     letter-spacing: var(--tracking-spatial);
     text-transform: uppercase;
@@ -34,7 +34,7 @@
   .sectionTitle {
     margin: 0;
     font-size: var(--type-scale-1);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--content-prominent);
   }
 

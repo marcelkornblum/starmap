@@ -1,10 +1,31 @@
 import { useEffect, useCallback } from 'react';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useThreeTokenStore } from '../../stores/useThreeTokenStore';
+import { classifyDeviceTier, subscribeDeviceTier } from '../../services/deviceTierService';
 import { extractThreeTokens } from '../../utils/extractThreeTokens';
 
+function syncDocumentAttributes(theme: string, palette: string): void {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  if (root.getAttribute('data-theme') !== theme) {
+    root.setAttribute('data-theme', theme);
+  }
+  if (root.getAttribute('data-palette') !== palette) {
+    root.setAttribute('data-palette', palette);
+  }
+}
+
+function syncDeviceTierAttribute(): void {
+  if (typeof document === 'undefined') return;
+  const tier = classifyDeviceTier();
+  if (document.documentElement.dataset.deviceTier !== tier) {
+    document.documentElement.dataset.deviceTier = tier;
+  }
+}
+
 /**
- * Hook synchronising DOM theme tokens with the Three.js token store.
+ * Hook synchronising DOM theme tokens, palette attributes, and device performance tier
+ * with the settings and Three.js token stores.
  * Performs a single-pass DOM read on theme change or DOM mutation,
  * avoiding per-frame layout thrashing.
  */
@@ -20,10 +41,26 @@ export function useThemeTokenSync(): void {
   }, [theme, setTokens]);
 
   useEffect(() => {
-    // 1. Resolve immediately on mount or store theme change
+    // 1. Sync initial DOM attributes & device tier, then resolve tokens
+    const initialState = useSettingsStore.getState();
+    syncDocumentAttributes(initialState.theme, initialState.palette);
+    syncDeviceTierAttribute();
     resolveTokens();
 
-    // 2. Observe DOM mutations on documentElement (data-theme, data-palette, class)
+    // 2. Subscribe to store theme/palette changes
+    const unsubscribeSettings = useSettingsStore.subscribe((state, prevState) => {
+      if (state.theme !== prevState.theme || state.palette !== prevState.palette) {
+        syncDocumentAttributes(state.theme, state.palette);
+        resolveTokens();
+      }
+    });
+
+    // 3. Subscribe to runtime device tier updates
+    const unsubscribeDeviceTier = subscribeDeviceTier(() => {
+      syncDeviceTierAttribute();
+    });
+
+    // 4. Observe DOM mutations on documentElement (data-theme, data-palette, class)
     let observer: MutationObserver | undefined;
     if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
       observer = new MutationObserver((mutations) => {
@@ -46,7 +83,7 @@ export function useThemeTokenSync(): void {
       });
     }
 
-    // 3. Listen to prefers-reduced-motion changes
+    // 5. Listen to prefers-reduced-motion changes
     let mql: MediaQueryList | undefined;
     const handleMotionChange = () => resolveTokens();
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
@@ -59,6 +96,8 @@ export function useThemeTokenSync(): void {
     }
 
     return () => {
+      unsubscribeSettings();
+      unsubscribeDeviceTier();
       observer?.disconnect();
       if (mql) {
         if (typeof mql.removeEventListener === 'function') {

@@ -16,49 +16,16 @@ export interface PaletteDefinition {
 }
 
 export const THEME_PALETTES: Record<ThemePalette, PaletteDefinition> = {
-  kepler: {
-    id: 'kepler',
-    label: 'Kepler',
-    tagline: 'Titanium Slate / Neodymium Emerald',
+  prodigy: {
+    id: 'prodigy',
+    label: 'Prodigy',
+    tagline: 'Abyssal Verdigris / Phosphor Bio-Jade',
     surfaceHue: 198,
-    focusHue: 156,
-    accentColorDark: 'oklch(75.0% 0.190 156)',
-    accentColorLight: 'oklch(45.0% 0.175 156)',
-    surfaceColorDark: 'oklch(6.8% 0.022 198)',
-    surfaceColorLight: 'oklch(96.8% 0.010 198)',
-  },
-  cygnus: {
-    id: 'cygnus',
-    label: 'Cygnus',
-    tagline: 'Midnight Navy / Pulsar Amber',
-    surfaceHue: 238,
-    focusHue: 58,
-    accentColorDark: 'oklch(74.0% 0.188 58)',
-    accentColorLight: 'oklch(48.0% 0.185 52)',
-    surfaceColorDark: 'oklch(6.8% 0.040 238)',
-    surfaceColorLight: 'oklch(96.5% 0.012 238)',
-  },
-  carbon: {
-    id: 'carbon',
-    label: 'Carbon',
-    tagline: 'Achromatic Carbon / Laser Cyan',
-    surfaceHue: 0,
-    focusHue: 195,
-    accentColorDark: 'oklch(78.0% 0.172 195)',
-    accentColorLight: 'oklch(44.0% 0.160 195)',
-    surfaceColorDark: 'oklch(5.5% 0.000 0)',
-    surfaceColorLight: 'oklch(97.0% 0.000 0)',
-  },
-  obsidian: {
-    id: 'obsidian',
-    label: 'Obsidian',
-    tagline: 'Celestial Indigo / Ion Cobalt',
-    surfaceHue: 255,
-    focusHue: 262,
-    accentColorDark: 'oklch(65.0% 0.235 262)',
-    accentColorLight: 'oklch(50.0% 0.230 262)',
-    surfaceColorDark: 'oklch(6.5% 0.020 255)',
-    surfaceColorLight: 'oklch(96.5% 0.008 255)',
+    focusHue: 166,
+    accentColorDark: 'oklch(81.5% 0.148 166)',
+    accentColorLight: 'oklch(46.0% 0.140 166)',
+    surfaceColorDark: 'oklch(10.5% 0.024 198)',
+    surfaceColorLight: 'oklch(97.2% 0.008 198)',
   },
 };
 

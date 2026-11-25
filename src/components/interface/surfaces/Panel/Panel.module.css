@@ -45,7 +45,7 @@
     padding-block: var(--space-stack-dense);
     border-block-end: var(--rule-hairline);
     background: transparent;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     font-size: var(--text-content-section-title-size);
   }
 

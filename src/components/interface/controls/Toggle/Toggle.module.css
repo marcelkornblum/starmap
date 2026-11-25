@@ -3,7 +3,7 @@
     /* Component Geometry & Layout */
     --toggle-width: calc(var(--space-fib-6) - var(--stroke-width-2));
     --toggle-height: calc(var(--space-fib-3) * 2);
-    --toggle-radius: var(--radius-badge);
+    --toggle-radius: var(--radius-full);
     --toggle-track-border-width: var(--border-width-1);
 
     --toggle-thumb-size: var(--space-fib-3);
@@ -13,7 +13,7 @@
 
     --toggle-gap: var(--space-gap-control);
     --toggle-font-family: var(--font-interface);
-    --toggle-font-size: var(--type-scale-0);
+    --toggle-font-size: var(--text-ui-control-size);
     --toggle-opacity: var(--opacity-100);
     --toggle-cursor: pointer;
 
@@ -82,15 +82,15 @@
   }
 
   .toggleContainer[data-checked="true"] {
-    --toggle-track-bg: var(--state-active-subtle);
-    --toggle-track-border-color: var(--border-focus);
-    --toggle-thumb-bg: var(--state-active);
-    --toggle-thumb-glow: var(--palette-accent-focus-halo);
+    --toggle-track-bg: var(--surface-block-selected-bg);
+    --toggle-track-border-color: oklch(from var(--state-focus) l c h / 0.45);
+    --toggle-thumb-bg: var(--state-focus);
+    --toggle-thumb-glow: none;
     --toggle-thumb-transform: translateX(var(--toggle-thumb-active-offset));
   }
 
   .toggleContainer[data-checked="true"]:hover:not(:disabled) {
-    --toggle-thumb-bg: var(--palette-accent-focus-hover);
+    --toggle-thumb-bg: var(--content-prominent);
   }
 
   .toggleContainer:disabled,

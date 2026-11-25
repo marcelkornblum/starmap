@@ -3,6 +3,7 @@ import { buildMetricGuideHref } from '../../../content/guide';
 import {
   Badge,
   type BadgeConfidence,
+  Block,
   CelestialBadge,
   type ConfidenceLevel,
   Datum,
@@ -32,92 +33,94 @@ export const DetailsDiskTelemetrySection = ({
       <Heading as="h4" size="eyebrow" id="details-disk-telemetry-heading">
         Circumstellar Disk Telemetry
       </Heading>
-      <Stack gap="none" data-testid="details-disk-telemetry-list">
-        <Datum
-          label="Classification"
-          valueTestId="details-disk-telemetry-classification"
-          value={
-            <CelestialBadge
-              type={diskTelemetry.classification}
-              href={buildMetricGuideHref('semi-major-axis', entityId)}
-              data-testid="details-disk-classification-link"
-            />
-          }
-        />
-        {diskTelemetry.confidence ? (
+      <Block padding="tight">
+        <Stack gap="fib-1" data-testid="details-disk-telemetry-list">
           <Datum
-            label="Observational Confidence"
-            valueTestId="details-disk-telemetry-confidence"
-            confidence={diskTelemetry.confidence as ConfidenceLevel}
+            label="Classification"
+            valueTestId="details-disk-telemetry-classification"
             value={
-              <Badge confidence={diskTelemetry.confidence as BadgeConfidence}>
-                {diskTelemetry.confidence}
-              </Badge>
+              <CelestialBadge
+                type={diskTelemetry.classification}
+                href={buildMetricGuideHref('semi-major-axis', entityId)}
+                data-testid="details-disk-classification-link"
+              />
             }
           />
-        ) : null}
-        <Datum
-          label="Radial Span"
-          valueTestId="details-disk-telemetry-span"
-          value={
-            <>
-              <span>{diskTelemetry.innerRadiusAu}</span>
-              <span>–</span>
-              <span>{diskTelemetry.outerRadiusAu}</span>
-            </>
-          }
-          unit={
-            <Unit>
-              <a
-                href={buildMetricGuideHref('semi-major-axis', entityId)}
-                data-testid="details-metric-unit-link"
-              >
-                AU
-              </a>
-            </Unit>
-          }
-        />
-        <Datum
-          label="Midpoint Radius"
-          valueTestId="details-disk-telemetry-midpoint"
-          value={diskTelemetry.semiMajorAxisAu}
-          unit={
-            <Unit>
-              <a
-                href={buildMetricGuideHref('semi-major-axis', entityId)}
-                data-testid="details-metric-unit-link"
-              >
-                AU
-              </a>
-            </Unit>
-          }
-        />
-        {diskTelemetry.tempK !== undefined ? (
+          {diskTelemetry.confidence ? (
+            <Datum
+              label="Observational Confidence"
+              valueTestId="details-disk-telemetry-confidence"
+              confidence={diskTelemetry.confidence as ConfidenceLevel}
+              value={
+                <Badge confidence={diskTelemetry.confidence as BadgeConfidence}>
+                  {diskTelemetry.confidence}
+                </Badge>
+              }
+            />
+          ) : null}
           <Datum
-            label="Estimated Temp"
-            valueTestId="details-disk-telemetry-temp"
-            value={diskTelemetry.tempK}
+            label="Radial Span"
+            valueTestId="details-disk-telemetry-span"
+            value={
+              <>
+                <span>{diskTelemetry.innerRadiusAu}</span>
+                <span>–</span>
+                <span>{diskTelemetry.outerRadiusAu}</span>
+              </>
+            }
             unit={
               <Unit>
                 <a
-                  href={buildMetricGuideHref(
-                    'equilibrium-temperature',
-                    entityId,
-                  )}
+                  href={buildMetricGuideHref('semi-major-axis', entityId)}
                   data-testid="details-metric-unit-link"
                 >
-                  K
+                  AU
                 </a>
               </Unit>
             }
           />
-        ) : null}
-        <Datum
-          label="Composition"
-          valueTestId="details-disk-telemetry-composition"
-          value={diskTelemetry.composition}
-        />
-      </Stack>
+          <Datum
+            label="Midpoint Radius"
+            valueTestId="details-disk-telemetry-midpoint"
+            value={diskTelemetry.semiMajorAxisAu}
+            unit={
+              <Unit>
+                <a
+                  href={buildMetricGuideHref('semi-major-axis', entityId)}
+                  data-testid="details-metric-unit-link"
+                >
+                  AU
+                </a>
+              </Unit>
+            }
+          />
+          {diskTelemetry.tempK !== undefined ? (
+            <Datum
+              label="Estimated Temp"
+              valueTestId="details-disk-telemetry-temp"
+              value={diskTelemetry.tempK}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref(
+                      'equilibrium-temperature',
+                      entityId,
+                    )}
+                    data-testid="details-metric-unit-link"
+                  >
+                    K
+                  </a>
+                </Unit>
+              }
+            />
+          ) : null}
+          <Datum
+            label="Composition"
+            valueTestId="details-disk-telemetry-composition"
+            value={diskTelemetry.composition}
+          />
+        </Stack>
+      </Block>
     </section>
   );
 };

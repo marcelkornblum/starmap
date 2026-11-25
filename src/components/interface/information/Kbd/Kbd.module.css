@@ -1,12 +1,12 @@
 @layer blocks {
   .kbd {
     --kbd-font-family: var(--font-data);
-    --kbd-font-size: var(--type-scale-neg-1);
-    --kbd-bg: var(--surface-inset-bg);
+    --kbd-font-size: var(--type-scale-neg-2);
+    --kbd-bg: var(--surface-block-bg);
     --kbd-border-color: var(--border-color-subtle);
     --kbd-border-width: var(--stroke-hairline, 1px);
     --kbd-border-style: solid;
-    --kbd-radius: var(--radius-control);
+    --kbd-radius: var(--radius-2);
     --kbd-padding: var(--space-inset-badge);
     --kbd-color: var(--content-muted);
 

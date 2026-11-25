@@ -249,7 +249,7 @@ describe('<DetailsPanel />', () => {
     expect(useUIStore.getState().detailsDetent).toBe('partial');
   });
 
-  it('renders PreviewPanel inside partial detent immediately below DetailsActionControls, not in full detent', () => {
+  it('renders PreviewPanel inside partial detent directly above DetailsQuickTelemetrySection and DetailsActionControls inside peek Hero Block, not in full detent', () => {
     const mockPreview = {
       targetId: 'tau-ceti',
       targetName: 'Tau Ceti',
@@ -268,13 +268,89 @@ describe('<DetailsPanel />', () => {
       />,
     );
 
+    const peekDetent = container.querySelector('[data-testid="details-detent-peek"]');
     const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
     const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
-    expect(partialDetent?.querySelector('[data-testid="preview-panel"]')).not.toBeNull();
-    expect(fullDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
-
-    const ctaGroup = partialDetent?.querySelector('[data-testid="details-cta-group"]');
     const previewPanel = partialDetent?.querySelector('[data-testid="preview-panel"]');
-    expect(ctaGroup?.nextElementSibling).toBe(previewPanel);
+    expect(previewPanel).not.toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
+    expect(peekDetent?.querySelector('[data-testid="details-cta-group"]')).not.toBeNull();
+    expect(partialDetent?.querySelector('[data-testid="details-cta-group"]')).toBeNull();
+    expect(previewPanel?.nextElementSibling?.querySelector('[data-testid="details-planet-composition"]')).not.toBeNull();
+  });
+
+  it('renders cohesive Hero Block in peek, quick telemetry and hazard Blocks in partial, and full telemetry in full', () => {
+    const hazardDetails: FocusedSystemEntityDetails = {
+      ...mockSystemDetails,
+      hazardCount: 2,
+      hazardSummaryLabel: '2 hazards',
+      hazards: [
+        {
+          code: 'RAD-01',
+          label: 'High UV Flux',
+          severity: 'warning',
+          description: 'Elevated stellar UV radiation.',
+        },
+        {
+          code: 'TID-02',
+          label: 'Tidal Shear',
+          severity: 'critical',
+          description: 'Extreme tidal heating.',
+        },
+      ],
+    };
+
+    const { container } = render(
+      <DetailsPanel
+        details={hazardDetails}
+        isOpen={true}
+        activeDetent="full"
+      />,
+    );
+
+    const peekDetent = container.querySelector('[data-testid="details-detent-peek"]');
+    expect(peekDetent?.children).toHaveLength(2);
+    expect(peekDetent?.children[0].tagName).toBe('H3');
+    expect(peekDetent?.children[1]).toHaveAttribute('data-testid', 'details-peek-header');
+    expect(peekDetent?.children[1]).toHaveAttribute('data-block', 'true');
+    expect(peekDetent?.children[1].querySelector('[data-testid="details-peek-name"]')).not.toBeNull();
+    expect(peekDetent?.children[1].querySelector('[data-testid="details-system-summary"]')).not.toBeNull();
+    expect(peekDetent?.children[1].querySelector('[data-testid="details-cta-group"]')).not.toBeNull();
+
+    const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
+    expect(partialDetent?.querySelector('[data-testid="details-planet-composition"]')).not.toBeNull();
+
+    const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
+    expect(fullDetent?.querySelector('[data-testid="details-planet-composition"]')).toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="details-astrometry-section"]')).not.toBeNull();
+
+    const hazardsList = screen.getByTestId('details-hazards-list');
+    expect(hazardsList.tagName).toBe('UL');
+    const hazardItems = screen.getAllByTestId('details-hazard-item');
+    expect(hazardItems).toHaveLength(2);
+    expect(hazardItems[0].tagName).toBe('LI');
+    expect(hazardItems[0]).toHaveAttribute('data-block', 'true');
+    expect(hazardItems[0]).toHaveAttribute('data-status', 'caution');
+    expect(hazardItems[0]).toHaveAttribute('data-hazard-severity', 'warning');
+    expect(hazardItems[1]).toHaveAttribute('data-status', 'critical');
+    expect(screen.getByText('Elevated stellar UV radiation.')).toBeInTheDocument();
+  });
+
+  it('renders planet classification and habitable zone badges with labels inside peek Hero Block for planet focus', () => {
+    const { container } = render(
+      <DetailsPanel
+        details={mockPlanetDetails}
+        isOpen={true}
+        activeDetent="full"
+      />,
+    );
+
+    const peekHeader = container.querySelector('[data-testid="details-peek-header"]');
+    const typeLink = peekHeader?.querySelector('[data-testid="details-planet-type-link"]');
+    const habitableLink = peekHeader?.querySelector('[data-testid="details-planet-habitable-link"]');
+    expect(typeLink).not.toBeNull();
+    expect(habitableLink).not.toBeNull();
+    expect(typeLink?.textContent).toMatch(/terrestrial/i);
+    expect(habitableLink?.textContent).toMatch(/habitable zone/i);
   });
 });

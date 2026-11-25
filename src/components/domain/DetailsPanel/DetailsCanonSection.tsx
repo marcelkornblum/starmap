@@ -7,7 +7,7 @@ import {
 } from '../../../content/guide';
 import { resolveAppHref } from '../../../utils/url';
 import {
-  DataTable,
+  Block,
   Datum,
   HazardBadge,
   Heading,
@@ -36,7 +36,7 @@ export const DetailsCanonLayersSection = ({
       <Heading as="h4" size="eyebrow" id="details-canon-heading">
         Canon Layers
       </Heading>
-      <Stack as="ul" gap="none" data-testid="details-canon-list">
+      <Stack as="ul" gap="fib-2" data-testid="details-canon-list">
         {canonAnnotations.map((annotation) => (
           <CanonLayerItem
             key={`${annotation.layerId}:${annotation.targetId}`}
@@ -64,57 +64,54 @@ export const DetailsHazardsSection = memo(function DetailsHazardsSection({
         Environmental Hazards
       </Heading>
       {hazards.length === 0 ? (
-        <Stack gap="none" data-testid="details-hazards-nominal">
-          <Datum
-            label="Status"
-            value="Nominal environment"
-            unit={
-              <Quantity
-                value={0}
-                unit={
-                  <Unit>
-                    <a
-                      href={resolveAppHref(HAZARDS_GUIDE_PATH)}
-                      data-testid="details-hazards-guide-link"
-                    >
-                      hazards
-                    </a>
-                  </Unit>
-                }
-              />
-            }
-          />
-        </Stack>
+        <Block padding="tight">
+          <Stack gap="fib-1" data-testid="details-hazards-nominal">
+            <Datum
+              label="Status"
+              value="Nominal environment"
+              unit={
+                <Quantity
+                  value={0}
+                  unit={
+                    <Unit>
+                      <a
+                        href={resolveAppHref(HAZARDS_GUIDE_PATH)}
+                        data-testid="details-hazards-guide-link"
+                      >
+                        hazards
+                      </a>
+                    </Unit>
+                  }
+                />
+              }
+            />
+          </Stack>
+        </Block>
       ) : (
-        <DataTable data-testid="details-hazards-list">
-          <DataTable.Head>
-            <DataTable.Row>
-              <DataTable.HeaderCell>Hazard</DataTable.HeaderCell>
-              <DataTable.HeaderCell>Operational Impact</DataTable.HeaderCell>
-            </DataTable.Row>
-          </DataTable.Head>
-          <DataTable.Body>
-            {hazards.map((hazard) => (
-              <DataTable.Row
-                key={hazard.code}
-                data-testid="details-hazard-item"
-                data-hazard-code={hazard.code}
-                data-hazard-severity={hazard.severity}
-              >
-                <DataTable.Cell>
-                  <HazardBadge
-                    code={hazard.code}
-                    label={hazard.label}
-                    severity={hazard.severity}
-                    href={buildHazardGuideHref(hazard.code)}
-                    data-testid="details-hazard-guide-link"
-                  />
-                </DataTable.Cell>
-                <DataTable.Cell>{hazard.description}</DataTable.Cell>
-              </DataTable.Row>
-            ))}
-          </DataTable.Body>
-        </DataTable>
+        <Stack as="ul" gap="fib-2" data-testid="details-hazards-list">
+          {hazards.map((hazard) => (
+            <Block
+              as="li"
+              key={hazard.code}
+              status={hazard.severity === 'critical' ? 'critical' : 'caution'}
+              padding="tight"
+              data-testid="details-hazard-item"
+              data-hazard-code={hazard.code}
+              data-hazard-severity={hazard.severity}
+            >
+              <Stack gap="fib-1">
+                <HazardBadge
+                  code={hazard.code}
+                  label={hazard.label}
+                  severity={hazard.severity}
+                  href={buildHazardGuideHref(hazard.code)}
+                  data-testid="details-hazard-guide-link"
+                />
+                <span>{hazard.description}</span>
+              </Stack>
+            </Block>
+          ))}
+        </Stack>
       )}
     </section>
   );

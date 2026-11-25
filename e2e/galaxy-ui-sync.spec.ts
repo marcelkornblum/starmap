@@ -26,7 +26,7 @@ test.describe('3D Canvas <-> DOM UI Synchronization & Mobile DetentSheet', () =>
     await expect
       .poll(
         async () =>
-          page.locator('[data-testid="bodies-galaxy-systems-list"] tbody tr').count(),
+          page.locator('[data-testid="bodies-galaxy-systems-list"] [data-testid="bodies-galaxy-system-item"]').count(),
         { timeout: 15_000 },
       )
       .toBeGreaterThan(0);

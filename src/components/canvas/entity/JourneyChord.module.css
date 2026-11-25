@@ -10,22 +10,22 @@
     border-radius: var(--radius-sm);
     color: var(--content-default);
     font-family: var(--font-data);
-    font-size: var(--text-ui-caption-size);
+    font-size: var(--text-content-caption-size);
     line-height: 1.2;
     white-space: nowrap;
     pointer-events: none;
     user-select: none;
     backdrop-filter: blur(var(--filter-blur-1));
-    box-shadow: var(--shadow-elevation-1);
+    box-shadow: var(--elevation-1);
   }
 
   .calloutDistance {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--state-focus);
   }
 
   .calloutSecondary {
-    font-size: var(--text-ui-badge-size);
+    font-size: var(--text-content-badge-size);
     color: var(--content-muted);
   }
 }

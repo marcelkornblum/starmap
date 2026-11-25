@@ -8,7 +8,6 @@
     max-block-size: 50dvh;
     overflow-y: auto;
     padding-block-start: var(--space-fib-2);
-    border-block-start: var(--rule-hairline);
   }
 }
 

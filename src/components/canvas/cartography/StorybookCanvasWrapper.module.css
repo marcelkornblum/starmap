@@ -40,13 +40,13 @@
     inset-block-start: var(--space-fib-3);
     inset-inline-start: var(--space-fib-3);
     z-index: var(--layer-hud);
-    background-color: var(--surface-overlay-bg);
-    color: var(--content-primary);
+    background-color: var(--surface-panel-bg);
+    color: var(--content-prominent);
     padding: var(--space-fib-1) var(--space-fib-2);
     border-radius: var(--radius-container);
     border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
     font-family: var(--font-data);
-    font-size: var(--text-caption-size);
+    font-size: var(--text-content-caption-size);
     pointer-events: auto;
     display: flex;
     flex-direction: column;
@@ -61,12 +61,12 @@
   .demoButton {
     padding: var(--space-fib-1) var(--space-fib-2);
     background-color: transparent;
-    color: var(--content-primary);
+    color: var(--content-prominent);
     border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
     border-radius: var(--radius-badge);
     cursor: pointer;
     font-family: var(--font-data);
-    font-size: var(--text-caption-size);
+    font-size: var(--text-content-caption-size);
   }
 
   .demoButton[data-active="true"] {
@@ -82,7 +82,7 @@
   .diagTable {
     border-collapse: collapse;
     font-family: var(--font-data);
-    font-size: var(--text-caption-size);
+    font-size: var(--text-content-caption-size);
   }
 
   .diagTable th,

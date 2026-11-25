@@ -1,0 +1,42 @@
+@layer blocks {
+  .block {
+    --block-bg: var(--surface-block-bg);
+    --block-radius: var(--surface-block-radius);
+    --block-padding: var(--space-fib-3);
+
+    background: var(--block-bg);
+    border: none;
+    border-radius: var(--block-radius);
+    padding: var(--block-padding);
+    margin: 0;
+    list-style: none;
+    box-sizing: border-box;
+    color: inherit;
+    transition: background var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .block:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+  }
+}
+
+@layer exceptions {
+  .block[data-padding="none"] { --block-padding: 0; }
+  .block[data-padding="tight"] { --block-padding: var(--space-fib-2) var(--space-fib-3); }
+  .block[data-padding="default"] { --block-padding: var(--space-fib-3); }
+  .block[data-padding="loose"] { --block-padding: var(--space-fib-4); }
+
+  .block[data-tone="sub"] { --block-bg: var(--surface-block-sub-bg); }
+
+  .block[data-interactive="true"] { cursor: pointer; }
+  .block[data-interactive="true"]:hover { --block-bg: var(--surface-block-hover-bg); }
+
+  .block[data-selected="true"] { --block-bg: var(--surface-block-selected-bg); }
+
+  .block[data-status="nominal"] { --block-bg: oklch(from var(--status-nominal) l c h / 0.12); }
+  .block[data-status="caution"] { --block-bg: oklch(from var(--status-caution) l c h / 0.12); }
+  .block[data-status="critical"] { --block-bg: oklch(from var(--status-critical) l c h / 0.12); }
+  .block[data-status="info"] { --block-bg: oklch(from var(--status-info) l c h / 0.12); }
+  .block[data-status="neutral"] { --block-bg: oklch(from var(--status-neutral) l c h / 0.12); }
+}

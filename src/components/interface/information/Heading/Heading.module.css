@@ -18,7 +18,7 @@
   .heading {
     --heading-color: var(--content-prominent);
     --heading-font-size: var(--text-content-body-lead-size);
-    --heading-font-weight: 500;
+    --heading-font-weight: var(--font-weight-medium);
     --heading-letter-spacing: var(--tracking-body, 0em);
     --heading-text-transform: none;
 
@@ -36,7 +36,7 @@
   .eyebrow {
     font-family: var(--font-interface);
     font-size: var(--text-content-eyebrow-size);
-    font-weight: 700;
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-eyebrow, 0.08em);
     text-transform: var(--text-content-eyebrow-transform, uppercase);
     color: var(--content-muted);
@@ -55,31 +55,31 @@
 @layer exceptions {
   .heading[data-size="hero"] {
     --heading-font-size: var(--text-content-hero-title-size);
-    --heading-font-weight: 700;
+    --heading-font-weight: var(--font-weight-semibold);
     --heading-letter-spacing: var(--tracking-display, -0.02em);
   }
 
   .heading[data-size="title"] {
     --heading-font-size: var(--text-content-title-size);
-    --heading-font-weight: 700;
+    --heading-font-weight: var(--font-weight-semibold);
     --heading-letter-spacing: var(--tracking-display, -0.02em);
   }
 
   .heading[data-size="section"] {
     --heading-font-size: var(--text-content-section-title-size);
-    --heading-font-weight: 600;
+    --heading-font-weight: var(--font-weight-semibold);
     --heading-letter-spacing: var(--tracking-control, 0.04em);
   }
 
   .heading[data-size="lead"] {
     --heading-font-size: var(--text-content-body-lead-size);
-    --heading-font-weight: 500;
+    --heading-font-weight: var(--font-weight-medium);
     --heading-letter-spacing: var(--tracking-body, 0em);
   }
 
   .heading[data-size="eyebrow"] {
     --heading-font-size: var(--text-content-eyebrow-size);
-    --heading-font-weight: 700;
+    --heading-font-weight: var(--font-weight-semibold);
     --heading-letter-spacing: var(--tracking-eyebrow, 0.08em);
     --heading-text-transform: var(--text-content-eyebrow-transform, uppercase);
     --heading-color: var(--content-muted);

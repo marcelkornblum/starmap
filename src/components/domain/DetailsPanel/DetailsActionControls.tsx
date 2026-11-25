@@ -121,7 +121,7 @@ export const DetailsActionControls = memo(function DetailsActionControls({
   const shouldRenderCenter = Boolean(centerHref) && isOffCenter;
 
   return (
-    <Cluster gap="default" data-testid="details-cta-group">
+    <Cluster gap="fib-2" data-cta-row="true" data-testid="details-cta-group">
       {systemDetailsHref ? (
         <Button
           href={systemDetailsHref}

@@ -7,7 +7,7 @@
     --input-border-style: var(--border-style-boundary);
     --input-padding-inline: var(--input-padding-x, var(--space-inset-control-x));
     --input-padding-block: var(--input-padding-y, var(--space-inset-control-y));
-    --input-font-size: var(--type-scale-0);
+    --input-font-size: var(--text-ui-control-size);
     --input-radius: var(--radius-control);
     --input-shadow: var(--ui-control-inset-shadow);
     --input-placeholder-color: var(--content-faint);
@@ -35,12 +35,8 @@
   }
 
   .input:focus {
-    --input-border-color: oklch(from var(--state-focus) l c h / 0.40);
-    --input-shadow:
-      inset 0 -1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
-      inset -1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
-      inset 0 0 var(--radius-2) 0 oklch(from var(--state-focus) l c h / 0.20),
-      var(--ui-control-inset-shadow);
+    --input-border-color: oklch(from var(--state-focus) l c h / 0.55);
+    --input-shadow: var(--state-focus-halo);
     box-shadow: var(--input-shadow);
   }
 
@@ -57,20 +53,12 @@
 
 @layer exceptions {
   .input[data-status="error"] {
-    --input-border-color: oklch(from var(--status-critical) l c h / 0.40);
-    --input-shadow:
-      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
-      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
-      inset 0 0 var(--radius-2) 0 oklch(from var(--status-critical) l c h / 0.20),
-      var(--ui-control-inset-shadow);
+    --input-border-color: var(--status-critical);
+    --input-shadow: var(--ui-control-inset-shadow);
   }
   .input[data-status="error"]:focus {
-    --input-border-color: oklch(from var(--status-critical) l c h / 0.50);
-    --input-shadow:
-      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.40),
-      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
-      inset 0 0 var(--space-fib-2) 0 oklch(from var(--status-critical) l c h / 0.25),
-      var(--ui-control-inset-shadow);
+    --input-border-color: var(--status-critical);
+    --input-shadow: var(--ui-control-inset-shadow);
     box-shadow: var(--input-shadow);
   }
 

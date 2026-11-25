@@ -22,7 +22,7 @@ export const DetailsCanonLayersSection = memo(function DetailsCanonLayersSection
       <Heading as="h4" size="eyebrow" id="details-canon-heading">
         Canon Layers
       </Heading>
-      <Stack as="ul" gap="none" data-testid="details-canon-list">
+      <Stack as="ul" gap="fib-2" data-testid="details-canon-list">
         {canonAnnotations.map((annotation) => (
           <CanonLayerItem
             key={`${annotation.layerId}:${annotation.targetId}`}

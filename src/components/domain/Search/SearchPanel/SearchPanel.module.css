@@ -26,7 +26,6 @@
     gap: var(--search-drawer-gap);
     flex-wrap: wrap;
     padding-block-start: var(--space-fib-1);
-    border-block-start: var(--rule-hairline);
   }
 }
 

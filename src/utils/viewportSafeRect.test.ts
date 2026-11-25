@@ -128,6 +128,19 @@ describe('viewportSafeRect', () => {
       });
       expect(mobilePillOnly.bottom).toBe(0);
 
+      // Centred desktop floating capsule (< 50% width on wide viewports, straddling horizontal centre)
+      const desktopCapsule1440 = computeViewportSafeRect(1440, 900, {
+        controlsRegion: rect(420, 840, 600, 48),
+      });
+      expect(desktopCapsule1440.bottom).toBe(60);
+      expect(desktopCapsule1440.height).toBe(840);
+
+      const desktopCapsule2560 = computeViewportSafeRect(2560, 1440, {
+        controlsRegion: rect(980, 1380, 600, 48),
+      });
+      expect(desktopCapsule2560.bottom).toBe(60);
+      expect(desktopCapsule2560.height).toBe(1380);
+
       // Mobile detent sheet in partial detent takes max over controls pill
       const mobileSheet = computeViewportSafeRect(390, 844, {
         controlsRegion: rect(0, 790, 390, 54),

@@ -134,6 +134,24 @@ describe('UI Design System & CSS Governance Audit (scripts/audit-ui.ts)', () => 
       expect(tokenDiags.some((d) => d.message.includes('"0ms"'))).toBe(false);
     });
 
+    it('flags undefined CSS custom properties without fallback while permitting fallbacks and local definitions', () => {
+      const css = `
+        @layer blocks {
+          .widget {
+            --local-token: var(--space-fib-2);
+            padding: var(--local-token);
+            margin: var(--missing-with-fallback, 0);
+            color: var(--missing-token);
+            block-size: var(--detent-sheet-block-size);
+          }
+        }
+      `;
+      const diags = auditCssModuleContent('src/views/Tokens.module.css', css);
+      const undefDiags = diags.filter((d) => d.ruleId === 'undefined-css-token');
+      expect(undefDiags).toHaveLength(1);
+      expect(undefDiags[0].message).toContain('--missing-token');
+    });
+
     it('verifies that all Wave 1A owned CSS modules have zero violations', () => {
       const ownedFiles = [
         'src/views/GuideViews.module.css',

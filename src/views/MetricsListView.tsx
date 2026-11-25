@@ -2,7 +2,7 @@ import type React from 'react';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
-import { Badge, Cluster, Datum, Grid, Heading, Unit } from '../components/interface';
+import { Badge, Block, Cluster, Datum, Grid, Heading, Unit } from '../components/interface';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { METRIC_GUIDE_ENTRIES } from '../content/guide';
 import { useReferenceBaselines } from '../hooks/useGuideData';
@@ -35,11 +35,13 @@ export const MetricsListView: React.FC = () => {
               : 'planet';
 
           return (
-            <li
+            <Block
+              as="li"
+              interactive
+              padding="loose"
               key={entry.id}
               data-testid="metrics-guide-item"
               data-metric-id={entry.id}
-              className={styles.cardItem}
             >
               <a
                 href={entry.href}
@@ -67,7 +69,7 @@ export const MetricsListView: React.FC = () => {
                 />
                 <p>{entry.summary}</p>
               </a>
-            </li>
+            </Block>
           );
         })}
       </Grid>

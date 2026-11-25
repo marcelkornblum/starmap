@@ -4,10 +4,10 @@
     --datum-font-size: var(--text-content-data-value-size);
     --datum-label-font-size: var(--text-content-data-label-size);
     --datum-label-color: var(--content-muted);
-    --datum-value-color: var(--content-default);
-    --datum-value-weight: 500;
+    --datum-value-color: var(--content-prominent);
+    --datum-value-weight: var(--font-weight-medium);
     --datum-border-color: var(--border-color-subtle);
-    --datum-border-width: var(--border-width-1);
+    --datum-border-width: var(--stroke-width-0);
     --datum-border-style: var(--border-style-provisional);
     --datum-padding-y: var(--space-inset-cell-y);
     --datum-unit-font-size: var(--text-content-metric-unit-size);
@@ -19,7 +19,7 @@
     justify-content: space-between;
     align-items: baseline;
     padding-block: var(--datum-padding-y);
-    border-block-end: var(--datum-border-width) var(--datum-border-style) var(--datum-border-color);
+    border-block-end: none;
     font-family: var(--datum-font-family);
     font-size: var(--datum-font-size);
     font-weight: var(--datum-value-weight);

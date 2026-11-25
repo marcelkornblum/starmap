@@ -22,8 +22,8 @@
     box-shadow: var(--surface-hud-shadow);
     cursor: pointer;
     padding: 0;
-    transition: background var(--motion-duration-feedback) var(--motion-ease-out),
-                color var(--motion-duration-feedback) var(--motion-ease-out);
+    transition: background var(--motion-duration-feedback) var(--motion-ease-default),
+                color var(--motion-duration-feedback) var(--motion-ease-default);
   }
 
   .controlBar [data-mobile-toggle]:hover {
@@ -56,9 +56,77 @@
     font-size: var(--type-scale-neg-1);
     color: var(--content-muted);
   }
+
+  .controlBar [data-testid="control-bar-datetime-picker"] {
+    --ui-control-inset-bg: transparent;
+    --ui-control-inset-border-color: transparent;
+    --ui-control-inset-shadow: none;
+    --input-color: var(--content-warm-accent);
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 @layer exceptions {
+  @media (min-width: 768px) {
+    .controlBar,
+    .timeController,
+    .modeGroup {
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .timeController > :has([data-testid="control-bar-time-scrubber"]) {
+      inline-size: var(--size-measure-xs);
+      flex: 0 0 var(--size-measure-xs);
+    }
+
+    .timeController [data-testid="control-bar-datetime-picker"] {
+      inline-size: auto;
+      flex: 0 0 auto;
+    }
+
+    .controlBar [data-testid="control-bar-shortcut-item"] > span {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .controlBar,
+    .timeController,
+    .modeGroup {
+      gap: var(--space-fib-1);
+    }
+
+    .timeController > :has([data-testid="control-bar-time-scrubber"]) {
+      inline-size: var(--space-fib-8);
+      flex: 0 0 var(--space-fib-8);
+    }
+
+    .controlBar .timeController [data-testid="control-bar-datetime-picker"] {
+      --input-padding-x: var(--space-fib-1);
+      --input-padding-inline: var(--space-fib-1);
+    }
+
+    .controlBar [data-shortcuts-list] {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+  }
+
   @media (max-width: 767px) {
     .controlBar [data-mobile-toggle] {
       display: inline-flex;

@@ -1,0 +1,18 @@
+@layer blocks {
+  .entityTitle {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-interface);
+    font-size: var(--text-content-title-size);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-heading);
+    color: var(--content-prominent);
+  }
+
+  .summaryText {
+    margin: 0;
+    font-size: var(--type-scale-neg-1);
+    line-height: var(--leading-body);
+    color: var(--content-default);
+  }
+}

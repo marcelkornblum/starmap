@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { DataTable } from '../../interface';
+import { Stack } from '../../interface';
 import {
   BodiesGalaxySystemRow,
   type GalaxySystemItem,
@@ -47,16 +47,14 @@ const NON_FOCUSED_ITEM: GalaxySystemItem = {
 describe('BodiesGalaxySystemRow', () => {
   it('renders row attributes for focused and selected state', () => {
     render(
-      <DataTable>
-        <DataTable.Body>
-          <BodiesGalaxySystemRow
-            sys={BASE_ITEM}
-            isItemFocused={true}
-            isItemSelected={false}
-            isItemHovered={false}
-          />
-        </DataTable.Body>
-      </DataTable>,
+      <Stack as="ul">
+        <BodiesGalaxySystemRow
+          sys={BASE_ITEM}
+          isItemFocused={true}
+          isItemSelected={false}
+          isItemHovered={false}
+        />
+      </Stack>,
     );
 
     const row = screen.getByTestId('bodies-galaxy-system-item');
@@ -68,16 +66,14 @@ describe('BodiesGalaxySystemRow', () => {
 
   it('renders selected attribute when selected', () => {
     render(
-      <DataTable>
-        <DataTable.Body>
-          <BodiesGalaxySystemRow
-            sys={NON_FOCUSED_ITEM}
-            isItemFocused={false}
-            isItemSelected={true}
-            isItemHovered={true}
-          />
-        </DataTable.Body>
-      </DataTable>,
+      <Stack as="ul">
+        <BodiesGalaxySystemRow
+          sys={NON_FOCUSED_ITEM}
+          isItemFocused={false}
+          isItemSelected={true}
+          isItemHovered={true}
+        />
+      </Stack>,
     );
 
     const row = screen.getByTestId('bodies-galaxy-system-item');
@@ -88,16 +84,14 @@ describe('BodiesGalaxySystemRow', () => {
 
   it('renders focused origin badge when tier is focused and distanceFromFocusPc is 0', () => {
     render(
-      <DataTable>
-        <DataTable.Body>
-          <BodiesGalaxySystemRow
-            sys={BASE_ITEM}
-            isItemFocused={true}
-            isItemSelected={false}
-            isItemHovered={false}
-          />
-        </DataTable.Body>
-      </DataTable>,
+      <Stack as="ul">
+        <BodiesGalaxySystemRow
+          sys={BASE_ITEM}
+          isItemFocused={true}
+          isItemSelected={false}
+          isItemHovered={false}
+        />
+      </Stack>,
     );
 
     expect(screen.getByTestId('bodies-focused-origin-badge')).toBeInTheDocument();
@@ -106,16 +100,14 @@ describe('BodiesGalaxySystemRow', () => {
 
   it('renders pc and ly distance quantities when not origin', () => {
     render(
-      <DataTable>
-        <DataTable.Body>
-          <BodiesGalaxySystemRow
-            sys={NON_FOCUSED_ITEM}
-            isItemFocused={false}
-            isItemSelected={false}
-            isItemHovered={false}
-          />
-        </DataTable.Body>
-      </DataTable>,
+      <Stack as="ul">
+        <BodiesGalaxySystemRow
+          sys={NON_FOCUSED_ITEM}
+          isItemFocused={false}
+          isItemSelected={false}
+          isItemHovered={false}
+        />
+      </Stack>,
     );
 
     expect(screen.queryByTestId('bodies-focused-origin-badge')).toBeNull();
@@ -132,17 +124,15 @@ describe('BodiesGalaxySystemRow', () => {
   it('handles mouseEnter, mouseLeave, focus, and blur callbacks', () => {
     const handleHover = vi.fn();
     render(
-      <DataTable>
-        <DataTable.Body>
-          <BodiesGalaxySystemRow
-            sys={BASE_ITEM}
-            isItemFocused={false}
-            isItemSelected={false}
-            isItemHovered={false}
-            onHoverEntity={handleHover}
-          />
-        </DataTable.Body>
-      </DataTable>,
+      <Stack as="ul">
+        <BodiesGalaxySystemRow
+          sys={BASE_ITEM}
+          isItemFocused={false}
+          isItemSelected={false}
+          isItemHovered={false}
+          onHoverEntity={handleHover}
+        />
+      </Stack>,
     );
 
     const row = screen.getByTestId('bodies-galaxy-system-item');
