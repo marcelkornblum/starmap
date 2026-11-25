@@ -17,6 +17,7 @@ import {
   Cluster,
   Quantity,
   SpectralBadge,
+  Stack,
 } from '../../interface';
 import { renderSystemSummarySegments } from './systemSummarySegments';
 import styles from './DetailsIdentityHeader.module.css';
@@ -51,7 +52,7 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
 
   return (
     <Block padding="loose" data-testid="details-peek-header">
-      <div className={styles.heroStack}>
+      <Stack gap="fib-3">
         <Cluster gap="tight" align="center">
           <span className={styles.entityTitle}>
             <CelestialTitle
@@ -83,7 +84,7 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
             />
           ) : null}
           {planetComposition ? (
-            <span className={styles.heroExtraBadges} data-hero-extra="true">
+            <Cluster as="span" gap="tight" align="center" data-hero-extra="true">
               <CelestialBadge
                 type={planetComposition}
                 href={buildPlanetTypeGuideHref(planetComposition)}
@@ -98,20 +99,20 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
                   data-testid="details-planet-habitable-link"
                 />
               ) : null}
-            </span>
+            </Cluster>
           ) : null}
         </Cluster>
         {hasHeroBody ? (
-          <div className={styles.heroBody} data-hero-body="true">
+          <Stack gap="fib-3" data-hero-body="true">
             {systemSummarySegments !== undefined ? (
               <p className={styles.summaryText} data-testid="details-system-summary">
                 {renderSystemSummarySegments(systemSummarySegments)}
               </p>
             ) : null}
             {actionControls}
-          </div>
+          </Stack>
         ) : null}
-      </div>
+      </Stack>
     </Block>
   );
 });

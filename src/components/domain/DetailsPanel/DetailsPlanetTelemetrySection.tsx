@@ -4,7 +4,6 @@ import {
   buildPlanetTypeGuideHref,
 } from '../../../content/guide';
 import {
-  Badge,
   Block,
   CelestialBadge,
   Cluster,
@@ -218,14 +217,11 @@ export const DetailsPlanetTelemetrySection = ({
             data-testid="details-planet-telemetry-tidal-status"
             label="Tidal Status"
             valueTestId="details-planet-telemetry-tidal"
+            status={planetTelemetry.isTidallyLocked ? 'caution' : undefined}
             value={
-              planetTelemetry.isTidallyLocked ? (
-                <Badge status="caution">
-                  Tidally locked (synchronous)
-                </Badge>
-              ) : (
-                'Free rotation'
-              )
+              planetTelemetry.isTidallyLocked
+                ? 'Tidally locked (synchronous)'
+                : 'Free rotation'
             }
           />
           {planetTelemetry.discoveryYear !== undefined ||
