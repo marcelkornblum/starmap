@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+env:
+  DATA_RELEASE_TAG: data-sources-v1
+  RAW_CATALOGUES_SHA256: fc57abc8fae6819e23324e409d6d9bd668213b2920de5715c515bddbca5ab8f5
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -25,8 +29,26 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: Fetch source catalogues and build data artefacts (pass 1)
-        run: npm run data:pipeline
+      - name: Cache source catalogues
+        id: raw-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/raw
+            data/hygdata_v3.csv
+          key: ${{ runner.os }}-raw-catalogues-${{ env.DATA_RELEASE_TAG }}-${{ env.RAW_CATALOGUES_SHA256 }}
+      - name: Download and verify pinned source catalogues
+        if: steps.raw-cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/starmap-raw
+          gh release download "$DATA_RELEASE_TAG" --pattern "raw-catalogues.tar.gz" --dir /tmp/starmap-raw
+          echo "${RAW_CATALOGUES_SHA256}  /tmp/starmap-raw/raw-catalogues.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/starmap-raw/raw-catalogues.tar.gz
+          rm -rf /tmp/starmap-raw
+      - name: Build data artefacts (pass 1)
+        run: npm run data:build
       - name: Verify data budgets
         run: npm run audit:budgets
       - name: Snapshot pass 1 manifest
