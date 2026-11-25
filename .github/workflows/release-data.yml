@@ -6,12 +6,21 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to attach stars.json.gz assets to
+        description: Release tag to attach catalogue assets to
         required: true
         type: string
+      refresh_upstream:
+        description: Fetch fresh upstream catalogues via data:fetch --force instead of pinned release archive
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
+
+env:
+  DATA_RELEASE_TAG: data-sources-v1
+  RAW_CATALOGUES_SHA256: fc57abc8fae6819e23324e409d6d9bd668213b2920de5715c515bddbca5ab8f5
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -43,23 +52,52 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Cache source catalogues
+        id: raw-cache
+        if: inputs.refresh_upstream != true
         uses: actions/cache@v4
         with:
           path: |
             data/raw
             data/hygdata_v3.csv
-          key: ${{ runner.os }}-source-catalogues-${{ hashFiles('scripts/sources.config.ts') }}
+          key: ${{ runner.os }}-raw-catalogues-${{ env.DATA_RELEASE_TAG }}-${{ env.RAW_CATALOGUES_SHA256 }}
+      - name: Download and verify pinned source catalogues
+        if: inputs.refresh_upstream != true && steps.raw-cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/starmap-raw
+          gh release download "$DATA_RELEASE_TAG" --pattern "raw-catalogues.tar.gz" --dir /tmp/starmap-raw
+          echo "${RAW_CATALOGUES_SHA256}  /tmp/starmap-raw/raw-catalogues.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/starmap-raw/raw-catalogues.tar.gz
+          rm -rf /tmp/starmap-raw
+      - name: Refresh upstream source catalogues
+        if: inputs.refresh_upstream == true
+        run: npm run data:fetch -- --force
       - name: Build data pipeline with stars.json output
         env:
           WRITE_STARS_JSON: '1'
-        run: npm run data:pipeline
-      - name: Compress stars.json and compute SHA-256 checksum
+        run: npm run data:build
+      - name: Compress catalogue assets and compute SHA-256 checksums
+        env:
+          REFRESH_UPSTREAM: ${{ inputs.refresh_upstream == true && '1' || '0' }}
         run: |
           gzip -9 -c data/stars.json > /tmp/stars.json.gz
+          if [[ "$REFRESH_UPSTREAM" == "1" ]]; then
+            tar -czf /tmp/raw-catalogues.tar.gz data/hygdata_v3.csv data/raw
+          fi
           cd /tmp
           sha256sum stars.json.gz > stars.json.gz.sha256
+          if [[ "$REFRESH_UPSTREAM" == "1" ]]; then
+            sha256sum raw-catalogues.tar.gz > raw-catalogues.tar.gz.sha256
+          fi
       - name: Upload assets to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: gh release upload "$RELEASE_TAG" --clobber -- /tmp/stars.json.gz /tmp/stars.json.gz.sha256
+          REFRESH_UPSTREAM: ${{ inputs.refresh_upstream == true && '1' || '0' }}
+        run: |
+          if [[ "$REFRESH_UPSTREAM" == "1" ]]; then
+            gh release upload "$RELEASE_TAG" --clobber -- /tmp/stars.json.gz /tmp/stars.json.gz.sha256 /tmp/raw-catalogues.tar.gz /tmp/raw-catalogues.tar.gz.sha256
+          else
+            gh release upload "$RELEASE_TAG" --clobber -- /tmp/stars.json.gz /tmp/stars.json.gz.sha256
+          fi
