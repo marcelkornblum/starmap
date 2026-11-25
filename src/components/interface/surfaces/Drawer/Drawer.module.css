@@ -8,7 +8,7 @@
     --drawer-padding: var(--space-inset-drawer);
 
     --drawer-title-size: var(--text-content-section-title-size);
-    --drawer-title-weight: 600;
+    --drawer-title-weight: var(--font-weight-semibold);
     --drawer-title-color: var(--content-prominent);
 
     --drawer-close-color: var(--content-muted);

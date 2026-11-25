@@ -12,7 +12,7 @@
 
     --toast-content-gap: var(--space-gap-item);
     --toast-title-size: var(--type-scale-0);
-    --toast-title-weight: 600;
+    --toast-title-weight: var(--font-weight-semibold);
     --toast-title-color: var(--content-prominent);
 
     --toast-message-size: var(--type-scale-neg-1);

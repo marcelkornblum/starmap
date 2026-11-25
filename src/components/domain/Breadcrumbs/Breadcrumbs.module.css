@@ -29,7 +29,7 @@
 
   .breadcrumbItem [aria-current="page"] {
     color: var(--content-prominent);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
   }
 
   .breadcrumbItem + .breadcrumbItem::before {
@@ -58,7 +58,7 @@
   }
 
   .modeMenu [data-mode-button][data-active="true"] {
-    --button-font-weight: 500;
+    --button-font-weight: var(--font-weight-medium);
   }
 }
 

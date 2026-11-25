@@ -9,7 +9,7 @@
     --button-padding-inline: var(--button-padding-x, var(--space-fib-4));
     --button-padding-block: var(--button-padding-y, var(--space-fib-2));
     --button-font-size: var(--text-ui-control-size);
-    --button-font-weight: 500;
+    --button-font-weight: var(--font-weight-medium);
     --button-leading: var(--leading-control);
     --button-gap: var(--space-cluster-dense);
     --button-shadow: none;

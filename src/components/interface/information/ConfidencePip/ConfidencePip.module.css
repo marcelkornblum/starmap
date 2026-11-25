@@ -75,7 +75,7 @@
   }
 
   .levelName {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-control);
   }
 

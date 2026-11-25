@@ -33,7 +33,7 @@
   }
 
   .title {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     font-size: var(--text-content-caption-size);
     letter-spacing: var(--tracking-control);
     text-transform: uppercase;
@@ -79,7 +79,7 @@
 
   .crumbActive {
     color: var(--state-focus);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 
   .controlsGroup {
@@ -90,7 +90,7 @@
 
   .groupLabel {
     font-size: var(--text-content-caption-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--content-muted);
     letter-spacing: var(--tracking-control);
     text-transform: uppercase;
@@ -134,7 +134,7 @@
 
   .keycap {
     color: var(--content-muted);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 }
 

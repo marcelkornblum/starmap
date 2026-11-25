@@ -9,6 +9,11 @@
     --font-copy:      var(--font-family-serif);
 
     /* Typography Mechanics */
+    --font-weight-regular:  400;
+    --font-weight-medium:   500;
+    --font-weight-semibold: 600;
+    --font-weight-bold:     700;
+
     --leading-default:   var(--leading-body);
     --leading-metric:    var(--scalar-line-100);
     --leading-control:   var(--scalar-line-100);
@@ -75,7 +80,7 @@
     --text-content-section-title-size:  var(--type-scale-1);
 
     --text-content-badge-size:          var(--type-scale-neg-1);
-    --text-content-badge-weight:        500;
+    --text-content-badge-weight:        var(--font-weight-medium);
     --text-content-badge-tracking:      var(--tracking-body);
 
     --text-content-metric-value-size:   var(--type-scale-2);

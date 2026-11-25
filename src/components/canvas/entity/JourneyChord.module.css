@@ -20,7 +20,7 @@
   }
 
   .calloutDistance {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--state-focus);
   }
 

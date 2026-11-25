@@ -11,7 +11,7 @@
 
     --modal-title-size: var(--type-scale-2);
     --modal-title-font-size: var(--modal-title-size);
-    --modal-title-font-weight: 600;
+    --modal-title-font-weight: var(--font-weight-semibold);
     --modal-title-color: var(--content-prominent);
 
     --modal-close-color: var(--content-muted);

@@ -22,7 +22,7 @@
   .title {
     margin: 0;
     font-size: var(--text-content-title-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-display);
     color: var(--content-prominent);
     text-transform: uppercase;
@@ -74,7 +74,7 @@
   .stageTier {
     font-family: var(--font-data);
     font-size: var(--text-content-caption-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-control);
     text-transform: uppercase;
     color: var(--content-prominent);
@@ -128,7 +128,7 @@
   .tileTier {
     font-family: var(--font-data);
     font-size: var(--text-content-caption-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-control);
     text-transform: uppercase;
     color: var(--content-prominent);
@@ -149,7 +149,7 @@
 
   .tileRole {
     font-size: var(--text-content-caption-size);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     color: var(--content-default);
   }
 
@@ -207,7 +207,7 @@
   .tierTag {
     font-family: var(--font-data);
     font-size: var(--text-content-caption-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     background: var(--state-focus);
     color: var(--content-inverse);
     padding: var(--space-fib-1) var(--space-fib-2);
@@ -218,7 +218,7 @@
 
   .tierName {
     font-size: var(--text-content-body-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--content-prominent);
   }
 
@@ -263,7 +263,7 @@
 
   .tokenValue {
     color: var(--content-prominent);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
   }
 }
 

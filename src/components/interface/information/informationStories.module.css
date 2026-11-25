@@ -21,7 +21,7 @@
   .title {
     margin: 0;
     font-size: var(--text-content-title-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-display);
     color: var(--content-prominent);
   }
@@ -43,7 +43,7 @@
   .sectionTitle {
     margin: 0;
     font-size: var(--text-content-caption-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-control);
     text-transform: uppercase;
     color: var(--content-muted);
@@ -52,7 +52,7 @@
   .subSectionTitle {
     margin: 0;
     font-size: var(--text-content-caption-size);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     color: var(--content-muted);
   }
 }

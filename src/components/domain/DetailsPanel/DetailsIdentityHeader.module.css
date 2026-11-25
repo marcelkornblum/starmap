@@ -4,7 +4,7 @@
     align-items: center;
     font-family: var(--font-interface);
     font-size: var(--text-content-title-size);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     line-height: var(--leading-heading);
     color: var(--content-prominent);
   }

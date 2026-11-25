@@ -5,7 +5,7 @@
     --datum-label-font-size: var(--text-content-data-label-size);
     --datum-label-color: var(--content-muted);
     --datum-value-color: var(--content-prominent);
-    --datum-value-weight: 500;
+    --datum-value-weight: var(--font-weight-medium);
     --datum-border-color: var(--border-color-subtle);
     --datum-border-width: var(--stroke-width-0);
     --datum-border-style: var(--border-style-provisional);

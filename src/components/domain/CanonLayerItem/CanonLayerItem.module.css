@@ -23,7 +23,7 @@
   .title {
     font-family: var(--font-interface);
     font-size: var(--type-scale-neg-1);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     line-height: var(--leading-heading);
     color: inherit;
     word-break: break-word;
