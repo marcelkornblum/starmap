@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
 import { buildLayerGalaxyHref } from '../../../services/search/searchUrls';
-import { Badge, Block } from '../../interface';
+import { Badge, Block, Cluster, Stack } from '../../interface';
 import styles from './CanonLayerItem.module.css';
 
 export interface CanonLayerItemProps {
@@ -47,8 +47,8 @@ export const CanonLayerItem = memo(function CanonLayerItem({
       data-layer-kind={annotation.kind}
       data-target-id={annotation.targetId}
     >
-      <div className={styles.inner}>
-        <div className={styles.content}>
+      <Cluster justify="between" align="start" gap="fib-3">
+        <Stack gap="fib-1">
           {annotation.href ? (
             <a
               href={annotation.href}
@@ -68,17 +68,15 @@ export const CanonLayerItem = memo(function CanonLayerItem({
               {annotation.subtitle}
             </span>
           ) : null}
-        </div>
-        <div className={styles.badgeWrapper}>
-          <Badge
-            status={annotation.kind === 'scientific-overlay' ? 'info' : 'neutral'}
-            href={badgeHref}
-            data-testid="details-canon-link"
-          >
-            {annotation.layerTitle}
-          </Badge>
-        </div>
-      </div>
+        </Stack>
+        <Badge
+          status={annotation.kind === 'scientific-overlay' ? 'info' : 'neutral'}
+          href={badgeHref}
+          data-testid="details-canon-link"
+        >
+          {annotation.layerTitle}
+        </Badge>
+      </Cluster>
     </Block>
   );
 });

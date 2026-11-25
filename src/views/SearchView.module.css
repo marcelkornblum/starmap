@@ -5,9 +5,6 @@
     color: var(--content-default);
     padding: var(--space-fib-4);
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-fib-4);
   }
 
   .searchPanel {
@@ -15,9 +12,7 @@
     --ui-control-inset-border-color: transparent;
     --ui-control-inset-shadow: none;
     --border-color-subtle: transparent;
-    max-inline-size: var(--size-measure-lg);
     inline-size: 100%;
-    align-self: center;
     background: var(--surface-panel-bg);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     border-radius: var(--radius-container);

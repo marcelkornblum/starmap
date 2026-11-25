@@ -4,8 +4,7 @@ import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 import { parseSpatialRouteTarget } from '../../../utils/spatialRoute';
 import { useOptionalSpatialEntityStoreApi } from '../../canvas/entity/SpatialEntityContext';
-import { Button } from '../../interface';
-import styles from './DetailsActionControls.module.css';
+import { Button, Cluster } from '../../interface';
 
 const CENTER_TOLERANCE = 1e-2;
 const NOOP_UNSUBSCRIBE = () => {};
@@ -122,7 +121,7 @@ export const DetailsActionControls = memo(function DetailsActionControls({
   const shouldRenderCenter = Boolean(centerHref) && isOffCenter;
 
   return (
-    <div className={styles.ctaGroup} data-testid="details-cta-group">
+    <Cluster gap="fib-2" data-cta-row="true" data-testid="details-cta-group">
       {systemDetailsHref ? (
         <Button
           href={systemDetailsHref}
@@ -148,7 +147,7 @@ export const DetailsActionControls = memo(function DetailsActionControls({
       >
         Directions
       </Button>
-    </div>
+    </Cluster>
   );
 });
 

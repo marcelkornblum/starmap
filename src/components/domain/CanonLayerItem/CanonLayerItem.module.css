@@ -1,20 +1,4 @@
 @layer blocks {
-  .inner {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--space-fib-3);
-    contain: layout style;
-  }
-
-  .content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-fib-1);
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
   .titleLink {
     color: var(--content-prominent);
     text-decoration: none;
@@ -51,18 +35,5 @@
     line-height: var(--leading-body);
     color: var(--content-muted);
     word-break: break-word;
-  }
-
-  .badgeWrapper {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-  }
-
-  @media (max-width: 767px) {
-    .inner {
-      flex-wrap: wrap;
-      gap: var(--space-fib-2);
-    }
   }
 }
