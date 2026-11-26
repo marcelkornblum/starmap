@@ -47,8 +47,12 @@ test.describe('Journey 2: The Author Flow (Candidate Hunting & Territory Mapping
     await expect(bodiesPanel).toBeVisible();
     await expect(bodiesPanel.getByTestId('bodies-primary-list')).toBeVisible();
 
-    const mainBeltLink = bodiesPanel.getByRole('link', { name: 'Main Asteroid Belt', exact: true });
-    const kuiperBeltLink = bodiesPanel.getByRole('link', { name: 'Kuiper Belt', exact: true });
+    const mainBeltLink = bodiesPanel
+      .getByTestId('bodies-item-link')
+      .filter({ hasText: /^Main Asteroid Belt$/ });
+    const kuiperBeltLink = bodiesPanel
+      .getByTestId('bodies-item-link')
+      .filter({ hasText: /^Kuiper Belt$/ });
     await expect(mainBeltLink).toBeVisible({ timeout: 30000 });
     await expect(kuiperBeltLink).toBeVisible({ timeout: 15000 });
 
