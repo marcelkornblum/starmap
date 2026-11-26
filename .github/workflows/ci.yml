@@ -101,7 +101,7 @@ jobs:
       - name: Cache source catalogues
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         id: raw-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             data/raw
