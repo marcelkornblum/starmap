@@ -290,19 +290,23 @@ describe('<DetailsPanel />', () => {
     expect(useUIStore.getState().detailsDetent).toBe('partial');
   });
 
-  it('renders PreviewPanel inside partial detent directly above DetailsQuickTelemetrySection and DetailsActionControls inside peek Hero Block, not in full detent', () => {
+  it('renders PreviewPanel inside partial detent in vertical order (Preview -> Orbiting Bodies -> Canon Layers -> Environmental Hazards -> Telemetry) and DetailsActionControls inside peek Hero Block', () => {
     const mockPreview = {
-      targetId: 'tau-ceti',
-      targetName: 'Tau Ceti',
-      systemId: 'tau-ceti',
-      systemName: 'Tau Ceti',
-      focusedKind: 'system' as const,
-      previewMode: 'system-orbits' as const,
+      targetId: 'earth',
+      targetName: 'Earth',
+      systemId: 'sol',
+      systemName: 'Sol',
+      focusedKind: 'planet' as const,
+      previewMode: 'planetary-system' as const,
       orbitElements: [],
+    };
+    const planetWithCanon: FocusedPlanetEntityDetails = {
+      ...mockPlanetDetails,
+      canonAnnotations: mockSystemDetails.canonAnnotations,
     };
     const { container } = render(
       <DetailsPanel
-        details={mockSystemDetails}
+        details={planetWithCanon}
         isOpen={true}
         activeDetent="full"
         preview={mockPreview}
@@ -317,7 +321,58 @@ describe('<DetailsPanel />', () => {
     expect(fullDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
     expect(peekDetent?.querySelector('[data-testid="details-cta-group"]')).not.toBeNull();
     expect(partialDetent?.querySelector('[data-testid="details-cta-group"]')).toBeNull();
-    expect(previewPanel?.nextElementSibling?.querySelector('[data-testid="details-planet-composition"]')).not.toBeNull();
+
+    const orderedSelectors = [
+      '[data-testid="preview-panel"]',
+      '[data-testid="details-orbiting-bodies-section"]',
+      '[data-testid="details-canon-section"]',
+      '[data-testid="details-hazards-section"]',
+      '[data-testid="details-quick-telemetry-section"]',
+    ];
+    const orderedNodes = orderedSelectors.map((sel) => partialDetent?.querySelector(sel));
+    orderedNodes.forEach((node) => expect(node).not.toBeNull());
+    for (let i = 0; i < orderedNodes.length - 1; i++) {
+      const current = orderedNodes[i]!;
+      const next = orderedNodes[i + 1]!;
+      expect(
+        current.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+  });
+
+  it('collapses and re-expands section bodies when clicking a section heading trigger', () => {
+    render(
+      <DetailsPanel
+        details={mockSystemDetails}
+        isOpen={true}
+        activeDetent="full"
+      />,
+    );
+
+    const hazardsTrigger = screen.getByRole('button', { name: /environmental hazards/i });
+    expect(hazardsTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('details-hazards-nominal')).toBeInTheDocument();
+
+    fireEvent.click(hazardsTrigger);
+    expect(hazardsTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('details-hazards-nominal')).toBeNull();
+
+    fireEvent.click(hazardsTrigger);
+    expect(hazardsTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('details-hazards-nominal')).toBeInTheDocument();
+
+    const telemetryTriggers = screen.getAllByRole('button', { name: /^telemetry$/i });
+    const quickTelemetryTrigger = telemetryTriggers[0]!;
+    expect(quickTelemetryTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('details-planet-composition')).toBeInTheDocument();
+
+    fireEvent.click(quickTelemetryTrigger);
+    expect(quickTelemetryTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('details-planet-composition')).toBeNull();
+
+    fireEvent.click(quickTelemetryTrigger);
+    expect(quickTelemetryTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('details-planet-composition')).toBeInTheDocument();
   });
 
   it('renders cohesive Hero Block in peek, quick telemetry and hazard Blocks in partial, and full telemetry in full', () => {

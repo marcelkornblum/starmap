@@ -6,8 +6,8 @@ import {
 } from '../../../content/guide';
 import {
   CelestialTitle,
+  CollapsibleSection,
   DataTable,
-  Heading,
   Quantity,
   SpectralBadge,
   Unit,
@@ -27,13 +27,11 @@ export const DetailsStarsSection = ({
   }
 
   return (
-    <section
-      aria-labelledby="details-stars-heading"
+    <CollapsibleSection
+      title="Stars"
+      headingId="details-stars-heading"
       data-testid="details-stars-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-stars-heading">
-        Stars
-      </Heading>
       <DataTable data-testid="details-stars-list">
         <DataTable.Head>
           <DataTable.Row>
@@ -106,6 +104,6 @@ export const DetailsStarsSection = ({
           ))}
         </DataTable.Body>
       </DataTable>
-    </section>
+    </CollapsibleSection>
   );
 };

@@ -22,7 +22,7 @@ export const LEGEND_LINE_ENTRIES: readonly LegendLineEntry[] = [
     patternLabel: 'Dashed hairline (6px dash / 4px gap)',
     tokenRef: '--chrome-orbit-color',
     description:
-      'Bound elliptical orbit with a catalogued semi-major axis (a > 0, e < 1) rendered consistently across the 3D canvas and the Orbital Schematic.',
+      'Bound elliptical orbit with a catalogued semi-major axis (a > 0, e < 1) rendered consistently across the 3D canvas and Orbiting Bodies.',
   },
   {
     id: 'theoretical-orbit',
@@ -73,17 +73,17 @@ export const LEGEND_ZONE_ENTRIES: readonly LegendZoneEntry[] = [
     id: 'belt-debris',
     regionKind: 'belt',
     title: 'Asteroid Belts & Debris Disks',
-    tokenRef: '--surface-block-bg / --content-default',
+    tokenRef: '--status-caution / --content-default',
     description:
-      'Soft diffuse particulate stipple wash marking radial dust, asteroid, and Kuiper zones; resident bodies render inside a unified zone band.',
+      'Diagonal cross-hatched particulate wash framed by dashed radial bounds for asteroid, Kuiper, and debris zones; resident bodies render inside a unified zone band.',
   },
   {
     id: 'ring-system',
     regionKind: 'ring-system',
     title: 'Planetary Ring Systems',
-    tokenRef: '--surface-block-bg / --content-default',
+    tokenRef: '--status-info',
     description:
-      "Fine horizontal ringlet striations distinguishing concentric planetary rings (such as Saturn's Main Rings and E Ring) from diffuse circumstellar belts.",
+      "Horizontal concentric ringlet bands framed by solid radial bounds distinguishing planetary ring systems (such as Saturn's Main Rings and E Ring) from diffuse circumstellar belts.",
   },
   {
     id: 'habitable-zone',

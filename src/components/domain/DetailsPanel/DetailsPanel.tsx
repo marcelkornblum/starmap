@@ -104,8 +104,6 @@ export const DetailsPanel = memo(function DetailsPanel({
   const partialContent = (
     <>
       {preview ? <PreviewPanel preview={preview} /> : null}
-      <DetailsQuickTelemetrySection details={details} />
-      <DetailsHazardsSection hazards={details.hazards} />
       <DetailsDeferredPartialLower
         canonAnnotations={canonAnnotations}
         focusedKind={focusedKind}
@@ -117,6 +115,8 @@ export const DetailsPanel = memo(function DetailsPanel({
         disks={details.disks}
         systemNameOrId={systemName || systemId}
       />
+      <DetailsHazardsSection hazards={details.hazards} />
+      <DetailsQuickTelemetrySection details={details} />
     </>
   );
 

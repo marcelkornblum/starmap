@@ -1,5 +1,6 @@
 export * from './Block';
 export * from './Card';
+export * from './CollapsibleSection';
 export * from './DetentSheet';
 export * from './Dock';
 export * from './Drawer';

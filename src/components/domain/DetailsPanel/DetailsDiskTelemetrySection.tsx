@@ -5,9 +5,9 @@ import {
   type BadgeConfidence,
   Block,
   CelestialBadge,
+  CollapsibleSection,
   type ConfidenceLevel,
   Datum,
-  Heading,
   Stack,
   Unit,
 } from '../../interface';
@@ -26,13 +26,11 @@ export const DetailsDiskTelemetrySection = ({
   }
 
   return (
-    <section
-      aria-labelledby="details-disk-telemetry-heading"
+    <CollapsibleSection
+      title="Circumstellar Disk Telemetry"
+      headingId="details-disk-telemetry-heading"
       data-testid="details-disk-telemetry-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-disk-telemetry-heading">
-        Circumstellar Disk Telemetry
-      </Heading>
       <Block padding="tight">
         <Stack gap="fib-1" data-testid="details-disk-telemetry-list">
           <Datum
@@ -121,6 +119,6 @@ export const DetailsDiskTelemetrySection = ({
           />
         </Stack>
       </Block>
-    </section>
+    </CollapsibleSection>
   );
 };

@@ -1,0 +1,52 @@
+@layer blocks {
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+  }
+
+  .trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-1);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+    text-align: start;
+    transition: color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .trigger:hover {
+    color: var(--content-prominent);
+  }
+
+  .trigger:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+    border-radius: var(--radius-sm);
+  }
+
+  .chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+  }
+}
+
+@layer exceptions {
+  .chevron[data-expanded="false"] {
+    transform: rotate(-90deg);
+  }
+}

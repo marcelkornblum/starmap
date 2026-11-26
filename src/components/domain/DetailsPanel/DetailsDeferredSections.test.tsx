@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DetailsDeferredPartialLower } from './DetailsDeferredSections';
 import type { FocusedSystemEntityDetails } from '../../../services/details/detailsEntityTypes';
 import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
@@ -65,6 +65,42 @@ describe('DetailsDeferredSections', () => {
 
     expect(screen.getByTestId('details-planets-section')).toBeInTheDocument();
     expect(screen.getByText('Tau Ceti e')).toBeInTheDocument();
+
+    const planetsTrigger = screen.getByRole('button', { name: /planets/i });
+    expect(planetsTrigger.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(planetsTrigger);
+    expect(planetsTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Tau Ceti e')).toBeNull();
+
+    fireEvent.click(planetsTrigger);
+    expect(planetsTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Tau Ceti e')).toBeInTheDocument();
+  });
+
+  it('renders Orbiting Bodies heading in fallback hierarchy for planet focus and supports collapsing', () => {
+    render(
+      <DetailsDeferredPartialLower
+        focusedKind="planet"
+        isSystemFocus={false}
+        orbitingBodies={[
+          {
+            id: 'moon',
+            name: 'Moon',
+            href: '/planet/earth?focus=moon',
+            categoryLabel: 'Moon',
+          },
+        ]}
+        systemNameOrId="Sol"
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: /orbiting bodies/i });
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Moon')).toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Moon')).toBeNull();
   });
 
   it('renders OrbitalSchematicPanel once in DetailsDeferredPartialLower when schematic is populated', () => {

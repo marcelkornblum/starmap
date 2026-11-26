@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { buildMetricGuideHref } from '../../../content/guide';
 import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
-import { Badge, Block, Datum, Heading, Stack, Unit } from '../../interface';
+import { Badge, Block, CollapsibleSection, Datum, Stack, Unit } from '../../interface';
 
 export interface DetailsAstrometrySectionProps {
   readonly entityId: string;
@@ -19,13 +19,11 @@ export const DetailsAstrometrySection = ({
   tags = [],
 }: DetailsAstrometrySectionProps) => {
   return (
-    <section
-      aria-labelledby="details-astrometry-heading"
+    <CollapsibleSection
+      title="Astrometry"
+      headingId="details-astrometry-heading"
       data-testid="details-astrometry-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-astrometry-heading">
-        Astrometry
-      </Heading>
       <Block padding="tight">
         <Stack gap="fib-1" data-testid="details-astrometry-list">
           <Datum
@@ -82,6 +80,6 @@ export const DetailsAstrometrySection = ({
           ) : null}
         </Stack>
       </Block>
-    </section>
+    </CollapsibleSection>
   );
 };

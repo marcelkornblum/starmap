@@ -7,9 +7,9 @@ import {
 import { resolveAppHref } from '../../../utils/url';
 import {
   Block,
+  CollapsibleSection,
   Datum,
   HazardBadge,
-  Heading,
   Quantity,
   Stack,
   Unit,
@@ -23,13 +23,11 @@ export const DetailsHazardsSection = memo(function DetailsHazardsSection({
   hazards,
 }: DetailsHazardsSectionProps) {
   return (
-    <section
-      aria-labelledby="details-hazards-heading"
+    <CollapsibleSection
+      title="Environmental Hazards"
+      headingId="details-hazards-heading"
       data-testid="details-hazards-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-hazards-heading">
-        Environmental Hazards
-      </Heading>
       {hazards.length === 0 ? (
         <Block padding="tight">
           <Stack gap="fib-1" data-testid="details-hazards-nominal">
@@ -80,7 +78,7 @@ export const DetailsHazardsSection = memo(function DetailsHazardsSection({
           ))}
         </Stack>
       )}
-    </section>
+    </CollapsibleSection>
   );
 });
 

@@ -275,7 +275,7 @@ describe('<OrbitalSchematicPanel />', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders header with eyebrow heading and Legend link pointing to /guide/legend', () => {
+  it('renders header with collapsible Orbiting Bodies eyebrow heading and Legend link pointing to /guide/legend', () => {
     render(<OrbitalSchematicPanel elements={solSchematicFixture} />);
 
     const panel = screen.getByTestId('orbital-schematic-panel');
@@ -283,7 +283,7 @@ describe('<OrbitalSchematicPanel />', () => {
     expect(panel.getAttribute('data-parent-kind')).toBe('system');
     expect(panel.getAttribute('data-system-id')).toBe('sol');
 
-    const heading = screen.getByRole('heading', { level: 4, name: 'Orbital Schematic' });
+    const heading = screen.getByRole('heading', { level: 4, name: 'Orbiting Bodies' });
     expect(heading.getAttribute('data-heading')).toBe('true');
     expect(heading.getAttribute('data-size')).toBe('eyebrow');
 
@@ -292,7 +292,23 @@ describe('<OrbitalSchematicPanel />', () => {
     expect(legendLink.getAttribute('href')).toContain('/guide/legend');
   });
 
-  it('renders pure track rows with symbol, line-style cue, right-aligned name, and zero inline telemetry numbers', () => {
+  it('toggles stage visibility when tapping the Orbiting Bodies title button', () => {
+    render(<OrbitalSchematicPanel elements={solSchematicFixture} />);
+
+    const toggle = screen.getByTestId('orbital-schematic-toggle');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('orbital-schematic-stage')).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('orbital-schematic-stage')).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('orbital-schematic-stage')).toBeInTheDocument();
+  });
+
+  it('renders pure track rows with large unbordered symbol, line-style cue, right-aligned name, and zero inline telemetry numbers', () => {
     render(<OrbitalSchematicPanel elements={solSchematicFixture} />);
 
     const rows = screen.getAllByTestId('orbital-schematic-row');
@@ -307,6 +323,11 @@ describe('<OrbitalSchematicPanel />', () => {
     expect(earthRow?.getAttribute('data-selected')).toBe('true');
     expect(earthRow?.textContent).toBe('Earth');
     expect(earthRow?.textContent).not.toMatch(/AU|km|M⊕|Terrestrial/i);
+
+    const symbol = earthRow?.querySelector('[data-celestial-symbol="terrestrial"][data-size="lg"]');
+    expect(symbol).not.toBeNull();
+    expect(symbol?.parentElement?.className).toContain('symbolSlot');
+    expect(earthRow?.querySelector('[class*="symbolHalo"]')).toBeNull();
   });
 
   it('groups contiguous habitable zone rows inside a single feathered hzGroup', () => {

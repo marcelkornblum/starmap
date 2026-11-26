@@ -8,7 +8,12 @@ import { buildOrbitalSchematicBands } from '../../../services/details/orbitalSch
 import { LEGEND_GUIDE_PATH } from '../../../content/guide';
 import { resolveAppHref } from '../../../utils/url';
 import { useOptionalSpatialEntityStoreApi } from '../../canvas/entity/SpatialEntityContext';
-import { Button, CelestialSymbol, Cluster, Heading } from '../../interface';
+import {
+  Button,
+  CelestialSymbol,
+  Cluster,
+  CollapsibleSection,
+} from '../../interface';
 import styles from './OrbitalSchematicPanel.module.css';
 
 export interface OrbitalSchematicPanelProps {
@@ -71,8 +76,8 @@ const OrbitalSchematicRow = memo(function OrbitalSchematicRow({
       onFocus={() => onHoverEntity(row.id)}
       onBlur={() => onHoverEntity(null)}
     >
-      <span className={styles.symbolHalo} aria-hidden="true">
-        <CelestialSymbol type={row.reticleType} size="sm" showTooltip={false} />
+      <span className={styles.symbolSlot} aria-hidden="true">
+        <CelestialSymbol type={row.reticleType} size="lg" showTooltip={false} />
       </span>
       <span
         className={styles.trackLine}
@@ -171,18 +176,16 @@ const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
     );
 
   return (
-    <section
-      aria-labelledby="orbital-schematic-heading"
-      className={styles.root}
+    <CollapsibleSection
+      title="Orbiting Bodies"
+      headingId="orbital-schematic-heading"
+      headingAs="h4"
       data-testid="orbital-schematic-panel"
       data-parent-id={elements.parentId}
       data-parent-kind={elements.parentKind}
       data-system-id={elements.systemId}
-    >
-      <Cluster justify="between" align="center" gap="tight">
-        <Heading as="h4" size="eyebrow" id="orbital-schematic-heading">
-          Orbital Schematic
-        </Heading>
+      toggleTestId="orbital-schematic-toggle"
+      actions={
         <Cluster gap="tight" align="center">
           {elements.hasMinorToggle ? (
             <Button
@@ -205,7 +208,8 @@ const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
             Legend
           </a>
         </Cluster>
-      </Cluster>
+      }
+    >
       <div className={styles.stage} data-testid="orbital-schematic-stage">
         {segments.map((segment) =>
           segment.inHabitableZone ? (
@@ -229,7 +233,7 @@ const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
           ),
         )}
       </div>
-    </section>
+    </CollapsibleSection>
   );
 });
 

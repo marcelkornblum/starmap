@@ -28,8 +28,8 @@ test.describe('Details Pane Implementation Contracts', () => {
       detailsPane.getByText('Nominal environment').first(),
     ).toBeVisible();
 
-    // Orbital Schematic (replacing separate Stars, Planets, and Belts tables)
-    await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
+    // Orbiting Bodies (replacing separate Stars, Planets, and Belts tables)
+    await expect(detailsPane.getByRole('heading', { name: 'Orbiting Bodies' })).toBeVisible();
     await expect(detailsPane.getByTestId('orbital-schematic-stage').first()).toBeVisible();
 
     // Telemetry sections
@@ -57,8 +57,8 @@ test.describe('Details Pane Implementation Contracts', () => {
         .first(),
     ).toBeVisible();
 
-    // Orbital Schematic showing The Moon (Luna)
-    await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
+    // Orbiting Bodies showing The Moon (Luna)
+    await expect(detailsPane.getByRole('heading', { name: 'Orbiting Bodies' })).toBeVisible();
     await expect(
       detailsPane
         .getByTestId('orbital-schematic-stage')
@@ -90,8 +90,8 @@ test.describe('Details Pane Implementation Contracts', () => {
     ).toBeVisible();
     await expect(detailsPane.getByText(/hazard|flare|stellar/i).first()).toBeVisible();
 
-    // Orbital Schematic with HD 26965 b
-    await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
+    // Orbiting Bodies with HD 26965 b
+    await expect(detailsPane.getByRole('heading', { name: 'Orbiting Bodies' })).toBeVisible();
     await expect(detailsPane.getByText(/HD 26965/i).first()).toBeVisible();
   });
 
@@ -102,7 +102,16 @@ test.describe('Details Pane Implementation Contracts', () => {
 
     const detailsPane = page.getByRole('complementary', { name: 'Details' });
     await expect(detailsPane).toBeVisible();
-    await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
+    await expect(detailsPane.getByRole('heading', { name: 'Orbiting Bodies' })).toBeVisible();
+
+    const collapseToggle = detailsPane.getByTestId('orbital-schematic-toggle');
+    await expect(collapseToggle).toHaveAttribute('aria-expanded', 'true');
+    await collapseToggle.click();
+    await expect(collapseToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(detailsPane.getByTestId('orbital-schematic-stage')).toBeHidden();
+    await collapseToggle.click();
+    await expect(collapseToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(detailsPane.getByTestId('orbital-schematic-stage')).toBeVisible();
 
     const legendLink = detailsPane.getByTestId('orbital-schematic-legend-link');
     await expect(legendLink).toBeVisible();

@@ -1,14 +1,4 @@
 @layer blocks {
-  .root {
-    --schematic-gap: var(--space-fib-2);
-    --schematic-gutter-start: calc(var(--space-fib-5) + var(--space-fib-3));
-    --schematic-gutter-end: var(--space-fib-3);
-
-    display: flex;
-    flex-direction: column;
-    gap: var(--schematic-gap);
-  }
-
   .legendLink {
     color: var(--content-muted);
     font-family: var(--font-interface);
@@ -35,6 +25,9 @@
   }
 
   .stage {
+    --schematic-gutter-start: calc(var(--space-fib-5) + var(--space-fib-3));
+    --schematic-gutter-end: var(--space-fib-3);
+
     background: var(--surface-block-bg);
     border-radius: var(--surface-block-radius);
     overflow: hidden;
@@ -111,15 +104,11 @@
     outline-offset: calc(-1 * var(--state-focus-ring-width));
   }
 
-  .symbolHalo {
+  .symbolSlot {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    inline-size: var(--space-fib-5);
-    block-size: var(--space-fib-5);
-    border-radius: var(--radius-full);
-    background: var(--surface-canvas-bg);
   }
 
   .trackLine {
@@ -174,7 +163,7 @@
     letter-spacing: var(--tracking-eyebrow);
     line-height: var(--leading-control);
     text-transform: uppercase;
-    color: var(--content-muted);
+    color: var(--content-default);
     text-decoration: none;
     text-align: center;
     transition: color var(--motion-duration-feedback) var(--motion-ease-default);
@@ -221,29 +210,35 @@
 
   .zoneBand[data-region-kind="belt"],
   .zoneBand[data-region-kind="debris-disk"] {
-    --zone-band-bg:
-      radial-gradient(
-        circle,
-        color-mix(in oklch, var(--content-default) 20%, transparent) var(--stroke-width-1),
-        transparent var(--stroke-width-1)
+    background-color: color-mix(in oklch, var(--status-caution) 10%, transparent);
+    background-image:
+      repeating-linear-gradient(
+        -45deg,
+        color-mix(in oklch, var(--status-caution) 26%, transparent) 0,
+        color-mix(in oklch, var(--status-caution) 26%, transparent) var(--stroke-width-1),
+        transparent var(--stroke-width-1),
+        transparent var(--space-fib-3)
       ),
-      radial-gradient(
-        ellipse at center,
-        color-mix(in oklch, var(--content-default) 15%, transparent) 0%,
-        color-mix(in oklch, var(--content-muted) 8%, transparent) 60%,
-        transparent 100%
+      repeating-linear-gradient(
+        45deg,
+        color-mix(in oklch, var(--content-default) 16%, transparent) 0,
+        color-mix(in oklch, var(--content-default) 16%, transparent) var(--stroke-width-1),
+        transparent var(--stroke-width-1),
+        transparent var(--space-fib-3)
       );
-    background-size: var(--space-fib-3) var(--space-fib-3), 100% 100%;
+    border-block: var(--border-width-1) dashed color-mix(in oklch, var(--status-caution) 42%, transparent);
   }
 
   .zoneBand[data-region-kind="ring-system"] {
-    --zone-band-bg: repeating-linear-gradient(
+    background-color: color-mix(in oklch, var(--status-info) 12%, transparent);
+    background-image: repeating-linear-gradient(
       to bottom,
-      transparent 0,
+      color-mix(in oklch, var(--status-info) 34%, transparent) 0,
+      color-mix(in oklch, var(--status-info) 34%, transparent) var(--stroke-width-2),
       transparent var(--stroke-width-2),
-      color-mix(in oklch, var(--content-default) 16%, transparent) var(--stroke-width-2),
-      color-mix(in oklch, var(--content-default) 16%, transparent) calc(var(--stroke-width-2) + var(--stroke-width-1))
+      transparent var(--space-fib-2)
     );
+    border-block: var(--border-width-1) solid color-mix(in oklch, var(--status-info) 52%, transparent);
   }
 
   .zoneBand[data-selected="true"] {

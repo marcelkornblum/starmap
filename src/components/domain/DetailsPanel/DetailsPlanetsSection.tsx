@@ -9,8 +9,8 @@ import {
   CelestialBadge,
   CelestialTitle,
   Cluster,
+  CollapsibleSection,
   DataTable,
-  Heading,
   Quantity,
   Unit,
 } from '../../interface';
@@ -29,13 +29,11 @@ export const DetailsPlanetsSection = ({
   }
 
   return (
-    <section
-      aria-labelledby="details-planets-heading"
+    <CollapsibleSection
+      title="Planets"
+      headingId="details-planets-heading"
       data-testid="details-planets-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-planets-heading">
-        Planets
-      </Heading>
       <DataTable data-testid="details-planets-list">
         <DataTable.Head>
           <DataTable.Row>
@@ -162,6 +160,6 @@ export const DetailsPlanetsSection = ({
           ))}
         </DataTable.Body>
       </DataTable>
-    </section>
+    </CollapsibleSection>
   );
 };

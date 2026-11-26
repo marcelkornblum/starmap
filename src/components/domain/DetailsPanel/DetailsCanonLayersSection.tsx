@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
-import { Heading, Stack } from '../../interface';
+import { CollapsibleSection, Stack } from '../../interface';
 import { CanonLayerItem } from '../CanonLayerItem';
 
 export interface DetailsCanonLayersSectionProps {
@@ -15,13 +15,11 @@ export const DetailsCanonLayersSection = memo(function DetailsCanonLayersSection
   }
 
   return (
-    <section
-      aria-labelledby="details-canon-heading"
+    <CollapsibleSection
+      title="Canon Layers"
+      headingId="details-canon-heading"
       data-testid="details-canon-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-canon-heading">
-        Canon Layers
-      </Heading>
       <Stack as="ul" gap="fib-2" data-testid="details-canon-list">
         {canonAnnotations.map((annotation) => (
           <CanonLayerItem
@@ -30,7 +28,7 @@ export const DetailsCanonLayersSection = memo(function DetailsCanonLayersSection
           />
         ))}
       </Stack>
-    </section>
+    </CollapsibleSection>
   );
 });
 

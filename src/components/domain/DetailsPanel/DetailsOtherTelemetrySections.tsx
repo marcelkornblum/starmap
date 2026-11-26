@@ -8,8 +8,8 @@ import {
   Block,
   CelestialBadge,
   Cluster,
+  CollapsibleSection,
   Datum,
-  Heading,
   Stack,
   Unit,
 } from '../../interface';
@@ -26,13 +26,11 @@ export const DetailsMinorBodyTelemetrySection = ({
   }
 
   return (
-    <section
-      aria-labelledby="details-minor-body-telemetry-heading"
+    <CollapsibleSection
+      title="Body Telemetry"
+      headingId="details-minor-body-telemetry-heading"
       data-testid="details-minor-body-telemetry-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-minor-body-telemetry-heading">
-        Body Telemetry
-      </Heading>
       <Block padding="tight">
         <Stack gap="fib-1" data-testid="details-minor-body-telemetry-list">
           <Datum
@@ -54,7 +52,7 @@ export const DetailsMinorBodyTelemetrySection = ({
           ) : null}
         </Stack>
       </Block>
-    </section>
+    </CollapsibleSection>
   );
 };
 
@@ -72,13 +70,11 @@ export const DetailsStructureTelemetrySection = ({
   }
 
   return (
-    <section
-      aria-labelledby="details-structure-telemetry-heading"
+    <CollapsibleSection
+      title="Structure Telemetry"
+      headingId="details-structure-telemetry-heading"
       data-testid="details-structure-telemetry-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-structure-telemetry-heading">
-        Structure Telemetry
-      </Heading>
       <Block padding="tight">
         <Stack gap="fib-1" data-testid="details-structure-telemetry-list">
           <Datum
@@ -110,6 +106,6 @@ export const DetailsStructureTelemetrySection = ({
           ) : null}
         </Stack>
       </Block>
-    </section>
+    </CollapsibleSection>
   );
 };

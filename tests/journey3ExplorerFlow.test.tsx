@@ -436,7 +436,7 @@ describe('Journey 3: Explorer Flow - Orbital Schematic Domain and Component Boun
     expect(panel?.getAttribute('data-parent-id')).toBe('sol');
     expect(panel?.getAttribute('data-parent-kind')).toBe('system');
     expect(panel?.getAttribute('data-system-id')).toBe('sol');
-    expect(panelContainer.textContent).toContain('Orbital Schematic');
+    expect(panelContainer.textContent).toContain('Orbiting Bodies');
     expect(panelContainer.querySelector('[data-testid="orbital-schematic-hz-group"]')).not.toBeNull();
     const rows = panelContainer.querySelectorAll('[data-testid="orbital-schematic-row"]');
     expect(rows.length).toBeGreaterThanOrEqual(2);

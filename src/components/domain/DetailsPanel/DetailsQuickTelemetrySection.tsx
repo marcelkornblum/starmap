@@ -11,6 +11,7 @@ import {
   Block,
   CelestialBadge,
   Cluster,
+  CollapsibleSection,
   Datum,
   Stack,
   Unit,
@@ -246,7 +247,19 @@ export const DetailsQuickTelemetrySection = memo(function DetailsQuickTelemetryS
     </Stack>
   ) : null;
 
-  return telemetryStack ? <Block padding="tight">{telemetryStack}</Block> : null;
+  if (!telemetryStack) {
+    return null;
+  }
+
+  return (
+    <CollapsibleSection
+      title="Telemetry"
+      headingId="details-quick-telemetry-heading"
+      data-testid="details-quick-telemetry-section"
+    >
+      <Block padding="tight">{telemetryStack}</Block>
+    </CollapsibleSection>
+  );
 });
 
 DetailsQuickTelemetrySection.displayName = 'DetailsQuickTelemetrySection';
