@@ -125,33 +125,26 @@
     background:
       repeating-linear-gradient(
         -45deg,
-        color-mix(in oklch, var(--status-caution) 26%, transparent) 0,
-        color-mix(in oklch, var(--status-caution) 26%, transparent) var(--stroke-width-1),
+        color-mix(in oklch, var(--status-caution) 16%, transparent) 0,
+        color-mix(in oklch, var(--status-caution) 16%, transparent) var(--stroke-width-1),
         transparent var(--stroke-width-1),
         transparent var(--space-fib-3)
       ),
-      repeating-linear-gradient(
-        45deg,
-        color-mix(in oklch, var(--content-default) 16%, transparent) 0,
-        color-mix(in oklch, var(--content-default) 16%, transparent) var(--stroke-width-1),
-        transparent var(--stroke-width-1),
-        transparent var(--space-fib-3)
-      ),
-      color-mix(in oklch, var(--status-caution) 10%, var(--surface-block-bg));
-    border-block: var(--border-width-1) dashed color-mix(in oklch, var(--status-caution) 42%, transparent);
+      color-mix(in oklch, var(--status-caution) 6%, var(--surface-block-bg));
+    border-block: var(--border-width-1) dashed color-mix(in oklch, var(--status-caution) 30%, transparent);
   }
 
   .zoneSwatch[data-region-kind="ring-system"] {
     background:
       repeating-linear-gradient(
         to bottom,
-        color-mix(in oklch, var(--status-info) 34%, transparent) 0,
-        color-mix(in oklch, var(--status-info) 34%, transparent) var(--stroke-width-2),
-        transparent var(--stroke-width-2),
+        color-mix(in oklch, var(--status-info) 18%, transparent) 0,
+        color-mix(in oklch, var(--status-info) 18%, transparent) var(--stroke-width-1),
+        transparent var(--stroke-width-1),
         transparent var(--space-fib-2)
       ),
-      color-mix(in oklch, var(--status-info) 12%, var(--surface-block-bg));
-    border-block: var(--border-width-1) solid color-mix(in oklch, var(--status-info) 52%, transparent);
+      color-mix(in oklch, var(--status-info) 6%, var(--surface-block-bg));
+    border-block: var(--border-width-1) solid color-mix(in oklch, var(--status-info) 32%, transparent);
   }
 
   .zoneSwatch[data-region-kind="habitable-zone"] {

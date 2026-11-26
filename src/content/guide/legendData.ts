@@ -73,9 +73,9 @@ export const LEGEND_ZONE_ENTRIES: readonly LegendZoneEntry[] = [
     id: 'belt-debris',
     regionKind: 'belt',
     title: 'Asteroid Belts & Debris Disks',
-    tokenRef: '--status-caution / --content-default',
+    tokenRef: '--status-caution',
     description:
-      'Diagonal cross-hatched particulate wash framed by dashed radial bounds for asteroid, Kuiper, and debris zones; resident bodies render inside a unified zone band.',
+      'Single-diagonal hatched particulate wash framed by dashed radial bounds for asteroid, Kuiper, and debris zones; resident bodies render inside a unified zone band.',
   },
   {
     id: 'ring-system',
@@ -83,7 +83,7 @@ export const LEGEND_ZONE_ENTRIES: readonly LegendZoneEntry[] = [
     title: 'Planetary Ring Systems',
     tokenRef: '--status-info',
     description:
-      "Horizontal concentric ringlet bands framed by solid radial bounds distinguishing planetary ring systems (such as Saturn's Main Rings and E Ring) from diffuse circumstellar belts.",
+      "Fine horizontal concentric ringlet hairlines framed by solid radial bounds distinguishing planetary ring systems (such as Saturn's Main Rings and E Ring) from diffuse circumstellar belts.",
   },
   {
     id: 'habitable-zone',
