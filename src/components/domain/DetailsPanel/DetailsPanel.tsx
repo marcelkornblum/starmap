@@ -10,10 +10,7 @@ import { DetailsIdentityHeader } from './DetailsIdentityHeader';
 import { DetailsQuickTelemetrySection } from './DetailsQuickTelemetrySection';
 import { DetailsTelemetrySections } from './DetailsTelemetrySections';
 import { PreviewPanel } from '../PreviewPanel';
-import {
-  DetailsDeferredFull,
-  DetailsDeferredPartialLower,
-} from './DetailsDeferredSections';
+import { DetailsDeferredPartialLower } from './DetailsDeferredSections';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
@@ -89,7 +86,6 @@ export const DetailsPanel = memo(function DetailsPanel({
       focusedKind={focusedKind}
       spectralType={spectralType}
       starCount={starCount}
-      planetComposition={planetTelemetry?.composition}
       isHabitableCandidate={planetTelemetry?.isHabitableCandidate}
       systemSummarySegments={systemSummarySegments}
       actionControls={
@@ -106,9 +102,7 @@ export const DetailsPanel = memo(function DetailsPanel({
 
   const partialContent = (
     <>
-      {preview ? <PreviewPanel preview={preview} /> : null}
-      <DetailsQuickTelemetrySection details={details} />
-      <DetailsHazardsSection hazards={details.hazards} />
+      {preview ? <PreviewPanel preview={preview} headingAs="h4" /> : null}
       <DetailsDeferredPartialLower
         canonAnnotations={canonAnnotations}
         focusedKind={focusedKind}
@@ -120,18 +114,12 @@ export const DetailsPanel = memo(function DetailsPanel({
         disks={details.disks}
         systemNameOrId={systemName || systemId}
       />
+      <DetailsHazardsSection hazards={details.hazards} />
+      <DetailsQuickTelemetrySection details={details} />
     </>
   );
 
-  const fullContent = (
-    <>
-      <DetailsTelemetrySections details={details} />
-      <DetailsDeferredFull
-        isSystemFocus={isSystemFocus}
-        schematic={schematic}
-      />
-    </>
-  );
+  const fullContent = <DetailsTelemetrySections details={details} />;
 
   return (
     <DetentSheet

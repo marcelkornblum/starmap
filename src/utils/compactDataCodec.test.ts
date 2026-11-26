@@ -9,10 +9,15 @@ import {
   decodeSummaryNode,
   decodeSystemManifest,
 } from './compactDataCodec';
-import { decodeExoplanet } from './compactEntityDecoder';
+import {
+  decodeExoplanet,
+  decodeSatellite,
+  decodeSolarSystemBody,
+} from './compactEntityDecoder';
 import type {
   CompactDetailRecord,
   CompactExoplanet,
+  CompactSatelliteRecord,
   CompactSectorPartition,
   CompactSummaryNode,
   CompactSystemManifest,
@@ -22,12 +27,19 @@ import {
   encodeSummaryNode,
   encodeSystemManifest,
 } from '../../scripts/pipeline/compactDataEncoder';
-import { encodeCircumstellarDisk } from '../../scripts/pipeline/compactEntityEncoder';
+import {
+  encodeCircumstellarDisk,
+  encodeExoplanet,
+  encodeSolarSystemBody,
+} from '../../scripts/pipeline/compactEntityEncoder';
 import type {
   CircumstellarDiskRecord,
+  ExoplanetRecord,
+  PlanetaryRingRecord,
   SystemManifest,
   SystemSummaryNode,
 } from '../types/astro';
+import type { SolarSystemBodyRecord } from '../types/astroStructures';
 
 describe('AUD-023: Lossless properName Round-Trip in compactDataCodec', () => {
   const baseNode: SystemSummaryNode = {
@@ -326,5 +338,63 @@ describe('AUD-048 / AUD-051 / DEC-R029: Wire Format Versioning & Precalculated F
     expect(() => decodeSystemManifest(missingCountsManifest, 'bad-planet-sys')).toThrow(
       /planetCompositionCounts|b/i,
     );
+
+    const missingOrbitSat = {
+      i: 'bad-moon',
+      n: 'Bad Moon',
+      p: 'earth',
+    } as unknown as CompactSatelliteRecord;
+    expect(() => decodeSatellite(missingOrbitSat)).toThrow(
+      'Satellite "bad-moon" is missing valid Keplerian orbit tuple "o".',
+    );
+
+    const shortOrbitSat = {
+      i: 'short-moon',
+      n: 'Short Moon',
+      p: 'earth',
+      o: [1, 0, 0],
+    } as unknown as CompactSatelliteRecord;
+    expect(() => decodeSatellite(shortOrbitSat)).toThrow(
+      'Satellite "short-moon" is missing valid Keplerian orbit tuple "o".',
+    );
+  });
+
+  it('round-trips planetary rings across exoplanets and solar system bodies', () => {
+    const rings: readonly PlanetaryRingRecord[] = [
+      { id: 'saturn-main-rings', name: 'Main Rings (D–F)', innerRadiusAu: 0.000447, outerRadiusAu: 0.000937 },
+      { id: 'saturn-e-ring', name: 'E Ring', innerRadiusAu: 0.001203, outerRadiusAu: 0.003209 },
+    ];
+
+    const exoplanet: ExoplanetRecord = {
+      id: 'saturn',
+      name: 'Saturn',
+      letter: '',
+      composition: 'gas-giant',
+      reticleType: 'gas-giant',
+      rings,
+    };
+    const compactExo = encodeExoplanet(exoplanet);
+    expect(compactExo.rg).toEqual([
+      ['saturn-main-rings', 'Main Rings (D–F)', 0.000447, 0.000937],
+      ['saturn-e-ring', 'E Ring', 0.001203, 0.003209],
+    ]);
+    const decodedExo = decodeExoplanet(compactExo);
+    expect(decodedExo.rings).toEqual(rings);
+
+    const solarBody: SolarSystemBodyRecord = {
+      id: 'saturn',
+      name: 'Saturn',
+      classification: 'Planet',
+      parentBodyId: 'sol',
+      meanRadiusKm: 58232,
+      rings,
+    };
+    const compactSolar = encodeSolarSystemBody(solarBody);
+    expect(compactSolar.rg).toEqual([
+      ['saturn-main-rings', 'Main Rings (D–F)', 0.000447, 0.000937],
+      ['saturn-e-ring', 'E Ring', 0.001203, 0.003209],
+    ]);
+    const decodedSolar = decodeSolarSystemBody(compactSolar, 'saturn');
+    expect(decodedSolar.rings).toEqual(rings);
   });
 });

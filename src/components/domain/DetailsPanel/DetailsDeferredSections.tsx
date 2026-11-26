@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react';
 import type {
   FocusedDiskDetail,
-  FocusedEntityDetails,
   FocusedEntityKind,
   FocusedPlanetDetail,
   FocusedStarDetail,
@@ -12,14 +11,15 @@ import type {
   SystemElementBodyItem,
 } from '../../../services/details/detailsHierarchyTypes';
 import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
-import { Heading } from '../../interface';
-import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
+import { OrbitalSchematicPanel } from '../OrbitalSchematicPanel';
 import { DetailsCanonLayersSection } from './DetailsCanonLayersSection';
-import {
-  DetailsPlanetHierarchy,
-  DetailsSystemHierarchy,
-} from './DetailsHierarchySections';
-import styles from './DetailsPanel.module.css';
+import { DetailsSystemHierarchy } from './DetailsHierarchySections';
+import { DetailsOrbitingBodiesSection } from './DetailsOrbitingBodiesSection';
+
+const hasOrbitalSchematicContent = (
+  schematic?: OrbitalSchematicSummary | null,
+): schematic is OrbitalSchematicSummary =>
+  Boolean(schematic && (schematic.rows.length > 0 || schematic.zones.length > 0));
 
 export interface DetailsDeferredPartialLowerProps {
   readonly canonAnnotations?: readonly FocusedCanonAnnotation[];
@@ -44,22 +44,28 @@ const DetailsDeferredPartialLowerInner = memo(function DetailsDeferredPartialLow
   disks,
   systemNameOrId,
 }: DetailsDeferredPartialLowerProps) {
+  const showSchematic = hasOrbitalSchematicContent(schematic);
+
   return (
     <>
+      {showSchematic ? (
+        <OrbitalSchematicPanel elements={schematic} />
+      ) : (
+        <>
+          <DetailsOrbitingBodiesSection
+            focusedKind={focusedKind}
+            orbitingBodies={orbitingBodies}
+          />
+          <DetailsSystemHierarchy
+            isSystemFocus={isSystemFocus}
+            stars={stars}
+            planets={planets}
+            disks={disks}
+            systemNameOrId={systemNameOrId}
+          />
+        </>
+      )}
       <DetailsCanonLayersSection canonAnnotations={canonAnnotations} />
-      <DetailsPlanetHierarchy
-        focusedKind={focusedKind}
-        schematic={schematic}
-        orbitingBodies={orbitingBodies}
-      />
-      <DetailsSystemHierarchy
-        isSystemFocus={isSystemFocus}
-        schematic={schematic}
-        stars={stars}
-        planets={planets}
-        disks={disks}
-        systemNameOrId={systemNameOrId}
-      />
     </>
   );
 });
@@ -96,55 +102,4 @@ export const DetailsDeferredPartialLower = memo(function DetailsDeferredPartialL
   if (!effectiveBundle) return null;
 
   return <DetailsDeferredPartialLowerInner {...effectiveBundle} />;
-});
-
-export interface DetailsDeferredFullProps {
-  readonly isSystemFocus: boolean;
-  readonly schematic?: OrbitalSchematicSummary | null;
-  readonly details?: FocusedEntityDetails;
-}
-
-const DetailsDeferredFullInner = memo(function DetailsDeferredFullInner({
-  isSystemFocus,
-  schematic,
-}: DetailsDeferredFullProps) {
-  return (
-    <>
-      {!isSystemFocus &&
-      schematic &&
-      schematic.scope === 'system' &&
-      schematic.items.length > 0 ? (
-        <section
-          aria-labelledby="details-schematic-heading"
-          data-testid="orbital-schematic-panel"
-          data-scope={schematic.scope}
-          data-system-id={schematic.systemId}
-          className={styles.schematicSection}
-        >
-          <Heading as="h4" size="eyebrow" id="details-schematic-heading">
-            Orbital Schematic
-          </Heading>
-          <OrbitalSchematicList items={schematic.items} />
-        </section>
-      ) : null}
-    </>
-  );
-});
-
-export const DetailsDeferredFull = memo(function DetailsDeferredFull(
-  props: DetailsDeferredFullProps,
-) {
-  const bundle = useMemo(
-    () => ({
-      isSystemFocus: props.isSystemFocus,
-      schematic: props.schematic,
-      details: props.details,
-    }),
-    [props.isSystemFocus, props.schematic, props.details],
-  );
-
-  const effectiveBundle = useBoundedDeferredValue(bundle, null, 900);
-  if (!effectiveBundle) return null;
-
-  return <DetailsDeferredFullInner {...effectiveBundle} />;
 });

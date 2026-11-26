@@ -181,6 +181,14 @@ export interface SatelliteRecord {
   description?: string;
 }
 
+/** Planetary ring-system radial span record in astronomical units. */
+export interface PlanetaryRingRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly innerRadiusAu: number;
+  readonly outerRadiusAu: number;
+}
+
 /** Extrasolar planet record in a detailed system manifest. */
 export interface ExoplanetRecord {
   id: string;
@@ -200,6 +208,7 @@ export interface ExoplanetRecord {
   composition?: PlanetComposition;
   isHabitableCandidate?: boolean;
   axialTiltDeg?: number;
+  rings?: readonly PlanetaryRingRecord[];
   orbit?: KeplerianOrbit;
   satellites?: SatelliteRecord[];
   reticleType?: CelestialSymbolType;

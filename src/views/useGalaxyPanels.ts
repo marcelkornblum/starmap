@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { SpatialEntityDefinition } from '../types/spatial';
 import { buildJourneyPlan } from '../services/journey/journeyBuilder';
 import {
@@ -10,7 +10,7 @@ import { useSystemData } from '../hooks/useSystemData';
 import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
 import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
 import { buildGalaxyMinimapOrientation } from '../services/details/galaxyMinimap';
-import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
+import { buildOrbitalSchematic } from '../services/details/orbitalSchematicBuilder';
 import { extractGalaxyBodies } from '../services/details/galaxyBodiesExtractor';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
 import { appendExtraEntriesToCorpus } from '../services/details/activeStarsCorpus';
@@ -21,6 +21,7 @@ import type {
 import type { DatasetLayerManifest } from '../types/datasetLayers';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { toAnnotationLookupKey } from '../utils/datasetLayerSlugs';
+import { getCachedDetailRecord } from '../data/detailsRepository';
 import { useEntityAnnotations } from '../hooks/useLayerData';
 
 export interface UseGalaxyPanelsParams {
@@ -82,7 +83,7 @@ export function useGalaxyPanels({
   const canonRecords = useEntityAnnotations(canonLookupIds);
 
   const focusedEntityId = focusedEntity?.id ?? '';
-  const { systemSummary, systemDetail, focusedDetail } = useSystemData(
+  const { systemSummary, systemDetail, focusedDetail, detailsVersion } = useSystemData(
     targetSystemId,
     focusedEntityId,
   );
@@ -132,9 +133,45 @@ export function useGalaxyPanels({
     ],
   );
 
+  const selectedEntityIds = useMemo(
+    () => selectedEntities.map((e) => e.id),
+    [selectedEntities],
+  );
+
+  const [epochMs] = useState(() => Math.floor(Date.now() / 60_000) * 60_000);
+  const getDetailRecord = useMemo(
+    () => (id: string) => {
+      void detailsVersion;
+      return getCachedDetailRecord(id);
+    },
+    [detailsVersion],
+  );
+
+  const orbitalSchematic = useMemo(
+    () =>
+      buildOrbitalSchematic({
+        focusedDetails,
+        systemDetail,
+        focusedDetail,
+        corpus: detailsCorpus,
+        selectedEntityIds,
+        epochMs,
+        getDetailRecord,
+      }),
+    [
+      focusedDetails,
+      systemDetail,
+      focusedDetail,
+      detailsCorpus,
+      selectedEntityIds,
+      epochMs,
+      getDetailRecord,
+    ],
+  );
+
   const focusedPreview = useMemo(
-    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail),
-    [focusedDetails, focusedDetail],
+    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail, orbitalSchematic),
+    [focusedDetails, focusedDetail, orbitalSchematic],
   );
 
   const nonFocusSearch = useMemo(() => stripFocusFromSearch(search), [search]);
@@ -196,45 +233,6 @@ export function useGalaxyPanels({
       : null;
     return { routeStops: stops, activeJourney: journey };
   }, [route, search, activeCorpus, pathname]);
-
-  const isSystemFocused = focusedDetails?.focusedKind === 'system';
-  const focusedId = focusedDetails?.id;
-  const focusedSysId = focusedDetails?.systemId;
-  const focusedName = focusedDetails?.name;
-  const focusedSysName = focusedDetails?.systemName;
-  const focusedStars = focusedDetails?.stars;
-  const focusedPlanets = focusedDetails?.planets;
-  const focusedDisks = focusedDetails?.disks;
-
-  const orbitalSchematic = useMemo(
-    () =>
-      isSystemFocused && focusedId && focusedSysId && focusedStars && focusedPlanets
-        ? buildSystemOrbitalSchematic(
-            {
-              id: focusedId,
-              systemId: focusedSysId,
-              name: focusedName ?? '',
-              systemName: focusedSysName ?? '',
-              focusedKind: 'system',
-              stars: focusedStars,
-              planets: focusedPlanets,
-              disks: focusedDisks,
-            },
-            activeCorpus,
-          )
-        : null,
-    [
-      isSystemFocused,
-      focusedId,
-      focusedSysId,
-      focusedName,
-      focusedSysName,
-      focusedStars,
-      focusedPlanets,
-      focusedDisks,
-      activeCorpus,
-    ],
-  );
 
   const activeLayerCard = useMemo(
     () =>

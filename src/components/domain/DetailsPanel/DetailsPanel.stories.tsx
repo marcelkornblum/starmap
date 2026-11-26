@@ -51,7 +51,7 @@ export const DetailsPanelStory: Story = {
         <header className={storyStyles.header}>
           <h1 className={storyStyles.title}>DetailsPanel</h1>
           <p className={storyStyles.description}>
-            Comprehensive multi-detent inspection sheet presenting telemetry, composition, hazards, and canon layers.
+            Comprehensive multi-detent inspection sheet presenting telemetry, composition, hazards, and references.
           </p>
         </header>
 

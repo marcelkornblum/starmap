@@ -1,5 +1,7 @@
+import { isBulkMinorBodyId } from '../../data/detailsRepository';
 import type { SpatialEntityDefinition } from '../../types/spatial';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import { computeOptimisticHabitableZoneAu } from '../../utils/keplerMath';
 import { resolveEntityMarkerKind } from './minimapMarkerHelpers';
 import type { FocusedEntityDetails } from './detailsEntityTypes';
 import type {
@@ -103,15 +105,24 @@ export const buildSystemMinimapOrientation = (
   const outerOrbitalRadiusAu =
     planetRadii.length > 0 ? Math.max(...planetRadii) : undefined;
 
-  const habitableZoneAu = schematic?.habitableZoneAu;
+  const habitableZoneAu =
+    schematic?.habitableZoneAu ??
+    computeOptimisticHabitableZoneAu(
+      (bodiesSummary.scope === 'system'
+        ? bodiesSummary.stars[0]?.luminosityLsun
+        : undefined) ?? systemDetails?.stars[0]?.luminosityLsun,
+    );
 
   const planetsCount =
     bodiesSummary.scope === 'system' ? (bodiesSummary.planets?.length ?? 0) : 0;
   const moonsCount =
     bodiesSummary.scope === 'system'
-      ? (bodiesSummary.moonsAndDwarfPlanets?.length ?? 0)
+      ? (bodiesSummary.moonsAndDwarfPlanets?.filter((item) => !isBulkMinorBodyId(item.id)).length ??
+        0)
       : (bodiesSummary.moons?.length ?? 0);
-  const minorBodiesCount = bodiesSummary.minorBodiesAndSpacecraft?.length ?? 0;
+  const minorBodiesCount =
+    bodiesSummary.minorBodiesAndSpacecraft?.filter((item) => !isBulkMinorBodyId(item.id)).length ??
+    0;
   const orbitingBodyCount = planetsCount + moonsCount + minorBodiesCount;
 
   const anchorMarker: MinimapMarkerItem = {
@@ -130,7 +141,7 @@ export const buildSystemMinimapOrientation = (
             (p) =>
               p.id === focusedEntity.id ||
               toUrlSlug(p.id) === toUrlSlug(focusedEntity.id) ||
-              p.name.toLowerCase() === focusedEntity.name.toLowerCase(),
+              toUrlSlug(p.name) === toUrlSlug(focusedEntity.name),
           )
         : undefined;
     focusedMarker = {

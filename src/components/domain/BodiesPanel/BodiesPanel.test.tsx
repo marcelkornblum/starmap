@@ -3,17 +3,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BodiesPanel } from './BodiesPanel';
 import { BodiesMinorBodyRow, type BodiesMinorBodyRowProps } from './BodiesMinorBodyRow';
+import { BodiesPrimaryRow, type BodiesPrimaryRowProps } from './BodiesPrimaryRow';
 import { SpatialEntityProvider } from '../../canvas/entity/SpatialEntityProvider';
 import { SpatialEntityStoreContext } from '../../canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
-
-const renderWithProvider = (ui: React.ReactElement) =>
-  render(<SpatialEntityProvider>{ui}</SpatialEntityProvider>);
 import type {
   GalaxyBodiesSummary,
   PlanetaryBodiesSummary,
   SystemBodiesSummary,
 } from '../../../services/details/detailsHierarchyTypes';
+
+const renderWithProvider = (ui: React.ReactElement) =>
+  render(<SpatialEntityProvider>{ui}</SpatialEntityProvider>);
 
 const mockGalaxyFixture: GalaxyBodiesSummary = {
   scope: 'galaxy',
@@ -179,13 +180,84 @@ describe('<BodiesPanel />', () => {
     expect(onHoverEntity).toHaveBeenCalledWith(null);
   });
 
-  it('renders system scope with orbital schematic and minor bodies', () => {
-    renderWithProvider(<BodiesPanel elements={mockSystemFixture} />);
+  it('renders system scope with primary Block rows (stars, planets, disks, dwarf planets), minor bodies, and no orbital-schematic-panel', () => {
+    const richSystemFixture: SystemBodiesSummary = {
+      ...mockSystemFixture,
+      selectedEntityIds: ['earth', 'sol'],
+      planets: [
+        ...mockSystemFixture.planets,
+        {
+          id: 'mercury',
+          name: 'Mercury',
+          composition: 'terrestrial',
+          semiMajorAxisAu: 0.387,
+          periodDays: 87.97,
+          massMearth: 0.055,
+          isHabitableCandidate: false,
+          href: '/planet/mercury',
+        },
+      ],
+      disks: [
+        {
+          id: 'main-belt',
+          name: 'Main Asteroid Belt',
+          kind: 'asteroid-belt',
+          kindLabel: 'Asteroid Belt',
+          href: '/system/sol?focus=main-belt',
+          innerRadiusAu: 2.2,
+          outerRadiusAu: 3.2,
+          semiMajorAxisAu: 2.7,
+          composition: 'Silicate and carbonaceous asteroids',
+          guideHref: '/guide/metrics/semi-major-axis',
+        },
+      ],
+      moonsAndDwarfPlanets: [
+        {
+          id: 'ceres',
+          name: '1 Ceres',
+          href: '/system/sol?focus=ceres',
+          categoryKey: 'dwarf-planet',
+          categoryLabel: 'Dwarf Planet',
+        },
+      ],
+    };
+
+    renderWithProvider(<BodiesPanel elements={richSystemFixture} />);
 
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('system');
     expect(panel.getAttribute('data-system-id')).toBe('sol');
-    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('orbital-schematic-panel')).toBeNull();
+
+    const primaryList = screen.getByTestId('bodies-primary-list');
+    expect(primaryList.tagName).toBe('UL');
+    const primaryItems = screen.getAllByTestId('bodies-primary-item');
+    expect(primaryItems).toHaveLength(5);
+
+    expect(primaryItems[0]).toHaveAttribute('data-entity-id', 'sol');
+    expect(primaryItems[0]).toHaveAttribute('data-block', 'true');
+    expect(primaryItems[0]).toHaveAttribute('data-selected', 'true');
+    expect(primaryItems[0]).not.toHaveAttribute('data-focused');
+    expect(primaryItems[0].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
+    expect(primaryItems[0].querySelector('[data-spectral-badge]')).not.toBeNull();
+    expect(screen.getByText('G2V')).toBeInTheDocument();
+
+    expect(primaryItems[1]).toHaveAttribute('data-entity-id', 'earth');
+    expect(primaryItems[1]).toHaveAttribute('data-focused', 'true');
+    expect(primaryItems[1]).toHaveAttribute('data-selected', 'true');
+    expect(primaryItems[1].querySelectorAll('[data-celestial-badge]')).toHaveLength(2);
+    expect(primaryItems[1].querySelector('[data-celestial-badge="terrestrial"]')).not.toBeNull();
+    expect(primaryItems[1].querySelector('[data-celestial-badge="habitable-zone"]')).not.toBeNull();
+
+    expect(primaryItems[2]).toHaveAttribute('data-entity-id', 'mercury');
+    expect(primaryItems[2].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
+    expect(primaryItems[2].querySelector('[data-celestial-badge="habitable-zone"]')).toBeNull();
+
+    expect(primaryItems[3]).toHaveAttribute('data-entity-id', 'main-belt');
+    expect(primaryItems[3].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
+
+    expect(primaryItems[4]).toHaveAttribute('data-entity-id', 'ceres');
+    expect(primaryItems[4].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
 
     const minorBodiesSection = screen.getByTestId('bodies-minor-bodies-section');
     expect(minorBodiesSection).toBeInTheDocument();
@@ -198,15 +270,84 @@ describe('<BodiesPanel />', () => {
     expect(screen.getByText('Voyager 1')).toBeInTheDocument();
   });
 
-  it('renders planetary scope', () => {
+  it('renders empty state when no primary orbital bodies are catalogued', () => {
+    const emptySystemFixture: SystemBodiesSummary = {
+      ...mockSystemFixture,
+      stars: [],
+      planets: [],
+      disks: [],
+      moonsAndDwarfPlanets: [],
+      minorBodiesAndSpacecraft: [],
+    };
+
+    renderWithProvider(<BodiesPanel elements={emptySystemFixture} />);
+    expect(screen.getByTestId('bodies-primary-empty')).toHaveTextContent(
+      'No catalogued orbital bodies',
+    );
+  });
+
+  it('renders planetary scope with host planet and moons as primary Block rows', () => {
     renderWithProvider(<BodiesPanel elements={mockPlanetFixture} />);
 
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('planet');
     expect(panel.getAttribute('data-planet-id')).toBe('earth');
+    expect(screen.queryByTestId('orbital-schematic-panel')).toBeNull();
+
+    const primaryItems = screen.getAllByTestId('bodies-primary-item');
+    expect(primaryItems).toHaveLength(2);
+    expect(primaryItems[0]).toHaveAttribute('data-entity-id', 'earth');
+    expect(primaryItems[0].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
+    expect(primaryItems[1]).toHaveAttribute('data-entity-id', 'moon');
+    expect(primaryItems[1]).toHaveAttribute('data-focused', 'true');
+    expect(primaryItems[1]).toHaveAttribute('data-selected', 'true');
+    expect(primaryItems[1].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Moon' })).toBeInTheDocument();
   });
 
-  it('does not re-render system-scope BodiesPanel when store hoveredId changes', () => {
+  it('compares primary rows structurally via BodiesPrimaryRow memo comparator', () => {
+    const compare = (
+      BodiesPrimaryRow as unknown as {
+        compare?: (prev: BodiesPrimaryRowProps, next: BodiesPrimaryRowProps) => boolean;
+      }
+    ).compare;
+    const basePlanet = {
+      kind: 'planet' as const,
+      id: 'earth',
+      name: 'Earth',
+      href: '/planet/earth',
+      composition: 'terrestrial' as const,
+      isHabitableCandidate: true,
+    };
+
+    expect(compare).toBeTypeOf('function');
+    expect(
+      compare?.(
+        { item: basePlanet, isFocused: false, isSelected: false },
+        { item: { ...basePlanet }, isFocused: false, isSelected: false },
+      ),
+    ).toBe(true);
+
+    expect(
+      compare?.(
+        { item: basePlanet, isFocused: false, isSelected: false },
+        {
+          item: { ...basePlanet, isHabitableCandidate: false },
+          isFocused: false,
+          isSelected: false,
+        },
+      ),
+    ).toBe(false);
+
+    expect(
+      compare?.(
+        { item: basePlanet, isFocused: false, isSelected: false },
+        { item: { ...basePlanet }, isFocused: true, isSelected: false },
+      ),
+    ).toBe(false);
+  });
+
+  it('syncs primary row hover and focus to SpatialEntityStore without re-rendering system-scope BodiesPanel', () => {
     const store = createSpatialEntityStore();
     const onRender = vi.fn();
 
@@ -220,6 +361,23 @@ describe('<BodiesPanel />', () => {
 
     expect(onRender).toHaveBeenCalled();
     onRender.mockClear();
+
+    const primaryItems = screen.getAllByTestId('bodies-primary-item');
+    fireEvent.mouseEnter(primaryItems[0]);
+    expect(store.getState().hoveredId).toBe('sol');
+    expect(onRender).not.toHaveBeenCalled();
+
+    fireEvent.mouseLeave(primaryItems[0]);
+    expect(store.getState().hoveredId).toBeNull();
+    expect(onRender).not.toHaveBeenCalled();
+
+    fireEvent.focus(primaryItems[1]);
+    expect(store.getState().hoveredId).toBe('earth');
+    expect(onRender).not.toHaveBeenCalled();
+
+    fireEvent.blur(primaryItems[1]);
+    expect(store.getState().hoveredId).toBeNull();
+    expect(onRender).not.toHaveBeenCalled();
 
     act(() => {
       store.getState().setHovered('earth');

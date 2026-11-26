@@ -1,13 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import type { CelestialClassification } from '../../../types/spatial';
-import type {
-  PlanetCompositionClass,
-  SystemSummarySegment,
-} from '../../../services/details/detailsEntityTypes';
-import {
-  buildPlanetTypeGuideHref,
-  buildStarTypeGuideHref,
-} from '../../../content/guide';
+import type { SystemSummarySegment } from '../../../services/details/detailsEntityTypes';
+import { buildStarTypeGuideHref } from '../../../content/guide';
 import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
 import {
   Badge,
@@ -29,7 +23,6 @@ export interface DetailsIdentityHeaderProps {
   readonly focusedKind: string;
   readonly spectralType?: string;
   readonly starCount?: number;
-  readonly planetComposition?: PlanetCompositionClass;
   readonly isHabitableCandidate?: boolean;
   readonly systemSummarySegments?: readonly SystemSummarySegment[];
   readonly actionControls?: ReactNode;
@@ -42,7 +35,6 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
   focusedKind,
   spectralType,
   starCount,
-  planetComposition,
   isHabitableCandidate,
   systemSummarySegments,
   actionControls,
@@ -83,22 +75,14 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
               unit={starCount === 1 ? 'star' : 'stars'}
             />
           ) : null}
-          {planetComposition ? (
+          {isHabitableCandidate ? (
             <Cluster as="span" gap="tight" align="center" data-hero-extra="true">
               <CelestialBadge
-                type={planetComposition}
-                href={buildPlanetTypeGuideHref(planetComposition)}
+                type="habitable-zone"
+                href={buildTagGalaxyHref('HabitableCandidate')}
                 showLabel
-                data-testid="details-planet-type-link"
+                data-testid="details-planet-habitable-link"
               />
-              {isHabitableCandidate ? (
-                <CelestialBadge
-                  type="habitable-zone"
-                  href={buildTagGalaxyHref('HabitableCandidate')}
-                  showLabel
-                  data-testid="details-planet-habitable-link"
-                />
-              ) : null}
             </Cluster>
           ) : null}
         </Cluster>

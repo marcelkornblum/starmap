@@ -7,9 +7,9 @@ import {
   Block,
   CelestialBadge,
   Cluster,
+  CollapsibleSection,
   ConfidencePip,
   Datum,
-  Heading,
   Quantity,
   Stack,
   Unit,
@@ -29,13 +29,11 @@ export const DetailsPlanetTelemetrySection = ({
   }
 
   return (
-    <section
-      aria-labelledby="details-planet-telemetry-heading"
+    <CollapsibleSection
+      title="Planetary Telemetry"
+      headingId="details-planet-telemetry-heading"
       data-testid="details-planet-telemetry-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-planet-telemetry-heading">
-        Planetary Telemetry
-      </Heading>
       <Block padding="tight">
         <Stack gap="fib-1" data-testid="details-planet-telemetry-list">
           <Datum
@@ -239,6 +237,6 @@ export const DetailsPlanetTelemetrySection = ({
           ) : null}
         </Stack>
       </Block>
-    </section>
+    </CollapsibleSection>
   );
 };

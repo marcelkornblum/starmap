@@ -99,12 +99,11 @@ test.describe('Journey 1: The Reader Flow (Target Acquisition & Travel Planning)
     await expect(breadcrumb.getByRole('list').getByText('Galaxy')).toBeVisible();
     await expect(breadcrumb.getByRole('list').getByText('Tau Ceti')).toBeVisible();
 
-    // Verifies System Bodies orbital schematic
-    const orbitalSchematic = page.getByRole('region', { name: 'Orbital Schematic' });
-    await expect(orbitalSchematic).toBeVisible();
+    const bodiesPanel = page.getByTestId('bodies-panel');
+    await expect(bodiesPanel).toBeVisible();
+    await expect(bodiesPanel.getByTestId('bodies-primary-list')).toBeVisible();
 
-    // 10. Selects a planet (Tau Ceti e)
-    const planetLink = orbitalSchematic.getByRole('link', { name: 'Tau Ceti e' });
+    const planetLink = bodiesPanel.getByRole('link', { name: 'Tau Ceti e' });
     await expect(planetLink).toBeVisible({ timeout: 15000 });
     await planetLink.click();
 

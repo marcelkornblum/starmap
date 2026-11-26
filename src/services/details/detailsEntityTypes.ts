@@ -4,6 +4,7 @@ import type { PlanetCompositionClass } from '../../content/guide';
 import type {
   CircumstellarDiskKind,
   ObservationalConfidence,
+  PlanetaryRingRecord,
   SystemSummaryNode,
 } from '../../types/astro';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
@@ -100,6 +101,7 @@ export interface FocusedPlanetDetail {
   readonly isTidallyLocked?: boolean;
   readonly discoveryYear?: number;
   readonly discoveryMethod?: string;
+  readonly rings?: readonly PlanetaryRingRecord[];
   readonly isHabitableCandidate: boolean;
   readonly hazardCount?: number;
   readonly hazards?: readonly EntityHazardItem[];

@@ -1,0 +1,146 @@
+@layer blocks {
+  .trackLine {
+    --track-color: var(--track-line-color, var(--chrome-orbit-color));
+    --track-thickness: var(--stroke-width-1);
+    --track-bg: repeating-linear-gradient(
+      to right,
+      var(--track-color) 0,
+      var(--track-color) var(--chrome-dash-size),
+      transparent var(--chrome-dash-size),
+      transparent calc(var(--chrome-dash-size) + var(--chrome-dash-gap))
+    );
+
+    display: block;
+    inline-size: 100%;
+    min-inline-size: var(--space-fib-4);
+    block-size: var(--track-thickness);
+    background: var(--track-bg);
+  }
+
+  .hzGroup {
+    --hz-rail-inset-block: var(--space-fib-1);
+    --hz-rail-inset-start: var(--space-fib-2);
+    --hz-rail-width: var(--stroke-width-2);
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hzGroup::before {
+    content: '';
+    position: absolute;
+    inset-block: var(--hz-rail-inset-block);
+    inset-inline-start: var(--hz-rail-inset-start);
+    inline-size: var(--hz-rail-width);
+    border-radius: var(--radius-full);
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--category-habitability) 22%,
+      var(--category-habitability) 78%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  .zoneBand {
+    --zone-band-bg: transparent;
+    --zone-band-image: none;
+    --zone-band-border-block: none;
+    --zone-band-shadow: none;
+    --zone-band-min-height: var(--space-fib-6);
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-block-size: var(--zone-band-min-height);
+    background-color: var(--zone-band-bg);
+    background-image: var(--zone-band-image);
+    border-block: var(--zone-band-border-block);
+    box-shadow: var(--zone-band-shadow);
+    box-sizing: border-box;
+  }
+}
+
+@layer exceptions {
+  .trackLine[data-line-style="dotted"] {
+    --track-bg: repeating-linear-gradient(
+      to right,
+      var(--track-color) 0,
+      var(--track-color) var(--chrome-dot-size),
+      transparent var(--chrome-dot-size),
+      transparent calc(var(--chrome-dot-size) + var(--chrome-dot-gap))
+    );
+  }
+
+  .trackLine[data-line-style="solid"] {
+    --track-color: var(--chrome-datum-plane-color);
+    --track-bg: var(--track-color);
+  }
+
+  .trackLine[data-line-style="route"] {
+    --track-color: var(--chrome-route-color);
+    --track-thickness: var(--stroke-width-3);
+    --track-bg: var(--track-color);
+  }
+
+  .trackLine[data-kinematic="true"] {
+    --track-color: var(--chrome-kinematic-color);
+  }
+
+  .zoneBand[data-swatch="true"] {
+    --zone-band-min-height: var(--space-fib-7);
+  }
+
+  .zoneBand[data-region-kind="belt"],
+  .zoneBand[data-region-kind="debris-disk"] {
+    --zone-band-bg: color-mix(in oklch, var(--status-caution) 6%, transparent);
+    --zone-band-image: repeating-linear-gradient(
+      -45deg,
+      color-mix(in oklch, var(--status-caution) 16%, transparent) 0,
+      color-mix(in oklch, var(--status-caution) 16%, transparent) var(--stroke-width-1),
+      transparent var(--stroke-width-1),
+      transparent var(--space-fib-3)
+    );
+    --zone-band-border-block: var(--border-width-1) dashed color-mix(in oklch, var(--status-caution) 30%, transparent);
+  }
+
+  .zoneBand[data-region-kind="ring-system"] {
+    --zone-band-bg: color-mix(in oklch, var(--status-info) 6%, transparent);
+    --zone-band-image: repeating-linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--status-info) 18%, transparent) 0,
+      color-mix(in oklch, var(--status-info) 18%, transparent) var(--stroke-width-1),
+      transparent var(--stroke-width-1),
+      transparent var(--space-fib-2)
+    );
+    --zone-band-border-block: var(--border-width-1) solid color-mix(in oklch, var(--status-info) 32%, transparent);
+  }
+
+  .zoneBand[data-region-kind="habitable-zone"]::before {
+    content: '';
+    position: absolute;
+    inset-block: var(--space-fib-1);
+    inset-inline-start: var(--space-fib-2);
+    inline-size: var(--stroke-width-2);
+    border-radius: var(--radius-full);
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--category-habitability) 22%,
+      var(--category-habitability) 78%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  .zoneBand[data-selected="true"] {
+    --zone-band-shadow: inset var(--stroke-width-2) 0 0 0 var(--state-selected);
+  }
+
+  .zoneBand[data-focused="true"] {
+    --zone-band-shadow: inset var(--stroke-width-2) 0 0 0 var(--state-focus);
+  }
+}

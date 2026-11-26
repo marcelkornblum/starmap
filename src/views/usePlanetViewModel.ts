@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
 import { EARTH_REFERENCE_TARGET } from '../config/referenceTargets';
 import { buildJourneyPlan } from '../services/journey/journeyBuilder';
@@ -10,12 +10,13 @@ import { resolveActiveLayerCard } from '../services/layerCardService';
 import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
 import { buildPlanetaryBodiesSummary } from '../services/details/planetaryBodiesSummary';
 import { buildPlanetMinimapOrientation } from '../services/details/planetMinimap';
-import { buildPlanetaryOrbitalSchematic } from '../services/details/planetaryOrbitalSchematic';
+import { buildOrbitalSchematic } from '../services/details/orbitalSchematicBuilder';
 import { buildPlanetViewBreadcrumbs } from '../services/details/detailsBreadcrumbs';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { useParams, useSearch } from '@tanstack/react-router';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLoadedLayerManifests } from '../hooks/useLayerData';
+import { getCachedDetailRecord } from '../data/detailsRepository';
 import {
   useOptionalRouter,
   useSpaLocation,
@@ -35,7 +36,9 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
     focusedDetails,
     systemContextDetails,
     planetEntityDetail,
+    systemDetail,
     focusedDetail,
+    detailsVersion,
     canonRecords,
     selectedEntityIds,
     selectedEntities,
@@ -109,14 +112,41 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
     ],
   );
 
+  const [epochMs] = useState(() => Math.floor(Date.now() / 60_000) * 60_000);
+  const getDetailRecord = useMemo(
+    () => (id: string) => {
+      void detailsVersion;
+      return getCachedDetailRecord(id);
+    },
+    [detailsVersion],
+  );
+
   const orbitalSchematic = useMemo(
-    () => buildPlanetaryOrbitalSchematic(planetaryBodies, activeCorpus),
-    [planetaryBodies, activeCorpus],
+    () =>
+      buildOrbitalSchematic({
+        focusedDetails,
+        systemDetail,
+        focusedDetail: focusedDetail ?? planetEntityDetail,
+        corpus: activeCorpus,
+        selectedEntityIds,
+        epochMs,
+        getDetailRecord,
+      }),
+    [
+      focusedDetails,
+      systemDetail,
+      focusedDetail,
+      planetEntityDetail,
+      activeCorpus,
+      selectedEntityIds,
+      epochMs,
+      getDetailRecord,
+    ],
   );
 
   const focusedPreview = useMemo(
-    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail),
-    [focusedDetails, focusedDetail],
+    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail, orbitalSchematic),
+    [focusedDetails, focusedDetail, orbitalSchematic],
   );
 
   const minimapOrientation = useMemo(

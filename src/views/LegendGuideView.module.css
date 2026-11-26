@@ -1,0 +1,179 @@
+@layer blocks {
+  .swatchStage {
+    --legend-stage-bg: var(--surface-inset-bg);
+    --legend-stage-border: var(--border-subtle);
+    --legend-stage-radius: var(--radius-sm);
+
+    display: flex;
+    align-items: center;
+    inline-size: 100%;
+    block-size: var(--space-fib-5);
+    padding-inline: var(--space-fib-3);
+    box-sizing: border-box;
+    border-radius: var(--legend-stage-radius);
+    background: var(--legend-stage-bg);
+    border: var(--border-width-1) solid var(--legend-stage-border);
+  }
+
+  .zoneSwatchStage {
+    --legend-zone-stage-bg: var(--surface-block-bg);
+    --legend-zone-stage-radius: var(--surface-block-radius);
+
+    display: flex;
+    flex-direction: column;
+    inline-size: 100%;
+    border-radius: var(--legend-zone-stage-radius);
+    background: var(--legend-zone-stage-bg);
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .colorSwatch {
+    --legend-swatch-color: var(--state-focus);
+    --legend-swatch-size: var(--space-fib-5);
+
+    display: inline-block;
+    inline-size: var(--legend-swatch-size);
+    block-size: var(--legend-swatch-size);
+    border-radius: var(--radius-badge);
+    border: var(--border-width-1) solid var(--border-subtle);
+    flex-shrink: 0;
+    background: var(--legend-swatch-color);
+  }
+
+  .spectralSwatch {
+    --legend-spectral-color: var(--spectral-g);
+    --legend-spectral-size: var(--space-fib-4);
+
+    display: inline-block;
+    inline-size: var(--legend-spectral-size);
+    block-size: var(--legend-spectral-size);
+    border-radius: var(--radius-full);
+    border: var(--border-width-1) solid var(--border-subtle);
+    background: var(--legend-spectral-color);
+    flex-shrink: 0;
+  }
+
+  .spectralLabel {
+    font-family: var(--font-data);
+    font-size: var(--type-scale-neg-1);
+    font-weight: var(--font-weight-semibold);
+    color: var(--content-prominent);
+  }
+
+  .roleMeta {
+    font-family: var(--font-data);
+    font-size: var(--text-content-footnote-size);
+    color: var(--content-muted);
+  }
+
+  .descriptionText {
+    margin: 0;
+    font-size: var(--type-scale-neg-1);
+    line-height: var(--leading-body);
+    color: var(--content-default);
+  }
+
+  .symbolTitle {
+    font-weight: var(--font-weight-semibold);
+    color: var(--content-prominent);
+  }
+
+  .symbolGuideLink {
+    --legend-link-color: var(--content-accent);
+
+    color: var(--legend-link-color);
+    font-size: var(--text-content-footnote-size);
+    text-decoration: none;
+  }
+
+  .symbolGuideLink:hover {
+    text-decoration: underline;
+  }
+
+  .symbolGuideLink:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+    border-radius: var(--radius-control);
+  }
+
+  .confidenceLabel {
+    font-size: var(--type-scale-neg-1);
+    color: var(--content-default);
+    text-transform: capitalize;
+  }
+}
+
+@layer exceptions {
+  .spectralSwatch[data-spectral-class="O"] {
+    --legend-spectral-color: var(--spectral-o);
+  }
+
+  .spectralSwatch[data-spectral-class="B"] {
+    --legend-spectral-color: var(--spectral-b);
+  }
+
+  .spectralSwatch[data-spectral-class="A"] {
+    --legend-spectral-color: var(--spectral-a);
+  }
+
+  .spectralSwatch[data-spectral-class="F"] {
+    --legend-spectral-color: var(--spectral-f);
+  }
+
+  .spectralSwatch[data-spectral-class="G"] {
+    --legend-spectral-color: var(--spectral-g);
+  }
+
+  .spectralSwatch[data-spectral-class="K"] {
+    --legend-spectral-color: var(--spectral-k);
+  }
+
+  .spectralSwatch[data-spectral-class="M"] {
+    --legend-spectral-color: var(--spectral-m);
+  }
+
+  .spectralSwatch[data-spectral-class="L/T/Y"] {
+    --legend-spectral-color: var(--spectral-l);
+  }
+
+  .spectralSwatch[data-spectral-class="D"] {
+    --legend-spectral-color: var(--spectral-d);
+  }
+
+  .colorSwatch[data-swatch-kind="focus"] {
+    --legend-swatch-color: var(--state-focus);
+  }
+
+  .colorSwatch[data-swatch-kind="selected"] {
+    --legend-swatch-color: var(--state-selected);
+  }
+
+  .colorSwatch[data-swatch-kind="kinematic"] {
+    --legend-swatch-color: var(--chrome-kinematic-color);
+  }
+
+  .colorSwatch[data-swatch-kind="habitability"] {
+    --legend-swatch-color: var(--category-habitability);
+  }
+
+  .colorSwatch[data-swatch-kind="caution"] {
+    --legend-swatch-color: var(--status-caution);
+  }
+
+  .colorSwatch[data-swatch-kind="critical"] {
+    --legend-swatch-color: var(--status-critical);
+  }
+
+  .colorSwatch[data-swatch-kind="confirmed"] {
+    --legend-swatch-color: var(--confidence-confirmed);
+  }
+
+  .colorSwatch[data-swatch-kind="candidate"] {
+    --legend-swatch-color: var(--confidence-candidate);
+  }
+
+  .colorSwatch[data-swatch-kind="theoretical"] {
+    --legend-swatch-color: var(--confidence-theoretical);
+  }
+}

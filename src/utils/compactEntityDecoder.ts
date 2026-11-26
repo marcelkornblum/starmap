@@ -40,15 +40,10 @@ export function decodeOrbitTuple(tuple?: OrbitTuple): KeplerianOrbit | undefined
 }
 
 export function decodeSatellite(compact: CompactSatelliteRecord): SatelliteRecord {
-  const orbit = decodeOrbitTuple(compact.o) ?? {
-    semiMajorAxis: compact.o[0],
-    eccentricity: compact.o[1],
-    inclination: compact.o[2],
-    ascendingNode: compact.o[3],
-    argumentOfPeriapsis: compact.o[4],
-    meanAnomaly: compact.o[5],
-    periodDays: compact.o[6],
-  };
+  const orbit = decodeOrbitTuple(compact.o);
+  if (!orbit) {
+    throw new Error(`Satellite "${compact.i}" is missing valid Keplerian orbit tuple "o".`);
+  }
   return {
     id: compact.i,
     name: compact.n,
@@ -117,6 +112,14 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
   if (compact.sat && compact.sat.length > 0) {
     result.satellites = compact.sat.map(decodeSatellite);
   }
+  if (compact.rg && compact.rg.length > 0) {
+    result.rings = compact.rg.map(([id, name, innerRadiusAu, outerRadiusAu]) => ({
+      id,
+      name,
+      innerRadiusAu,
+      outerRadiusAu,
+    }));
+  }
   return result;
 }
 
@@ -152,8 +155,6 @@ export function decodeGalacticStructure(
   return result;
 }
 
-export const decodeStructure = decodeGalacticStructure;
-
 export function decodeSolarSystemBody(
   compact: CompactSolarSystemBody,
   fallbackId?: string,
@@ -187,10 +188,16 @@ export function decodeSolarSystemBody(
   if (compact.H && compact.H > 0) result.hazardMask = compact.H;
   if (compact.tl === 1) result.isTidallyLocked = true;
   if (compact.core === 1) result.isCoreSearch = true;
+  if (compact.rg && compact.rg.length > 0) {
+    result.rings = compact.rg.map(([id, name, innerRadiusAu, outerRadiusAu]) => ({
+      id,
+      name,
+      innerRadiusAu,
+      outerRadiusAu,
+    }));
+  }
   return result;
 }
-
-export const decodeMinorBody = decodeSolarSystemBody;
 
 export function decodeCompactSearchEntry(entry: CompactSearchEntry): DecodedSearchEntry {
   return {

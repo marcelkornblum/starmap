@@ -3,7 +3,7 @@ import {
   buildMetricGuideHref,
   buildStarTypeGuideHref,
 } from '../../../content/guide';
-import { Block, Datum, Heading, SpectralBadge, Stack, Unit } from '../../interface';
+import { Block, CollapsibleSection, Datum, SpectralBadge, Stack, Unit } from '../../interface';
 
 export interface DetailsStarTelemetrySectionProps {
   readonly starTelemetry?: FocusedStarTelemetry | null;
@@ -19,13 +19,11 @@ export const DetailsStarTelemetrySection = ({
   }
 
   return (
-    <section
-      aria-labelledby="details-star-telemetry-heading"
+    <CollapsibleSection
+      title="Stellar Telemetry"
+      headingId="details-star-telemetry-heading"
       data-testid="details-star-telemetry-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-star-telemetry-heading">
-        Stellar Telemetry
-      </Heading>
       <Block padding="tight">
         <Stack gap="fib-1" data-testid="details-star-telemetry-list">
           <Datum
@@ -145,6 +143,6 @@ export const DetailsStarTelemetrySection = ({
           ) : null}
         </Stack>
       </Block>
-    </section>
+    </CollapsibleSection>
   );
 };

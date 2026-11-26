@@ -51,6 +51,9 @@ const SOL_PRIMARY_SHARD = 'details/sol-primary.json';
 const STRUCTURES_SHARD = 'details/structures.json';
 const MINOR_INFERRED_PREFIXES = ['pha-', 'distant-', 'comet-'] as const;
 
+export const isBulkMinorBodyId = (id: string): boolean =>
+  MINOR_INFERRED_PREFIXES.some((prefix) => id.startsWith(prefix));
+
 const detailsListeners = new Set<() => void>();
 let detailsRepoVersion = 0;
 
@@ -184,7 +187,7 @@ export const getCachedExoplanetFromSystem = (
 };
 
 function resolveFastDetailShardPath(id: string): string | undefined {
-  if (MINOR_INFERRED_PREFIXES.some((prefix) => id.startsWith(prefix))) {
+  if (isBulkMinorBodyId(id)) {
     return `details/sol-minor/${getShardKey(id)}.json`;
   }
 
@@ -273,6 +276,29 @@ export const fetchDetailRecord = async (
     onLoaded: notifyDetailsListeners,
   });
   return getCachedDetailRecord(id);
+};
+
+export const isSolPrimaryShardCached = (): boolean =>
+  RESOLVED_DETAIL_SHARD_CACHE.has(SOL_PRIMARY_SHARD);
+
+export const fetchSolPrimaryShard = async (
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<boolean> => {
+  if (RESOLVED_DETAIL_SHARD_CACHE.has(SOL_PRIMARY_SHARD)) {
+    return true;
+  }
+  await loadShardedEnvelopeData({
+    cacheKey: SOL_PRIMARY_SHARD,
+    logicalPath: SOL_PRIMARY_SHARD,
+    label: `detail shard "${SOL_PRIMARY_SHARD}"`,
+    pendingCache: DETAIL_SHARD_CACHE,
+    resolvedCache: RESOLVED_DETAIL_SHARD_CACHE,
+    fetchImpl,
+    signal,
+    onLoaded: notifyDetailsListeners,
+  });
+  return RESOLVED_DETAIL_SHARD_CACHE.has(SOL_PRIMARY_SHARD);
 };
 
 /**

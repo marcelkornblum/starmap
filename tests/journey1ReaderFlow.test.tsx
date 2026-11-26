@@ -629,9 +629,9 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(sysRes!.container.querySelector('[data-testid="bodies-panel"]')).not.toBeNull();
     expect(sysRes!.container.querySelector('[data-scope="system"]')).not.toBeNull();
     expect(sysRes!.container.querySelector('[data-system-id="gaia-2452378776434477184"]')).not.toBeNull();
-    expect(sysRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
-    expect(sysRes!.container.querySelector('[data-testid="orbital-schematic-list"]')).not.toBeNull();
-    expect(sysRes!.container.querySelector('[data-testid="orbital-schematic-item"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="bodies-primary-list"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="bodies-primary-item"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
     expect(sysRes!.container.querySelector('[data-testid="bodies-stars-section"]')).toBeNull();
     expect(sysRes!.container.querySelector('[data-testid="bodies-planets-section"]')).toBeNull();
     expect(sysRes!.container.querySelector('[data-testid="bodies-canon-section"]')).toBeNull();
@@ -661,13 +661,13 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         ),
       );
     });
-    expect(solSelectRes!.container.querySelector('[data-testid="orbital-schematic-item"]')).not.toBeNull();
+    expect(solSelectRes!.container.querySelector('[data-testid="bodies-primary-list"]')).not.toBeNull();
+    expect(solSelectRes!.container.querySelector('[data-testid="bodies-primary-item"]')).not.toBeNull();
     expect(solSelectRes!.container.querySelector('[data-selected="true"]')).not.toBeNull();
     expect(solSelectRes!.container.querySelector('[data-testid="details-panel"]')).toBeNull();
-    expect(solSelectRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(solSelectRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
     solSelectRes!.unmount();
 
-    // SystemView at /system/sol?focus=earth renders Orbiting Bodies (Moon) in DetailsPanel Full and links Details button to /planet/earth
     const earthFocusStore = createSpatialEntityStore();
     let earthFocusRes: ReturnType<typeof render>;
     await act(async () => {
@@ -683,9 +683,12 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         ),
       );
     });
-    expect(earthFocusRes!.container.querySelector('[data-testid="details-orbiting-bodies-section"]')).not.toBeNull();
-    expect(earthFocusRes!.container.querySelector('[data-testid="details-orbiting-body-link"]')).not.toBeNull();
-    expect(earthFocusRes!.container.querySelector('a[href="/planet/earth?focus=moon"]')).not.toBeNull();
+    const earthDetailsPanel = earthFocusRes!.container.querySelector('[data-testid="details-panel"]');
+    expect(earthDetailsPanel).not.toBeNull();
+    expect(earthDetailsPanel!.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(earthDetailsPanel!.querySelector('[data-testid="orbital-schematic-stage"]')).not.toBeNull();
+    expect(earthDetailsPanel!.querySelector('[data-testid="orbital-schematic-row"]')).not.toBeNull();
+    expect(earthDetailsPanel!.querySelector('a[href="/planet/earth?focus=moon"]')).not.toBeNull();
     expect(earthFocusRes!.container.textContent).toContain('1 catalogued body in orbit.');
     expect(earthFocusRes!.container.querySelector('[data-testid="details-button-system-details"]')).not.toBeNull();
     expect(earthFocusRes!.container.querySelector('a[href="/planet/earth"]')).not.toBeNull();
@@ -729,9 +732,9 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(planetRes!.container.querySelector('[data-planet-id="earth"]')).not.toBeNull();
     expect(planetRes!.container.querySelector('[data-selected="true"]')).not.toBeNull();
     expect(planetRes!.container.querySelector('[data-testid="details-panel"]')).toBeNull();
-    expect(planetRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
-    expect(planetRes!.container.querySelector('[data-testid="orbital-schematic-list"]')).not.toBeNull();
-    expect(planetRes!.container.querySelector('[data-testid="orbital-schematic-item"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="bodies-primary-list"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="bodies-primary-item"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
     expect(planetRes!.container.querySelector('a[href="/planet/earth?focus=moon"]')).not.toBeNull();
     expect(planetRes!.container.querySelector('[data-testid="bodies-planet-section"]')).toBeNull();
     expect(planetRes!.container.querySelector('[data-testid="bodies-moons-section"]')).toBeNull();
@@ -776,12 +779,16 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         ),
       );
     });
-    expect(earthHostFocusRes!.container.querySelector('[data-testid="details-panel"]')).not.toBeNull();
+    const earthHostDetails = earthHostFocusRes!.container.querySelector('[data-testid="details-panel"]');
+    expect(earthHostDetails).not.toBeNull();
     expect(earthHostFocusRes!.container.querySelector('[data-focused-kind="planet"]')).not.toBeNull();
     expect(earthHostFocusRes!.container.querySelector('[data-focused="true"]')).not.toBeNull();
+    expect(earthHostDetails!.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(earthHostDetails!.querySelector('[data-testid="orbital-schematic-stage"]')).not.toBeNull();
+    expect(earthHostDetails!.querySelector('[data-testid="orbital-schematic-row"]')).not.toBeNull();
+    expect(earthHostDetails!.querySelector('a[href="/planet/earth?focus=moon"]')).not.toBeNull();
     earthHostFocusRes!.unmount();
 
-    // PlanetView at /planet/tau-ceti-e renders exoplanet with canon layer and empty moons message
     const exoPlanetStore = createSpatialEntityStore();
     let exoPlanetRes: ReturnType<typeof render>;
     await act(async () => {
@@ -797,11 +804,13 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         ),
       );
     });
-    expect(exoPlanetRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(exoPlanetRes!.container.querySelector('[data-testid="bodies-panel"]')).not.toBeNull();
+    expect(exoPlanetRes!.container.querySelector('[data-testid="bodies-primary-list"]')).not.toBeNull();
+    expect(exoPlanetRes!.container.querySelector('[data-testid="bodies-primary-item"]')).not.toBeNull();
+    expect(exoPlanetRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
     expect(exoPlanetRes!.container.querySelector('[data-testid="bodies-canon-section"]')).toBeNull();
     exoPlanetRes!.unmount();
 
-    // With explicit focus on tau-ceti-e, DetailsPanel renders details-canon-section with canon annotation
     const focusedExoStore = createSpatialEntityStore({ focusedId: 'tau-ceti-e' });
     focusedExoStore.getState().registerEntity({
       id: 'tau-ceti-e',
@@ -824,10 +833,10 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
       );
     });
     expect(focusedExoRes!.container.querySelector('[data-testid="details-canon-section"]')).not.toBeNull();
+    expect(focusedExoRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
     expect(focusedExoRes!.container.textContent).toContain('Adrian');
     focusedExoRes!.unmount();
 
-    // SystemView at /system/sol renders Orbital Schematic and Minor Bodies & Spacecraft sections
     const solStore = createSpatialEntityStore();
     let solRes: ReturnType<typeof render>;
     await act(async () => {
@@ -843,7 +852,9 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         ),
       );
     });
-    expect(solRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(solRes!.container.querySelector('[data-testid="bodies-primary-list"]')).not.toBeNull();
+    expect(solRes!.container.querySelector('[data-testid="bodies-primary-item"]')).not.toBeNull();
+    expect(solRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
     expect(solRes!.container.querySelector('[data-testid="bodies-minor-bodies-section"]')).not.toBeNull();
     solRes!.unmount();
 

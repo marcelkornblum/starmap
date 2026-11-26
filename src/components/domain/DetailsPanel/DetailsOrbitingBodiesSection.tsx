@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { SystemElementBodyItem } from '../../../services/details/detailsHierarchyTypes';
-import { CelestialTitle, DataTable, Heading } from '../../interface';
+import { CelestialTitle, CollapsibleSection, DataTable } from '../../interface';
 
 interface DetailsOrbitingBodyRowProps {
   readonly body: SystemElementBodyItem;
@@ -62,13 +62,11 @@ export const DetailsOrbitingBodiesSection = memo(function DetailsOrbitingBodiesS
   const heading = focusedKind === 'belt' ? 'Resident Bodies' : 'Orbiting Bodies';
 
   return (
-    <section
-      aria-labelledby="details-orbiting-bodies-heading"
+    <CollapsibleSection
+      title={heading}
+      headingId="details-orbiting-bodies-heading"
       data-testid="details-orbiting-bodies-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-orbiting-bodies-heading">
-        {heading}
-      </Heading>
       <DataTable data-testid="details-orbiting-bodies-list">
         <DataTable.Head>
           <DataTable.Row>
@@ -81,7 +79,7 @@ export const DetailsOrbitingBodiesSection = memo(function DetailsOrbitingBodiesS
           ))}
         </DataTable.Body>
       </DataTable>
-    </section>
+    </CollapsibleSection>
   );
 });
 

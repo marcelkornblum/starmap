@@ -34,7 +34,7 @@ export type PreviewMode =
 export interface PreviewOrbitElement {
   readonly id: string;
   readonly name: string;
-  readonly kind: OrbitalSchematicEntityKind;
+  readonly kind: OrbitalSchematicEntityKind | 'belt';
   readonly symbolType?: CelestialSymbolType;
   readonly orbitRank: number;
   readonly semiMajorAxisAu?: number;

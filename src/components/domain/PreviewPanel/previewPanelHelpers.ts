@@ -63,6 +63,8 @@ function resolveFallbackSymbolType(kind: PreviewOrbitElement['kind']): Celestial
       return 'belt';
     case 'spacecraft':
       return 'spacecraft';
+    case 'comet':
+      return 'comet';
     case 'minor-body':
       return 'asteroid';
   }

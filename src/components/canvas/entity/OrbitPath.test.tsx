@@ -12,6 +12,8 @@ import {
 import { NOOP_RAYCAST } from '../engineConfig';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoLineMaterial } from '../materials/CartoLineMaterial';
+import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
+import * as orbitPathGeometry from './orbitPathGeometry';
 
 describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
   afterEach(() => {
@@ -207,5 +209,89 @@ describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
     expect(line2.geometry.attributes.instanceStart.count).toBe(64);
 
     await renderer.unmount();
+  });
+
+  it('uses dotSize and dotGap on CartoLineMaterial when lineStyle is dotted', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath
+            id="orbit-dotted"
+            semiMajorAxis={2.0}
+            lineStyle="dotted"
+            state="passive"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const lineGroup = renderer.scene.find((node) => node.props.name === 'orbit-path-line');
+    const line2 = lineGroup.children.find(
+      (child) => child.instance instanceof Line2 || (child.instance && 'isLine2' in child.instance),
+    )?.instance as Line2;
+    const lineMat = line2.material as CartoLineMaterial;
+
+    expect(lineMat.lineStyle).toBe('dotted');
+    expect(lineMat.dashSize).toBe(CARTO_LINE_CONSTANTS.dotSize);
+    expect(lineMat.gapSize).toBe(CARTO_LINE_CONSTANTS.dotGap);
+    expect(lineMat.uniforms.dashSize.value).toBe(CARTO_LINE_CONSTANTS.dotSize);
+    expect(lineMat.uniforms.gapSize.value).toBe(CARTO_LINE_CONSTANTS.dotGap);
+
+    await renderer.unmount();
+  });
+
+  it('returns null without allocating geometries for hyperbolic, non-positive, or hidden passive orbits', async () => {
+    const buildSpy = vi.spyOn(orbitPathGeometry, 'buildOrbitGeometries');
+
+    const hyperbolicRenderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath
+            id="orbit-hyperbolic"
+            semiMajorAxis={-3.2}
+            eccentricity={3.7}
+            state="focused"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    expect(hyperbolicRenderer.scene.findAll((node) => node.props.name === 'orbit-path-line')).toHaveLength(0);
+    expect(buildSpy).not.toHaveBeenCalled();
+    await hyperbolicRenderer.unmount();
+
+    const parabolicRenderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath
+            id="orbit-parabolic"
+            semiMajorAxis={0}
+            eccentricity={1.0}
+            state="passive"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    expect(parabolicRenderer.scene.findAll((node) => node.props.name === 'orbit-path-line')).toHaveLength(0);
+    expect(buildSpy).not.toHaveBeenCalled();
+    await parabolicRenderer.unmount();
+
+    const hiddenRenderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath
+            id="orbit-hidden"
+            semiMajorAxis={1.0}
+            eccentricity={0.01}
+            visible={false}
+            state="passive"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    expect(hiddenRenderer.scene.findAll((node) => node.props.name === 'orbit-path-line')).toHaveLength(0);
+    expect(buildSpy).not.toHaveBeenCalled();
+    await hiddenRenderer.unmount();
+
+    buildSpy.mockRestore();
   });
 });

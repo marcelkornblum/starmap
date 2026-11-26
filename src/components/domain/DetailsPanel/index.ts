@@ -2,6 +2,7 @@ export * from './DetailsPanel';
 export * from './DetailsIdentityHeader';
 export * from './DetailsQuickTelemetrySection';
 export * from './DetailsActionControls';
+export * from './DetailsCanonLayersSection';
 export * from './DetailsCanonSection';
 export * from './DetailsHierarchySections';
 export * from './DetailsTelemetrySections';

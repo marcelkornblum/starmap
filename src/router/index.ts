@@ -28,6 +28,9 @@ const HazardDetailView = lazy(() =>
 const HazardsListView = lazy(() =>
   import('../views/HazardsListView').then((m) => ({ default: m.HazardsListView })),
 );
+const LegendGuideView = lazy(() =>
+  import('../views/LegendGuideView').then((m) => ({ default: m.LegendGuideView })),
+);
 const MetricDetailView = lazy(() =>
   import('../views/MetricDetailView').then((m) => ({ default: m.MetricDetailView })),
 );
@@ -203,6 +206,12 @@ export const hazardDetailRoute = createRoute({
   component: HazardDetailView,
 });
 
+export const legendGuideRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/legend',
+  component: LegendGuideView,
+});
+
 export const routeTree = rootRoute.addChildren([
   indexRoute,
   mainSearchRoute,
@@ -217,6 +226,7 @@ export const routeTree = rootRoute.addChildren([
   metricDetailRoute,
   hazardsListRoute,
   hazardDetailRoute,
+  legendGuideRoute,
 ]);
 
 export const router = createRouter({

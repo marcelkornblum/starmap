@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { PlanetaryRingRecord } from '../../src/types/astro';
 import type { GalacticStructureRecord, SolarSystemBodyRecord } from '../../src/types/astroStructures';
 
 const SEED_DIR = path.resolve(process.cwd(), 'data/seed');
@@ -74,6 +75,7 @@ export interface SolarSystemBodyEntry {
   albedo?: number;
   rotationalPeriodHours?: number;
   axialTiltDeg?: number;
+  rings?: readonly PlanetaryRingRecord[];
   spectralType?: string;
   mag?: number;
   absmag?: number;
@@ -83,6 +85,7 @@ export interface SolarSystemBodyEntry {
   radiusRsun?: number;
   effectiveTempK?: number;
   coordinatesPc?: readonly [number, number, number];
+  planeInclinationDeg?: number;
   orbit?: {
     semiMajorAxis: number;
     eccentricity: number;

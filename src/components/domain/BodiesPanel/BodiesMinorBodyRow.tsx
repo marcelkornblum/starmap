@@ -6,6 +6,7 @@ export interface BodiesMinorBodyRowProps {
   readonly body: SystemElementBodyItem;
   readonly isFocused: boolean;
   readonly isSelected: boolean;
+  readonly onHoverEntity?: (entityId: string | null) => void;
 }
 
 const areBodiesMinorBodyRowsEqual = (
@@ -14,6 +15,7 @@ const areBodiesMinorBodyRowsEqual = (
 ): boolean =>
   prev.isFocused === next.isFocused &&
   prev.isSelected === next.isSelected &&
+  prev.onHoverEntity === next.onHoverEntity &&
   prev.body.id === next.body.id &&
   prev.body.name === next.body.name &&
   prev.body.href === next.body.href &&
@@ -23,6 +25,7 @@ export const BodiesMinorBodyRow = React.memo(function BodiesMinorBodyRow({
   body,
   isFocused,
   isSelected,
+  onHoverEntity,
 }: BodiesMinorBodyRowProps) {
   return (
     <Block
@@ -34,6 +37,10 @@ export const BodiesMinorBodyRow = React.memo(function BodiesMinorBodyRow({
       data-body-id={body.id}
       data-focused={isFocused ? 'true' : undefined}
       data-selected={isSelected ? 'true' : undefined}
+      onMouseEnter={() => onHoverEntity?.(body.id)}
+      onMouseLeave={() => onHoverEntity?.(null)}
+      onFocus={() => onHoverEntity?.(body.id)}
+      onBlur={() => onHoverEntity?.(null)}
     >
       <CelestialTitle
         type={

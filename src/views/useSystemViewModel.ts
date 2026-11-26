@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useParams, useSearch } from '@tanstack/react-router';
 import { useSpatialEntityStore, useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
@@ -10,12 +10,13 @@ import { resolveActiveLayerCard } from '../services/layerCardService';
 import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
 import { buildSystemBodiesSummary } from '../services/details/systemBodiesSummary';
 import { buildSystemMinimapOrientation } from '../services/details/systemMinimap';
-import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
+import { buildOrbitalSchematic } from '../services/details/orbitalSchematicBuilder';
 import { buildSystemViewBreadcrumbs } from '../services/details/detailsBreadcrumbs';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
+import { getCachedDetailRecord } from '../data/detailsRepository';
 import { useOptionalRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -58,6 +59,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
     urlSystemSlug,
     focusedDetail,
     systemDetail,
+    detailsVersion,
     isFocusInThisSystem,
     targetSystemId,
   } = useResolvedSystemDetails(props, true);
@@ -206,40 +208,32 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
     systemDetail,
   });
 
+  const [epochMs] = useState(() => Math.floor(Date.now() / 60_000) * 60_000);
+  const getDetailRecord = useMemo(
+    () => (id: string) => {
+      void detailsVersion;
+      return getCachedDetailRecord(id);
+    },
+    [detailsVersion],
+  );
+
   const systemBodies = useMemo(
-    () =>
-      buildSystemBodiesSummary({
-        details: systemContextDetails,
-        corpus: activeCorpus,
-        canonRecords,
-        selectedEntityIds,
-        focusedEntityId,
-      }),
+    () => buildSystemBodiesSummary({ details: systemContextDetails, corpus: activeCorpus, canonRecords, selectedEntityIds, focusedEntityId }),
     [systemContextDetails, activeCorpus, canonRecords, selectedEntityIds, focusedEntityId],
   );
 
   const orbitalSchematic = useMemo(
-    () => buildSystemOrbitalSchematic(systemBodies, activeCorpus),
-    [systemBodies, activeCorpus],
+    () => buildOrbitalSchematic({ focusedDetails, systemDetail, focusedDetail, corpus: activeCorpus, selectedEntityIds, epochMs, getDetailRecord }),
+    [focusedDetails, systemDetail, focusedDetail, activeCorpus, selectedEntityIds, epochMs, getDetailRecord],
   );
 
   const focusedPreview = useMemo(
-    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail),
-    [focusedDetails, focusedDetail],
+    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail, orbitalSchematic),
+    [focusedDetails, focusedDetail, orbitalSchematic],
   );
 
   const minimapOrientation = useMemo(
-    () =>
-      systemBodies
-        ? buildSystemMinimapOrientation(
-            systemBodies,
-            orbitalSchematic,
-            systemContextDetails ?? focusedDetails,
-            focusedEntity,
-            selectedEntities,
-            cameraState,
-          )
-        : null,
+    () => systemBodies ? buildSystemMinimapOrientation(systemBodies, orbitalSchematic, systemContextDetails ?? focusedDetails, focusedEntity, selectedEntities, cameraState) : null,
     [systemBodies, orbitalSchematic, systemContextDetails, focusedDetails, focusedEntity, selectedEntities, cameraState],
   );
 

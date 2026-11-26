@@ -93,4 +93,110 @@ describe('systemMinimap', () => {
 
     expect(orientation.planeInclinationDeg).toBe(60.19);
   });
+
+  it('computes habitableZoneAu fallback from star luminosity when schematic habitableZoneAu is undefined', () => {
+    const bodiesSummary: SystemBodiesSummary = {
+      scope: 'system',
+      systemId: 'sol',
+      systemName: 'Sol',
+      systemHref: '/system/sol',
+      stars: [
+        {
+          id: 'sol-star',
+          name: 'Sol',
+          componentDesignation: 'A',
+          spectralType: 'G2V',
+          mag: -26.74,
+          absmag: 4.83,
+          luminosityLsun: 1.0,
+        },
+      ],
+      planets: [],
+      moonsAndDwarfPlanets: [],
+      minorBodiesAndSpacecraft: [],
+      canonAnnotations: [],
+    };
+
+    const orientation = buildSystemMinimapOrientation(
+      bodiesSummary,
+      null,
+      null,
+      null,
+    );
+
+    expect(orientation.habitableZoneAu).toEqual([0.75, 1.77]);
+  });
+
+  it('excludes bulk minor IDs from orbitingBodyCount while counting curated bodies', () => {
+    const bodiesSummary: SystemBodiesSummary = {
+      scope: 'system',
+      systemId: 'sol',
+      systemName: 'Sol',
+      systemHref: '/system/sol',
+      stars: [
+        {
+          id: 'sol-star',
+          name: 'Sol',
+          componentDesignation: 'A',
+          spectralType: 'G2V',
+          mag: -26.74,
+          absmag: 4.83,
+          luminosityLsun: 1.0,
+        },
+      ],
+      planets: [
+        {
+          id: 'earth',
+          name: 'Earth',
+          composition: 'terrestrial',
+          semiMajorAxisAu: 1.0,
+          isHabitableCandidate: true,
+        },
+      ],
+      moonsAndDwarfPlanets: [
+        {
+          id: 'ceres',
+          name: '1 Ceres',
+          href: '/system/sol?focus=ceres',
+          categoryLabel: 'Dwarf Planet',
+        },
+        {
+          id: 'pha-99942',
+          name: '99942 Apophis',
+          href: '/system/sol?focus=pha-99942',
+          categoryLabel: 'Minor Body',
+        },
+      ],
+      minorBodiesAndSpacecraft: [
+        {
+          id: 'voyager-1',
+          name: 'Voyager 1',
+          href: '/system/sol?focus=voyager-1',
+          categoryLabel: 'Spacecraft',
+        },
+        {
+          id: 'distant-90377',
+          name: '90377 Sedna',
+          href: '/system/sol?focus=distant-90377',
+          categoryLabel: 'Distant',
+        },
+        {
+          id: 'comet-1p',
+          name: '1P/Halley',
+          href: '/system/sol?focus=comet-1p',
+          categoryLabel: 'Comet',
+        },
+      ],
+      canonAnnotations: [],
+    };
+
+    const orientation = buildSystemMinimapOrientation(
+      bodiesSummary,
+      null,
+      null,
+      null,
+    );
+
+    expect(orientation.orbitingBodyCount).toBe(3);
+  });
 });

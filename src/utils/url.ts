@@ -4,6 +4,7 @@ export const STAR_TYPES_GUIDE_PATH = '/guide/star-types' as const;
 export const PLANET_TYPES_GUIDE_PATH = '/guide/planet-types' as const;
 export const METRICS_GUIDE_PATH = '/guide/metrics' as const;
 export const HAZARDS_GUIDE_PATH = '/guide/hazards' as const;
+export const LEGEND_GUIDE_PATH = '/guide/legend' as const;
 
 /**
  * Resolves a public asset path against the application's base URL (import.meta.env.BASE_URL).

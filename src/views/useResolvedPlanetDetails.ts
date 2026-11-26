@@ -41,7 +41,9 @@ export interface ResolvedPlanetDetailsResult {
   readonly focusedDetails: FocusedEntityDetails | null;
   readonly systemContextDetails: FocusedEntityDetails | null;
   readonly planetEntityDetail: DecodedDetailRecord | undefined;
+  readonly systemDetail: DecodedDetailRecord | undefined;
   readonly focusedDetail: DecodedDetailRecord | undefined;
+  readonly detailsVersion?: number;
   readonly canonRecords: readonly DecodedEntityAnnotation[];
   readonly selectedEntityIds: readonly string[];
   readonly selectedEntities: readonly SpatialEntityDefinition[];
@@ -119,7 +121,7 @@ export function useResolvedPlanetDetails(
     [targetPlanetId, urlPlanetSlug],
   );
 
-  const { systemSummary, systemDetail, focusedDetail } = useSystemData(
+  const { systemSummary, systemDetail, focusedDetail, detailsVersion } = useSystemData(
     targetSystemId,
     urlFocusSlug ?? '',
   );
@@ -279,7 +281,9 @@ export function useResolvedPlanetDetails(
     focusedDetails,
     systemContextDetails,
     planetEntityDetail,
+    systemDetail,
     focusedDetail,
+    detailsVersion,
     canonRecords,
     selectedEntityIds,
     selectedEntities,

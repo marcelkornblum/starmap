@@ -6,14 +6,13 @@ test.describe('Journey 5: The Transit Planner Flow (Intra-System Logistics & Orb
   }) => {
     test.setTimeout(90_000);
 
-    // 1. User navigates to Sol system view
     await page.goto('/system/sol');
 
-    // 2. Selects "Mars" in the Orbital Schematic region
-    const orbitalSchematic = page.getByRole('region', { name: 'Orbital Schematic' });
-    await expect(orbitalSchematic).toBeVisible();
+    const bodiesPanel = page.getByTestId('bodies-panel');
+    await expect(bodiesPanel).toBeVisible();
+    await expect(bodiesPanel.getByTestId('bodies-primary-list')).toBeVisible();
 
-    const marsLink = orbitalSchematic.getByRole('link', { name: 'Mars' });
+    const marsLink = bodiesPanel.getByRole('link', { name: 'Mars' });
     await expect(marsLink).toBeVisible({ timeout: 30000 });
     await marsLink.click();
 

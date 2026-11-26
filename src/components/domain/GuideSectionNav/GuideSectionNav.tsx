@@ -5,11 +5,13 @@ import {
   PLANET_TYPES_GUIDE_PATH,
   METRICS_GUIDE_PATH,
   HAZARDS_GUIDE_PATH,
+  LEGEND_GUIDE_PATH,
 } from '../../../content/guide';
+import { resolveAppHref } from '../../../utils/url';
 import styles from './GuideSectionNav.module.css';
 
 export interface GuideSectionNavProps {
-  readonly currentSection?: 'star-types' | 'planet-types' | 'metrics' | 'hazards';
+  readonly currentSection?: 'star-types' | 'planet-types' | 'metrics' | 'hazards' | 'legend';
 }
 
 export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection }) => {
@@ -22,7 +24,7 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
       <Cluster as="ul" gap="tight" align="center">
         <li>
           <a
-            href={STAR_TYPES_GUIDE_PATH}
+            href={resolveAppHref(STAR_TYPES_GUIDE_PATH)}
             className={styles.sectionNavLink}
             aria-current={currentSection === 'star-types' ? 'page' : undefined}
           >
@@ -31,7 +33,7 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
         </li>
         <li>
           <a
-            href={PLANET_TYPES_GUIDE_PATH}
+            href={resolveAppHref(PLANET_TYPES_GUIDE_PATH)}
             className={styles.sectionNavLink}
             aria-current={currentSection === 'planet-types' ? 'page' : undefined}
           >
@@ -40,7 +42,7 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
         </li>
         <li>
           <a
-            href={METRICS_GUIDE_PATH}
+            href={resolveAppHref(METRICS_GUIDE_PATH)}
             className={styles.sectionNavLink}
             aria-current={currentSection === 'metrics' ? 'page' : undefined}
           >
@@ -49,11 +51,20 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
         </li>
         <li>
           <a
-            href={HAZARDS_GUIDE_PATH}
+            href={resolveAppHref(HAZARDS_GUIDE_PATH)}
             className={styles.sectionNavLink}
             aria-current={currentSection === 'hazards' ? 'page' : undefined}
           >
             Environmental Hazards
+          </a>
+        </li>
+        <li>
+          <a
+            href={resolveAppHref(LEGEND_GUIDE_PATH)}
+            className={styles.sectionNavLink}
+            aria-current={currentSection === 'legend' ? 'page' : undefined}
+          >
+            Legend
           </a>
         </li>
       </Cluster>

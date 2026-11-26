@@ -6,6 +6,7 @@ import type {
   FocusedPlanetEntityDetails,
   FocusedSystemEntityDetails,
 } from '../../../services/details/detailsEntityTypes';
+import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 
 const mockSystemDetails: FocusedSystemEntityDetails = {
   id: 'tau-ceti',
@@ -179,44 +180,35 @@ describe('<DetailsPanel />', () => {
     expect(screen.getByText('Moon')).toBeInTheDocument();
   });
 
-  it('renders orbital schematic list when schematic is passed for system focus, replacing separate hierarchy sections', () => {
-    const schematic = {
-      scope: 'system' as const,
+  it('renders OrbitalSchematicPanel inside partial detent for system focus without duplicating in full detent or fallback sections', () => {
+    const schematic: OrbitalSchematicSummary = {
+      parentId: 'tau-ceti',
+      parentName: 'Tau Ceti',
+      parentKind: 'system',
       systemId: 'tau-ceti',
       systemName: 'Tau Ceti',
-      totalCount: 2,
-      regions: [],
-      items: [
-        {
-          id: 'tau-ceti-star',
-          name: 'Tau Ceti',
-          kind: 'star' as const,
-          kindLabel: 'Star',
-          href: '/system/tau-ceti?focus=tau-ceti-star',
-          semiMajorAxisAu: 0,
-          orbitRank: 0,
-          summaryLabel: 'Host Star',
-          inHabitableZone: false,
-          isFocused: false,
-          isSelected: false,
-        },
+      habitableZoneAu: [0.54, 1.28],
+      rows: [
         {
           id: 'tau-ceti-e',
           name: 'Tau Ceti e',
-          kind: 'planet' as const,
-          kindLabel: 'Planet',
           href: '/system/tau-ceti?focus=tau-ceti-e',
-          semiMajorAxisAu: 0.538,
-          orbitRank: 1,
-          summaryLabel: '0.538 AU',
+          kind: 'planet',
+          reticleType: 'terrestrial',
+          tier: 'primary',
+          sortDistanceAu: 0.538,
+          lineStyle: 'dashed',
           inHabitableZone: true,
           isFocused: false,
           isSelected: false,
         },
       ],
+      zones: [],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
     };
 
-    render(
+    const { container } = render(
       <DetailsPanel
         details={mockSystemDetails}
         isOpen={true}
@@ -225,10 +217,59 @@ describe('<DetailsPanel />', () => {
       />,
     );
 
-    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
-    expect(screen.getByTestId('orbital-schematic-list')).toBeInTheDocument();
+    const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
+    const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
+    expect(screen.getAllByTestId('orbital-schematic-panel')).toHaveLength(1);
+    expect(partialDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
+    expect(screen.getByTestId('orbital-schematic-row')).toBeInTheDocument();
     expect(screen.queryByTestId('details-stars-section')).toBeNull();
     expect(screen.queryByTestId('details-planets-section')).toBeNull();
+  });
+
+  it('renders OrbitalSchematicPanel inside partial detent for planet focus without duplicating in full detent', () => {
+    const planetSchematic: OrbitalSchematicSummary = {
+      parentId: 'earth',
+      parentName: 'Earth',
+      parentKind: 'planet',
+      systemId: 'sol',
+      systemName: 'Sol',
+      rows: [
+        {
+          id: 'moon',
+          name: 'Moon',
+          href: '/planet/earth?focus=moon',
+          kind: 'moon',
+          reticleType: 'moon',
+          tier: 'primary',
+          sortDistanceAu: 0.00257,
+          lineStyle: 'dashed',
+          inHabitableZone: false,
+          isFocused: false,
+          isSelected: false,
+        },
+      ],
+      zones: [],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
+    };
+
+    const { container } = render(
+      <DetailsPanel
+        details={mockPlanetDetails}
+        isOpen={true}
+        activeDetent="full"
+        schematic={planetSchematic}
+      />,
+    );
+
+    const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
+    const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
+    expect(screen.getAllByTestId('orbital-schematic-panel')).toHaveLength(1);
+    expect(partialDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
+    expect(screen.getByTestId('orbital-schematic-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('details-orbiting-bodies-section')).toBeNull();
   });
 
   it('forwards detent changes from DetentSheet to useUIStore and onDetentChange prop', () => {
@@ -249,19 +290,23 @@ describe('<DetailsPanel />', () => {
     expect(useUIStore.getState().detailsDetent).toBe('partial');
   });
 
-  it('renders PreviewPanel inside partial detent directly above DetailsQuickTelemetrySection and DetailsActionControls inside peek Hero Block, not in full detent', () => {
+  it('renders PreviewPanel inside partial detent in vertical order (Preview -> Orbiting Bodies -> References -> Environmental Hazards -> Telemetry) and DetailsActionControls inside peek Hero Block', () => {
     const mockPreview = {
-      targetId: 'tau-ceti',
-      targetName: 'Tau Ceti',
-      systemId: 'tau-ceti',
-      systemName: 'Tau Ceti',
-      focusedKind: 'system' as const,
-      previewMode: 'system-orbits' as const,
+      targetId: 'earth',
+      targetName: 'Earth',
+      systemId: 'sol',
+      systemName: 'Sol',
+      focusedKind: 'planet' as const,
+      previewMode: 'planetary-system' as const,
       orbitElements: [],
+    };
+    const planetWithCanon: FocusedPlanetEntityDetails = {
+      ...mockPlanetDetails,
+      canonAnnotations: mockSystemDetails.canonAnnotations,
     };
     const { container } = render(
       <DetailsPanel
-        details={mockSystemDetails}
+        details={planetWithCanon}
         isOpen={true}
         activeDetent="full"
         preview={mockPreview}
@@ -276,7 +321,61 @@ describe('<DetailsPanel />', () => {
     expect(fullDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
     expect(peekDetent?.querySelector('[data-testid="details-cta-group"]')).not.toBeNull();
     expect(partialDetent?.querySelector('[data-testid="details-cta-group"]')).toBeNull();
-    expect(previewPanel?.nextElementSibling?.querySelector('[data-testid="details-planet-composition"]')).not.toBeNull();
+
+    const orderedSelectors = [
+      '[data-testid="preview-panel"]',
+      '[data-testid="details-orbiting-bodies-section"]',
+      '[data-testid="details-canon-section"]',
+      '[data-testid="details-hazards-section"]',
+      '[data-testid="details-quick-telemetry-section"]',
+    ];
+    const orderedNodes = orderedSelectors.map((sel) => partialDetent?.querySelector(sel));
+    orderedNodes.forEach((node) => expect(node).not.toBeNull());
+    for (let i = 0; i < orderedNodes.length - 1; i++) {
+      const current = orderedNodes[i];
+      const next = orderedNodes[i + 1];
+      if (!current || !next) {
+        throw new Error('Expected ordered partial detent section nodes to be rendered');
+      }
+      expect(
+        current.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+  });
+
+  it('collapses and re-expands section bodies when clicking a section heading trigger', () => {
+    render(
+      <DetailsPanel
+        details={mockSystemDetails}
+        isOpen={true}
+        activeDetent="full"
+      />,
+    );
+
+    const hazardsTrigger = screen.getByRole('button', { name: /environmental hazards/i });
+    expect(hazardsTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('details-hazards-nominal')).toBeInTheDocument();
+
+    fireEvent.click(hazardsTrigger);
+    expect(hazardsTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('details-hazards-nominal')).toBeNull();
+
+    fireEvent.click(hazardsTrigger);
+    expect(hazardsTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('details-hazards-nominal')).toBeInTheDocument();
+
+    const telemetryTriggers = screen.getAllByRole('button', { name: /^telemetry$/i });
+    const quickTelemetryTrigger = telemetryTriggers[0]!;
+    expect(quickTelemetryTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('details-planet-composition')).toBeInTheDocument();
+
+    fireEvent.click(quickTelemetryTrigger);
+    expect(quickTelemetryTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('details-planet-composition')).toBeNull();
+
+    fireEvent.click(quickTelemetryTrigger);
+    expect(quickTelemetryTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('details-planet-composition')).toBeInTheDocument();
   });
 
   it('renders cohesive Hero Block in peek, quick telemetry and hazard Blocks in partial, and full telemetry in full', () => {
@@ -336,7 +435,7 @@ describe('<DetailsPanel />', () => {
     expect(screen.getByText('Elevated stellar UV radiation.')).toBeInTheDocument();
   });
 
-  it('renders planet classification and habitable zone badges with labels inside peek Hero Block for planet focus', () => {
+  it('renders planet reticle and habitable zone badge with label inside peek Hero Block for planet focus without duplicate composition link', () => {
     const { container } = render(
       <DetailsPanel
         details={mockPlanetDetails}
@@ -346,11 +445,11 @@ describe('<DetailsPanel />', () => {
     );
 
     const peekHeader = container.querySelector('[data-testid="details-peek-header"]');
-    const typeLink = peekHeader?.querySelector('[data-testid="details-planet-type-link"]');
+    const reticleBadge = peekHeader?.querySelector('[data-testid="details-reticle-type"]');
     const habitableLink = peekHeader?.querySelector('[data-testid="details-planet-habitable-link"]');
-    expect(typeLink).not.toBeNull();
+    expect(reticleBadge).toHaveAttribute('data-celestial-badge', 'terrestrial');
+    expect(peekHeader?.querySelector('[data-testid="details-planet-type-link"]')).toBeNull();
     expect(habitableLink).not.toBeNull();
-    expect(typeLink?.textContent).toMatch(/terrestrial/i);
     expect(habitableLink?.textContent).toMatch(/habitable zone/i);
   });
 });

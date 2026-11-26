@@ -1,12 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import {
-  DetailsDeferredPartialLower,
-  DetailsDeferredFull,
-} from './DetailsDeferredSections';
-import type {
-  FocusedSystemEntityDetails,
-} from '../../../services/details/detailsEntityTypes';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { DetailsDeferredPartialLower } from './DetailsDeferredSections';
+import type { FocusedSystemEntityDetails } from '../../../services/details/detailsEntityTypes';
 import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 
 const mockSystemDetails: FocusedSystemEntityDetails = {
@@ -57,7 +52,7 @@ const mockSystemDetails: FocusedSystemEntityDetails = {
 };
 
 describe('DetailsDeferredSections', () => {
-  it('renders DetailsDeferredPartialLower with hierarchy sections', () => {
+  it('renders DetailsDeferredPartialLower with fallback hierarchy sections when schematic is omitted', () => {
     render(
       <DetailsDeferredPartialLower
         focusedKind="system"
@@ -70,34 +65,83 @@ describe('DetailsDeferredSections', () => {
 
     expect(screen.getByTestId('details-planets-section')).toBeInTheDocument();
     expect(screen.getByText('Tau Ceti e')).toBeInTheDocument();
+
+    const planetsTrigger = screen.getByRole('button', { name: /planets/i });
+    expect(planetsTrigger.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(planetsTrigger);
+    expect(planetsTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Tau Ceti e')).toBeNull();
+
+    fireEvent.click(planetsTrigger);
+    expect(planetsTrigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Tau Ceti e')).toBeInTheDocument();
   });
 
-  it('renders DetailsDeferredFull with orbital schematic when non-system entity is focused', () => {
+  it('renders Orbiting Bodies heading in fallback hierarchy for planet focus and supports collapsing', () => {
+    render(
+      <DetailsDeferredPartialLower
+        focusedKind="planet"
+        isSystemFocus={false}
+        orbitingBodies={[
+          {
+            id: 'moon',
+            name: 'Moon',
+            href: '/planet/earth?focus=moon',
+            categoryLabel: 'Moon',
+          },
+        ]}
+        systemNameOrId="Sol"
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: /orbiting bodies/i });
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Moon')).toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Moon')).toBeNull();
+  });
+
+  it('renders OrbitalSchematicPanel once in DetailsDeferredPartialLower when schematic is populated', () => {
     const mockSchematic: OrbitalSchematicSummary = {
-      scope: 'system',
+      parentId: 'tau-ceti',
+      parentName: 'Tau Ceti',
+      parentKind: 'system',
       systemId: 'tau-ceti',
       systemName: 'Tau Ceti',
-      items: [
+      habitableZoneAu: [0.54, 1.28],
+      rows: [
         {
           id: 'tau-ceti-e',
           name: 'Tau Ceti e',
-          kind: 'planet',
           href: '/system/tau-ceti?focus=tau-ceti-e',
-          orbitRank: 1,
-          summaryLabel: '0.538 AU',
+          kind: 'planet',
+          reticleType: 'terrestrial',
+          tier: 'primary',
+          sortDistanceAu: 0.538,
+          lineStyle: 'dashed',
           inHabitableZone: true,
           isFocused: true,
           isSelected: false,
         },
       ],
+      zones: [],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
     };
+
     render(
-      <DetailsDeferredFull
+      <DetailsDeferredPartialLower
+        focusedKind="planet"
         isSystemFocus={false}
         schematic={mockSchematic}
+        systemNameOrId="Tau Ceti"
       />,
     );
 
-    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
+    expect(screen.getAllByTestId('orbital-schematic-panel')).toHaveLength(1);
+    expect(screen.getByTestId('orbital-schematic-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('details-planets-section')).toBeNull();
   });
 });

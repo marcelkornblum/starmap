@@ -13,17 +13,16 @@ test.describe('System View Glide Smoothness Regression Guard', () => {
     await expect(canvas).toHaveAttribute('data-gl-draw-calls', /^[1-9]\d*$/, { timeout: 15_000 });
     await page.waitForTimeout(800);
 
-    const schematic = page.getByTestId('bodies-panel').getByTestId('orbital-schematic-panel');
-    await expect(schematic).toBeVisible({ timeout: 10_000 });
+    const bodiesList = page.getByTestId('bodies-panel').getByTestId('bodies-primary-list');
+    await expect(bodiesList).toBeVisible({ timeout: 10_000 });
 
-    // Focus & Centre Mars first
-    await schematic.getByRole('link', { name: /^Mars$/i }).click();
+    await bodiesList.getByRole('link', { name: /^Mars$/i }).click();
     const centerBtn = page.getByTestId('details-button-center');
     await expect(centerBtn).toBeVisible({ timeout: 10_000 });
     await centerBtn.click();
     await page.waitForTimeout(1500);
 
-    await schematic.getByRole('link', { name: /^Jupiter$/i }).click();
+    await bodiesList.getByRole('link', { name: /^Jupiter$/i }).click();
     await expect(centerBtn).toHaveAttribute('href', /center=jupiter/);
     await page.waitForTimeout(1000);
 

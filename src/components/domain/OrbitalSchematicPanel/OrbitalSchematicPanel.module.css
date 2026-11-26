@@ -1,19 +1,150 @@
 @layer blocks {
-  .orbitalSchematicPanel {
-    --orbital-schematic-panel-gap: var(--space-fib-2);
-    --orbital-schematic-panel-padding: var(--space-fib-3);
+  .legendLink {
+    --legend-link-color: var(--content-muted);
+    --legend-link-bg: transparent;
 
-    display: flex;
-    flex-direction: column;
-    gap: var(--orbital-schematic-panel-gap);
-    padding: var(--orbital-schematic-panel-padding);
+    color: var(--legend-link-color);
+    background: var(--legend-link-bg);
+    font-family: var(--font-interface);
+    font-size: var(--text-content-footnote-size);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-control);
+    text-decoration: none;
+    padding: var(--space-fib-1) var(--space-fib-2);
+    border-radius: var(--radius-control);
+    transition:
+      color var(--motion-duration-feedback) var(--motion-ease-default),
+      background var(--motion-duration-feedback) var(--motion-ease-default);
   }
 
-  .item {
+  .legendLink:hover {
+    --legend-link-color: var(--content-prominent);
+    --legend-link-bg: var(--surface-block-hover-bg);
+  }
+
+  .legendLink:focus-visible {
+    --legend-link-color: var(--content-prominent);
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+  }
+
+  .stage {
+    --schematic-gutter-start: calc(var(--space-fib-3) + var(--space-fib-2));
+    --schematic-gutter-end: var(--space-fib-3);
+    --schematic-stage-bg: var(--surface-block-bg);
+    --schematic-stage-radius: var(--surface-block-radius);
+
+    background: var(--schematic-stage-bg);
+    border-radius: var(--schematic-stage-radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding-block: var(--space-fib-1);
+  }
+
+  .trackRow {
+    --track-row-bg: transparent;
+    --track-row-color: var(--content-default);
+    --track-line-color: var(--chrome-orbit-color);
+
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: var(--space-fib-2);
-    contain: layout style;
+    padding-block: var(--space-fib-1);
+    padding-inline: var(--schematic-gutter-start) var(--schematic-gutter-end);
+    background: var(--track-row-bg);
+    color: var(--track-row-color);
+    text-decoration: none;
+    position: relative;
+    box-sizing: border-box;
+    transition:
+      background var(--motion-duration-feedback) var(--motion-ease-default),
+      color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .trackRow:hover {
+    --track-row-bg: var(--surface-block-hover-bg);
+    --track-row-color: var(--content-prominent);
+    --track-line-color: var(--chrome-kinematic-color);
+  }
+
+  .trackRow:focus-visible {
+    --track-row-bg: var(--surface-block-hover-bg);
+    --track-row-color: var(--content-prominent);
+    --track-line-color: var(--chrome-kinematic-color);
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: calc(-1 * var(--state-focus-ring-width));
+  }
+
+  .symbolSlot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .trackLineSlot {
+    flex: 1 1 auto;
+    min-inline-size: var(--space-fib-4);
+    display: flex;
+    align-items: center;
+  }
+
+  .trackName {
+    flex: 0 1 auto;
+    max-inline-size: 55%;
+    font-family: var(--font-interface);
+    font-size: var(--text-content-data-label-size);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-control);
+    text-align: end;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .zoneTitleLink,
+  .zoneTitleLabel {
+    --zone-title-color: var(--content-default);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-block: var(--space-fib-1);
+    padding-inline: var(--schematic-gutter-start) var(--schematic-gutter-end);
+    font-family: var(--font-interface);
+    font-size: var(--text-content-footnote-size);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-eyebrow);
+    line-height: var(--leading-control);
+    text-transform: uppercase;
+    color: var(--zone-title-color);
+    text-decoration: none;
+    text-align: center;
+    transition: color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .zoneTitleLink:hover {
+    --zone-title-color: var(--content-prominent);
+  }
+
+  .zoneTitleLink:focus-visible {
+    --zone-title-color: var(--content-prominent);
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: calc(-1 * var(--state-focus-ring-width));
+  }
+}
+
+@layer exceptions {
+  .trackRow[data-selected="true"] {
+    --track-row-bg: var(--surface-block-hover-bg);
+    --track-row-color: var(--content-prominent);
+    --track-line-color: var(--chrome-kinematic-color);
+  }
+
+  .trackRow[data-focused="true"] {
+    --track-row-bg: var(--surface-block-selected-bg);
+    --track-row-color: var(--content-prominent);
+    --track-line-color: var(--chrome-kinematic-color);
   }
 }

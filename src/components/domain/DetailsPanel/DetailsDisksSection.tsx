@@ -4,10 +4,10 @@ import { buildMetricGuideHref } from '../../../content/guide';
 import {
   CelestialTitle,
   Cluster,
+  CollapsibleSection,
   ConfidencePip,
   type ConfidenceLevel,
   DataTable,
-  Heading,
   Quantity,
   Unit,
 } from '../../interface';
@@ -26,13 +26,11 @@ export const DetailsDisksSection = ({
   }
 
   return (
-    <section
-      aria-labelledby="details-disks-heading"
+    <CollapsibleSection
+      title="Circumstellar Belts & Disks"
+      headingId="details-disks-heading"
       data-testid="details-disks-section"
     >
-      <Heading as="h4" size="eyebrow" id="details-disks-heading">
-        Circumstellar Belts & Disks
-      </Heading>
       <DataTable data-testid="details-disks-list">
         <DataTable.Head>
           <DataTable.Row>
@@ -112,6 +110,6 @@ export const DetailsDisksSection = ({
           ))}
         </DataTable.Body>
       </DataTable>
-    </section>
+    </CollapsibleSection>
   );
 };

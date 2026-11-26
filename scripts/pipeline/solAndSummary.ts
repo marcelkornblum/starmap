@@ -196,6 +196,7 @@ export function buildSolSystemManifest(
         reticleType: resolvePlanetReticleType(composition),
         isHabitableCandidate,
         ...(b.axialTiltDeg !== undefined ? { axialTiltDeg: b.axialTiltDeg } : {}),
+        ...(b.rings?.length ? { rings: b.rings } : {}),
         orbit: b.orbit,
         ...(satellites.length > 0 ? { satellites } : {}),
         confidence: 'confirmed',
@@ -248,7 +249,9 @@ export function buildSolSystemManifest(
     tags: solTags,
     ...(solHazardMask > 0 ? { hazardMask: solHazardMask } : {}),
     disks: CIRCUMSTELLAR_DISKS_CATALOG[solSystemName] ?? CIRCUMSTELLAR_DISKS_CATALOG['Sol'],
-    planeInclinationDeg: 60.19,
+    ...(solSeed.planeInclinationDeg !== undefined
+      ? { planeInclinationDeg: solSeed.planeInclinationDeg }
+      : {}),
   };
 }
 
@@ -277,6 +280,10 @@ export function starNodeToSystemSummary(
 
   const hazardMask = computeSystemHazardMask({ spect: star.spect, lum: star.lum, tags });
   const classification = resolveStellarClassificationFromSpectrum(star.spect);
+  const solPlaneInclinationDeg =
+    star.name === 'Sol'
+      ? FULL_SOLAR_SYSTEM_BODIES.find((b) => b.id === 'sol')?.planeInclinationDeg
+      : undefined;
 
   return {
     id: String(star.id),
@@ -301,6 +308,8 @@ export function starNodeToSystemSummary(
     ...(hazardMask > 0 ? { hazardMask } : {}),
     classification,
     reticleType: resolveStellarReticleType(classification, false),
-    ...(star.name === 'Sol' ? { planeInclinationDeg: 60.19 } : {}),
+    ...(solPlaneInclinationDeg !== undefined
+      ? { planeInclinationDeg: solPlaneInclinationDeg }
+      : {}),
   };
 }
