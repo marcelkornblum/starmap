@@ -335,9 +335,9 @@
     --radius-container:            var(--radius-5);
 
     /* Borderless Cushion Blocks */
-    --surface-block-bg:            oklch(45% 0.02 190 / 0.14);
-    --surface-block-hover-bg:      oklch(53% 0.025 185 / 0.19);
-    --surface-block-selected-bg:   oklch(54% 0.062 175 / 0.27);
+    --surface-block-bg:            oklch(19.5% 0.018 194 / 0.80);
+    --surface-block-hover-bg:      oklch(23.5% 0.02 188 / 0.85);
+    --surface-block-selected-bg:   oklch(28.5% 0.036 176 / 0.88);
     --surface-block-sub-bg:        oklch(0% 0 0 / 0.22);
     --surface-block-radius:        var(--radius-4);
 
@@ -865,9 +865,9 @@
     --radius-container:            var(--radius-5);
 
     /* Borderless Cushion Blocks */
-    --surface-block-bg:            oklch(70% 0.015 196 / 0.12);
-    --surface-block-hover-bg:      oklch(63% 0.022 190 / 0.17);
-    --surface-block-selected-bg:   oklch(68% 0.075 168 / 0.24);
+    --surface-block-bg:            oklch(95.2% 0.005 196 / 0.80);
+    --surface-block-hover-bg:      oklch(92.8% 0.008 190 / 0.85);
+    --surface-block-selected-bg:   oklch(91.5% 0.022 172 / 0.88);
     --surface-block-sub-bg:        oklch(25% 0.02 196 / 0.08);
     --surface-block-radius:        var(--radius-4);
 
