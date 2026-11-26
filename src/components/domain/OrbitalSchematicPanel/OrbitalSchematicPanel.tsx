@@ -219,13 +219,6 @@ const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
               data-testid="orbital-schematic-hz-group"
               data-in-habitable-zone="true"
             >
-              <span className={styles.hzMarker} aria-hidden="true">
-                <CelestialSymbol
-                  type="habitable-zone"
-                  size="sm"
-                  showTooltip={false}
-                />
-              </span>
               {segment.bands.map(renderBand)}
             </div>
           ) : (

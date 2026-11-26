@@ -93,11 +93,7 @@ export const LegendGuideView: React.FC = () => {
                       className={styles.zoneSwatch}
                       data-region-kind={entry.regionKind}
                       aria-hidden="true"
-                    >
-                      {entry.regionKind === 'habitable-zone' ? (
-                        <CelestialSymbol type="habitable-zone" size="sm" showTooltip={false} />
-                      ) : null}
-                    </span>
+                    />
                     <span className={styles.symbolTitle}>{entry.title}</span>
                     <span className={styles.tokenMeta}>{entry.tokenRef}</span>
                     <p className={styles.descriptionText}>{entry.description}</p>

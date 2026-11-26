@@ -25,7 +25,7 @@
   }
 
   .stage {
-    --schematic-gutter-start: calc(var(--space-fib-5) + var(--space-fib-3));
+    --schematic-gutter-start: calc(var(--space-fib-3) + var(--space-fib-2));
     --schematic-gutter-end: var(--space-fib-3);
 
     background: var(--surface-block-bg);
@@ -40,7 +40,6 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    background: color-mix(in oklch, var(--category-habitability) 7%, transparent);
   }
 
   .hzGroup::before {
@@ -57,18 +56,6 @@
       var(--category-habitability) 78%,
       transparent 100%
     );
-    pointer-events: none;
-  }
-
-  .hzMarker {
-    position: absolute;
-    inset-inline-start: calc(var(--space-fib-2) + var(--stroke-width-2) + var(--space-fib-1));
-    inset-block-start: 50%;
-    transform: translateY(-50%);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--category-habitability);
     pointer-events: none;
   }
 

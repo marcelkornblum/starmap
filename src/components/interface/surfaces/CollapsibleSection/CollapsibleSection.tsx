@@ -44,6 +44,7 @@ export const CollapsibleSection = ({
             onClick={() => setIsOpen((prev) => !prev)}
             data-testid={toggleTestId}
           >
+            <span>{title}</span>
             <span
               className={styles.chevron}
               data-expanded={isOpen ? 'true' : 'false'}
@@ -51,7 +52,6 @@ export const CollapsibleSection = ({
             >
               ▾
             </span>
-            <span>{title}</span>
           </button>
         </Heading>
         {actions ?? null}

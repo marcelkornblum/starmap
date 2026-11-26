@@ -148,9 +148,7 @@
   }
 
   .zoneSwatch[data-region-kind="habitable-zone"] {
-    justify-content: flex-start;
-    padding-inline-start: calc(var(--space-fib-3) + var(--space-fib-2));
-    background: color-mix(in oklch, var(--category-habitability) 10%, var(--surface-inset-bg));
+    background: var(--surface-inset-bg);
   }
 
   .zoneSwatch[data-region-kind="habitable-zone"]::before {
