@@ -233,8 +233,8 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   );
 
   const focusedPreview = useMemo(
-    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail),
-    [focusedDetails, focusedDetail],
+    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail, orbitalSchematic),
+    [focusedDetails, focusedDetail, orbitalSchematic],
   );
 
   const minimapOrientation = useMemo(

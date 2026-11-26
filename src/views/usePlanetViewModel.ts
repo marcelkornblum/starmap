@@ -133,8 +133,8 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
   );
 
   const focusedPreview = useMemo(
-    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail),
-    [focusedDetails, focusedDetail],
+    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail, orbitalSchematic),
+    [focusedDetails, focusedDetail, orbitalSchematic],
   );
 
   const minimapOrientation = useMemo(

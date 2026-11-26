@@ -132,9 +132,34 @@ export function useGalaxyPanels({
     ],
   );
 
+  const selectedEntityIds = useMemo(
+    () => selectedEntities.map((e) => e.id),
+    [selectedEntities],
+  );
+
+  const orbitalSchematic = useMemo(
+    () =>
+      buildOrbitalSchematic({
+        focusedDetails,
+        systemDetail,
+        focusedDetail,
+        corpus: detailsCorpus,
+        selectedEntityIds,
+        detailCacheKey: solPrimaryReady ? 1 : 0,
+      }),
+    [
+      focusedDetails,
+      systemDetail,
+      focusedDetail,
+      detailsCorpus,
+      selectedEntityIds,
+      solPrimaryReady,
+    ],
+  );
+
   const focusedPreview = useMemo(
-    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail),
-    [focusedDetails, focusedDetail],
+    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail, orbitalSchematic),
+    [focusedDetails, focusedDetail, orbitalSchematic],
   );
 
   const nonFocusSearch = useMemo(() => stripFocusFromSearch(search), [search]);
@@ -196,31 +221,6 @@ export function useGalaxyPanels({
       : null;
     return { routeStops: stops, activeJourney: journey };
   }, [route, search, activeCorpus, pathname]);
-
-  const selectedEntityIds = useMemo(
-    () => selectedEntities.map((e) => e.id),
-    [selectedEntities],
-  );
-
-  const orbitalSchematic = useMemo(
-    () =>
-      buildOrbitalSchematic({
-        focusedDetails,
-        systemDetail,
-        focusedDetail,
-        corpus: detailsCorpus,
-        selectedEntityIds,
-        detailCacheKey: solPrimaryReady ? 1 : 0,
-      }),
-    [
-      focusedDetails,
-      systemDetail,
-      focusedDetail,
-      detailsCorpus,
-      selectedEntityIds,
-      solPrimaryReady,
-    ],
-  );
 
   const activeLayerCard = useMemo(
     () =>

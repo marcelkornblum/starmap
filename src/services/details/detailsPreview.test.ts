@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildFocusedPreviewSummary } from './detailsPreview';
 import type { FocusedPlanetEntityDetails, FocusedSystemEntityDetails } from './detailsEntityTypes';
+import type { OrbitalSchematicSummary } from './detailsHierarchyTypes';
 
 describe('detailsPreview', () => {
   it('returns null when details is null', () => {
@@ -222,5 +223,105 @@ describe('detailsPreview', () => {
       },
     });
     expect(summaryWithSolarBody?.primaryInclinationDeg).toBe(97.77);
+  });
+
+  it('derives orbitElements from OrbitalSchematicSummary default visible rows when provided', () => {
+    const solDetails: FocusedSystemEntityDetails = {
+      id: 'sol',
+      name: 'Sol',
+      systemId: 'sol',
+      systemName: 'Sol',
+      focusedKind: 'system',
+      hazardCount: 0,
+      hazards: [],
+      hazardSummaryLabel: '0 hazards',
+      spectralType: 'G2V',
+      reticleType: 'stellar-system',
+      starCount: 1,
+      planetCount: 1,
+      planetCompositionBreakdown: [],
+      planetCompositionSummary: '1 terrestrial',
+      hasHabitableCandidate: true,
+      systemSummary: 'Sol system',
+      systemSummarySegments: [],
+      coordinatesPc: [0, 0, 0],
+      sectorId: 'sol-sector',
+      tags: [],
+      directionsHref: '/system/sol?select=route',
+      canonAnnotations: [],
+      stars: [],
+      planets: [
+        {
+          id: 'earth',
+          name: 'Earth',
+          composition: 'terrestrial',
+          semiMajorAxisAu: 1.0,
+          inclinationDeg: 0.0,
+          eccentricity: 0.0167,
+          isHabitableCandidate: true,
+        },
+      ],
+      disks: [],
+    };
+
+    const schematic: OrbitalSchematicSummary = {
+      parentId: 'sol',
+      parentName: 'Sol',
+      parentKind: 'system',
+      systemId: 'sol',
+      systemName: 'Sol',
+      rows: [
+        {
+          id: 'earth',
+          name: 'Earth',
+          href: '/system/sol?focus=earth',
+          kind: 'planet',
+          reticleType: 'terrestrial',
+          tier: 'primary',
+          sortDistanceAu: 1.0,
+          lineStyle: 'dashed',
+          inHabitableZone: true,
+          isFocused: false,
+          isSelected: false,
+        },
+        {
+          id: '1-ceres',
+          name: '1 Ceres',
+          href: '/system/sol?focus=1-ceres',
+          kind: 'dwarf-planet',
+          reticleType: 'dwarf-planet',
+          tier: 'primary',
+          sortDistanceAu: 2.77,
+          lineStyle: 'dashed',
+          inHabitableZone: false,
+          isFocused: false,
+          isSelected: false,
+        },
+        {
+          id: 'voyager-1',
+          name: 'Voyager 1',
+          href: '/system/sol?focus=voyager-1',
+          kind: 'spacecraft',
+          reticleType: 'construct',
+          tier: 'minor',
+          sortDistanceAu: 169,
+          lineStyle: 'dotted',
+          inHabitableZone: false,
+          isFocused: false,
+          isSelected: false,
+        },
+      ],
+      zones: [],
+      minorBodyCount: 4,
+      hasMinorToggle: true,
+    };
+
+    const summary = buildFocusedPreviewSummary(solDetails, undefined, schematic);
+    expect(summary?.orbitElements.map((e) => e.id)).toEqual(['earth', '1-ceres']);
+    expect(summary?.orbitElements[0]?.eccentricity).toBe(0.0167);
+    expect(summary?.orbitElements[1]?.symbolType).toBe('dwarf-planet');
+
+    const emptySummary = buildFocusedPreviewSummary(solDetails, undefined, null);
+    expect(emptySummary?.orbitElements).toEqual([]);
   });
 });

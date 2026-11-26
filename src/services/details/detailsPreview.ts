@@ -1,17 +1,19 @@
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
-import type {
-  FocusedEntityDetails,
-} from './detailsEntityTypes';
+import type { FocusedEntityDetails } from './detailsEntityTypes';
 import type {
   FocusedPreviewSummary,
   PreviewMode,
   PreviewOrbitElement,
 } from './detailsNavigationTypes';
-import type { OrbitalSchematicEntityKind } from './detailsHierarchyTypes';
+import type {
+  OrbitalSchematicEntityKind,
+  OrbitalSchematicSummary,
+} from './detailsHierarchyTypes';
 
 export const buildFocusedPreviewSummary = (
   details: FocusedEntityDetails | null,
   entityDetail?: DecodedDetailRecord,
+  schematic?: OrbitalSchematicSummary | null,
 ): FocusedPreviewSummary | null => {
   if (!details) {
     return null;
@@ -56,7 +58,34 @@ export const buildFocusedPreviewSummary = (
   }
 
   let orbitElements: PreviewOrbitElement[] = [];
-  if (previewMode === 'system-orbits') {
+  if (schematic !== undefined) {
+    if (schematic && (previewMode === 'system-orbits' || previewMode === 'planetary-system')) {
+      const visibleRows = schematic.hasMinorToggle
+        ? schematic.rows.filter((row) => row.tier === 'primary')
+        : schematic.rows;
+      const planetById = new Map(details.planets.map((planet) => [planet.id, planet]));
+      orbitElements = visibleRows.map((row, index) => {
+        const matchedPlanet = planetById.get(row.id);
+        return {
+          id: row.id,
+          name: row.name,
+          kind: row.kind,
+          symbolType: row.reticleType,
+          orbitRank: index + 1,
+          ...(Number.isFinite(row.sortDistanceAu)
+            ? { semiMajorAxisAu: row.sortDistanceAu }
+            : {}),
+          ...(matchedPlanet?.inclinationDeg !== undefined
+            ? { inclinationDeg: matchedPlanet.inclinationDeg }
+            : {}),
+          ...(matchedPlanet?.eccentricity !== undefined
+            ? { eccentricity: matchedPlanet.eccentricity }
+            : {}),
+          inHabitableZone: row.inHabitableZone,
+        };
+      });
+    }
+  } else if (previewMode === 'system-orbits') {
     orbitElements = details.planets.map((p, index) => ({
       id: p.id,
       name: p.name,
