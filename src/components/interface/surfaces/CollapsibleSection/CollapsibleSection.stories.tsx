@@ -61,9 +61,9 @@ export const CollapsibleSectionStory: Story = {
         <section className={storyStyles.section}>
           <h2 className={storyStyles.sectionTitle}>With Trailing Actions</h2>
           <CollapsibleSection
-            title="Canon Layers"
+            title="References"
             headingId="story-collapsible-actions"
-            actions={<Badge status="info">2 Layers</Badge>}
+            actions={<Badge status="info">2 References</Badge>}
           >
             <Block padding="tight">Project Hail Mary · Tau Ceti</Block>
           </CollapsibleSection>

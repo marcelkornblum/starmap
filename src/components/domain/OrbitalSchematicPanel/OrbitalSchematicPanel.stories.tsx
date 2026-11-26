@@ -3,7 +3,7 @@ import type { OrbitalSchematicSummary } from '../../../services/details/detailsH
 import { OrbitalSchematicPanel } from './OrbitalSchematicPanel';
 
 const meta: Meta<typeof OrbitalSchematicPanel> = {
-  title: 'Domain/OrbitalSchematicPanel',
+  title: 'DOMAIN/Panels/OrbitingBodies',
   component: OrbitalSchematicPanel,
 };
 

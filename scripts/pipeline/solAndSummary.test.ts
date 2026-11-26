@@ -98,6 +98,7 @@ describe('Sol System Manifest & Satellites (AUD-051, DEC-R029)', () => {
         radiusRsun: 1.0,
         effectiveTempK: 5772,
         coordinatesPc: [0, 0, 0] as const,
+        planeInclinationDeg: 58.5,
       },
       {
         id: 'earth',
@@ -124,5 +125,6 @@ describe('Sol System Manifest & Satellites (AUD-051, DEC-R029)', () => {
     expect(sol.stars[0]?.luminosityLsun).toBe(1.02);
     expect(sol.stars[0]?.effectiveTempK).toBe(5772);
     expect(sol.stars[0]?.spectralType).toBe('G2V');
+    expect(sol.planeInclinationDeg).toBe(58.5);
   });
 });

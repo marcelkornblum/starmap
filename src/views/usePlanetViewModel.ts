@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
 import { EARTH_REFERENCE_TARGET } from '../config/referenceTargets';
 import { buildJourneyPlan } from '../services/journey/journeyBuilder';
@@ -16,6 +16,7 @@ import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { useParams, useSearch } from '@tanstack/react-router';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLoadedLayerManifests } from '../hooks/useLayerData';
+import { getCachedDetailRecord } from '../data/detailsRepository';
 import {
   useOptionalRouter,
   useSpaLocation,
@@ -37,7 +38,7 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
     planetEntityDetail,
     systemDetail,
     focusedDetail,
-    solPrimaryReady,
+    detailsVersion,
     canonRecords,
     selectedEntityIds,
     selectedEntities,
@@ -111,6 +112,15 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
     ],
   );
 
+  const [epochMs] = useState(() => Math.floor(Date.now() / 60_000) * 60_000);
+  const getDetailRecord = useMemo(
+    () => (id: string) => {
+      void detailsVersion;
+      return getCachedDetailRecord(id);
+    },
+    [detailsVersion],
+  );
+
   const orbitalSchematic = useMemo(
     () =>
       buildOrbitalSchematic({
@@ -119,7 +129,8 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
         focusedDetail: focusedDetail ?? planetEntityDetail,
         corpus: activeCorpus,
         selectedEntityIds,
-        detailCacheKey: solPrimaryReady ? 1 : 0,
+        epochMs,
+        getDetailRecord,
       }),
     [
       focusedDetails,
@@ -128,7 +139,8 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
       planetEntityDetail,
       activeCorpus,
       selectedEntityIds,
-      solPrimaryReady,
+      epochMs,
+      getDetailRecord,
     ],
   );
 

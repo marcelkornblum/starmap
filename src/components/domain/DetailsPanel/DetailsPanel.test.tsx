@@ -290,7 +290,7 @@ describe('<DetailsPanel />', () => {
     expect(useUIStore.getState().detailsDetent).toBe('partial');
   });
 
-  it('renders PreviewPanel inside partial detent in vertical order (Preview -> Orbiting Bodies -> Canon Layers -> Environmental Hazards -> Telemetry) and DetailsActionControls inside peek Hero Block', () => {
+  it('renders PreviewPanel inside partial detent in vertical order (Preview -> Orbiting Bodies -> References -> Environmental Hazards -> Telemetry) and DetailsActionControls inside peek Hero Block', () => {
     const mockPreview = {
       targetId: 'earth',
       targetName: 'Earth',
@@ -432,7 +432,7 @@ describe('<DetailsPanel />', () => {
     expect(screen.getByText('Elevated stellar UV radiation.')).toBeInTheDocument();
   });
 
-  it('renders planet classification and habitable zone badges with labels inside peek Hero Block for planet focus', () => {
+  it('renders planet reticle and habitable zone badge with label inside peek Hero Block for planet focus without duplicate composition link', () => {
     const { container } = render(
       <DetailsPanel
         details={mockPlanetDetails}
@@ -442,11 +442,11 @@ describe('<DetailsPanel />', () => {
     );
 
     const peekHeader = container.querySelector('[data-testid="details-peek-header"]');
-    const typeLink = peekHeader?.querySelector('[data-testid="details-planet-type-link"]');
+    const reticleBadge = peekHeader?.querySelector('[data-testid="details-reticle-type"]');
     const habitableLink = peekHeader?.querySelector('[data-testid="details-planet-habitable-link"]');
-    expect(typeLink).not.toBeNull();
+    expect(reticleBadge).toHaveAttribute('data-celestial-badge', 'terrestrial');
+    expect(peekHeader?.querySelector('[data-testid="details-planet-type-link"]')).toBeNull();
     expect(habitableLink).not.toBeNull();
-    expect(typeLink?.textContent).toMatch(/terrestrial/i);
     expect(habitableLink?.textContent).toMatch(/habitable zone/i);
   });
 });

@@ -20,6 +20,7 @@
     "radiusRsun": 1.0,
     "effectiveTempK": 5778,
     "coordinatesPc": [0, 0, 0],
+    "planeInclinationDeg": 60.19,
     "tags": [
       "PrimaryStar",
       "HomeStar"

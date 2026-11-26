@@ -321,13 +321,15 @@ describe('<OrbitalSchematicPanel />', () => {
     expect(earthRow?.getAttribute('data-line-style')).toBe('dashed');
     expect(earthRow?.getAttribute('data-focused')).toBe('true');
     expect(earthRow?.getAttribute('data-selected')).toBe('true');
+    expect(earthRow?.getAttribute('aria-label')).toBe('Earth, Terrestrial');
     expect(earthRow?.textContent).toBe('Earth');
     expect(earthRow?.textContent).not.toMatch(/AU|km|M⊕|Terrestrial/i);
 
     const symbol = earthRow?.querySelector('[data-celestial-symbol="terrestrial"][data-size="lg"]');
     expect(symbol).not.toBeNull();
-    expect(symbol?.parentElement?.className).toContain('symbolSlot');
-    expect(earthRow?.querySelector('[class*="symbolHalo"]')).toBeNull();
+    expect(symbol?.parentElement?.getAttribute('data-symbol-slot')).toBe('true');
+    expect(symbol?.parentElement?.getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getByTestId('orbital-schematic-panel').querySelector('[data-celestial-symbol="habitable-zone"]')).toBeNull();
   });
 
   it('groups contiguous habitable zone rows inside a single feathered hzGroup', () => {
@@ -350,11 +352,13 @@ describe('<OrbitalSchematicPanel />', () => {
     expect(zones).toHaveLength(2);
 
     const mainRings = zones[0];
+    expect(mainRings.getAttribute('role')).toBe('group');
     expect(mainRings.getAttribute('data-region-kind')).toBe('ring-system');
     expect(mainRings.querySelectorAll('[data-testid="orbital-schematic-row"]')).toHaveLength(0);
     const mainRingsTitle = mainRings.querySelector('[data-testid="orbital-schematic-zone-title"]');
     expect(mainRingsTitle?.tagName).toBe('SPAN');
     expect(mainRingsTitle?.textContent).toBe('Saturn Main Rings (D–F)');
+    expect(mainRings.getAttribute('aria-labelledby')).toBe(mainRingsTitle?.getAttribute('id'));
 
     const eRing = zones[1];
     expect(eRing.getAttribute('data-region-kind')).toBe('ring-system');
@@ -452,5 +456,20 @@ describe('<OrbitalSchematicPanel />', () => {
     fireEvent.blur(beltTitle);
     expect(store.getState().hoveredId).toBeNull();
     expect(onHoverEntity).toHaveBeenLastCalledWith(null);
+
+    const mercuryRow = screen
+      .getAllByTestId('orbital-schematic-row')
+      .find((el) => el.getAttribute('data-entity-id') === 'mercury')!;
+    fireEvent.focus(mercuryRow);
+    expect(store.getState().hoveredId).toBe('mercury');
+
+    fireEvent.mouseEnter(earthRow);
+    expect(store.getState().hoveredId).toBe('earth');
+
+    fireEvent.blur(mercuryRow);
+    expect(store.getState().hoveredId).toBe('earth');
+
+    fireEvent.mouseLeave(earthRow);
+    expect(store.getState().hoveredId).toBeNull();
   });
 });

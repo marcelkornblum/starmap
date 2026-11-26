@@ -1,4 +1,5 @@
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
+import { toUrlSlug } from '../../utils/datasetLayerSlugs';
 import type { FocusedEntityDetails } from './detailsEntityTypes';
 import type {
   FocusedPreviewSummary,
@@ -58,14 +59,18 @@ export const buildFocusedPreviewSummary = (
   }
 
   let orbitElements: PreviewOrbitElement[] = [];
-  if (schematic !== undefined) {
-    if (schematic && (previewMode === 'system-orbits' || previewMode === 'planetary-system')) {
+  if (schematic) {
+    if (previewMode === 'system-orbits' || previewMode === 'planetary-system') {
       const visibleRows = schematic.hasMinorToggle
         ? schematic.rows.filter((row) => row.tier === 'primary')
         : schematic.rows;
-      const planetById = new Map(details.planets.map((planet) => [planet.id, planet]));
+      const planetById = new Map(
+        details.planets.map((planet) => [toUrlSlug(planet.id), planet]),
+      );
       orbitElements = visibleRows.map((row, index) => {
-        const matchedPlanet = planetById.get(row.id);
+        const matchedPlanet = planetById.get(toUrlSlug(row.id));
+        const inclinationDeg = row.inclinationDeg ?? matchedPlanet?.inclinationDeg;
+        const eccentricity = row.eccentricity ?? matchedPlanet?.eccentricity;
         return {
           id: row.id,
           name: row.name,
@@ -75,12 +80,8 @@ export const buildFocusedPreviewSummary = (
           ...(Number.isFinite(row.sortDistanceAu)
             ? { semiMajorAxisAu: row.sortDistanceAu }
             : {}),
-          ...(matchedPlanet?.inclinationDeg !== undefined
-            ? { inclinationDeg: matchedPlanet.inclinationDeg }
-            : {}),
-          ...(matchedPlanet?.eccentricity !== undefined
-            ? { eccentricity: matchedPlanet.eccentricity }
-            : {}),
+          ...(inclinationDeg !== undefined ? { inclinationDeg } : {}),
+          ...(eccentricity !== undefined ? { eccentricity } : {}),
           inHabitableZone: row.inHabitableZone,
         };
       });

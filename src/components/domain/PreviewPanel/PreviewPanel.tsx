@@ -13,6 +13,7 @@ import styles from './PreviewPanel.module.css';
 
 export interface PreviewPanelProps {
   readonly preview: FocusedPreviewSummary | null;
+  readonly headingAs?: 'h2' | 'h3' | 'h4';
 }
 
 const PRIMARY_RETICLE_SIZE = 13;
@@ -20,6 +21,7 @@ const BODY_RETICLE_SIZE = 11;
 
 export const PreviewPanel = memo(function PreviewPanel({
   preview,
+  headingAs = 'h2',
 }: PreviewPanelProps): React.ReactElement | null {
   const headingId = useId();
   const handleSpaLinkClick = useSpaLinkClick();
@@ -49,21 +51,18 @@ export const PreviewPanel = memo(function PreviewPanel({
       role="img"
       aria-label={`${preview.targetName} orientation preview`}
     >
-      {/* Faint Outer Reference Plane */}
       <polygon
         points={projection.parentRing.polygonPoints}
         className={styles.parentPlaneRing}
         strokeDasharray="3 3"
       />
 
-      {/* Tilted Target Orbital Plane */}
       <polygon
         points={projection.targetRing.polygonPoints}
         className={styles.targetPlaneDisc}
         data-testid="preview-target-plane-front"
       />
 
-      {/* Two Light Concentric Reference Circles on the Orbital Plane */}
       {projection.concentricRings.map((ring, idx) => (
         <polygon
           key={idx}
@@ -72,7 +71,6 @@ export const PreviewPanel = memo(function PreviewPanel({
         />
       ))}
 
-      {/* Primary Star / Planet Reticle */}
       <g data-testid="preview-primary-reticle">
         <circle
           cx={projection.origin.x}
@@ -90,13 +88,13 @@ export const PreviewPanel = memo(function PreviewPanel({
           data-category={primaryCategory}
           data-status={primaryStatus}
           data-celestial-symbol={primarySymbolType}
-          aria-label={preview.targetName}
+          aria-hidden={detailsHref ? 'true' : undefined}
+          aria-label={detailsHref ? undefined : preview.targetName}
         >
           {renderGlyphContent(primarySymbolType)}
         </svg>
       </g>
 
-      {/* Child Body Reticles / Symbols on the Tilted Orbital Plane */}
       {projection.bodies.map((body) => {
         const meta = CELESTIAL_SYMBOL_META[body.symbolType];
         const category = meta?.badgeCategory;
@@ -124,7 +122,8 @@ export const PreviewPanel = memo(function PreviewPanel({
               data-category={category}
               data-status={status}
               data-celestial-symbol={body.symbolType}
-              aria-label={`${body.name} (${meta?.label ?? body.symbolType})`}
+              aria-hidden={detailsHref ? 'true' : undefined}
+              aria-label={detailsHref ? undefined : `${body.name} (${meta?.label ?? body.symbolType})`}
             >
               {renderGlyphContent(body.symbolType)}
             </svg>
@@ -144,7 +143,7 @@ export const PreviewPanel = memo(function PreviewPanel({
       data-preview-mode={preview.previewMode}
       data-camera-mode="fixed"
     >
-      <Heading as="h2" id={headingId} visuallyHidden>
+      <Heading as={headingAs} id={headingId} visuallyHidden>
         Focus Preview
       </Heading>
 

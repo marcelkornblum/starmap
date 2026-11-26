@@ -51,6 +51,9 @@ const SOL_PRIMARY_SHARD = 'details/sol-primary.json';
 const STRUCTURES_SHARD = 'details/structures.json';
 const MINOR_INFERRED_PREFIXES = ['pha-', 'distant-', 'comet-'] as const;
 
+export const isBulkMinorBodyId = (id: string): boolean =>
+  MINOR_INFERRED_PREFIXES.some((prefix) => id.startsWith(prefix));
+
 const detailsListeners = new Set<() => void>();
 let detailsRepoVersion = 0;
 
@@ -184,7 +187,7 @@ export const getCachedExoplanetFromSystem = (
 };
 
 function resolveFastDetailShardPath(id: string): string | undefined {
-  if (MINOR_INFERRED_PREFIXES.some((prefix) => id.startsWith(prefix))) {
+  if (isBulkMinorBodyId(id)) {
     return `details/sol-minor/${getShardKey(id)}.json`;
   }
 

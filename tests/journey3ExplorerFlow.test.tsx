@@ -222,7 +222,6 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
     expect(doesSystemEntryMatchTag(tauEntry, '')).toBe(false);
     expect(doesSystemEntryMatchTag(planetEntry, 'ExoplanetHost')).toBe(false);
 
-    // DetailsPanel renders clickable tag links in both Partial Astrometry and Full Canon accordions
     const focusedDetails = buildFocusedEntityDetails({
       focusedEntity: {
         id: 'gaia-2452378776434477184',

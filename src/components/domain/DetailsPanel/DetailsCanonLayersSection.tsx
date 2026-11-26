@@ -16,7 +16,7 @@ export const DetailsCanonLayersSection = memo(function DetailsCanonLayersSection
 
   return (
     <CollapsibleSection
-      title="Canon Layers"
+      title="References"
       headingId="details-canon-heading"
       data-testid="details-canon-section"
     >

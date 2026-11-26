@@ -1,6 +1,10 @@
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import {
+  J2000_UNIX_MS,
+  computeOptimisticHabitableZoneAu,
+} from '../../utils/keplerMath';
 import type { FocusedEntityDetails } from './detailsEntityTypes';
 import type {
   OrbitalSchematicBand,
@@ -12,14 +16,9 @@ import {
   collectPlanetaryOrbitalEntries,
   collectSystemOrbitalEntries,
 } from './orbitalSchematicCollectors';
-import {
-  assignZonesAndSortRows,
-  isBulkMinorBodyId,
-} from './orbitalSchematicShared';
+import { assignZonesAndSortRows } from './orbitalSchematicShared';
 
 export const MINOR_ORBITER_TOGGLE_THRESHOLD = 3;
-
-export { isBulkMinorBodyId };
 
 export interface BuildOrbitalSchematicInput {
   readonly focusedDetails: FocusedEntityDetails | null;
@@ -28,22 +27,10 @@ export interface BuildOrbitalSchematicInput {
   readonly corpus?: readonly CompactSearchEntry[];
   readonly selectedEntityIds?: readonly string[];
   readonly epochMs?: number;
-  readonly detailCacheKey?: number;
+  readonly getDetailRecord?: (id: string) => DecodedDetailRecord | undefined;
 }
 
-export const computeOptimisticHabitableZoneAu = (
-  luminosityLsun: number | undefined,
-): readonly [number, number] | undefined => {
-  if (
-    typeof luminosityLsun !== 'number' ||
-    !Number.isFinite(luminosityLsun) ||
-    luminosityLsun <= 0
-  ) {
-    return undefined;
-  }
-  const sqrtL = Math.sqrt(luminosityLsun);
-  return [Number((0.75 * sqrtL).toFixed(4)), Number((1.77 * sqrtL).toFixed(4))];
-};
+const emptyDetailLookup = (): DecodedDetailRecord | undefined => undefined;
 
 export const buildOrbitalSchematic = (
   input: BuildOrbitalSchematicInput,
@@ -60,10 +47,11 @@ export const buildOrbitalSchematic = (
     systemDetail,
     focusedDetail,
     corpus: input.corpus ?? [],
-    epochMs: input.epochMs ?? Date.now(),
+    epochMs: input.epochMs ?? J2000_UNIX_MS,
     focusedIdSlug: toUrlSlug(focusedDetails.id),
     selectedSet: new Set(selectedIds),
     selectedSlugSet: new Set(selectedIds.map(toUrlSlug).filter(Boolean)),
+    getDetailRecord: input.getDetailRecord ?? emptyDetailLookup,
   };
 
   let habitableZoneAu: readonly [number, number] | undefined;
@@ -85,8 +73,7 @@ export const buildOrbitalSchematic = (
     parentKind =
       focusedDetails.focusedKind === 'planet'
         ? 'planet'
-        : focusedDetails.minorBodyTelemetry.classification === 'dwarf-planet' ||
-            (focusedDetails.reticleType as string) === 'dwarf-planet'
+        : focusedDetails.minorBodyTelemetry?.classification === 'dwarf-planet'
           ? 'dwarf-planet'
           : 'minor-body';
     collected = collectPlanetaryOrbitalEntries(ctx);

@@ -294,6 +294,8 @@ describe('detailsPreview', () => {
           sortDistanceAu: 2.77,
           lineStyle: 'dashed',
           inHabitableZone: false,
+          eccentricity: 0.0758,
+          inclinationDeg: 10.59,
           isFocused: false,
           isSelected: false,
         },
@@ -320,8 +322,10 @@ describe('detailsPreview', () => {
     expect(summary?.orbitElements.map((e) => e.id)).toEqual(['earth', '1-ceres']);
     expect(summary?.orbitElements[0]?.eccentricity).toBe(0.0167);
     expect(summary?.orbitElements[1]?.symbolType).toBe('dwarf-planet');
+    expect(summary?.orbitElements[1]?.eccentricity).toBe(0.0758);
+    expect(summary?.orbitElements[1]?.inclinationDeg).toBe(10.59);
 
-    const emptySummary = buildFocusedPreviewSummary(solDetails, undefined, null);
-    expect(emptySummary?.orbitElements).toEqual([]);
+    const fallbackSummary = buildFocusedPreviewSummary(solDetails, undefined, null);
+    expect(fallbackSummary?.orbitElements.map((e) => e.id)).toEqual(['earth']);
   });
 });

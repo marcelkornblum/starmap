@@ -1,18 +1,11 @@
-import {
-  getCachedDetailRecord,
-  type DecodedDetailRecord,
-} from '../../data/detailsRepository';
-import type {
-  CelestialSymbolType,
-  ExoplanetRecord,
-  PlanetaryRingRecord,
-} from '../../types/astro';
+import { isBulkMinorBodyId } from '../../data/detailsRepository';
+import type { CelestialSymbolType } from '../../types/astro';
+import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
 import {
   resolveResultDisplayTitle,
   resolveReticleType,
 } from '../search/searchCorpusHelpers';
-import type { FocusedEntityDetails } from './detailsEntityTypes';
 import type {
   OrbitalSchematicEntityKind,
   OrbitalSchematicTier,
@@ -25,49 +18,16 @@ import {
 } from './detailsNavigation';
 import { getCorpusSystemChildrenIndex } from './focusedChildrenResolver';
 import {
-  isBulkMinorBodyId,
+  findMatchingExoplanet,
+  getCorpusParentChildrenIndex,
   isInSelection,
   isInsideHabitableZone,
   matchesIdOrSlug,
   resolveMinorCorpusKind,
   resolveOrbitDistanceAndStyle,
+  resolvePlanetRings,
   type CollectorContext,
 } from './orbitalSchematicShared';
-
-const findMatchingExoplanet = (
-  systemDetail: DecodedDetailRecord | undefined,
-  parentSlugs: ReadonlySet<string>,
-): ExoplanetRecord | undefined => {
-  if (systemDetail?.kind !== 'system') return undefined;
-  return systemDetail.record.planets.find(
-    (p) => parentSlugs.has(toUrlSlug(p.id)) || parentSlugs.has(toUrlSlug(p.name)),
-  );
-};
-
-const resolvePlanetRings = (
-  focusedDetails: FocusedEntityDetails,
-  matchedExoplanet: ExoplanetRecord | undefined,
-  focusedDetail: DecodedDetailRecord | undefined,
-  parentSlugs: ReadonlySet<string>,
-): readonly PlanetaryRingRecord[] => {
-  if (matchedExoplanet?.rings && matchedExoplanet.rings.length > 0) {
-    return matchedExoplanet.rings;
-  }
-  const matchedFocusedPlanet = focusedDetails.planets.find(
-    (p) => parentSlugs.has(toUrlSlug(p.id)) || parentSlugs.has(toUrlSlug(p.name)),
-  );
-  if (matchedFocusedPlanet?.rings && matchedFocusedPlanet.rings.length > 0) {
-    return matchedFocusedPlanet.rings;
-  }
-  if (focusedDetail?.kind === 'solar-body' && focusedDetail.record.rings?.length) {
-    return focusedDetail.record.rings;
-  }
-  const cached = getCachedDetailRecord(focusedDetails.id);
-  if (cached?.kind === 'solar-body' && cached.record.rings?.length) {
-    return cached.record.rings;
-  }
-  return [];
-};
 
 export const collectSystemOrbitalEntries = (
   ctx: CollectorContext,
@@ -77,7 +37,15 @@ export const collectSystemOrbitalEntries = (
   readonly rows: readonly OrbitalSchematicTrackRow[];
   readonly zones: readonly OrbitalSchematicZone[];
 } => {
-  const { focusedDetails, corpus, epochMs, focusedIdSlug, selectedSet, selectedSlugSet } = ctx;
+  const {
+    focusedDetails,
+    corpus,
+    epochMs,
+    focusedIdSlug,
+    selectedSet,
+    selectedSlugSet,
+    getDetailRecord,
+  } = ctx;
   const rows: OrbitalSchematicTrackRow[] = [];
   const zones: OrbitalSchematicZone[] = [];
 
@@ -124,6 +92,8 @@ export const collectSystemOrbitalEntries = (
       tier: 'primary',
       sortDistanceAu,
       lineStyle: planet.isTheoreticalOrbit ? 'dotted' : 'dashed',
+      ...(planet.eccentricity !== undefined ? { eccentricity: planet.eccentricity } : {}),
+      ...(planet.inclinationDeg !== undefined ? { inclinationDeg: planet.inclinationDeg } : {}),
       inHabitableZone: Boolean(
         planet.isHabitableCandidate || isInsideHabitableZone(sortDistanceAu, habitableZoneAu),
       ),
@@ -152,7 +122,7 @@ export const collectSystemOrbitalEntries = (
       continue;
     }
 
-    const cached = getCachedDetailRecord(entry.i);
+    const cached = getDetailRecord(entry.i);
     const solarRecord = cached?.kind === 'solar-body' ? cached.record : undefined;
     const tier: OrbitalSchematicTier = entry.k === 4 ? 'primary' : 'minor';
     const reticleType: CelestialSymbolType =
@@ -172,6 +142,7 @@ export const collectSystemOrbitalEntries = (
     if (!resolvedOrbit && tier === 'minor') continue;
 
     const sortDistanceAu = resolvedOrbit?.sortDistanceAu ?? Number.POSITIVE_INFINITY;
+    const isUnbounded = Boolean(resolvedOrbit?.isUnboundedFallback);
     rows.push({
       id: entry.i,
       name,
@@ -181,9 +152,15 @@ export const collectSystemOrbitalEntries = (
       tier,
       sortDistanceAu,
       lineStyle: resolvedOrbit?.lineStyle ?? 'dotted',
-      inHabitableZone: Boolean(
-        entry.z === 1 || isInsideHabitableZone(sortDistanceAu, habitableZoneAu),
-      ),
+      ...(solarRecord?.orbit?.eccentricity !== undefined
+        ? { eccentricity: solarRecord.orbit.eccentricity }
+        : {}),
+      ...(solarRecord?.orbit?.inclination !== undefined
+        ? { inclinationDeg: solarRecord.orbit.inclination }
+        : {}),
+      inHabitableZone:
+        !isUnbounded &&
+        Boolean(entry.z === 1 || isInsideHabitableZone(sortDistanceAu, habitableZoneAu)),
       isFocused: matchesIdOrSlug(entry.i, name, focusedDetails.id, focusedIdSlug),
       isSelected: isInSelection(entry.i, name, selectedSet, selectedSlugSet),
     });
@@ -207,6 +184,7 @@ export const collectPlanetaryOrbitalEntries = (
     focusedIdSlug,
     selectedSet,
     selectedSlugSet,
+    getDetailRecord,
   } = ctx;
   const rows: OrbitalSchematicTrackRow[] = [];
   const zones: OrbitalSchematicZone[] = [];
@@ -221,6 +199,7 @@ export const collectPlanetaryOrbitalEntries = (
     matchedExoplanet,
     focusedDetail,
     parentSlugs,
+    getDetailRecord,
   )) {
     zones.push({
       id: ring.id,
@@ -251,14 +230,28 @@ export const collectPlanetaryOrbitalEntries = (
       tier: 'primary',
       sortDistanceAu: resolvedOrbit?.sortDistanceAu ?? Number.POSITIVE_INFINITY,
       lineStyle: resolvedOrbit?.lineStyle ?? 'dotted',
+      ...(sat.orbit?.eccentricity !== undefined ? { eccentricity: sat.orbit.eccentricity } : {}),
+      ...(sat.orbit?.inclination !== undefined ? { inclinationDeg: sat.orbit.inclination } : {}),
       inHabitableZone: false,
       isFocused: matchesIdOrSlug(sat.id, sat.name, focusedDetails.id, focusedIdSlug),
       isSelected: isInSelection(sat.id, sat.name, selectedSet, selectedSlugSet),
     });
   }
 
-  for (const entry of corpus) {
-    if (!entry.o || !parentSlugs.has(toUrlSlug(entry.o))) continue;
+  const parentIndex = getCorpusParentChildrenIndex(corpus);
+  const seenParentEntryIds = new Set<string>();
+  const parentCandidates: CompactSearchEntry[] = [];
+  for (const parentSlug of parentSlugs) {
+    const list = parentIndex.get(parentSlug);
+    if (!list) continue;
+    for (const entry of list) {
+      if (seenParentEntryIds.has(entry.i)) continue;
+      seenParentEntryIds.add(entry.i);
+      parentCandidates.push(entry);
+    }
+  }
+
+  for (const entry of parentCandidates) {
     if (isBulkMinorBodyId(entry.i)) continue;
     const name = resolveResultDisplayTitle(entry);
     if (
@@ -269,7 +262,7 @@ export const collectPlanetaryOrbitalEntries = (
       continue;
     }
 
-    const cached = getCachedDetailRecord(entry.i);
+    const cached = getDetailRecord(entry.i);
     const solarRecord = cached?.kind === 'solar-body' ? cached.record : undefined;
     const tier: OrbitalSchematicTier = entry.k === 3 || entry.k === 4 ? 'primary' : 'minor';
     const kind: OrbitalSchematicEntityKind =
@@ -287,6 +280,7 @@ export const collectPlanetaryOrbitalEntries = (
     const resolvedOrbit = resolveOrbitDistanceAndStyle(solarRecord?.orbit, entry.A, epochMs, 1.0);
     if (!resolvedOrbit && tier === 'minor') continue;
 
+    const isUnbounded = Boolean(resolvedOrbit?.isUnboundedFallback);
     rows.push({
       id: entry.i,
       name,
@@ -296,7 +290,13 @@ export const collectPlanetaryOrbitalEntries = (
       tier,
       sortDistanceAu: resolvedOrbit?.sortDistanceAu ?? Number.POSITIVE_INFINITY,
       lineStyle: resolvedOrbit?.lineStyle ?? 'dotted',
-      inHabitableZone: entry.z === 1,
+      ...(solarRecord?.orbit?.eccentricity !== undefined
+        ? { eccentricity: solarRecord.orbit.eccentricity }
+        : {}),
+      ...(solarRecord?.orbit?.inclination !== undefined
+        ? { inclinationDeg: solarRecord.orbit.inclination }
+        : {}),
+      inHabitableZone: !isUnbounded && entry.z === 1,
       isFocused: matchesIdOrSlug(entry.i, name, focusedDetails.id, focusedIdSlug),
       isSelected: isInSelection(entry.i, name, selectedSet, selectedSlugSet),
     });

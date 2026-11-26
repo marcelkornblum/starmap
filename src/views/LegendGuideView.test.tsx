@@ -1,12 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
-import { LegendGuideView } from './LegendGuideView';
+import { CELESTIAL_SYMBOL_META } from '../components/interface';
 import {
   LEGEND_CHROMATIC_ENTRIES,
+  LEGEND_CONFIDENCE_LEVELS,
   LEGEND_LINE_ENTRIES,
+  LEGEND_SPECTRAL_CLASSES,
   LEGEND_SYMBOL_GROUPS,
   LEGEND_ZONE_ENTRIES,
 } from '../content/guide';
+import { LegendGuideView } from './LegendGuideView';
 
 describe('<LegendGuideView />', () => {
   it('renders root, breadcrumbs, active Legend section nav, and heading', () => {
@@ -49,9 +52,49 @@ describe('<LegendGuideView />', () => {
     const symbolItems = within(symbolsSection).getAllByTestId('legend-symbol-item');
     expect(symbolItems).toHaveLength(totalExpectedSymbols);
 
+    const symbolGuideLinks = within(symbolsSection).getAllByTestId('legend-symbol-guide-link');
+    expect(symbolGuideLinks.length).toBeGreaterThan(0);
+    for (const link of symbolGuideLinks) {
+      expect(link.getAttribute('href')).toMatch(/^\/guide\//);
+    }
+
     const chromaticitySection = screen.getByTestId('legend-chromaticity-section');
+    const spectralItems = within(chromaticitySection).getAllByTestId('legend-spectral-item');
+    expect(spectralItems).toHaveLength(LEGEND_SPECTRAL_CLASSES.length);
+    for (const spectralClass of LEGEND_SPECTRAL_CLASSES) {
+      const swatch = spectralItems.find(
+        (item) => item.getAttribute('data-spectral-class') === spectralClass,
+      );
+      expect(swatch).toBeDefined();
+    }
+
+    const confidenceItems = within(chromaticitySection).getAllByTestId('legend-confidence-item');
+    expect(confidenceItems).toHaveLength(LEGEND_CONFIDENCE_LEVELS.length);
+    expect(confidenceItems.map((el) => el.getAttribute('data-confidence'))).toEqual([
+      'confirmed',
+      'candidate',
+      'theoretical',
+    ]);
+
     const swatchItems = within(chromaticitySection).getAllByTestId('legend-swatch-item');
     expect(swatchItems).toHaveLength(LEGEND_CHROMATIC_ENTRIES.length);
     expect(chromaticitySection.textContent).toContain('Confirmed Observation');
+  });
+
+  it('covers 100% of CELESTIAL_SYMBOL_META keys across symbol groups and habitable-zone rail documentation', () => {
+    const groupedTypes = LEGEND_SYMBOL_GROUPS.flatMap((group) => group.types);
+    const zoneCoveredTypes = LEGEND_ZONE_ENTRIES.filter(
+      (entry) => entry.regionKind === 'habitable-zone',
+    ).map((entry) => entry.regionKind);
+
+    const coveredSet = new Set<string>([...groupedTypes, ...zoneCoveredTypes]);
+    const metaKeys = Object.keys(CELESTIAL_SYMBOL_META);
+
+    expect(groupedTypes).not.toContain('habitable-zone');
+    expect(groupedTypes).toContain('kuiper-belt-object');
+    for (const key of metaKeys) {
+      expect(coveredSet.has(key)).toBe(true);
+    }
+    expect(coveredSet.size).toBe(metaKeys.length);
   });
 });

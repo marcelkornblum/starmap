@@ -1,9 +1,14 @@
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
-import type { CelestialSymbolType } from '../../types/astro';
+import type {
+  CelestialSymbolType,
+  ExoplanetRecord,
+  PlanetaryRingRecord,
+} from '../../types/astro';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
 import { computeHyperbolicRadiusAu } from '../../utils/keplerMath';
 import { isArtificialSpacecraftEntry } from '../search/searchCorpusHelpers';
+import { getMergedCorpusParts } from './activeStarsCorpus';
 import type { FocusedEntityDetails } from './detailsEntityTypes';
 import type {
   OrbitalSchematicEntityKind,
@@ -11,11 +16,6 @@ import type {
   OrbitalSchematicTrackRow,
   OrbitalSchematicZone,
 } from './detailsHierarchyTypes';
-
-const MINOR_INFERRED_PREFIXES = ['pha-', 'distant-', 'comet-'] as const;
-
-export const isBulkMinorBodyId = (id: string): boolean =>
-  MINOR_INFERRED_PREFIXES.some((prefix) => id.startsWith(prefix));
 
 export interface CollectorContext {
   readonly focusedDetails: FocusedEntityDetails;
@@ -26,6 +26,13 @@ export interface CollectorContext {
   readonly focusedIdSlug: string;
   readonly selectedSet: ReadonlySet<string>;
   readonly selectedSlugSet: ReadonlySet<string>;
+  readonly getDetailRecord: (id: string) => DecodedDetailRecord | undefined;
+}
+
+export interface ResolvedOrbitDistance {
+  readonly sortDistanceAu: number;
+  readonly lineStyle: OrbitalSchematicLineStyle;
+  readonly isUnboundedFallback?: boolean;
 }
 
 export const matchesIdOrSlug = (
@@ -71,7 +78,7 @@ export const resolveOrbitDistanceAndStyle = (
   corpusSemiMajorAxis: number | undefined,
   epochMs: number,
   primaryMassMsun: number,
-): { readonly sortDistanceAu: number; readonly lineStyle: OrbitalSchematicLineStyle } | null => {
+): ResolvedOrbitDistance | null => {
   if (orbit && orbit.semiMajorAxis < 0 && orbit.eccentricity > 1) {
     return {
       sortDistanceAu: computeHyperbolicRadiusAu(orbit, epochMs, primaryMassMsun),
@@ -96,7 +103,11 @@ export const resolveOrbitDistanceAndStyle = (
     Number.isFinite(corpusSemiMajorAxis) &&
     corpusSemiMajorAxis < 0
   ) {
-    return { sortDistanceAu: Math.abs(corpusSemiMajorAxis), lineStyle: 'dotted' };
+    return {
+      sortDistanceAu: Number.POSITIVE_INFINITY,
+      lineStyle: 'dotted',
+      isUnboundedFallback: true,
+    };
   }
   return null;
 };
@@ -162,4 +173,75 @@ export const assignZonesAndSortRows = (
     .map((entry) => entry.row);
 
   return { rows, zones };
+};
+
+const corpusParentChildrenCache = new WeakMap<
+  readonly CompactSearchEntry[],
+  ReadonlyMap<string, readonly CompactSearchEntry[]>
+>();
+
+export function getCorpusParentChildrenIndex(
+  corpus: readonly CompactSearchEntry[],
+): ReadonlyMap<string, readonly CompactSearchEntry[]> {
+  let index = corpusParentChildrenCache.get(corpus);
+  if (!index) {
+    const parts = getMergedCorpusParts(corpus);
+    if (parts && parts.extras.every((e) => !e.o)) {
+      index = getCorpusParentChildrenIndex(parts.base);
+      corpusParentChildrenCache.set(corpus, index);
+      return index;
+    }
+
+    const map = new Map<string, CompactSearchEntry[]>();
+    for (const entry of corpus) {
+      if (!entry.o) continue;
+      const slugO = toUrlSlug(entry.o);
+      if (!slugO) continue;
+      let list = map.get(slugO);
+      if (!list) {
+        list = [];
+        map.set(slugO, list);
+      }
+      list.push(entry);
+    }
+    corpusParentChildrenCache.set(corpus, map);
+    index = map;
+  }
+  return index;
+}
+
+export const findMatchingExoplanet = (
+  systemDetail: DecodedDetailRecord | undefined,
+  parentSlugs: ReadonlySet<string>,
+): ExoplanetRecord | undefined => {
+  if (systemDetail?.kind !== 'system') return undefined;
+  return systemDetail.record.planets.find(
+    (p) => parentSlugs.has(toUrlSlug(p.id)) || parentSlugs.has(toUrlSlug(p.name)),
+  );
+};
+
+export const resolvePlanetRings = (
+  focusedDetails: FocusedEntityDetails,
+  matchedExoplanet: ExoplanetRecord | undefined,
+  focusedDetail: DecodedDetailRecord | undefined,
+  parentSlugs: ReadonlySet<string>,
+  getDetailRecord: (id: string) => DecodedDetailRecord | undefined,
+): readonly PlanetaryRingRecord[] => {
+  if (matchedExoplanet?.rings && matchedExoplanet.rings.length > 0) {
+    return matchedExoplanet.rings;
+  }
+  const matchedFocusedPlanet = focusedDetails.planets.find(
+    (p) => parentSlugs.has(toUrlSlug(p.id)) || parentSlugs.has(toUrlSlug(p.name)),
+  );
+  if (matchedFocusedPlanet?.rings && matchedFocusedPlanet.rings.length > 0) {
+    return matchedFocusedPlanet.rings;
+  }
+  if (focusedDetail?.kind === 'solar-body' && focusedDetail.record.rings?.length) {
+    return focusedDetail.record.rings;
+  }
+  const cached = getDetailRecord(focusedDetails.id);
+  if (cached?.kind === 'solar-body' && cached.record.rings?.length) {
+    return cached.record.rings;
+  }
+  return [];
 };

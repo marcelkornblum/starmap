@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { SpatialEntityDefinition } from '../types/spatial';
 import { buildJourneyPlan } from '../services/journey/journeyBuilder';
 import {
@@ -21,6 +21,7 @@ import type {
 import type { DatasetLayerManifest } from '../types/datasetLayers';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { toAnnotationLookupKey } from '../utils/datasetLayerSlugs';
+import { getCachedDetailRecord } from '../data/detailsRepository';
 import { useEntityAnnotations } from '../hooks/useLayerData';
 
 export interface UseGalaxyPanelsParams {
@@ -82,7 +83,7 @@ export function useGalaxyPanels({
   const canonRecords = useEntityAnnotations(canonLookupIds);
 
   const focusedEntityId = focusedEntity?.id ?? '';
-  const { systemSummary, systemDetail, focusedDetail, solPrimaryReady } = useSystemData(
+  const { systemSummary, systemDetail, focusedDetail, detailsVersion } = useSystemData(
     targetSystemId,
     focusedEntityId,
   );
@@ -137,6 +138,15 @@ export function useGalaxyPanels({
     [selectedEntities],
   );
 
+  const [epochMs] = useState(() => Math.floor(Date.now() / 60_000) * 60_000);
+  const getDetailRecord = useMemo(
+    () => (id: string) => {
+      void detailsVersion;
+      return getCachedDetailRecord(id);
+    },
+    [detailsVersion],
+  );
+
   const orbitalSchematic = useMemo(
     () =>
       buildOrbitalSchematic({
@@ -145,7 +155,8 @@ export function useGalaxyPanels({
         focusedDetail,
         corpus: detailsCorpus,
         selectedEntityIds,
-        detailCacheKey: solPrimaryReady ? 1 : 0,
+        epochMs,
+        getDetailRecord,
       }),
     [
       focusedDetails,
@@ -153,7 +164,8 @@ export function useGalaxyPanels({
       focusedDetail,
       detailsCorpus,
       selectedEntityIds,
-      solPrimaryReady,
+      epochMs,
+      getDetailRecord,
     ],
   );
 

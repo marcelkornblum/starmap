@@ -28,6 +28,7 @@ export const renderSystemSummarySegments = (
         key: idx,
         type: seg.composition,
         href: buildPlanetTypeGuideHref(seg.composition),
+        showLabel: true,
         'data-testid': 'details-summary-planet-type-link',
       });
     }
@@ -36,6 +37,7 @@ export const renderSystemSummarySegments = (
         key: idx,
         type: 'habitable-zone',
         href: buildTagGalaxyHref('HabitableCandidate'),
+        showLabel: true,
         'data-testid': 'details-summary-habitable-link',
       });
     }

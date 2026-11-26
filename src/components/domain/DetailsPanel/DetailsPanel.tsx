@@ -86,7 +86,6 @@ export const DetailsPanel = memo(function DetailsPanel({
       focusedKind={focusedKind}
       spectralType={spectralType}
       starCount={starCount}
-      planetComposition={planetTelemetry?.composition}
       isHabitableCandidate={planetTelemetry?.isHabitableCandidate}
       systemSummarySegments={systemSummarySegments}
       actionControls={
@@ -103,7 +102,7 @@ export const DetailsPanel = memo(function DetailsPanel({
 
   const partialContent = (
     <>
-      {preview ? <PreviewPanel preview={preview} /> : null}
+      {preview ? <PreviewPanel preview={preview} headingAs="h4" /> : null}
       <DetailsDeferredPartialLower
         canonAnnotations={canonAnnotations}
         focusedKind={focusedKind}

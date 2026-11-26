@@ -1,7 +1,8 @@
+import { isBulkMinorBodyId } from '../../data/detailsRepository';
 import type { SpatialEntityDefinition } from '../../types/spatial';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import { computeOptimisticHabitableZoneAu } from '../../utils/keplerMath';
 import { resolveEntityMarkerKind } from './minimapMarkerHelpers';
-import { computeOptimisticHabitableZoneAu } from './orbitalSchematicBuilder';
 import type { FocusedEntityDetails } from './detailsEntityTypes';
 import type {
   MinimapMarkerItem,
@@ -116,9 +117,12 @@ export const buildSystemMinimapOrientation = (
     bodiesSummary.scope === 'system' ? (bodiesSummary.planets?.length ?? 0) : 0;
   const moonsCount =
     bodiesSummary.scope === 'system'
-      ? (bodiesSummary.moonsAndDwarfPlanets?.length ?? 0)
+      ? (bodiesSummary.moonsAndDwarfPlanets?.filter((item) => !isBulkMinorBodyId(item.id)).length ??
+        0)
       : (bodiesSummary.moons?.length ?? 0);
-  const minorBodiesCount = bodiesSummary.minorBodiesAndSpacecraft?.length ?? 0;
+  const minorBodiesCount =
+    bodiesSummary.minorBodiesAndSpacecraft?.filter((item) => !isBulkMinorBodyId(item.id)).length ??
+    0;
   const orbitingBodyCount = planetsCount + moonsCount + minorBodiesCount;
 
   const anchorMarker: MinimapMarkerItem = {
@@ -137,7 +141,7 @@ export const buildSystemMinimapOrientation = (
             (p) =>
               p.id === focusedEntity.id ||
               toUrlSlug(p.id) === toUrlSlug(focusedEntity.id) ||
-              p.name.toLowerCase() === focusedEntity.name.toLowerCase(),
+              toUrlSlug(p.name) === toUrlSlug(focusedEntity.name),
           )
         : undefined;
     focusedMarker = {

@@ -1,6 +1,10 @@
 @layer blocks {
   .legendLink {
-    color: var(--content-muted);
+    --legend-link-color: var(--content-muted);
+    --legend-link-bg: transparent;
+
+    color: var(--legend-link-color);
+    background: var(--legend-link-bg);
     font-family: var(--font-interface);
     font-size: var(--text-content-footnote-size);
     font-weight: var(--font-weight-medium);
@@ -14,12 +18,12 @@
   }
 
   .legendLink:hover {
-    color: var(--content-prominent);
-    background: var(--surface-block-hover-bg);
+    --legend-link-color: var(--content-prominent);
+    --legend-link-bg: var(--surface-block-hover-bg);
   }
 
   .legendLink:focus-visible {
-    color: var(--content-prominent);
+    --legend-link-color: var(--content-prominent);
     outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
     outline-offset: var(--state-focus-ring-offset);
   }
@@ -27,36 +31,15 @@
   .stage {
     --schematic-gutter-start: calc(var(--space-fib-3) + var(--space-fib-2));
     --schematic-gutter-end: var(--space-fib-3);
+    --schematic-stage-bg: var(--surface-block-bg);
+    --schematic-stage-radius: var(--surface-block-radius);
 
-    background: var(--surface-block-bg);
-    border-radius: var(--surface-block-radius);
+    background: var(--schematic-stage-bg);
+    border-radius: var(--schematic-stage-radius);
     overflow: hidden;
     display: flex;
     flex-direction: column;
     padding-block: var(--space-fib-1);
-  }
-
-  .hzGroup {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .hzGroup::before {
-    content: '';
-    position: absolute;
-    inset-block: var(--space-fib-1);
-    inset-inline-start: var(--space-fib-2);
-    inline-size: var(--stroke-width-2);
-    border-radius: var(--radius-full);
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      var(--category-habitability) 22%,
-      var(--category-habitability) 78%,
-      transparent 100%
-    );
-    pointer-events: none;
   }
 
   .trackRow {
@@ -82,11 +65,13 @@
   .trackRow:hover {
     --track-row-bg: var(--surface-block-hover-bg);
     --track-row-color: var(--content-prominent);
+    --track-line-color: var(--chrome-kinematic-color);
   }
 
   .trackRow:focus-visible {
     --track-row-bg: var(--surface-block-hover-bg);
     --track-row-color: var(--content-prominent);
+    --track-line-color: var(--chrome-kinematic-color);
     outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
     outline-offset: calc(-1 * var(--state-focus-ring-width));
   }
@@ -98,18 +83,11 @@
     flex-shrink: 0;
   }
 
-  .trackLine {
+  .trackLineSlot {
     flex: 1 1 auto;
     min-inline-size: var(--space-fib-4);
-    block-size: var(--stroke-width-1);
-    background: repeating-linear-gradient(
-      to right,
-      var(--track-line-color) 0,
-      var(--track-line-color) var(--chrome-dash-size),
-      transparent var(--chrome-dash-size),
-      transparent calc(var(--chrome-dash-size) + var(--chrome-dash-gap))
-    );
-    transition: background var(--motion-duration-feedback) var(--motion-ease-default);
+    display: flex;
+    align-items: center;
   }
 
   .trackName {
@@ -125,20 +103,10 @@
     text-overflow: ellipsis;
   }
 
-  .zoneBand {
-    --zone-band-bg: transparent;
-
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-block-size: var(--space-fib-6);
-    background: var(--zone-band-bg);
-    box-sizing: border-box;
-  }
-
   .zoneTitleLink,
   .zoneTitleLabel {
+    --zone-title-color: var(--content-default);
+
     display: flex;
     align-items: center;
     justify-content: center;
@@ -150,81 +118,33 @@
     letter-spacing: var(--tracking-eyebrow);
     line-height: var(--leading-control);
     text-transform: uppercase;
-    color: var(--content-default);
+    color: var(--zone-title-color);
     text-decoration: none;
     text-align: center;
     transition: color var(--motion-duration-feedback) var(--motion-ease-default);
   }
 
   .zoneTitleLink:hover {
-    color: var(--content-prominent);
+    --zone-title-color: var(--content-prominent);
   }
 
   .zoneTitleLink:focus-visible {
-    color: var(--content-prominent);
+    --zone-title-color: var(--content-prominent);
     outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
     outline-offset: calc(-1 * var(--state-focus-ring-width));
   }
 }
 
 @layer exceptions {
-  .trackLine[data-line-style="dotted"] {
-    background: repeating-linear-gradient(
-      to right,
-      var(--track-line-color) 0,
-      var(--track-line-color) var(--chrome-dot-size),
-      transparent var(--chrome-dot-size),
-      transparent calc(var(--chrome-dot-size) + var(--chrome-dot-gap))
-    );
-  }
-
-  .trackRow:hover .trackLine,
-  .trackRow:focus-visible .trackLine,
-  .trackRow[data-focused="true"] .trackLine,
-  .trackRow[data-selected="true"] .trackLine {
-    --track-line-color: var(--chrome-kinematic-color);
-  }
-
   .trackRow[data-selected="true"] {
     --track-row-bg: var(--surface-block-hover-bg);
     --track-row-color: var(--content-prominent);
+    --track-line-color: var(--chrome-kinematic-color);
   }
 
   .trackRow[data-focused="true"] {
     --track-row-bg: var(--surface-block-selected-bg);
     --track-row-color: var(--content-prominent);
-  }
-
-  .zoneBand[data-region-kind="belt"],
-  .zoneBand[data-region-kind="debris-disk"] {
-    background-color: color-mix(in oklch, var(--status-caution) 6%, transparent);
-    background-image: repeating-linear-gradient(
-      -45deg,
-      color-mix(in oklch, var(--status-caution) 16%, transparent) 0,
-      color-mix(in oklch, var(--status-caution) 16%, transparent) var(--stroke-width-1),
-      transparent var(--stroke-width-1),
-      transparent var(--space-fib-3)
-    );
-    border-block: var(--border-width-1) dashed color-mix(in oklch, var(--status-caution) 30%, transparent);
-  }
-
-  .zoneBand[data-region-kind="ring-system"] {
-    background-color: color-mix(in oklch, var(--status-info) 6%, transparent);
-    background-image: repeating-linear-gradient(
-      to bottom,
-      color-mix(in oklch, var(--status-info) 18%, transparent) 0,
-      color-mix(in oklch, var(--status-info) 18%, transparent) var(--stroke-width-1),
-      transparent var(--stroke-width-1),
-      transparent var(--space-fib-2)
-    );
-    border-block: var(--border-width-1) solid color-mix(in oklch, var(--status-info) 32%, transparent);
-  }
-
-  .zoneBand[data-selected="true"] {
-    box-shadow: inset var(--stroke-width-2) 0 0 0 var(--state-selected);
-  }
-
-  .zoneBand[data-focused="true"] {
-    box-shadow: inset var(--stroke-width-2) 0 0 0 var(--state-focus);
+    --track-line-color: var(--chrome-kinematic-color);
   }
 }

@@ -1,5 +1,4 @@
 import type { PlanetCompositionClass } from '../../../content/guide';
-import { formatDiskKindLabel } from '../../../services/details/detailsHazards';
 import type {
   PlanetaryBodiesSummary,
   SystemBodiesSummary,
@@ -28,7 +27,6 @@ export type BodiesPrimaryItem =
       readonly name: string;
       readonly href: string;
       readonly symbolType: 'asteroid-belt' | 'kuiper-belt' | 'debris-disk' | 'belt';
-      readonly kindLabel: string;
     }
   | {
       readonly kind: 'dwarf-planet';
@@ -48,7 +46,6 @@ export type BodiesPrimaryItem =
       readonly id: string;
       readonly name: string;
       readonly href: string;
-      readonly categoryLabel: string;
     };
 
 export function buildPrimaryItems(
@@ -83,10 +80,6 @@ export function buildPrimaryItems(
               elements.systemName || elements.systemId,
               disk.name || disk.id,
             );
-      const kindLabel =
-        'kindLabel' in disk && disk.kindLabel
-          ? disk.kindLabel
-          : formatDiskKindLabel(disk.kind);
       const symbolType =
         disk.kind === 'asteroid-belt' ||
         disk.kind === 'kuiper-belt' ||
@@ -99,7 +92,6 @@ export function buildPrimaryItems(
         name: disk.name,
         href,
         symbolType,
-        kindLabel,
       });
     }
     for (const body of elements.moonsAndDwarfPlanets) {
@@ -131,7 +123,6 @@ export function buildPrimaryItems(
       id: moon.id,
       name: moon.name,
       href: moon.href,
-      categoryLabel: moon.categoryLabel,
     });
   }
   return items;

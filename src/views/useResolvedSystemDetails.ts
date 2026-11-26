@@ -45,7 +45,7 @@ export interface ResolvedSystemDetailsResult {
   readonly hasExplicitFocus: boolean;
   readonly focusedDetail: DecodedDetailRecord | undefined;
   readonly systemDetail: DecodedDetailRecord | undefined;
-  readonly solPrimaryReady?: boolean;
+  readonly detailsVersion?: number;
   readonly isFocusInThisSystem: boolean;
   readonly targetSystemId: string;
 }
@@ -112,7 +112,7 @@ export function useResolvedSystemDetails(
     [urlSystemEntry, urlSystemSlug],
   );
 
-  const { systemSummary, systemDetail, focusedDetail, solPrimaryReady } = useSystemData(
+  const { systemSummary, systemDetail, focusedDetail, detailsVersion } = useSystemData(
     targetSystemId,
     urlFocusSlug ?? '',
   );
@@ -269,7 +269,7 @@ export function useResolvedSystemDetails(
     hasExplicitFocus,
     focusedDetail,
     systemDetail,
-    solPrimaryReady,
+    detailsVersion,
     isFocusInThisSystem,
     targetSystemId,
   };

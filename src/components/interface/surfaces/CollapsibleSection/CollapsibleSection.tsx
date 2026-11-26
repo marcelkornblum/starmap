@@ -6,9 +6,11 @@ import styles from './CollapsibleSection.module.css';
 export interface CollapsibleSectionProps
   extends Omit<HTMLAttributes<HTMLElement>, 'className' | 'style'> {
   readonly title: string;
-  readonly headingId: string;
+  readonly headingId?: string;
   readonly headingAs?: 'h2' | 'h3' | 'h4';
   readonly defaultOpen?: boolean;
+  readonly open?: boolean;
+  readonly onOpenChange?: (open: boolean) => void;
   readonly actions?: ReactNode;
   readonly toggleTestId?: string;
   readonly children: ReactNode;
@@ -19,29 +21,44 @@ export const CollapsibleSection = ({
   headingId,
   headingAs = 'h4',
   defaultOpen = true,
+  open,
+  onOpenChange,
   actions,
   toggleTestId,
   children,
   ...rest
 }: CollapsibleSectionProps) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const generatedHeadingId = useId();
   const contentId = useId();
+
+  const resolvedHeadingId = headingId ?? generatedHeadingId;
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : uncontrolledOpen;
+
+  const handleToggle = () => {
+    const nextOpen = !isOpen;
+    if (!isControlled) {
+      setUncontrolledOpen(nextOpen);
+    }
+    onOpenChange?.(nextOpen);
+  };
 
   return (
     <section
-      aria-labelledby={headingId}
+      aria-labelledby={resolvedHeadingId}
       className={styles.section}
-      data-collapsed={isOpen ? undefined : 'true'}
+      data-expanded={isOpen ? 'true' : 'false'}
       {...rest}
     >
       <Cluster justify="between" align="center" gap="tight">
-        <Heading as={headingAs} size="eyebrow" id={headingId}>
+        <Heading as={headingAs} size="eyebrow" id={resolvedHeadingId}>
           <button
             type="button"
             className={styles.trigger}
             aria-expanded={isOpen}
-            aria-controls={contentId}
-            onClick={() => setIsOpen((prev) => !prev)}
+            aria-controls={isOpen ? contentId : undefined}
+            onClick={handleToggle}
             data-testid={toggleTestId}
           >
             <span>{title}</span>

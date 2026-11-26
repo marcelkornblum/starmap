@@ -40,15 +40,10 @@ export function decodeOrbitTuple(tuple?: OrbitTuple): KeplerianOrbit | undefined
 }
 
 export function decodeSatellite(compact: CompactSatelliteRecord): SatelliteRecord {
-  const orbit = decodeOrbitTuple(compact.o) ?? {
-    semiMajorAxis: compact.o[0],
-    eccentricity: compact.o[1],
-    inclination: compact.o[2],
-    ascendingNode: compact.o[3],
-    argumentOfPeriapsis: compact.o[4],
-    meanAnomaly: compact.o[5],
-    periodDays: compact.o[6],
-  };
+  const orbit = decodeOrbitTuple(compact.o);
+  if (!orbit) {
+    throw new Error(`Satellite "${compact.i}" is missing valid Keplerian orbit tuple "o".`);
+  }
   return {
     id: compact.i,
     name: compact.n,
@@ -160,8 +155,6 @@ export function decodeGalacticStructure(
   return result;
 }
 
-export const decodeStructure = decodeGalacticStructure;
-
 export function decodeSolarSystemBody(
   compact: CompactSolarSystemBody,
   fallbackId?: string,
@@ -205,8 +198,6 @@ export function decodeSolarSystemBody(
   }
   return result;
 }
-
-export const decodeMinorBody = decodeSolarSystemBody;
 
 export function decodeCompactSearchEntry(entry: CompactSearchEntry): DecodedSearchEntry {
   return {

@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import {
   fetchSolPrimaryShard,
+  getDetailsRepositoryVersion,
   isSolPrimaryShardCached,
   subscribeDetailsRepository,
   type DecodedDetailRecord,
@@ -14,13 +15,9 @@ export interface UseSystemDataResult {
   readonly systemDetail: DecodedDetailRecord | undefined;
   readonly focusedDetail: DecodedDetailRecord | undefined;
   readonly isLoading: boolean;
-  readonly solPrimaryReady?: boolean;
+  readonly detailsVersion?: number;
 }
 
-/**
- * Reactive hook providing the system summary node, host system detail, and focused entity detail (AUD-087 & DEC-R042).
- * Synchronously reads cached data and reactively updates via repository subscriptions.
- */
 export function useSystemData(
   systemId: string | null | undefined,
   focusedEntityId?: string | null,
@@ -40,14 +37,14 @@ export function useSystemData(
     isLoading: isFocusedLoading,
   } = useEntityDetails(needsDistinctFocused ? focusedEntityId : null);
 
-  const solPrimaryReady = useSyncExternalStore(
+  const detailsVersion = useSyncExternalStore(
     subscribeDetailsRepository,
-    isSolPrimaryShardCached,
-    isSolPrimaryShardCached,
+    getDetailsRepositoryVersion,
+    getDetailsRepositoryVersion,
   );
 
   useEffect(() => {
-    if (systemId !== SOL_REFERENCE_TARGET.id || solPrimaryReady) {
+    if (systemId !== SOL_REFERENCE_TARGET.id || isSolPrimaryShardCached()) {
       return undefined;
     }
     const controller = new AbortController();
@@ -55,7 +52,7 @@ export function useSystemData(
     return () => {
       controller.abort();
     };
-  }, [systemId, solPrimaryReady]);
+  }, [systemId, detailsVersion]);
 
   const focusedDetail = needsDistinctFocused ? distinctFocusedDetail : systemDetail;
   const isLoading = isSystemLoading || (needsDistinctFocused && isFocusedLoading);
@@ -65,6 +62,6 @@ export function useSystemData(
     systemDetail,
     focusedDetail,
     isLoading,
-    solPrimaryReady,
+    detailsVersion,
   };
 }

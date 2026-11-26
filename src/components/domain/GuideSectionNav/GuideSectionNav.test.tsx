@@ -9,11 +9,11 @@ describe('<GuideSectionNav />', () => {
     const nav = screen.getByTestId('guide-section-nav');
     expect(nav).toBeInTheDocument();
 
-    expect(screen.getByRole('link', { name: 'Star Types' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Planet Types' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Environmental Hazards' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Legend' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Star Types' })).toHaveAttribute('href', '/guide/star-types');
+    expect(screen.getByRole('link', { name: 'Planet Types' })).toHaveAttribute('href', '/guide/planet-types');
+    expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toHaveAttribute('href', '/guide/metrics');
+    expect(screen.getByRole('link', { name: 'Environmental Hazards' })).toHaveAttribute('href', '/guide/hazards');
+    expect(screen.getByRole('link', { name: 'Legend' })).toHaveAttribute('href', '/guide/legend');
   });
 
   it('marks current section with aria-current="page"', () => {

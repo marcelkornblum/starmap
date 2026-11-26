@@ -3,17 +3,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BodiesPanel } from './BodiesPanel';
 import { BodiesMinorBodyRow, type BodiesMinorBodyRowProps } from './BodiesMinorBodyRow';
+import { BodiesPrimaryRow, type BodiesPrimaryRowProps } from './BodiesPrimaryRow';
 import { SpatialEntityProvider } from '../../canvas/entity/SpatialEntityProvider';
 import { SpatialEntityStoreContext } from '../../canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
-
-const renderWithProvider = (ui: React.ReactElement) =>
-  render(<SpatialEntityProvider>{ui}</SpatialEntityProvider>);
 import type {
   GalaxyBodiesSummary,
   PlanetaryBodiesSummary,
   SystemBodiesSummary,
 } from '../../../services/details/detailsHierarchyTypes';
+
+const renderWithProvider = (ui: React.ReactElement) =>
+  render(<SpatialEntityProvider>{ui}</SpatialEntityProvider>);
 
 const mockGalaxyFixture: GalaxyBodiesSummary = {
   scope: 'galaxy',
@@ -183,6 +184,19 @@ describe('<BodiesPanel />', () => {
     const richSystemFixture: SystemBodiesSummary = {
       ...mockSystemFixture,
       selectedEntityIds: ['earth', 'sol'],
+      planets: [
+        ...mockSystemFixture.planets,
+        {
+          id: 'mercury',
+          name: 'Mercury',
+          composition: 'terrestrial',
+          semiMajorAxisAu: 0.387,
+          periodDays: 87.97,
+          massMearth: 0.055,
+          isHabitableCandidate: false,
+          href: '/planet/mercury',
+        },
+      ],
       disks: [
         {
           id: 'main-belt',
@@ -218,23 +232,32 @@ describe('<BodiesPanel />', () => {
     const primaryList = screen.getByTestId('bodies-primary-list');
     expect(primaryList.tagName).toBe('UL');
     const primaryItems = screen.getAllByTestId('bodies-primary-item');
-    expect(primaryItems).toHaveLength(4);
+    expect(primaryItems).toHaveLength(5);
+
     expect(primaryItems[0]).toHaveAttribute('data-entity-id', 'sol');
     expect(primaryItems[0]).toHaveAttribute('data-block', 'true');
     expect(primaryItems[0]).toHaveAttribute('data-selected', 'true');
     expect(primaryItems[0]).not.toHaveAttribute('data-focused');
+    expect(primaryItems[0].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
+    expect(primaryItems[0].querySelector('[data-spectral-badge]')).not.toBeNull();
+    expect(screen.getByText('G2V')).toBeInTheDocument();
 
     expect(primaryItems[1]).toHaveAttribute('data-entity-id', 'earth');
     expect(primaryItems[1]).toHaveAttribute('data-focused', 'true');
     expect(primaryItems[1]).toHaveAttribute('data-selected', 'true');
+    expect(primaryItems[1].querySelectorAll('[data-celestial-badge]')).toHaveLength(2);
+    expect(primaryItems[1].querySelector('[data-celestial-badge="terrestrial"]')).not.toBeNull();
+    expect(primaryItems[1].querySelector('[data-celestial-badge="habitable-zone"]')).not.toBeNull();
 
-    expect(primaryItems[2]).toHaveAttribute('data-entity-id', 'main-belt');
-    expect(primaryItems[3]).toHaveAttribute('data-entity-id', 'ceres');
+    expect(primaryItems[2]).toHaveAttribute('data-entity-id', 'mercury');
+    expect(primaryItems[2].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
+    expect(primaryItems[2].querySelector('[data-celestial-badge="habitable-zone"]')).toBeNull();
 
-    expect(screen.getByText('G2V')).toBeInTheDocument();
-    expect(screen.getByText('Terrestrial')).toBeInTheDocument();
-    expect(screen.getByText('Asteroid Belt')).toBeInTheDocument();
-    expect(screen.getByText('Dwarf Planet')).toBeInTheDocument();
+    expect(primaryItems[3]).toHaveAttribute('data-entity-id', 'main-belt');
+    expect(primaryItems[3].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
+
+    expect(primaryItems[4]).toHaveAttribute('data-entity-id', 'ceres');
+    expect(primaryItems[4].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
 
     const minorBodiesSection = screen.getByTestId('bodies-minor-bodies-section');
     expect(minorBodiesSection).toBeInTheDocument();
@@ -274,10 +297,54 @@ describe('<BodiesPanel />', () => {
     const primaryItems = screen.getAllByTestId('bodies-primary-item');
     expect(primaryItems).toHaveLength(2);
     expect(primaryItems[0]).toHaveAttribute('data-entity-id', 'earth');
+    expect(primaryItems[0].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
     expect(primaryItems[1]).toHaveAttribute('data-entity-id', 'moon');
     expect(primaryItems[1]).toHaveAttribute('data-focused', 'true');
     expect(primaryItems[1]).toHaveAttribute('data-selected', 'true');
+    expect(primaryItems[1].querySelectorAll('[data-celestial-badge]')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Moon' })).toBeInTheDocument();
+  });
+
+  it('compares primary rows structurally via BodiesPrimaryRow memo comparator', () => {
+    const compare = (
+      BodiesPrimaryRow as unknown as {
+        compare?: (prev: BodiesPrimaryRowProps, next: BodiesPrimaryRowProps) => boolean;
+      }
+    ).compare;
+    const basePlanet = {
+      kind: 'planet' as const,
+      id: 'earth',
+      name: 'Earth',
+      href: '/planet/earth',
+      composition: 'terrestrial' as const,
+      isHabitableCandidate: true,
+    };
+
+    expect(compare).toBeTypeOf('function');
+    expect(
+      compare?.(
+        { item: basePlanet, isFocused: false, isSelected: false },
+        { item: { ...basePlanet }, isFocused: false, isSelected: false },
+      ),
+    ).toBe(true);
+
+    expect(
+      compare?.(
+        { item: basePlanet, isFocused: false, isSelected: false },
+        {
+          item: { ...basePlanet, isHabitableCandidate: false },
+          isFocused: false,
+          isSelected: false,
+        },
+      ),
+    ).toBe(false);
+
+    expect(
+      compare?.(
+        { item: basePlanet, isFocused: false, isSelected: false },
+        { item: { ...basePlanet }, isFocused: true, isSelected: false },
+      ),
+    ).toBe(false);
   });
 
   it('syncs primary row hover and focus to SpatialEntityStore without re-rendering system-scope BodiesPanel', () => {

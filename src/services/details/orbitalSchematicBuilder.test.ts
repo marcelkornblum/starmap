@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   clearDetailsRepositoryCache,
+  getCachedDetailRecord,
+  isBulkMinorBodyId,
   seedDetailRecord,
 } from '../../data/detailsRepository';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
@@ -16,8 +18,6 @@ import {
   MINOR_ORBITER_TOGGLE_THRESHOLD,
   buildOrbitalSchematic,
   buildOrbitalSchematicBands,
-  computeOptimisticHabitableZoneAu,
-  isBulkMinorBodyId,
 } from './orbitalSchematicBuilder';
 
 const makeSystemDetails = (
@@ -110,15 +110,6 @@ describe('orbitalSchematicBuilder', () => {
     expect(isBulkMinorBodyId('halley')).toBe(false);
     expect(isBulkMinorBodyId('ceres')).toBe(false);
     expect(isBulkMinorBodyId('voyager-1')).toBe(false);
-  });
-
-  it('computes Kopparapu optimistic habitable zone bounds from stellar luminosity', () => {
-    expect(computeOptimisticHabitableZoneAu(1.0)).toEqual([0.75, 1.77]);
-    expect(computeOptimisticHabitableZoneAu(0.52)).toEqual([0.5408, 1.2764]);
-    expect(computeOptimisticHabitableZoneAu(0)).toBeUndefined();
-    expect(computeOptimisticHabitableZoneAu(-0.5)).toBeUndefined();
-    expect(computeOptimisticHabitableZoneAu(Number.NaN)).toBeUndefined();
-    expect(computeOptimisticHabitableZoneAu(undefined)).toBeUndefined();
   });
 
   it('returns null for null, belt, structure, or empty schematics', () => {
@@ -274,6 +265,7 @@ describe('orbitalSchematicBuilder', () => {
       corpus,
       selectedEntityIds: ['ceres', 'outer-belt'],
       epochMs: j2000PlusOneYearMs,
+      getDetailRecord: getCachedDetailRecord,
     });
 
     expect(summary).not.toBeNull();
@@ -310,6 +302,8 @@ describe('orbitalSchematicBuilder', () => {
     expect(halley?.kind).toBe('comet');
     expect(halley?.tier).toBe('minor');
     expect(halley?.reticleType).toBe('comet');
+    expect(halley?.eccentricity).toBe(0.967);
+    expect(halley?.inclinationDeg).toBe(162);
 
     const voyager = summary.rows.find((r) => r.id === 'voyager-1');
     expect(voyager?.kind).toBe('spacecraft');
@@ -516,5 +510,138 @@ describe('orbitalSchematicBuilder', () => {
       expect(expandedZone.rows.map((r) => r.id)).toEqual(['vesta', 'juno', 'pallas', 'hygiea']);
       expect(expandedZone.titleInsertIndex).toBe(2);
     }
+  });
+
+  it('treats pre-load negative semi-major axis as unbounded dotted fallback outside habitable zone', () => {
+    const details = makeSystemDetails({
+      planets: [
+        {
+          id: 'earth',
+          name: 'Earth',
+          composition: 'terrestrial',
+          semiMajorAxisAu: 1.0,
+          eccentricity: 0.0167,
+          inclinationDeg: 0,
+          isHabitableCandidate: true,
+        },
+      ],
+    });
+    const corpus: readonly CompactSearchEntry[] = [
+      { i: '2i-borisov', n: '2I/Borisov', s: 'sol', k: 6, A: -0.851 },
+    ];
+
+    const summary = buildOrbitalSchematic({ focusedDetails: details, corpus });
+    expect(summary).not.toBeNull();
+    if (!summary) return;
+
+    expect(summary.rows.map((r) => r.id)).toEqual(['earth', '2i-borisov']);
+    const earth = summary.rows[0];
+    expect(earth?.eccentricity).toBe(0.0167);
+    expect(earth?.inclinationDeg).toBe(0);
+
+    const borisov = summary.rows[1];
+    expect(borisov?.lineStyle).toBe('dotted');
+    expect(borisov?.sortDistanceAu).toBe(Number.POSITIVE_INFINITY);
+    expect(borisov?.inHabitableZone).toBe(false);
+  });
+
+  it('resolves planetary rings from focusedDetail, getDetailRecord cache, and systemDetail exoplanets', () => {
+    const uranus = makePlanetDetails({
+      id: 'uranus',
+      name: 'Uranus',
+      planets: [],
+    });
+    const corpus: readonly CompactSearchEntry[] = [
+      { i: 'miranda', n: 'Miranda', s: 'sol', o: 'uranus', k: 3, A: 0.000868 },
+    ];
+
+    const fromFocusedDetail = buildOrbitalSchematic({
+      focusedDetails: uranus,
+      focusedDetail: {
+        kind: 'solar-body',
+        record: {
+          id: 'uranus',
+          name: 'Uranus',
+          classification: 'Planet',
+          meanRadiusKm: 25362,
+          rings: [
+            {
+              id: 'uranus-epsilon',
+              name: 'Epsilon Ring',
+              innerRadiusAu: 0.0003,
+              outerRadiusAu: 0.00035,
+            },
+          ],
+        },
+      },
+      corpus,
+    });
+    expect(fromFocusedDetail?.zones.map((z) => z.id)).toEqual(['uranus-epsilon']);
+
+    seedDetailRecord('uranus', {
+      kind: 'solar-body',
+      record: {
+        id: 'uranus',
+        name: 'Uranus',
+        classification: 'Planet',
+        meanRadiusKm: 25362,
+        rings: [
+          {
+            id: 'uranus-cached-rings',
+            name: 'Cached Rings',
+            innerRadiusAu: 0.00025,
+            outerRadiusAu: 0.00034,
+          },
+        ],
+      },
+    });
+    const fromCache = buildOrbitalSchematic({
+      focusedDetails: uranus,
+      corpus,
+      getDetailRecord: getCachedDetailRecord,
+    });
+    expect(fromCache?.zones.map((z) => z.id)).toEqual(['uranus-cached-rings']);
+
+    const exoplanet = makePlanetDetails({
+      id: 'j1407b',
+      systemId: 'v1400-centauri',
+      name: 'J1407b',
+      systemName: 'V1400 Centauri',
+      planets: [],
+    });
+    const fromExoplanetSystem = buildOrbitalSchematic({
+      focusedDetails: exoplanet,
+      systemDetail: {
+        kind: 'system',
+        record: {
+          id: 'v1400-centauri',
+          name: 'V1400 Centauri',
+          x: 1,
+          y: 2,
+          z: 3,
+          dist: 133,
+          sectorId: 'sector_0_0_0',
+          stars: [],
+          planets: [
+            {
+              id: 'j1407b',
+              name: 'J1407b',
+              letter: 'b',
+              rings: [
+                {
+                  id: 'j1407b-super-rings',
+                  name: 'Super-Ring System',
+                  innerRadiusAu: 0.02,
+                  outerRadiusAu: 0.6,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      corpus: [{ i: 'j1407b-moon', n: 'Exomoon', s: 'v1400-centauri', o: 'j1407b', k: 3, A: 0.2 }],
+    });
+    expect(fromExoplanetSystem?.zones.map((z) => z.id)).toEqual(['j1407b-super-rings']);
+    expect(fromExoplanetSystem?.rows[0]?.zoneId).toBe('j1407b-super-rings');
   });
 });

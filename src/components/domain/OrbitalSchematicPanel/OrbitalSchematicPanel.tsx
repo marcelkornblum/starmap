@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type {
   OrbitalSchematicBand,
   OrbitalSchematicSummary,
@@ -10,11 +10,13 @@ import { resolveAppHref } from '../../../utils/url';
 import { useOptionalSpatialEntityStoreApi } from '../../canvas/entity/SpatialEntityContext';
 import {
   Button,
+  CELESTIAL_SYMBOL_META,
   CelestialSymbol,
   Cluster,
   CollapsibleSection,
 } from '../../interface';
 import styles from './OrbitalSchematicPanel.module.css';
+import symbologyStyles from './schematicSymbology.module.css';
 
 export interface OrbitalSchematicPanelProps {
   readonly elements: OrbitalSchematicSummary | null;
@@ -52,17 +54,21 @@ function groupBandsByHabitableZone(
 
 interface TrackRowProps {
   readonly row: OrbitalSchematicTrackRow;
-  readonly onHoverEntity: (entityId: string | null) => void;
+  readonly onHoverEntity: (entityId: string) => void;
+  readonly onClearHoverEntity: (entityId: string) => void;
 }
 
 const OrbitalSchematicRow = memo(function OrbitalSchematicRow({
   row,
   onHoverEntity,
+  onClearHoverEntity,
 }: TrackRowProps): React.ReactElement {
+  const typeLabel = CELESTIAL_SYMBOL_META[row.reticleType]?.label ?? row.reticleType;
   return (
     <a
       href={resolveAppHref(row.href)}
       className={styles.trackRow}
+      aria-label={`${row.name}, ${typeLabel}`}
       data-testid="orbital-schematic-row"
       data-entity-id={row.id}
       data-kind={row.kind}
@@ -72,18 +78,24 @@ const OrbitalSchematicRow = memo(function OrbitalSchematicRow({
       data-focused={row.isFocused ? 'true' : undefined}
       data-selected={row.isSelected ? 'true' : undefined}
       onMouseEnter={() => onHoverEntity(row.id)}
-      onMouseLeave={() => onHoverEntity(null)}
+      onMouseLeave={() => onClearHoverEntity(row.id)}
       onFocus={() => onHoverEntity(row.id)}
-      onBlur={() => onHoverEntity(null)}
+      onBlur={() => onClearHoverEntity(row.id)}
     >
-      <span className={styles.symbolSlot} aria-hidden="true">
+      <span
+        className={styles.symbolSlot}
+        data-symbol-slot="true"
+        aria-hidden="true"
+      >
         <CelestialSymbol type={row.reticleType} size="lg" showTooltip={false} />
       </span>
-      <span
-        className={styles.trackLine}
-        data-line-style={row.lineStyle}
-        aria-hidden="true"
-      />
+      <span className={styles.trackLineSlot} aria-hidden="true">
+        <span
+          className={symbologyStyles.trackLine}
+          data-line-style={row.lineStyle}
+          aria-hidden="true"
+        />
+      </span>
       <span className={styles.trackName} data-testid="orbital-schematic-row-name">
         {row.name}
       </span>
@@ -93,20 +105,25 @@ const OrbitalSchematicRow = memo(function OrbitalSchematicRow({
 
 interface ZoneBandProps {
   readonly band: Extract<OrbitalSchematicBand, { readonly type: 'zone' }>;
-  readonly onHoverEntity: (entityId: string | null) => void;
+  readonly onHoverEntity: (entityId: string) => void;
+  readonly onClearHoverEntity: (entityId: string) => void;
 }
 
 const OrbitalSchematicZoneBand = memo(function OrbitalSchematicZoneBand({
   band,
   onHoverEntity,
+  onClearHoverEntity,
 }: ZoneBandProps): React.ReactElement {
   const { zone, rows, titleInsertIndex } = band;
   const beforeRows = rows.slice(0, titleInsertIndex);
   const afterRows = rows.slice(titleInsertIndex);
+  const titleId = `orbital-schematic-zone-title-${zone.id}`;
 
   return (
     <div
-      className={styles.zoneBand}
+      role="group"
+      aria-labelledby={titleId}
+      className={symbologyStyles.zoneBand}
       data-testid="orbital-schematic-zone"
       data-zone-id={zone.id}
       data-region-kind={zone.kind}
@@ -114,22 +131,29 @@ const OrbitalSchematicZoneBand = memo(function OrbitalSchematicZoneBand({
       data-selected={zone.isSelected ? 'true' : undefined}
     >
       {beforeRows.map((row) => (
-        <OrbitalSchematicRow key={row.id} row={row} onHoverEntity={onHoverEntity} />
+        <OrbitalSchematicRow
+          key={row.id}
+          row={row}
+          onHoverEntity={onHoverEntity}
+          onClearHoverEntity={onClearHoverEntity}
+        />
       ))}
       {zone.href ? (
         <a
+          id={titleId}
           href={resolveAppHref(zone.href)}
           className={styles.zoneTitleLink}
           data-testid="orbital-schematic-zone-title"
           onMouseEnter={() => onHoverEntity(zone.id)}
-          onMouseLeave={() => onHoverEntity(null)}
+          onMouseLeave={() => onClearHoverEntity(zone.id)}
           onFocus={() => onHoverEntity(zone.id)}
-          onBlur={() => onHoverEntity(null)}
+          onBlur={() => onClearHoverEntity(zone.id)}
         >
           {zone.name}
         </a>
       ) : (
         <span
+          id={titleId}
           className={styles.zoneTitleLabel}
           data-testid="orbital-schematic-zone-title"
         >
@@ -137,7 +161,12 @@ const OrbitalSchematicZoneBand = memo(function OrbitalSchematicZoneBand({
         </span>
       )}
       {afterRows.map((row) => (
-        <OrbitalSchematicRow key={row.id} row={row} onHoverEntity={onHoverEntity} />
+        <OrbitalSchematicRow
+          key={row.id}
+          row={row}
+          onHoverEntity={onHoverEntity}
+          onClearHoverEntity={onClearHoverEntity}
+        />
       ))}
     </div>
   );
@@ -145,12 +174,14 @@ const OrbitalSchematicZoneBand = memo(function OrbitalSchematicZoneBand({
 
 interface OrbitalSchematicBodyProps {
   readonly elements: OrbitalSchematicSummary;
-  readonly onHoverEntity: (entityId: string | null) => void;
+  readonly onHoverEntity: (entityId: string) => void;
+  readonly onClearHoverEntity: (entityId: string) => void;
 }
 
 const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
   elements,
   onHoverEntity,
+  onClearHoverEntity,
 }: OrbitalSchematicBodyProps): React.ReactElement {
   const [showMinorBodies, setShowMinorBodies] = useState(false);
 
@@ -166,12 +197,14 @@ const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
         key={band.row.id}
         row={band.row}
         onHoverEntity={onHoverEntity}
+        onClearHoverEntity={onClearHoverEntity}
       />
     ) : (
       <OrbitalSchematicZoneBand
         key={band.zone.id}
         band={band}
         onHoverEntity={onHoverEntity}
+        onClearHoverEntity={onClearHoverEntity}
       />
     );
 
@@ -215,7 +248,7 @@ const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
           segment.inHabitableZone ? (
             <div
               key={segment.key}
-              className={styles.hzGroup}
+              className={symbologyStyles.hzGroup}
               data-testid="orbital-schematic-hz-group"
               data-in-habitable-zone="true"
             >
@@ -230,19 +263,33 @@ const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
   );
 });
 
-/**
- * 2D cartographic orbital schematic panel grouping bodies, habitable zone bands,
- * and circumstellar/planetary ring regions around a focused parent entity.
- */
 export const OrbitalSchematicPanel = memo(function OrbitalSchematicPanel({
   elements,
   onHoverEntity,
 }: OrbitalSchematicPanelProps): React.ReactElement | null {
   const storeApi = useOptionalSpatialEntityStoreApi();
+  const localHoveredIdRef = useRef<string | null>(null);
+
   const handleHoverEntity = useCallback(
-    (id: string | null) => {
+    (id: string) => {
+      localHoveredIdRef.current = id;
       storeApi?.getState().setHovered(id);
       onHoverEntity?.(id);
+    },
+    [storeApi, onHoverEntity],
+  );
+
+  const handleClearHoverEntity = useCallback(
+    (entityId: string) => {
+      const currentHoveredId = storeApi
+        ? storeApi.getState().hoveredId
+        : localHoveredIdRef.current;
+      if (currentHoveredId !== entityId) {
+        return;
+      }
+      localHoveredIdRef.current = null;
+      storeApi?.getState().setHovered(null);
+      onHoverEntity?.(null);
     },
     [storeApi, onHoverEntity],
   );
@@ -256,6 +303,7 @@ export const OrbitalSchematicPanel = memo(function OrbitalSchematicPanel({
       key={elements.parentId}
       elements={elements}
       onHoverEntity={handleHoverEntity}
+      onClearHoverEntity={handleClearHoverEntity}
     />
   );
 });

@@ -13,6 +13,7 @@ import { NOOP_RAYCAST } from '../engineConfig';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoLineMaterial } from '../materials/CartoLineMaterial';
 import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
+import * as orbitPathGeometry from './orbitPathGeometry';
 
 describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
   afterEach(() => {
@@ -237,5 +238,60 @@ describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
     expect(lineMat.uniforms.gapSize.value).toBe(CARTO_LINE_CONSTANTS.dotGap);
 
     await renderer.unmount();
+  });
+
+  it('returns null without allocating geometries for hyperbolic, non-positive, or hidden passive orbits', async () => {
+    const buildSpy = vi.spyOn(orbitPathGeometry, 'buildOrbitGeometries');
+
+    const hyperbolicRenderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath
+            id="orbit-hyperbolic"
+            semiMajorAxis={-3.2}
+            eccentricity={3.7}
+            state="focused"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    expect(hyperbolicRenderer.scene.findAll((node) => node.props.name === 'orbit-path-line')).toHaveLength(0);
+    expect(buildSpy).not.toHaveBeenCalled();
+    await hyperbolicRenderer.unmount();
+
+    const parabolicRenderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath
+            id="orbit-parabolic"
+            semiMajorAxis={0}
+            eccentricity={1.0}
+            state="passive"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    expect(parabolicRenderer.scene.findAll((node) => node.props.name === 'orbit-path-line')).toHaveLength(0);
+    expect(buildSpy).not.toHaveBeenCalled();
+    await parabolicRenderer.unmount();
+
+    const hiddenRenderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath
+            id="orbit-hidden"
+            semiMajorAxis={1.0}
+            eccentricity={0.01}
+            visible={false}
+            state="passive"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    expect(hiddenRenderer.scene.findAll((node) => node.props.name === 'orbit-path-line')).toHaveLength(0);
+    expect(buildSpy).not.toHaveBeenCalled();
+    await hiddenRenderer.unmount();
+
+    buildSpy.mockRestore();
   });
 });

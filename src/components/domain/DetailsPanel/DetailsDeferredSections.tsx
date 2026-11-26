@@ -13,10 +13,8 @@ import type {
 import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
 import { OrbitalSchematicPanel } from '../OrbitalSchematicPanel';
 import { DetailsCanonLayersSection } from './DetailsCanonLayersSection';
-import {
-  DetailsPlanetHierarchy,
-  DetailsSystemHierarchy,
-} from './DetailsHierarchySections';
+import { DetailsSystemHierarchy } from './DetailsHierarchySections';
+import { DetailsOrbitingBodiesSection } from './DetailsOrbitingBodiesSection';
 
 const hasOrbitalSchematicContent = (
   schematic?: OrbitalSchematicSummary | null,
@@ -54,7 +52,7 @@ const DetailsDeferredPartialLowerInner = memo(function DetailsDeferredPartialLow
         <OrbitalSchematicPanel elements={schematic} />
       ) : (
         <>
-          <DetailsPlanetHierarchy
+          <DetailsOrbitingBodiesSection
             focusedKind={focusedKind}
             orbitingBodies={orbitingBodies}
           />

@@ -147,6 +147,8 @@ export interface OrbitalSchematicTrackRow {
   readonly tier: OrbitalSchematicTier;
   readonly sortDistanceAu: number;
   readonly lineStyle: OrbitalSchematicLineStyle;
+  readonly eccentricity?: number;
+  readonly inclinationDeg?: number;
   readonly inHabitableZone: boolean;
   readonly isFocused: boolean;
   readonly isSelected: boolean;

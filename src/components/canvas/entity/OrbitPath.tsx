@@ -14,9 +14,9 @@ export interface OrbitPathProps {
   id: string;
   semiMajorAxis: number;
   eccentricity?: number;
-  inclination?: number; // degrees
-  ascendingNode?: number; // degrees
-  argumentOfPeriapsis?: number; // degrees
+  inclination?: number;
+  ascendingNode?: number;
+  argumentOfPeriapsis?: number;
   state?: CelestialInteractionState;
   visible?: boolean;
   color?: string | THREE.Color;
@@ -70,8 +70,14 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   const scratchArrowWorldPos = useLazyRef(() => new THREE.Vector3());
   const scratchZAxis = useLazyRef(() => new THREE.Vector3(0, 0, 1));
 
+  const isEllipticOrbit =
+    Number.isFinite(semiMajorAxis) &&
+    semiMajorAxis > 0 &&
+    Number.isFinite(eccentricity) &&
+    eccentricity >= 0 &&
+    eccentricity < 1;
   const isStateElevated = state === 'selected' || state === 'focused';
-  const shouldRender = layerVisible || isStateElevated;
+  const shouldRender = (layerVisible || isStateElevated) && isEllipticOrbit;
 
   const resolvedColor = useMemo(() => {
     if (explicitColor) return explicitColor;
@@ -80,42 +86,66 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
 
   const resolvedAlpha = isStateElevated ? kinematicAlpha : orbitAlpha;
 
-  const { orbitGeometry, tickGeometry, directionGeometry, arrowPosition, arrowTangent } = useMemo(
+  const geometries = useMemo(
     () =>
-      buildOrbitGeometries({
-        semiMajorAxis, eccentricity, inclination, ascendingNode,
-        argumentOfPeriapsis, segments, showPeriapsisTick, showDirectionIndicator,
-      }),
-    [semiMajorAxis, eccentricity, inclination, ascendingNode, argumentOfPeriapsis, segments, showPeriapsisTick, showDirectionIndicator],
+      shouldRender
+        ? buildOrbitGeometries({
+            semiMajorAxis,
+            eccentricity,
+            inclination,
+            ascendingNode,
+            argumentOfPeriapsis,
+            segments,
+            showPeriapsisTick,
+            showDirectionIndicator,
+          })
+        : null,
+    [
+      shouldRender,
+      semiMajorAxis,
+      eccentricity,
+      inclination,
+      ascendingNode,
+      argumentOfPeriapsis,
+      segments,
+      showPeriapsisTick,
+      showDirectionIndicator,
+    ],
   );
 
-  const lineMat = useMemo(() => {
-    return new CartoLineMaterial({
-      lineWidth: 2.0,
-      lineStyle: lineStyle ?? orbitStyle ?? 'dashed',
-      transparent: true,
-      depthWrite: false,
-    });
-  }, [lineStyle, orbitStyle]);
+  const lineMat = useMemo(
+    () =>
+      shouldRender
+        ? new CartoLineMaterial({
+            lineWidth: 2.0,
+            lineStyle: lineStyle ?? orbitStyle ?? 'dashed',
+            transparent: true,
+            depthWrite: false,
+          })
+        : null,
+    [shouldRender, lineStyle, orbitStyle],
+  );
 
   const lineMesh = useMemo(() => {
-    const mesh = new Line2(orbitGeometry, lineMat);
+    if (!geometries || !lineMat) return null;
+    const mesh = new Line2(geometries.orbitGeometry, lineMat);
     mesh.raycast = NOOP_RAYCAST;
     mesh.computeLineDistances();
     mesh.frustumCulled = false;
     return mesh;
-  }, [orbitGeometry, lineMat]);
+  }, [geometries, lineMat]);
 
   useEffect(() => {
     return () => {
-      orbitGeometry.dispose();
-      tickGeometry?.dispose();
-      directionGeometry?.dispose();
-      lineMat.dispose();
+      geometries?.orbitGeometry.dispose();
+      geometries?.tickGeometry?.dispose();
+      geometries?.directionGeometry?.dispose();
+      lineMat?.dispose();
     };
-  }, [orbitGeometry, tickGeometry, directionGeometry, lineMat]);
+  }, [geometries, lineMat]);
 
   useEffect(() => {
+    if (!lineMat) return;
     const instrumentFade = frameCtx?.frameRef?.current?.instrumentFade ?? 1;
     const initialAlpha = resolvedAlpha * instrumentFade;
     lineMat.setColor(resolvedColor);
@@ -141,7 +171,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   }, [lineMat, resolvedColor, resolvedAlpha, frameCtx]);
 
   useFrame(({ camera, size }) => {
-    if (!shouldRender) return;
+    if (!shouldRender || !lineMat || !geometries) return;
     const proj11 = camera.projectionMatrix.elements[5];
     const lastRes = lastResolutionRef.current;
     if (
@@ -183,7 +213,11 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       const invScale = frameState ? frameState.screenScale : calculateScreenInvariantScale(camDist, camera);
       arrowBillboardRef.current.scale.set(invScale, invScale, invScale);
 
-      scratchWorldTangent.current.set(arrowTangent[0], arrowTangent[1], arrowTangent[2]);
+      scratchWorldTangent.current.set(
+        geometries.arrowTangent[0],
+        geometries.arrowTangent[1],
+        geometries.arrowTangent[2],
+      );
       scratchCamDir.current.copy(scratchWorldTangent.current).transformDirection(camera.matrixWorldInverse);
       const screenAngle = Math.atan2(scratchCamDir.current.y, scratchCamDir.current.x);
       scratchQuat.current.setFromAxisAngle(scratchZAxis.current, screenAngle);
@@ -191,7 +225,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     }
   });
 
-  if (!shouldRender) return null;
+  if (!shouldRender || !geometries || !lineMesh) return null;
 
   return (
     <group
@@ -204,9 +238,9 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
         <primitive object={lineMesh} />
       </group>
 
-      {showPeriapsisTick && tickGeometry && (
+      {showPeriapsisTick && geometries.tickGeometry && (
         <lineSegments name="orbit-periapsis-tick" raycast={NOOP_RAYCAST}>
-          <primitive object={tickGeometry} attach="geometry" />
+          <primitive object={geometries.tickGeometry} attach="geometry" />
           <lineBasicMaterial
             ref={periapsisMatRef}
             color={resolvedColor}
@@ -217,14 +251,14 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
         </lineSegments>
       )}
 
-      {showDirectionIndicator && directionGeometry && (
+      {showDirectionIndicator && geometries.directionGeometry && (
         <group
           ref={arrowBillboardRef}
-          position={arrowPosition}
+          position={geometries.arrowPosition}
           name="orbit-direction-arrow-billboard"
         >
           <mesh name="orbit-direction-arrow" raycast={NOOP_RAYCAST}>
-            <primitive object={directionGeometry} attach="geometry" />
+            <primitive object={geometries.directionGeometry} attach="geometry" />
             <meshBasicMaterial
               ref={directionMatRef}
               color={resolvedColor}

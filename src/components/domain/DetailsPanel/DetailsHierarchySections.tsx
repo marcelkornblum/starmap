@@ -4,7 +4,6 @@ import type {
   FocusedPlanetDetail,
   FocusedStarDetail,
 } from '../../../services/details/detailsEntityTypes';
-import type { SystemElementBodyItem } from '../../../services/details/detailsHierarchyTypes';
 import { DetailsDisksSection } from './DetailsDisksSection';
 import { DetailsOrbitingBodiesSection } from './DetailsOrbitingBodiesSection';
 import { DetailsPlanetsSection } from './DetailsPlanetsSection';
@@ -16,25 +15,6 @@ export {
   DetailsPlanetsSection,
   DetailsStarsSection,
 };
-
-export interface DetailsPlanetHierarchyProps {
-  readonly focusedKind: string;
-  readonly orbitingBodies?: readonly SystemElementBodyItem[];
-}
-
-export const DetailsPlanetHierarchy = memo(function DetailsPlanetHierarchy({
-  focusedKind,
-  orbitingBodies,
-}: DetailsPlanetHierarchyProps) {
-  return (
-    <DetailsOrbitingBodiesSection
-      focusedKind={focusedKind}
-      orbitingBodies={orbitingBodies}
-    />
-  );
-});
-
-DetailsPlanetHierarchy.displayName = 'DetailsPlanetHierarchy';
 
 export interface DetailsSystemHierarchyProps {
   readonly isSystemFocus: boolean;

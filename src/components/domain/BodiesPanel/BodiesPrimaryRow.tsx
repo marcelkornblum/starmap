@@ -40,22 +40,14 @@ function renderTrailingBadges(item: BodiesPrimaryItem): React.ReactNode {
         <SpectralBadge spectralType={item.spectralType} />
       ) : null;
     case 'planet':
-      return (
-        <Cluster gap="tight" align="center">
-          <CelestialBadge type={item.composition} interactive />
-          {item.isHabitableCandidate ? (
-            <CelestialBadge type="habitable-zone" interactive />
-          ) : null}
-        </Cluster>
-      );
+      return item.isHabitableCandidate ? (
+        <CelestialBadge type="habitable-zone" interactive />
+      ) : null;
     case 'disk':
-      return <CelestialBadge type={item.symbolType} interactive />;
     case 'dwarf-planet':
-      return <CelestialBadge type="dwarf-planet" interactive />;
     case 'host-planet':
-      return null;
     case 'moon':
-      return <CelestialBadge type="moon" />;
+      return null;
   }
 }
 
@@ -77,17 +69,13 @@ const areBodiesPrimaryItemsEqual = (
         a.isHabitableCandidate === b.isHabitableCandidate
       );
     case 'disk':
-      return (
-        b.kind === 'disk' &&
-        a.symbolType === b.symbolType &&
-        a.kindLabel === b.kindLabel
-      );
+      return b.kind === 'disk' && a.symbolType === b.symbolType;
     case 'dwarf-planet':
       return b.kind === 'dwarf-planet';
     case 'host-planet':
       return b.kind === 'host-planet' && a.composition === b.composition;
     case 'moon':
-      return b.kind === 'moon' && a.categoryLabel === b.categoryLabel;
+      return b.kind === 'moon';
   }
 };
 

@@ -1,6 +1,7 @@
 import type React from 'react';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import symbologyStyles from '../components/domain/OrbitalSchematicPanel/schematicSymbology.module.css';
 import {
   Badge,
   Block,
@@ -10,7 +11,6 @@ import {
   ConfidencePip,
   Grid,
   Heading,
-  SpectralBadge,
   Stack,
 } from '../components/interface';
 import {
@@ -56,8 +56,17 @@ export const LegendGuideView: React.FC = () => {
                   <Stack gap="tight">
                     <span className={styles.swatchStage} aria-hidden="true">
                       <span
-                        className={styles.lineSwatch}
-                        data-line-kind={entry.id}
+                        className={symbologyStyles.trackLine}
+                        data-line-style={
+                          entry.id === 'theoretical-orbit'
+                            ? 'dotted'
+                            : entry.id === 'datum-plane'
+                              ? 'solid'
+                              : entry.id === 'route-chord'
+                                ? 'route'
+                                : 'dashed'
+                        }
+                        data-kinematic={entry.id === 'kinematic-highlight' ? 'true' : undefined}
                         aria-hidden="true"
                       />
                     </span>
@@ -65,7 +74,7 @@ export const LegendGuideView: React.FC = () => {
                       <span className={styles.symbolTitle}>{entry.title}</span>
                       <Badge status="neutral">{entry.patternLabel}</Badge>
                     </Cluster>
-                    <span className={styles.tokenMeta}>{entry.tokenRef}</span>
+                    <span className={styles.roleMeta}>{entry.roleLabel}</span>
                     <p className={styles.descriptionText}>{entry.description}</p>
                   </Stack>
                 </Block>
@@ -89,13 +98,16 @@ export const LegendGuideView: React.FC = () => {
                   data-region-kind={entry.regionKind}
                 >
                   <Stack gap="tight">
-                    <span
-                      className={styles.zoneSwatch}
-                      data-region-kind={entry.regionKind}
-                      aria-hidden="true"
-                    />
+                    <span className={styles.zoneSwatchStage} aria-hidden="true">
+                      <span
+                        className={symbologyStyles.zoneBand}
+                        data-region-kind={entry.regionKind}
+                        data-swatch="true"
+                        aria-hidden="true"
+                      />
+                    </span>
                     <span className={styles.symbolTitle}>{entry.title}</span>
-                    <span className={styles.tokenMeta}>{entry.tokenRef}</span>
+                    <span className={styles.roleMeta}>{entry.roleLabel}</span>
                     <p className={styles.descriptionText}>{entry.description}</p>
                   </Stack>
                 </Block>
@@ -132,6 +144,7 @@ export const LegendGuideView: React.FC = () => {
                             <a
                               href={resolveAppHref(meta.defaultGuideHref)}
                               className={styles.symbolGuideLink}
+                              data-testid="legend-symbol-guide-link"
                             >
                               Guide
                             </a>
@@ -160,9 +173,22 @@ export const LegendGuideView: React.FC = () => {
                 <Heading as="h3">Spectral Classification Strip</Heading>
                 <Cluster as="ul" gap="tight" align="center">
                   {LEGEND_SPECTRAL_CLASSES.map((spectralClass) => (
-                    <li key={spectralClass}>
-                      <SpectralBadge spectralType={spectralClass} interactive={false} />
-                    </li>
+                    <Block
+                      as="li"
+                      padding="tight"
+                      key={spectralClass}
+                      data-testid="legend-spectral-item"
+                      data-spectral-class={spectralClass}
+                    >
+                      <Cluster gap="tight" align="center">
+                        <span
+                          className={styles.spectralSwatch}
+                          data-spectral-class={spectralClass}
+                          aria-hidden="true"
+                        />
+                        <span className={styles.spectralLabel}>{spectralClass}</span>
+                      </Cluster>
+                    </Block>
                   ))}
                 </Cluster>
               </Stack>
@@ -173,7 +199,7 @@ export const LegendGuideView: React.FC = () => {
                 <Heading as="h3">Observational Confidence Indicators</Heading>
                 <Cluster as="ul" gap="default" align="center">
                   {LEGEND_CONFIDENCE_LEVELS.map((level) => (
-                    <li key={level}>
+                    <li key={level} data-testid="legend-confidence-item" data-confidence={level}>
                       <Cluster gap="tight" align="center">
                         <ConfidencePip confidence={level} />
                         <span className={styles.confidenceLabel}>{level}</span>
@@ -202,7 +228,7 @@ export const LegendGuideView: React.FC = () => {
                       />
                       <span className={styles.symbolTitle}>{entry.title}</span>
                     </Cluster>
-                    <span className={styles.tokenMeta}>{entry.tokenRef}</span>
+                    <span className={styles.roleMeta}>{entry.roleLabel}</span>
                     <p className={styles.descriptionText}>{entry.description}</p>
                   </Stack>
                 </Block>

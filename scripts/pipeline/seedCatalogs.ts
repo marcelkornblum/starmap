@@ -85,6 +85,7 @@ export interface SolarSystemBodyEntry {
   radiusRsun?: number;
   effectiveTempK?: number;
   coordinatesPc?: readonly [number, number, number];
+  planeInclinationDeg?: number;
   orbit?: {
     semiMajorAxis: number;
     eccentricity: number;

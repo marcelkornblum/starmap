@@ -312,4 +312,32 @@ describe('<PreviewPanel />', () => {
       screen.getByTestId('preview-target-plane-front').getAttribute('points'),
     ).toBe(initialPoints);
   });
+
+  it('supports custom headingAs level and marks decorative inner glyph SVGs aria-hidden when linked', () => {
+    const { rerender } = render(<PreviewPanel preview={solSystemPreview} />);
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Focus Preview' })).toBeInTheDocument();
+
+    const primarySvg = screen
+      .getByTestId('preview-primary-reticle')
+      .querySelector('svg[data-celestial-symbol="stellar-system"]');
+    expect(primarySvg).toHaveAttribute('aria-hidden', 'true');
+    expect(primarySvg).not.toHaveAttribute('aria-label');
+
+    const bodySvg = screen
+      .getAllByTestId('preview-body-dot')[0]
+      .querySelector('svg[data-celestial-symbol]');
+    expect(bodySvg).toHaveAttribute('aria-hidden', 'true');
+    expect(bodySvg).not.toHaveAttribute('aria-label');
+
+    rerender(<PreviewPanel preview={solSystemPreview} headingAs="h4" />);
+    expect(screen.getByRole('heading', { level: 4, name: 'Focus Preview' })).toBeInTheDocument();
+
+    rerender(<PreviewPanel preview={noLinkObjectPreview} headingAs="h4" />);
+    const unlinkedPrimarySvg = screen
+      .getByTestId('preview-primary-reticle')
+      .querySelector('svg[data-celestial-symbol="star"]');
+    expect(unlinkedPrimarySvg).not.toHaveAttribute('aria-hidden');
+    expect(unlinkedPrimarySvg).toHaveAttribute('aria-label', 'Orion Nebula');
+  });
 });
