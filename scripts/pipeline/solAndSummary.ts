@@ -196,6 +196,7 @@ export function buildSolSystemManifest(
         reticleType: resolvePlanetReticleType(composition),
         isHabitableCandidate,
         ...(b.axialTiltDeg !== undefined ? { axialTiltDeg: b.axialTiltDeg } : {}),
+        ...(b.rings?.length ? { rings: b.rings } : {}),
         orbit: b.orbit,
         ...(satellites.length > 0 ? { satellites } : {}),
         confidence: 'confirmed',

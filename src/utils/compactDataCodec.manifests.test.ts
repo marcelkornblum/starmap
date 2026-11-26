@@ -346,4 +346,55 @@ describe('compactDataCodec - Manifests, Structures, Solar Bodies & Sectors', () 
     expect(decodedSolManifest.planeInclinationDeg).toBe(60.19);
     expect(decodedSolManifest.planets[0]?.axialTiltDeg).toBe(97.77);
   });
+
+  it('round-trips planetary rings across SolarSystemBodyRecord and ExoplanetRecord', () => {
+    const saturnRings = [
+      { id: 'saturn-main-rings', name: 'Main Rings (D–F)', innerRadiusAu: 0.000447, outerRadiusAu: 0.000937 },
+      { id: 'saturn-e-ring', name: 'E Ring', innerRadiusAu: 0.001203, outerRadiusAu: 0.003209 },
+    ] as const;
+
+    const saturnBody: SolarSystemBodyRecord = {
+      id: 'saturn',
+      name: 'Saturn',
+      classification: 'Planet',
+      parentBodyId: 'sol',
+      meanRadiusKm: 58232,
+      rings: saturnRings,
+    };
+    const encodedSaturn = encodeSolarSystemBody(saturnBody);
+    expect(encodedSaturn.rg).toEqual([
+      ['saturn-main-rings', 'Main Rings (D–F)', 0.000447, 0.000937],
+      ['saturn-e-ring', 'E Ring', 0.001203, 0.003209],
+    ]);
+    const decodedSaturn = decodeSolarSystemBody(encodedSaturn, 'saturn');
+    expect(decodedSaturn.rings).toEqual(saturnRings);
+
+    const solManifest: SystemManifest = {
+      id: 'sol',
+      name: 'Sol',
+      x: 0,
+      y: 0,
+      z: 0,
+      dist: 0,
+      sectorId: 'sector_+000_+000_+000',
+      stars: [],
+      planets: [
+        {
+          id: 'saturn',
+          name: 'Saturn',
+          letter: '',
+          composition: 'gas-giant',
+          reticleType: 'gas-giant',
+          rings: saturnRings,
+        },
+      ],
+    };
+    const encodedManifest = encodeSystemManifest(solManifest);
+    expect(encodedManifest.E[0]?.rg).toEqual([
+      ['saturn-main-rings', 'Main Rings (D–F)', 0.000447, 0.000937],
+      ['saturn-e-ring', 'E Ring', 0.001203, 0.003209],
+    ]);
+    const decodedManifest = decodeSystemManifest(encodedManifest);
+    expect(decodedManifest.planets[0]?.rings).toEqual(saturnRings);
+  });
 });

@@ -117,6 +117,14 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
   if (compact.sat && compact.sat.length > 0) {
     result.satellites = compact.sat.map(decodeSatellite);
   }
+  if (compact.rg && compact.rg.length > 0) {
+    result.rings = compact.rg.map(([id, name, innerRadiusAu, outerRadiusAu]) => ({
+      id,
+      name,
+      innerRadiusAu,
+      outerRadiusAu,
+    }));
+  }
   return result;
 }
 
@@ -187,6 +195,14 @@ export function decodeSolarSystemBody(
   if (compact.H && compact.H > 0) result.hazardMask = compact.H;
   if (compact.tl === 1) result.isTidallyLocked = true;
   if (compact.core === 1) result.isCoreSearch = true;
+  if (compact.rg && compact.rg.length > 0) {
+    result.rings = compact.rg.map(([id, name, innerRadiusAu, outerRadiusAu]) => ({
+      id,
+      name,
+      innerRadiusAu,
+      outerRadiusAu,
+    }));
+  }
   return result;
 }
 

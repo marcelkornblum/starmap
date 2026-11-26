@@ -70,6 +70,9 @@ describe('Sol System Manifest & Satellites (AUD-051, DEC-R029)', () => {
     const jupiter = sol.planets.find((p) => p.id === 'jupiter');
     expect(jupiter?.reticleType).toBeDefined();
     expect(jupiter?.axialTiltDeg).toBe(3.13);
+    expect(jupiter?.rings).toHaveLength(1);
+    const saturn = sol.planets.find((p) => p.id === 'saturn');
+    expect(saturn?.rings).toHaveLength(2);
     const moonIds = jupiter?.satellites?.map((s) => s.id) ?? [];
     expect(moonIds).toContain('io');
     expect(moonIds).toContain('europa');

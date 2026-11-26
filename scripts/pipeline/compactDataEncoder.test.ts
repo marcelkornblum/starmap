@@ -402,4 +402,40 @@ describe('compactDataEncoder & compactEntityEncoder', () => {
     });
     expect(solManifest.pi).toBe(60.19);
   });
+
+  it('encodes planetary ring systems to rg tuples and omits when absent', () => {
+    const saturnCompact = encodeSolarSystemBody({
+      id: 'saturn',
+      name: 'Saturn',
+      classification: 'Planet',
+      parentBodyId: 'sol',
+      meanRadiusKm: 58232,
+      rings: [
+        { id: 'saturn-main-rings', name: 'Main Rings (D–F)', innerRadiusAu: 0.000447, outerRadiusAu: 0.000937 },
+        { id: 'saturn-e-ring', name: 'E Ring', innerRadiusAu: 0.001203, outerRadiusAu: 0.003209 },
+      ],
+    });
+    expect(saturnCompact.rg).toEqual([
+      ['saturn-main-rings', 'Main Rings (D–F)', 0.000447, 0.000937],
+      ['saturn-e-ring', 'E Ring', 0.001203, 0.003209],
+    ]);
+
+    const marsCompact = encodeSolarSystemBody({
+      id: 'mars',
+      name: 'Mars',
+      classification: 'Planet',
+      parentBodyId: 'sol',
+      meanRadiusKm: 3389.5,
+      rings: [],
+    });
+    expect(marsCompact.rg).toBeUndefined();
+
+    const exoWithRings = encodeExoplanet({
+      id: 'j1407-b',
+      name: 'J1407 b',
+      letter: 'b',
+      rings: [{ id: 'j1407b-rings', name: 'Super-Ring System', innerRadiusAu: 0.002, outerRadiusAu: 0.6 }],
+    });
+    expect(exoWithRings.rg).toEqual([['j1407b-rings', 'Super-Ring System', 0.002, 0.6]]);
+  });
 });

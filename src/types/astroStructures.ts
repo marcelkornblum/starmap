@@ -3,6 +3,7 @@ import type {
   KeplerianOrbit,
   ObservationalConfidence,
   PlanetComposition,
+  PlanetaryRingRecord,
 } from './astro';
 
 /**
@@ -70,6 +71,7 @@ export interface SolarSystemBodyRecord {
   albedo?: number;
   rotationalPeriodHours?: number;
   axialTiltDeg?: number;
+  rings?: readonly PlanetaryRingRecord[];
   orbit?: KeplerianOrbit;
   tags?: string[];
   confidence?: ObservationalConfidence;

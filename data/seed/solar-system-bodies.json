@@ -213,6 +213,14 @@
     "albedo": 0.538,
     "rotationalPeriodHours": 9.925,
     "axialTiltDeg": 3.13,
+    "rings": [
+      {
+        "id": "jupiter-main-rings",
+        "name": "Main Ring System",
+        "innerRadiusAu": 0.000615,
+        "outerRadiusAu": 0.001511
+      }
+    ],
     "orbit": {
       "semiMajorAxis": 5.2044,
       "eccentricity": 0.0489,
@@ -339,6 +347,20 @@
     "albedo": 0.499,
     "rotationalPeriodHours": 10.656,
     "axialTiltDeg": 26.73,
+    "rings": [
+      {
+        "id": "saturn-main-rings",
+        "name": "Main Rings (D–F)",
+        "innerRadiusAu": 0.000447,
+        "outerRadiusAu": 0.000937
+      },
+      {
+        "id": "saturn-e-ring",
+        "name": "E Ring",
+        "innerRadiusAu": 0.001203,
+        "outerRadiusAu": 0.003209
+      }
+    ],
     "orbit": {
       "semiMajorAxis": 9.5826,
       "eccentricity": 0.0565,
@@ -568,6 +590,14 @@
     "albedo": 0.488,
     "rotationalPeriodHours": -17.24,
     "axialTiltDeg": 97.77,
+    "rings": [
+      {
+        "id": "uranus-main-rings",
+        "name": "Ring System",
+        "innerRadiusAu": 0.000254,
+        "outerRadiusAu": 0.000655
+      }
+    ],
     "orbit": {
       "semiMajorAxis": 19.2184,
       "eccentricity": 0.0463,
@@ -715,6 +745,14 @@
     "albedo": 0.442,
     "rotationalPeriodHours": 16.11,
     "axialTiltDeg": 28.32,
+    "rings": [
+      {
+        "id": "neptune-main-rings",
+        "name": "Ring System",
+        "innerRadiusAu": 0.00028,
+        "outerRadiusAu": 0.000421
+      }
+    ],
     "orbit": {
       "semiMajorAxis": 30.1104,
       "eccentricity": 0.009456,
@@ -937,6 +975,14 @@
     "massKg": 1.2e+21,
     "albedo": 0.12,
     "rotationalPeriodHours": 17.6788,
+    "rings": [
+      {
+        "id": "quaoar-rings",
+        "name": "Ring System (Q1R–Q2R)",
+        "innerRadiusAu": 0.000017,
+        "outerRadiusAu": 0.000027
+      }
+    ],
     "orbit": {
       "semiMajorAxis": 43.69,
       "eccentricity": 0.041,
@@ -1263,6 +1309,14 @@
     "massKg": 4000000000000000000,
     "albedo": 0.15,
     "rotationalPeriodHours": 5.918,
+    "rings": [
+      {
+        "id": "chiron-rings",
+        "name": "Ring System",
+        "innerRadiusAu": 0.000002,
+        "outerRadiusAu": 0.000003
+      }
+    ],
     "orbit": {
       "semiMajorAxis": 13.67,
       "eccentricity": 0.383,
@@ -1444,7 +1498,7 @@
       "inclination": 122.74,
       "ascendingNode": 24.6,
       "argumentOfPeriapsis": 241.8,
-      "meanAnomaly": 0,
+      "meanAnomaly": -4439.0,
       "periodDays": 0,
       "epoch": "J2000"
     },
@@ -1469,7 +1523,7 @@
       "inclination": 44.05,
       "ascendingNode": 308.15,
       "argumentOfPeriapsis": 209.12,
-      "meanAnomaly": 0,
+      "meanAnomaly": -9141.0,
       "periodDays": 0,
       "epoch": "J2000"
     },
@@ -1494,7 +1548,7 @@
       "inclination": 175.1,
       "ascendingNode": 282.5,
       "argumentOfPeriapsis": 128,
-      "meanAnomaly": 0,
+      "meanAnomaly": -19043.9,
       "periodDays": 0,
       "epoch": "J2000"
     },
@@ -1518,7 +1572,7 @@
       "inclination": 35.7,
       "ascendingNode": 178,
       "argumentOfPeriapsis": 338,
-      "meanAnomaly": 0,
+      "meanAnomaly": 1191.0,
       "periodDays": 0,
       "epoch": "J2000"
     },
@@ -1544,7 +1598,7 @@
       "inclination": 79,
       "ascendingNode": 101,
       "argumentOfPeriapsis": 130,
-      "meanAnomaly": 0,
+      "meanAnomaly": 723.0,
       "periodDays": 0,
       "epoch": "J2000"
     },
@@ -1571,7 +1625,7 @@
       "inclination": 3,
       "ascendingNode": 75,
       "argumentOfPeriapsis": 342,
-      "meanAnomaly": 0,
+      "meanAnomaly": 507.0,
       "periodDays": 0,
       "epoch": "J2000"
     },
@@ -1596,7 +1650,7 @@
       "inclination": 16.6,
       "ascendingNode": 152,
       "argumentOfPeriapsis": 358,
-      "meanAnomaly": 0,
+      "meanAnomaly": 317.0,
       "periodDays": 0,
       "epoch": "J2000"
     },
@@ -1621,7 +1675,7 @@
       "inclination": 2.4,
       "ascendingNode": 110,
       "argumentOfPeriapsis": 113,
-      "meanAnomaly": 0,
+      "meanAnomaly": -290.0,
       "periodDays": 0,
       "epoch": "J2000"
     },

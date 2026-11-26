@@ -77,6 +77,13 @@ export interface CompactSatelliteRecord {
   d?: string;
 }
 
+export type CompactPlanetaryRing = [
+  id: string,
+  name: string,
+  innerRadiusAu: number,
+  outerRadiusAu: number,
+];
+
 export interface CompactExoplanet {
   i: string;
   n: string;
@@ -95,6 +102,7 @@ export interface CompactExoplanet {
   H?: number;
   h?: 1;
   at?: number;
+  rg?: CompactPlanetaryRing[];
   o?: OrbitTuple;
   C?: 2 | 3 | 4;
   f?: number;
@@ -160,6 +168,7 @@ export interface CompactSolarSystemBody {
   a?: number;
   R?: number;
   at?: number;
+  rg?: CompactPlanetaryRing[];
   o?: OrbitTuple;
   tags?: string[];
   C?: 2 | 3 | 4;
