@@ -332,8 +332,11 @@ describe('<DetailsPanel />', () => {
     const orderedNodes = orderedSelectors.map((sel) => partialDetent?.querySelector(sel));
     orderedNodes.forEach((node) => expect(node).not.toBeNull());
     for (let i = 0; i < orderedNodes.length - 1; i++) {
-      const current = orderedNodes[i]!;
-      const next = orderedNodes[i + 1]!;
+      const current = orderedNodes[i];
+      const next = orderedNodes[i + 1];
+      if (!current || !next) {
+        throw new Error('Expected ordered partial detent section nodes to be rendered');
+      }
       expect(
         current.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
