@@ -1,9 +1,6 @@
 import React from 'react';
-import { buildPlanetTypeGuideHref } from '../../../utils/url';
 import {
-  Badge,
   Block,
-  CELESTIAL_SYMBOL_META,
   CelestialBadge,
   CelestialTitle,
   type CelestialSymbolType,
@@ -42,31 +39,23 @@ function renderTrailingBadges(item: BodiesPrimaryItem): React.ReactNode {
       return shouldDisplaySpectralBadge(item.spectralType) ? (
         <SpectralBadge spectralType={item.spectralType} />
       ) : null;
-    case 'planet': {
-      const compositionLabel =
-        CELESTIAL_SYMBOL_META[item.composition]?.label ?? item.composition;
+    case 'planet':
       return (
         <Cluster gap="tight" align="center">
-          <Badge
-            category="planet"
-            href={buildPlanetTypeGuideHref(item.composition)}
-          >
-            {compositionLabel}
-          </Badge>
+          <CelestialBadge type={item.composition} interactive />
           {item.isHabitableCandidate ? (
-            <CelestialBadge type="habitable-zone" />
+            <CelestialBadge type="habitable-zone" interactive />
           ) : null}
         </Cluster>
       );
-    }
     case 'disk':
-      return <Badge status="neutral">{item.kindLabel}</Badge>;
+      return <CelestialBadge type={item.symbolType} interactive />;
     case 'dwarf-planet':
-      return <Badge status="neutral">Dwarf Planet</Badge>;
+      return <CelestialBadge type="dwarf-planet" interactive />;
     case 'host-planet':
       return null;
     case 'moon':
-      return <Badge status="neutral">{item.categoryLabel}</Badge>;
+      return <CelestialBadge type="moon" />;
   }
 }
 

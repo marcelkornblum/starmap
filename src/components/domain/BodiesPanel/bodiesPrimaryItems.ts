@@ -27,7 +27,7 @@ export type BodiesPrimaryItem =
       readonly id: string;
       readonly name: string;
       readonly href: string;
-      readonly symbolType: 'belt' | 'debris-disk';
+      readonly symbolType: 'asteroid-belt' | 'kuiper-belt' | 'debris-disk' | 'belt';
       readonly kindLabel: string;
     }
   | {
@@ -87,12 +87,18 @@ export function buildPrimaryItems(
         'kindLabel' in disk && disk.kindLabel
           ? disk.kindLabel
           : formatDiskKindLabel(disk.kind);
+      const symbolType =
+        disk.kind === 'asteroid-belt' ||
+        disk.kind === 'kuiper-belt' ||
+        disk.kind === 'debris-disk'
+          ? disk.kind
+          : 'belt';
       items.push({
         kind: 'disk',
         id: disk.id,
         name: disk.name,
         href,
-        symbolType: disk.kind === 'debris-disk' ? 'debris-disk' : 'belt',
+        symbolType,
         kindLabel,
       });
     }
