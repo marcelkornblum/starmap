@@ -314,7 +314,8 @@ describe('previewPanelHelpers', () => {
           { id: 'm1', name: 'Moon', kind: 'moon', orbitRank: 4, inHabitableZone: false },
           { id: 'b1', name: 'Belt', kind: 'belt', orbitRank: 5, inHabitableZone: false },
           { id: 'sc1', name: 'Probe', kind: 'spacecraft', orbitRank: 6, inHabitableZone: false },
-          { id: 'mb1', name: 'Asteroid', kind: 'minor-body', orbitRank: 7, inHabitableZone: false },
+          { id: 'c1', name: 'Comet', kind: 'comet', orbitRank: 7, inHabitableZone: false },
+          { id: 'mb1', name: 'Asteroid', kind: 'minor-body', orbitRank: 8, inHabitableZone: false },
         ],
       });
 
@@ -325,6 +326,7 @@ describe('previewPanelHelpers', () => {
       expect(byId.get('m1')).toBe('moon');
       expect(byId.get('b1')).toBe('belt');
       expect(byId.get('sc1')).toBe('spacecraft');
+      expect(byId.get('c1')).toBe('comet');
       expect(byId.get('mb1')).toBe('asteroid');
     });
   });

@@ -177,8 +177,8 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
   );
 
   const bodiesNode = useMemo(
-    () => (panelsReady ? <BodiesPanel elements={planetaryBodies} schematic={orbitalSchematic} /> : undefined),
-    [panelsReady, planetaryBodies, orbitalSchematic],
+    () => (panelsReady ? <BodiesPanel elements={planetaryBodies} /> : undefined),
+    [panelsReady, planetaryBodies],
   );
 
   return (

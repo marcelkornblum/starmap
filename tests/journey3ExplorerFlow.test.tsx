@@ -13,17 +13,12 @@ import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEn
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { DetailsPanel } from '../src/components/domain/DetailsPanel';
 import { Minimap } from '../src/components/domain/Minimap';
-import {
-  OrbitalSchematicItem,
-  OrbitalSchematicList,
-  OrbitalSchematicPanel,
-} from '../src/components/domain/OrbitalSchematicPanel';
+import { OrbitalSchematicPanel } from '../src/components/domain/OrbitalSchematicPanel';
 import { PreviewPanel } from '../src/components/domain/PreviewPanel';
 import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
 import { buildFocusedPreviewSummary } from '../src/services/details/detailsPreview';
+import { buildOrbitalSchematic } from '../src/services/details/orbitalSchematicBuilder';
 import { buildPlanetMinimapOrientation } from '../src/services/details/planetMinimap';
-import { buildPlanetaryBodiesSummary } from '../src/services/details/planetaryBodiesSummary';
-import { buildPlanetaryOrbitalSchematic } from '../src/services/details/planetaryOrbitalSchematic';
 import { buildSystemMinimapOrientation } from '../src/services/details/systemMinimap';
 import type {
   FocusedPreviewSummary,
@@ -325,10 +320,18 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
 });
 
 describe('Journey 3: Explorer Flow - Orbital Schematic Domain and Component Boundary (DEC-014)', () => {
-  it('builds planetary orbital schematic with host at rank 0 and orbiting bodies sorted by r', () => {
+  it('builds parent-centric orbital schematic for planetary focus with orbiting moons', () => {
     const earthDetails = buildFocusedEntityDetails({
-      focusedEntity: null,
+      focusedEntity: {
+        id: 'earth',
+        name: 'Earth',
+        position: [1, 0, 0],
+        classification: 'terrestrial',
+      },
+      urlSystemSlug: 'sol',
       urlPlanetSlug: 'earth',
+      urlFocusSlug: 'earth',
+      hasExplicitFocus: true,
       corpus: SAMPLE_CORPUS,
       summaryNode: {
         id: 'sol',
@@ -347,111 +350,82 @@ describe('Journey 3: Explorer Flow - Orbital Schematic Domain and Component Boun
       },
     });
 
-    const planetaryBodies = buildPlanetaryBodiesSummary({
-      details: earthDetails,
-      urlPlanetSlug: 'earth',
+    const schematic = buildOrbitalSchematic({
+      focusedDetails: earthDetails,
       corpus: SAMPLE_CORPUS,
     });
-
-    const schematic = buildPlanetaryOrbitalSchematic(planetaryBodies, SAMPLE_CORPUS);
     expect(schematic).not.toBeNull();
-    expect(schematic?.scope).toBe('planet');
-    expect(schematic?.planetId).toBe('earth');
+    expect(schematic?.parentId).toBe('earth');
+    expect(schematic?.parentKind).toBe('planet');
+    expect(schematic?.systemId).toBe('sol');
 
-    // Host Earth at rank 0, in habitable zone
-    expect(schematic?.items[0]).toMatchObject({
-      id: 'earth',
-      kind: 'planet',
-      orbitRank: 0,
-      inHabitableZone: true,
-      region: 'habitable-zone',
-    });
-
-    // Moon at rank 1
-    const moonItem = schematic?.items.find((i) => i.id === 'moon');
-    expect(moonItem).toMatchObject({
+    const moonRow = schematic?.rows.find((r) => r.id === 'moon');
+    expect(moonRow).toMatchObject({
       id: 'moon',
       kind: 'moon',
-      orbitRank: 1,
+      reticleType: 'moon',
+      tier: 'primary',
     });
   });
 
-  it('renders <OrbitalSchematicPanel />, <OrbitalSchematicList />, and <OrbitalSchematicItem /> with semantic attributes and badges', () => {
-    // Null summary returns empty string
+  it('renders <OrbitalSchematicPanel /> with parent-centric tracks, zones, habitable zone group, and semantic attributes', () => {
     const { container: nullContainer, unmount: unmountNull } = render(
       createElement(OrbitalSchematicPanel, { elements: null }),
     );
     expect(nullContainer.firstChild).toBeNull();
     unmountNull();
 
-    // System summary rendering
     const dummySystemSummary: OrbitalSchematicSummary = {
-      scope: 'system',
+      parentId: 'sol',
+      parentName: 'Sol',
+      parentKind: 'system',
       systemId: 'sol',
       systemName: 'Sol',
-      items: [
-        {
-          id: 'sol',
-          name: 'Sol',
-          href: '/system/sol?focus=sol',
-          kind: 'star',
-          orbitRank: 0,
-          summaryLabel: 'Component A · G2V',
-          inHabitableZone: false,
-          isFocused: false,
-          isSelected: false,
-        },
+      habitableZoneAu: [0.75, 1.77],
+      rows: [
         {
           id: 'earth',
           name: 'Earth',
           href: '/planet/earth',
           kind: 'planet',
-          orbitRank: 3,
-          summaryLabel: 'terrestrial',
+          reticleType: 'terrestrial',
+          tier: 'primary',
+          sortDistanceAu: 1.0,
+          lineStyle: 'dashed',
           inHabitableZone: true,
-          region: 'habitable-zone',
           isFocused: true,
           isSelected: true,
-          children: [
-            {
-              id: 'moon',
-              name: 'Moon',
-              href: '/planet/earth?focus=moon',
-              kind: 'moon',
-              orbitRank: 1,
-              summaryLabel: 'Moon',
-              inHabitableZone: true,
-              region: 'habitable-zone',
-              isFocused: false,
-              isSelected: false,
-            },
-          ],
         },
         {
           id: 'ceres',
           name: 'Ceres',
           href: '/system/sol?focus=ceres',
           kind: 'dwarf-planet',
-          orbitRank: 5,
-          summaryLabel: 'Dwarf Planet',
+          reticleType: 'dwarf-planet',
+          tier: 'primary',
+          sortDistanceAu: 2.77,
+          lineStyle: 'dashed',
           inHabitableZone: false,
-          region: 'asteroid-belt',
           isFocused: false,
           isSelected: false,
+          zoneId: 'asteroid-belt',
         },
+      ],
+      zones: [
         {
-          id: 'pluto',
-          name: 'Pluto',
-          href: '/system/sol?focus=pluto',
-          kind: 'dwarf-planet',
-          orbitRank: 10,
-          summaryLabel: 'Dwarf Planet',
-          inHabitableZone: false,
-          region: 'kuiper-belt',
+          id: 'asteroid-belt',
+          name: 'Asteroid Belt',
+          href: '/system/sol?focus=asteroid-belt',
+          kind: 'belt',
+          innerRadiusAu: 2.1,
+          outerRadiusAu: 3.3,
+          sortDistanceAu: 2.7,
           isFocused: false,
           isSelected: false,
         },
       ],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
     };
 
     const { container: panelContainer, unmount: unmountPanel } = render(
@@ -459,53 +433,22 @@ describe('Journey 3: Explorer Flow - Orbital Schematic Domain and Component Boun
     );
     const panel = panelContainer.querySelector('[data-testid="orbital-schematic-panel"]');
     expect(panel).not.toBeNull();
-    expect(panel?.getAttribute('data-scope')).toBe('system');
+    expect(panel?.getAttribute('data-parent-id')).toBe('sol');
+    expect(panel?.getAttribute('data-parent-kind')).toBe('system');
     expect(panel?.getAttribute('data-system-id')).toBe('sol');
     expect(panelContainer.textContent).toContain('Orbital Schematic');
-    expect(panelContainer.querySelector('[data-testid="orbital-schematic-list"]')).not.toBeNull();
-    const earthItem = panelContainer.querySelector('[data-entity-id="earth"]');
-    expect(earthItem).not.toBeNull();
-    expect(earthItem?.getAttribute('data-kind')).toBe('planet');
-    expect(earthItem?.getAttribute('data-orbit-rank')).toBe('3');
-    expect(earthItem?.getAttribute('data-region')).toBe('habitable-zone');
-    expect(earthItem?.getAttribute('data-in-habitable-zone')).toBe('true');
-    expect(earthItem?.getAttribute('data-focused')).toBe('true');
-    expect(earthItem?.getAttribute('data-selected')).toBe('true');
-    expect(panelContainer.textContent).toContain('Habitable zone');
-    expect(panelContainer.textContent).toContain('Asteroid belt');
-    expect(panelContainer.textContent).toContain('Kuiper belt');
-
-    // Guide badge links (DEC-024)
-    expect(panelContainer.querySelector('[data-testid="orbital-schematic-spectral-link"]')).not.toBeNull();
-    const planetLink = panelContainer.querySelector('[data-testid="orbital-schematic-planet-type-link"]');
-    expect(planetLink).not.toBeNull();
-    expect(planetLink?.getAttribute('href')).toBe('/guide/planet-types/terrestrial');
-    const hzLink = panelContainer.querySelector('[data-testid="orbital-schematic-habitable-link"]');
-    expect(hzLink).not.toBeNull();
-    expect(hzLink?.getAttribute('href')).toBe('/galaxy?select=tag:habitable-candidate');
-
-    // Nested moon rendering (DEC-024)
-    const moonItem = panelContainer.querySelector('[data-entity-id="moon"]');
-    expect(moonItem).not.toBeNull();
-    expect(moonItem?.getAttribute('data-kind')).toBe('moon');
+    expect(panelContainer.querySelector('[data-testid="orbital-schematic-hz-group"]')).not.toBeNull();
+    const rows = panelContainer.querySelectorAll('[data-testid="orbital-schematic-row"]');
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    const earthRow = panelContainer.querySelector('[data-testid="orbital-schematic-row"][data-entity-id="earth"]');
+    expect(earthRow).not.toBeNull();
+    expect(earthRow?.getAttribute('data-kind')).toBe('planet');
+    expect(earthRow?.getAttribute('data-focused')).toBe('true');
+    expect(earthRow?.getAttribute('data-selected')).toBe('true');
+    const zoneEl = panelContainer.querySelector('[data-testid="orbital-schematic-zone"][data-zone-id="asteroid-belt"]');
+    expect(zoneEl).not.toBeNull();
+    expect(panelContainer.textContent).toContain('Asteroid Belt');
     unmountPanel();
-
-    // List composition
-    const { container: listContainer, unmount: unmountList } = render(
-      createElement(OrbitalSchematicList, { items: dummySystemSummary.items }),
-    );
-    expect(listContainer.querySelector('[data-testid="orbital-schematic-list"]')).not.toBeNull();
-    unmountList();
-
-    // Individual item composition
-    const { container: singleItemContainer, unmount: unmountSingle } = render(
-      createElement(OrbitalSchematicItem, { item: dummySystemSummary.items[2] }),
-    );
-    const ceresItem = singleItemContainer.querySelector('[data-entity-id="ceres"]');
-    expect(ceresItem).not.toBeNull();
-    expect(ceresItem?.getAttribute('data-region')).toBe('asteroid-belt');
-    expect(singleItemContainer.textContent).toContain('Asteroid belt');
-    unmountSingle();
   });
 });
 
@@ -649,7 +592,7 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
     plan2!.unmount();
   });
 
-  it('renders PreviewPanel in DetailsPanel partial detent and system OrbitalSchematic in full detent', () => {
+  it('renders PreviewPanel and OrbitalSchematicPanel in DetailsPanel partial detent without duplicating in full detent', () => {
     const dummyDetails = buildFocusedEntityDetails({
       focusedEntity: { id: 'earth', name: 'Earth', position: [0, 0, 0], classification: 'terrestrial' },
       corpus: SAMPLE_CORPUS,
@@ -666,23 +609,30 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
     });
     const dummyPreview = buildFocusedPreviewSummary(dummyDetails);
     const dummySchematic: OrbitalSchematicSummary = {
-      scope: 'system',
+      parentId: 'earth',
+      parentName: 'Earth',
+      parentKind: 'planet',
       systemId: 'sol',
       systemName: 'Sol',
       habitableZoneAu: [0.95, 1.37],
-      items: [
+      rows: [
         {
-          id: 'earth',
-          name: 'Earth',
-          href: '/system/sol?focus=earth',
-          kind: 'planet',
-          orbitRank: 1,
-          summaryLabel: 'Earth',
-          inHabitableZone: true,
-          isFocused: true,
+          id: 'moon',
+          name: 'Moon',
+          href: '/planet/earth?focus=moon',
+          kind: 'moon',
+          reticleType: 'moon',
+          tier: 'primary',
+          sortDistanceAu: 0.00257,
+          lineStyle: 'dashed',
+          inHabitableZone: false,
+          isFocused: false,
           isSelected: false,
         },
       ],
+      zones: [],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
     };
 
     const { container: detentContainer, unmount: unmountDetents } = render(
@@ -697,10 +647,10 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
     const fullDetent = detentContainer.querySelector('[data-testid="details-detent-full"]');
     expect(partialDetent).not.toBeNull();
     expect(fullDetent).not.toBeNull();
-    const previewInside = partialDetent?.querySelector('[data-testid="preview-panel"]');
-    const schematicInside = fullDetent?.querySelector('[data-testid="orbital-schematic-panel"]');
-    expect(previewInside).not.toBeNull();
-    expect(schematicInside).not.toBeNull();
+    expect(partialDetent?.querySelector('[data-testid="preview-panel"]')).not.toBeNull();
+    expect(partialDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
+    expect(detentContainer.querySelectorAll('[data-testid="orbital-schematic-panel"]')).toHaveLength(1);
     unmountDetents();
   });
 
@@ -808,11 +758,16 @@ describe('Journey 3: Explorer Flow - Minimap Global Spatial Orientation Panel (D
     };
 
     const dummySchematic: OrbitalSchematicSummary = {
-      scope: 'system',
+      parentId: 'sol',
+      parentName: 'Sol',
+      parentKind: 'system',
       systemId: 'sol',
       systemName: 'Sol',
       habitableZoneAu: [0.95, 1.37],
-      items: [],
+      rows: [],
+      zones: [],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
     };
 
     const orientation = buildSystemMinimapOrientation(

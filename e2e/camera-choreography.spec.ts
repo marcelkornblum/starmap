@@ -21,8 +21,8 @@ test.describe('Camera Choreography Contracts (FS-003, FS-012, FS-013)', () => {
       await page.getByTestId('details-drag-handle').click();
     }
 
-    const schematic = page.getByTestId('bodies-panel').getByTestId('orbital-schematic-panel');
-    await expect(schematic).toBeVisible({ timeout: 10_000 });
+    const bodiesList = page.getByTestId('bodies-panel').getByTestId('bodies-primary-list');
+    await expect(bodiesList).toBeVisible({ timeout: 10_000 });
 
     const centerBtn = page.getByTestId('details-button-center');
     await expect(centerBtn).toHaveCount(0);
@@ -31,7 +31,7 @@ test.describe('Camera Choreography Contracts (FS-003, FS-012, FS-013)', () => {
     expect(earthTarget).not.toBeNull();
     expect(earthTarget).not.toBe('0.00,0.00,0.00');
 
-    await schematic.getByRole('link', { name: /^Mars$/i }).click();
+    await bodiesList.getByRole('link', { name: /^Mars$/i }).click();
 
     await expect(page).toHaveURL(/focus=mars/);
     expect(page.url()).not.toContain('center=mars');

@@ -125,6 +125,7 @@ export const mapManifestToStarsAndPlanets = (
         ? { discoveryYear: p.discoveryYear }
         : {}),
       ...(p.discoveryMethod ? { discoveryMethod: p.discoveryMethod } : {}),
+      ...(p.rings && p.rings.length > 0 ? { rings: p.rings } : {}),
       isHabitableCandidate: isExoplanetHabitableCandidate(p),
       hazardCount: hazards.length,
       hazards,

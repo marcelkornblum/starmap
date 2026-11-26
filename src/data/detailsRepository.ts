@@ -275,6 +275,29 @@ export const fetchDetailRecord = async (
   return getCachedDetailRecord(id);
 };
 
+export const isSolPrimaryShardCached = (): boolean =>
+  RESOLVED_DETAIL_SHARD_CACHE.has(SOL_PRIMARY_SHARD);
+
+export const fetchSolPrimaryShard = async (
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<boolean> => {
+  if (RESOLVED_DETAIL_SHARD_CACHE.has(SOL_PRIMARY_SHARD)) {
+    return true;
+  }
+  await loadShardedEnvelopeData({
+    cacheKey: SOL_PRIMARY_SHARD,
+    logicalPath: SOL_PRIMARY_SHARD,
+    label: `detail shard "${SOL_PRIMARY_SHARD}"`,
+    pendingCache: DETAIL_SHARD_CACHE,
+    resolvedCache: RESOLVED_DETAIL_SHARD_CACHE,
+    fetchImpl,
+    signal,
+    onLoaded: notifyDetailsListeners,
+  });
+  return RESOLVED_DETAIL_SHARD_CACHE.has(SOL_PRIMARY_SHARD);
+};
+
 /**
  * Seeds a decoded detail record into the in-memory cache (used in unit tests).
  */

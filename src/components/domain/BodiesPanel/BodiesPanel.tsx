@@ -1,20 +1,21 @@
-import React, { useMemo, useState } from 'react';
-import { useSpatialEntityStore } from '../../canvas/entity/SpatialEntityContext';
-import { buildPlanetaryOrbitalSchematic } from '../../../services/details/planetaryOrbitalSchematic';
-import { buildSystemOrbitalSchematic } from '../../../services/details/systemOrbitalSchematic';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  useOptionalSpatialEntityStoreApi,
+  useSpatialEntityStore,
+} from '../../canvas/entity/SpatialEntityContext';
 import type {
   BodiesPanelSummary,
   GalaxyBodiesSummary,
-  OrbitalSchematicSummary,
   PlanetaryBodiesSummary,
   SystemBodiesSummary,
   SystemElementBodyItem,
 } from '../../../services/details/detailsHierarchyTypes';
 import { Block, Button, Heading, Stack } from '../../interface';
-import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
 import { BodiesGalaxySystemRow } from './BodiesGalaxySystemRow';
 import { BodiesMinorBodyRow } from './BodiesMinorBodyRow';
+import { BodiesPrimaryRow } from './BodiesPrimaryRow';
+import { buildPrimaryItems } from './bodiesPrimaryItems';
 import {
   INITIAL_MINOR_BODIES_LIMIT,
   MINOR_BODIES_PAGE_STEP,
@@ -24,7 +25,6 @@ import styles from './BodiesPanel.module.css';
 
 export interface BodiesPanelProps {
   readonly elements: BodiesPanelSummary | null;
-  readonly schematic?: OrbitalSchematicSummary | null;
   readonly hoveredEntityId?: string | null;
   readonly onHoverEntity?: (entityId: string | null) => void;
 }
@@ -107,12 +107,14 @@ interface BodiesMinorBodiesSectionProps {
   readonly minorBodiesAndSpacecraft: readonly SystemElementBodyItem[];
   readonly focusedMinorBodyId: string | undefined;
   readonly selectedMinorKey: string;
+  readonly onHoverEntity?: (entityId: string | null) => void;
 }
 
 const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
   minorBodiesAndSpacecraft,
   focusedMinorBodyId,
   selectedMinorKey,
+  onHoverEntity,
 }: BodiesMinorBodiesSectionProps) {
   const [visibleLimit, setVisibleLimit] = useState(INITIAL_MINOR_BODIES_LIMIT);
   const selectedSet = useMemo(
@@ -146,6 +148,7 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
             body={body}
             isFocused={focusedMinorBodyId === body.id}
             isSelected={selectedSet ? selectedSet.has(body.id) : false}
+            onHoverEntity={onHoverEntity}
           />
         ))}
       </Stack>
@@ -165,13 +168,22 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
 
 interface BodiesSystemOrPlanetViewProps {
   readonly elements: SystemBodiesSummary | PlanetaryBodiesSummary;
-  readonly schematic?: OrbitalSchematicSummary | null;
+  readonly onHoverEntity?: (entityId: string | null) => void;
 }
 
 const BodiesSystemOrPlanetView = React.memo(function BodiesSystemOrPlanetView({
   elements,
-  schematic,
+  onHoverEntity,
 }: BodiesSystemOrPlanetViewProps) {
+  const storeApi = useOptionalSpatialEntityStoreApi();
+  const handleHoverEntity = useCallback(
+    (id: string | null) => {
+      storeApi?.getState().setHovered(id);
+      onHoverEntity?.(id);
+    },
+    [storeApi, onHoverEntity],
+  );
+
   const { scope, systemId, focusedEntityId, minorBodiesAndSpacecraft, selectedEntityIds } = elements;
   const minorIdSet = useMemo(
     () => getMinorBodyIdSet(minorBodiesAndSpacecraft),
@@ -186,11 +198,11 @@ const BodiesSystemOrPlanetView = React.memo(function BodiesSystemOrPlanetView({
     return selectedEntityIds.filter((id) => minorIdSet.has(id)).join('\0');
   }, [selectedEntityIds, minorIdSet]);
 
-  const resolvedSchematic =
-    schematic ??
-    (elements.scope === 'system'
-      ? buildSystemOrbitalSchematic(elements)
-      : buildPlanetaryOrbitalSchematic(elements));
+  const selectedEntitySet = useMemo(
+    () => new Set(selectedEntityIds ?? []),
+    [selectedEntityIds],
+  );
+  const primaryItems = useMemo(() => buildPrimaryItems(elements), [elements]);
 
   return (
     <section
@@ -205,23 +217,23 @@ const BodiesSystemOrPlanetView = React.memo(function BodiesSystemOrPlanetView({
         {scope === 'system' ? 'System Bodies' : 'Planetary Bodies'}
       </Heading>
 
-      <section
-        aria-labelledby="bodies-schematic-heading"
-        data-testid="orbital-schematic-panel"
-        data-scope={scope}
-        data-system-id={systemId}
-        data-planet-id={scope === 'planet' ? elements.planetId : undefined}
-        className={styles.section}
-      >
-        <Heading as="h3" id="bodies-schematic-heading" visuallyHidden>
-          Orbital Schematic
-        </Heading>
-        {resolvedSchematic && resolvedSchematic.items.length > 0 ? (
-          <OrbitalSchematicList items={resolvedSchematic.items} />
+      <Stack as="ul" gap="fib-1" data-testid="bodies-primary-list">
+        {primaryItems.length > 0 ? (
+          primaryItems.map((item) => (
+            <BodiesPrimaryRow
+              key={item.id}
+              item={item}
+              isFocused={focusedEntityId === item.id}
+              isSelected={selectedEntitySet.has(item.id)}
+              onHoverEntity={handleHoverEntity}
+            />
+          ))
         ) : (
-          <p data-testid="bodies-schematic-empty">No catalogued orbital bodies</p>
+          <Block as="li" padding="tight" data-testid="bodies-primary-empty">
+            No catalogued orbital bodies
+          </Block>
         )}
-      </section>
+      </Stack>
 
       {minorBodiesAndSpacecraft.length > 0 ? (
         <BodiesMinorBodiesSection
@@ -229,6 +241,7 @@ const BodiesSystemOrPlanetView = React.memo(function BodiesSystemOrPlanetView({
           minorBodiesAndSpacecraft={minorBodiesAndSpacecraft}
           focusedMinorBodyId={focusedMinorBodyId}
           selectedMinorKey={selectedMinorKey}
+          onHoverEntity={handleHoverEntity}
         />
       ) : null}
     </section>
@@ -237,7 +250,6 @@ const BodiesSystemOrPlanetView = React.memo(function BodiesSystemOrPlanetView({
 
 const BodiesPanelInner = React.memo(function BodiesPanelInner({
   elements,
-  schematic,
   hoveredEntityId,
   onHoverEntity,
 }: BodiesPanelProps) {
@@ -256,7 +268,7 @@ const BodiesPanelInner = React.memo(function BodiesPanelInner({
   return (
     <BodiesSystemOrPlanetView
       elements={elements}
-      schematic={schematic}
+      onHoverEntity={onHoverEntity}
     />
   );
 });

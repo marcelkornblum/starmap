@@ -10,7 +10,7 @@ import { resolveActiveLayerCard } from '../services/layerCardService';
 import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
 import { buildSystemBodiesSummary } from '../services/details/systemBodiesSummary';
 import { buildSystemMinimapOrientation } from '../services/details/systemMinimap';
-import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
+import { buildOrbitalSchematic } from '../services/details/orbitalSchematicBuilder';
 import { buildSystemViewBreadcrumbs } from '../services/details/detailsBreadcrumbs';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
@@ -58,6 +58,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
     urlSystemSlug,
     focusedDetail,
     systemDetail,
+    solPrimaryReady,
     isFocusInThisSystem,
     targetSystemId,
   } = useResolvedSystemDetails(props, true);
@@ -219,8 +220,16 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   );
 
   const orbitalSchematic = useMemo(
-    () => buildSystemOrbitalSchematic(systemBodies, activeCorpus),
-    [systemBodies, activeCorpus],
+    () =>
+      buildOrbitalSchematic({
+        focusedDetails,
+        systemDetail,
+        focusedDetail,
+        corpus: activeCorpus,
+        selectedEntityIds,
+        detailCacheKey: solPrimaryReady ? 1 : 0,
+      }),
+    [focusedDetails, systemDetail, focusedDetail, activeCorpus, selectedEntityIds, solPrimaryReady],
   );
 
   const focusedPreview = useMemo(

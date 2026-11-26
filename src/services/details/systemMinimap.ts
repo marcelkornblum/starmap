@@ -1,6 +1,7 @@
 import type { SpatialEntityDefinition } from '../../types/spatial';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
 import { resolveEntityMarkerKind } from './minimapMarkerHelpers';
+import { computeOptimisticHabitableZoneAu } from './orbitalSchematicBuilder';
 import type { FocusedEntityDetails } from './detailsEntityTypes';
 import type {
   MinimapMarkerItem,
@@ -103,7 +104,13 @@ export const buildSystemMinimapOrientation = (
   const outerOrbitalRadiusAu =
     planetRadii.length > 0 ? Math.max(...planetRadii) : undefined;
 
-  const habitableZoneAu = schematic?.habitableZoneAu;
+  const habitableZoneAu =
+    schematic?.habitableZoneAu ??
+    computeOptimisticHabitableZoneAu(
+      (bodiesSummary.scope === 'system'
+        ? bodiesSummary.stars[0]?.luminosityLsun
+        : undefined) ?? systemDetails?.stars[0]?.luminosityLsun,
+    );
 
   const planetsCount =
     bodiesSummary.scope === 'system' ? (bodiesSummary.planets?.length ?? 0) : 0;

@@ -30,7 +30,7 @@ test.describe('Details Pane Implementation Contracts', () => {
 
     // Orbital Schematic (replacing separate Stars, Planets, and Belts tables)
     await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
-    await expect(detailsPane.getByTestId('orbital-schematic-list').first()).toBeVisible();
+    await expect(detailsPane.getByTestId('orbital-schematic-stage').first()).toBeVisible();
 
     // Telemetry sections
     await expect(detailsPane.getByRole('heading', { name: 'Astrometry' })).toBeVisible();
@@ -61,7 +61,7 @@ test.describe('Details Pane Implementation Contracts', () => {
     await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
     await expect(
       detailsPane
-        .getByTestId('orbital-schematic-list')
+        .getByTestId('orbital-schematic-stage')
         .getByRole('link', { name: 'The Moon (Luna)' })
         .first(),
     ).toBeVisible();
@@ -93,5 +93,55 @@ test.describe('Details Pane Implementation Contracts', () => {
     // Orbital Schematic with HD 26965 b
     await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
     await expect(detailsPane.getByText(/HD 26965/i).first()).toBeVisible();
+  });
+
+  test('verifies Sol orbital schematic zones, legend link, minor-body toggle, and Saturn ring zones', async ({
+    page,
+  }) => {
+    await page.goto('/system/sol?focus=sol');
+
+    const detailsPane = page.getByRole('complementary', { name: 'Details' });
+    await expect(detailsPane).toBeVisible();
+    await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
+
+    const legendLink = detailsPane.getByTestId('orbital-schematic-legend-link');
+    await expect(legendLink).toBeVisible();
+    await expect(legendLink).toHaveAttribute('href', '/guide/legend');
+
+    await expect(detailsPane.getByTestId('orbital-schematic-hz-group')).toBeVisible();
+    await expect(
+      detailsPane.getByTestId('orbital-schematic-zone').filter({ hasText: /Main Asteroid Belt/i }),
+    ).toBeVisible();
+    await expect(
+      detailsPane.getByTestId('orbital-schematic-zone').filter({ hasText: /Kuiper Belt/i }),
+    ).toBeVisible();
+
+    const minorToggle = detailsPane.getByTestId('orbital-schematic-minor-toggle');
+    await expect(minorToggle).toBeVisible();
+    await minorToggle.click();
+
+    await expect(
+      detailsPane.locator('[data-testid="orbital-schematic-row"][data-line-style="dotted"]').first(),
+    ).toBeVisible();
+
+    await page.goto('/planet/saturn?focus=saturn');
+    await expect(detailsPane).toBeVisible();
+    const ringZones = detailsPane.locator(
+      '[data-testid="orbital-schematic-zone"][data-region-kind="ring-system"]',
+    );
+    await expect(ringZones.first()).toBeVisible();
+    await expect(ringZones.filter({ hasText: /Main Rings/i })).toHaveCount(1);
+    await expect(ringZones.filter({ hasText: /E Ring/i })).toHaveCount(1);
+  });
+
+  test('verifies /guide/legend sections and active Legend navigation state', async ({ page }) => {
+    await page.goto('/guide/legend');
+
+    await expect(page.getByTestId('legend-guide-view-root')).toBeVisible();
+    await expect(page.getByTestId('legend-lines-section')).toBeVisible();
+    await expect(page.getByTestId('legend-zones-section')).toBeVisible();
+    await expect(page.getByTestId('legend-symbols-section')).toBeVisible();
+    await expect(page.getByTestId('legend-chromaticity-section')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Legend' })).toHaveAttribute('aria-current', 'page');
   });
 });

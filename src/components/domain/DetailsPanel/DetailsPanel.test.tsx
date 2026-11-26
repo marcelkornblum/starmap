@@ -6,6 +6,7 @@ import type {
   FocusedPlanetEntityDetails,
   FocusedSystemEntityDetails,
 } from '../../../services/details/detailsEntityTypes';
+import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 
 const mockSystemDetails: FocusedSystemEntityDetails = {
   id: 'tau-ceti',
@@ -179,44 +180,35 @@ describe('<DetailsPanel />', () => {
     expect(screen.getByText('Moon')).toBeInTheDocument();
   });
 
-  it('renders orbital schematic list when schematic is passed for system focus, replacing separate hierarchy sections', () => {
-    const schematic = {
-      scope: 'system' as const,
+  it('renders OrbitalSchematicPanel inside partial detent for system focus without duplicating in full detent or fallback sections', () => {
+    const schematic: OrbitalSchematicSummary = {
+      parentId: 'tau-ceti',
+      parentName: 'Tau Ceti',
+      parentKind: 'system',
       systemId: 'tau-ceti',
       systemName: 'Tau Ceti',
-      totalCount: 2,
-      regions: [],
-      items: [
-        {
-          id: 'tau-ceti-star',
-          name: 'Tau Ceti',
-          kind: 'star' as const,
-          kindLabel: 'Star',
-          href: '/system/tau-ceti?focus=tau-ceti-star',
-          semiMajorAxisAu: 0,
-          orbitRank: 0,
-          summaryLabel: 'Host Star',
-          inHabitableZone: false,
-          isFocused: false,
-          isSelected: false,
-        },
+      habitableZoneAu: [0.54, 1.28],
+      rows: [
         {
           id: 'tau-ceti-e',
           name: 'Tau Ceti e',
-          kind: 'planet' as const,
-          kindLabel: 'Planet',
           href: '/system/tau-ceti?focus=tau-ceti-e',
-          semiMajorAxisAu: 0.538,
-          orbitRank: 1,
-          summaryLabel: '0.538 AU',
+          kind: 'planet',
+          reticleType: 'terrestrial',
+          tier: 'primary',
+          sortDistanceAu: 0.538,
+          lineStyle: 'dashed',
           inHabitableZone: true,
           isFocused: false,
           isSelected: false,
         },
       ],
+      zones: [],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
     };
 
-    render(
+    const { container } = render(
       <DetailsPanel
         details={mockSystemDetails}
         isOpen={true}
@@ -225,10 +217,59 @@ describe('<DetailsPanel />', () => {
       />,
     );
 
-    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
-    expect(screen.getByTestId('orbital-schematic-list')).toBeInTheDocument();
+    const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
+    const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
+    expect(screen.getAllByTestId('orbital-schematic-panel')).toHaveLength(1);
+    expect(partialDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
+    expect(screen.getByTestId('orbital-schematic-row')).toBeInTheDocument();
     expect(screen.queryByTestId('details-stars-section')).toBeNull();
     expect(screen.queryByTestId('details-planets-section')).toBeNull();
+  });
+
+  it('renders OrbitalSchematicPanel inside partial detent for planet focus without duplicating in full detent', () => {
+    const planetSchematic: OrbitalSchematicSummary = {
+      parentId: 'earth',
+      parentName: 'Earth',
+      parentKind: 'planet',
+      systemId: 'sol',
+      systemName: 'Sol',
+      rows: [
+        {
+          id: 'moon',
+          name: 'Moon',
+          href: '/planet/earth?focus=moon',
+          kind: 'moon',
+          reticleType: 'moon',
+          tier: 'primary',
+          sortDistanceAu: 0.00257,
+          lineStyle: 'dashed',
+          inHabitableZone: false,
+          isFocused: false,
+          isSelected: false,
+        },
+      ],
+      zones: [],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
+    };
+
+    const { container } = render(
+      <DetailsPanel
+        details={mockPlanetDetails}
+        isOpen={true}
+        activeDetent="full"
+        schematic={planetSchematic}
+      />,
+    );
+
+    const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
+    const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
+    expect(screen.getAllByTestId('orbital-schematic-panel')).toHaveLength(1);
+    expect(partialDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
+    expect(screen.getByTestId('orbital-schematic-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('details-orbiting-bodies-section')).toBeNull();
   });
 
   it('forwards detent changes from DetentSheet to useUIStore and onDetentChange prop', () => {

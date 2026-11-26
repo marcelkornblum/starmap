@@ -10,7 +10,7 @@ import { resolveActiveLayerCard } from '../services/layerCardService';
 import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
 import { buildPlanetaryBodiesSummary } from '../services/details/planetaryBodiesSummary';
 import { buildPlanetMinimapOrientation } from '../services/details/planetMinimap';
-import { buildPlanetaryOrbitalSchematic } from '../services/details/planetaryOrbitalSchematic';
+import { buildOrbitalSchematic } from '../services/details/orbitalSchematicBuilder';
 import { buildPlanetViewBreadcrumbs } from '../services/details/detailsBreadcrumbs';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { useParams, useSearch } from '@tanstack/react-router';
@@ -35,7 +35,9 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
     focusedDetails,
     systemContextDetails,
     planetEntityDetail,
+    systemDetail,
     focusedDetail,
+    solPrimaryReady,
     canonRecords,
     selectedEntityIds,
     selectedEntities,
@@ -110,8 +112,24 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
   );
 
   const orbitalSchematic = useMemo(
-    () => buildPlanetaryOrbitalSchematic(planetaryBodies, activeCorpus),
-    [planetaryBodies, activeCorpus],
+    () =>
+      buildOrbitalSchematic({
+        focusedDetails,
+        systemDetail,
+        focusedDetail: focusedDetail ?? planetEntityDetail,
+        corpus: activeCorpus,
+        selectedEntityIds,
+        detailCacheKey: solPrimaryReady ? 1 : 0,
+      }),
+    [
+      focusedDetails,
+      systemDetail,
+      focusedDetail,
+      planetEntityDetail,
+      activeCorpus,
+      selectedEntityIds,
+      solPrimaryReady,
+    ],
   );
 
   const focusedPreview = useMemo(

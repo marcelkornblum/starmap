@@ -1,12 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import {
-  DetailsDeferredPartialLower,
-  DetailsDeferredFull,
-} from './DetailsDeferredSections';
-import type {
-  FocusedSystemEntityDetails,
-} from '../../../services/details/detailsEntityTypes';
+import { DetailsDeferredPartialLower } from './DetailsDeferredSections';
+import type { FocusedSystemEntityDetails } from '../../../services/details/detailsEntityTypes';
 import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 
 const mockSystemDetails: FocusedSystemEntityDetails = {
@@ -57,7 +52,7 @@ const mockSystemDetails: FocusedSystemEntityDetails = {
 };
 
 describe('DetailsDeferredSections', () => {
-  it('renders DetailsDeferredPartialLower with hierarchy sections', () => {
+  it('renders DetailsDeferredPartialLower with fallback hierarchy sections when schematic is omitted', () => {
     render(
       <DetailsDeferredPartialLower
         focusedKind="system"
@@ -72,32 +67,45 @@ describe('DetailsDeferredSections', () => {
     expect(screen.getByText('Tau Ceti e')).toBeInTheDocument();
   });
 
-  it('renders DetailsDeferredFull with orbital schematic when non-system entity is focused', () => {
+  it('renders OrbitalSchematicPanel once in DetailsDeferredPartialLower when schematic is populated', () => {
     const mockSchematic: OrbitalSchematicSummary = {
-      scope: 'system',
+      parentId: 'tau-ceti',
+      parentName: 'Tau Ceti',
+      parentKind: 'system',
       systemId: 'tau-ceti',
       systemName: 'Tau Ceti',
-      items: [
+      habitableZoneAu: [0.54, 1.28],
+      rows: [
         {
           id: 'tau-ceti-e',
           name: 'Tau Ceti e',
-          kind: 'planet',
           href: '/system/tau-ceti?focus=tau-ceti-e',
-          orbitRank: 1,
-          summaryLabel: '0.538 AU',
+          kind: 'planet',
+          reticleType: 'terrestrial',
+          tier: 'primary',
+          sortDistanceAu: 0.538,
+          lineStyle: 'dashed',
           inHabitableZone: true,
           isFocused: true,
           isSelected: false,
         },
       ],
+      zones: [],
+      minorBodyCount: 0,
+      hasMinorToggle: false,
     };
+
     render(
-      <DetailsDeferredFull
+      <DetailsDeferredPartialLower
+        focusedKind="planet"
         isSystemFocus={false}
         schematic={mockSchematic}
+        systemNameOrId="Tau Ceti"
       />,
     );
 
-    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
+    expect(screen.getAllByTestId('orbital-schematic-panel')).toHaveLength(1);
+    expect(screen.getByTestId('orbital-schematic-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('details-planets-section')).toBeNull();
   });
 });

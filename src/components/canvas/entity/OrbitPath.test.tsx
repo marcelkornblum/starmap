@@ -12,6 +12,7 @@ import {
 import { NOOP_RAYCAST } from '../engineConfig';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoLineMaterial } from '../materials/CartoLineMaterial';
+import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
 
 describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
   afterEach(() => {
@@ -205,6 +206,35 @@ describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
     )?.instance as Line2;
 
     expect(line2.geometry.attributes.instanceStart.count).toBe(64);
+
+    await renderer.unmount();
+  });
+
+  it('uses dotSize and dotGap on CartoLineMaterial when lineStyle is dotted', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <OrbitPath
+            id="orbit-dotted"
+            semiMajorAxis={2.0}
+            lineStyle="dotted"
+            state="passive"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const lineGroup = renderer.scene.find((node) => node.props.name === 'orbit-path-line');
+    const line2 = lineGroup.children.find(
+      (child) => child.instance instanceof Line2 || (child.instance && 'isLine2' in child.instance),
+    )?.instance as Line2;
+    const lineMat = line2.material as CartoLineMaterial;
+
+    expect(lineMat.lineStyle).toBe('dotted');
+    expect(lineMat.dashSize).toBe(CARTO_LINE_CONSTANTS.dotSize);
+    expect(lineMat.gapSize).toBe(CARTO_LINE_CONSTANTS.dotGap);
+    expect(lineMat.uniforms.dashSize.value).toBe(CARTO_LINE_CONSTANTS.dotSize);
+    expect(lineMat.uniforms.gapSize.value).toBe(CARTO_LINE_CONSTANTS.dotGap);
 
     await renderer.unmount();
   });

@@ -18,6 +18,7 @@ import {
   metricDetailRoute,
   hazardsListRoute,
   hazardDetailRoute,
+  legendGuideRoute,
   resolveSpaLocation,
 } from './index';
 import { GalaxyView } from '../views/GalaxyView';
@@ -56,6 +57,7 @@ describe('TanStack Router Architecture', () => {
     expect(flatRoutes['/guide/metrics/$metricId']).toBeDefined();
     expect(flatRoutes['/guide/hazards']).toBeDefined();
     expect(flatRoutes['/guide/hazards/$hazardId']).toBeDefined();
+    expect(flatRoutes['/guide/legend']).toBeDefined();
     const allRoutes = flatRoutes as Record<string, unknown>;
     expect(allRoutes['/poc']).toBeUndefined();
     expect(allRoutes['/poc/galaxy']).toBeUndefined();
@@ -67,7 +69,7 @@ describe('TanStack Router Architecture', () => {
   it('contains expected route tree structure', () => {
     expect(routeTree).toBeDefined();
     expect(routeTree.children).toBeDefined();
-    expect(routeTree.children?.length).toBe(13);
+    expect(routeTree.children?.length).toBe(14);
   });
 
   it('validates search parameters correctly on rootRoute across all branches and keeps : and , unencoded in stringifyStarmapSearch', () => {
@@ -166,6 +168,7 @@ describe('TanStack Router Architecture', () => {
       metricDetailRoute.options.component,
       hazardsListRoute.options.component,
       hazardDetailRoute.options.component,
+      legendGuideRoute.options.component,
     ];
     for (const comp of routeComponents) {
       expect(comp).toBeDefined();

@@ -10,7 +10,7 @@ import { useSystemData } from '../hooks/useSystemData';
 import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
 import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
 import { buildGalaxyMinimapOrientation } from '../services/details/galaxyMinimap';
-import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
+import { buildOrbitalSchematic } from '../services/details/orbitalSchematicBuilder';
 import { extractGalaxyBodies } from '../services/details/galaxyBodiesExtractor';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
 import { appendExtraEntriesToCorpus } from '../services/details/activeStarsCorpus';
@@ -82,7 +82,7 @@ export function useGalaxyPanels({
   const canonRecords = useEntityAnnotations(canonLookupIds);
 
   const focusedEntityId = focusedEntity?.id ?? '';
-  const { systemSummary, systemDetail, focusedDetail } = useSystemData(
+  const { systemSummary, systemDetail, focusedDetail, solPrimaryReady } = useSystemData(
     targetSystemId,
     focusedEntityId,
   );
@@ -197,42 +197,28 @@ export function useGalaxyPanels({
     return { routeStops: stops, activeJourney: journey };
   }, [route, search, activeCorpus, pathname]);
 
-  const isSystemFocused = focusedDetails?.focusedKind === 'system';
-  const focusedId = focusedDetails?.id;
-  const focusedSysId = focusedDetails?.systemId;
-  const focusedName = focusedDetails?.name;
-  const focusedSysName = focusedDetails?.systemName;
-  const focusedStars = focusedDetails?.stars;
-  const focusedPlanets = focusedDetails?.planets;
-  const focusedDisks = focusedDetails?.disks;
+  const selectedEntityIds = useMemo(
+    () => selectedEntities.map((e) => e.id),
+    [selectedEntities],
+  );
 
   const orbitalSchematic = useMemo(
     () =>
-      isSystemFocused && focusedId && focusedSysId && focusedStars && focusedPlanets
-        ? buildSystemOrbitalSchematic(
-            {
-              id: focusedId,
-              systemId: focusedSysId,
-              name: focusedName ?? '',
-              systemName: focusedSysName ?? '',
-              focusedKind: 'system',
-              stars: focusedStars,
-              planets: focusedPlanets,
-              disks: focusedDisks,
-            },
-            activeCorpus,
-          )
-        : null,
+      buildOrbitalSchematic({
+        focusedDetails,
+        systemDetail,
+        focusedDetail,
+        corpus: detailsCorpus,
+        selectedEntityIds,
+        detailCacheKey: solPrimaryReady ? 1 : 0,
+      }),
     [
-      isSystemFocused,
-      focusedId,
-      focusedSysId,
-      focusedName,
-      focusedSysName,
-      focusedStars,
-      focusedPlanets,
-      focusedDisks,
-      activeCorpus,
+      focusedDetails,
+      systemDetail,
+      focusedDetail,
+      detailsCorpus,
+      selectedEntityIds,
+      solPrimaryReady,
     ],
   );
 

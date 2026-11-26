@@ -122,12 +122,20 @@
   }
 
   .zoneSwatch[data-region-kind="belt"] {
-    background: radial-gradient(
-      ellipse at center,
-      color-mix(in oklch, var(--content-default) 16%, transparent) 0%,
-      color-mix(in oklch, var(--content-muted) 8%, transparent) 55%,
-      var(--surface-inset-bg) 100%
-    );
+    background-color: var(--surface-block-bg);
+    background-image:
+      radial-gradient(
+        circle,
+        color-mix(in oklch, var(--content-default) 22%, transparent) var(--stroke-width-1),
+        transparent var(--stroke-width-1)
+      ),
+      radial-gradient(
+        ellipse at center,
+        color-mix(in oklch, var(--content-default) 16%, transparent) 0%,
+        color-mix(in oklch, var(--content-muted) 8%, transparent) 60%,
+        transparent 100%
+      );
+    background-size: var(--space-fib-3) var(--space-fib-3), 100% 100%;
   }
 
   .zoneSwatch[data-region-kind="ring-system"] {

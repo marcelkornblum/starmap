@@ -179,13 +179,62 @@ describe('<BodiesPanel />', () => {
     expect(onHoverEntity).toHaveBeenCalledWith(null);
   });
 
-  it('renders system scope with orbital schematic and minor bodies', () => {
-    renderWithProvider(<BodiesPanel elements={mockSystemFixture} />);
+  it('renders system scope with primary Block rows (stars, planets, disks, dwarf planets), minor bodies, and no orbital-schematic-panel', () => {
+    const richSystemFixture: SystemBodiesSummary = {
+      ...mockSystemFixture,
+      selectedEntityIds: ['earth', 'sol'],
+      disks: [
+        {
+          id: 'main-belt',
+          name: 'Main Asteroid Belt',
+          kind: 'asteroid-belt',
+          kindLabel: 'Asteroid Belt',
+          href: '/system/sol?focus=main-belt',
+          innerRadiusAu: 2.2,
+          outerRadiusAu: 3.2,
+          semiMajorAxisAu: 2.7,
+          composition: 'Silicate and carbonaceous asteroids',
+          guideHref: '/guide/metrics/semi-major-axis',
+        },
+      ],
+      moonsAndDwarfPlanets: [
+        {
+          id: 'ceres',
+          name: '1 Ceres',
+          href: '/system/sol?focus=ceres',
+          categoryKey: 'dwarf-planet',
+          categoryLabel: 'Dwarf Planet',
+        },
+      ],
+    };
+
+    renderWithProvider(<BodiesPanel elements={richSystemFixture} />);
 
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('system');
     expect(panel.getAttribute('data-system-id')).toBe('sol');
-    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('orbital-schematic-panel')).toBeNull();
+
+    const primaryList = screen.getByTestId('bodies-primary-list');
+    expect(primaryList.tagName).toBe('UL');
+    const primaryItems = screen.getAllByTestId('bodies-primary-item');
+    expect(primaryItems).toHaveLength(4);
+    expect(primaryItems[0]).toHaveAttribute('data-entity-id', 'sol');
+    expect(primaryItems[0]).toHaveAttribute('data-block', 'true');
+    expect(primaryItems[0]).toHaveAttribute('data-selected', 'true');
+    expect(primaryItems[0]).not.toHaveAttribute('data-focused');
+
+    expect(primaryItems[1]).toHaveAttribute('data-entity-id', 'earth');
+    expect(primaryItems[1]).toHaveAttribute('data-focused', 'true');
+    expect(primaryItems[1]).toHaveAttribute('data-selected', 'true');
+
+    expect(primaryItems[2]).toHaveAttribute('data-entity-id', 'main-belt');
+    expect(primaryItems[3]).toHaveAttribute('data-entity-id', 'ceres');
+
+    expect(screen.getByText('G2V')).toBeInTheDocument();
+    expect(screen.getByText('Terrestrial')).toBeInTheDocument();
+    expect(screen.getByText('Asteroid Belt')).toBeInTheDocument();
+    expect(screen.getByText('Dwarf Planet')).toBeInTheDocument();
 
     const minorBodiesSection = screen.getByTestId('bodies-minor-bodies-section');
     expect(minorBodiesSection).toBeInTheDocument();
@@ -198,15 +247,40 @@ describe('<BodiesPanel />', () => {
     expect(screen.getByText('Voyager 1')).toBeInTheDocument();
   });
 
-  it('renders planetary scope', () => {
+  it('renders empty state when no primary orbital bodies are catalogued', () => {
+    const emptySystemFixture: SystemBodiesSummary = {
+      ...mockSystemFixture,
+      stars: [],
+      planets: [],
+      disks: [],
+      moonsAndDwarfPlanets: [],
+      minorBodiesAndSpacecraft: [],
+    };
+
+    renderWithProvider(<BodiesPanel elements={emptySystemFixture} />);
+    expect(screen.getByTestId('bodies-primary-empty')).toHaveTextContent(
+      'No catalogued orbital bodies',
+    );
+  });
+
+  it('renders planetary scope with host planet and moons as primary Block rows', () => {
     renderWithProvider(<BodiesPanel elements={mockPlanetFixture} />);
 
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('planet');
     expect(panel.getAttribute('data-planet-id')).toBe('earth');
+    expect(screen.queryByTestId('orbital-schematic-panel')).toBeNull();
+
+    const primaryItems = screen.getAllByTestId('bodies-primary-item');
+    expect(primaryItems).toHaveLength(2);
+    expect(primaryItems[0]).toHaveAttribute('data-entity-id', 'earth');
+    expect(primaryItems[1]).toHaveAttribute('data-entity-id', 'moon');
+    expect(primaryItems[1]).toHaveAttribute('data-focused', 'true');
+    expect(primaryItems[1]).toHaveAttribute('data-selected', 'true');
+    expect(screen.getByRole('link', { name: 'Moon' })).toBeInTheDocument();
   });
 
-  it('does not re-render system-scope BodiesPanel when store hoveredId changes', () => {
+  it('syncs primary row hover and focus to SpatialEntityStore without re-rendering system-scope BodiesPanel', () => {
     const store = createSpatialEntityStore();
     const onRender = vi.fn();
 
@@ -220,6 +294,23 @@ describe('<BodiesPanel />', () => {
 
     expect(onRender).toHaveBeenCalled();
     onRender.mockClear();
+
+    const primaryItems = screen.getAllByTestId('bodies-primary-item');
+    fireEvent.mouseEnter(primaryItems[0]);
+    expect(store.getState().hoveredId).toBe('sol');
+    expect(onRender).not.toHaveBeenCalled();
+
+    fireEvent.mouseLeave(primaryItems[0]);
+    expect(store.getState().hoveredId).toBeNull();
+    expect(onRender).not.toHaveBeenCalled();
+
+    fireEvent.focus(primaryItems[1]);
+    expect(store.getState().hoveredId).toBe('earth');
+    expect(onRender).not.toHaveBeenCalled();
+
+    fireEvent.blur(primaryItems[1]);
+    expect(store.getState().hoveredId).toBeNull();
+    expect(onRender).not.toHaveBeenCalled();
 
     act(() => {
       store.getState().setHovered('earth');

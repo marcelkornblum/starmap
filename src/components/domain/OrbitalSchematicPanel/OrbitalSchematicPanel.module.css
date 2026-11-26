@@ -1,19 +1,256 @@
 @layer blocks {
-  .orbitalSchematicPanel {
-    --orbital-schematic-panel-gap: var(--space-fib-2);
-    --orbital-schematic-panel-padding: var(--space-fib-3);
+  .root {
+    --schematic-gap: var(--space-fib-2);
+    --schematic-gutter-start: calc(var(--space-fib-5) + var(--space-fib-3));
+    --schematic-gutter-end: var(--space-fib-3);
 
     display: flex;
     flex-direction: column;
-    gap: var(--orbital-schematic-panel-gap);
-    padding: var(--orbital-schematic-panel-padding);
+    gap: var(--schematic-gap);
   }
 
-  .item {
+  .legendLink {
+    color: var(--content-muted);
+    font-family: var(--font-interface);
+    font-size: var(--text-content-footnote-size);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-control);
+    text-decoration: none;
+    padding: var(--space-fib-1) var(--space-fib-2);
+    border-radius: var(--radius-control);
+    transition:
+      color var(--motion-duration-feedback) var(--motion-ease-default),
+      background var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .legendLink:hover {
+    color: var(--content-prominent);
+    background: var(--surface-block-hover-bg);
+  }
+
+  .legendLink:focus-visible {
+    color: var(--content-prominent);
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+  }
+
+  .stage {
+    background: var(--surface-block-bg);
+    border-radius: var(--surface-block-radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding-block: var(--space-fib-1);
+  }
+
+  .hzGroup {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: color-mix(in oklch, var(--category-habitability) 7%, transparent);
+  }
+
+  .hzGroup::before {
+    content: '';
+    position: absolute;
+    inset-block: var(--space-fib-1);
+    inset-inline-start: var(--space-fib-2);
+    inline-size: var(--stroke-width-2);
+    border-radius: var(--radius-full);
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--category-habitability) 22%,
+      var(--category-habitability) 78%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  .hzMarker {
+    position: absolute;
+    inset-inline-start: calc(var(--space-fib-2) + var(--stroke-width-2) + var(--space-fib-1));
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--category-habitability);
+    pointer-events: none;
+  }
+
+  .trackRow {
+    --track-row-bg: transparent;
+    --track-row-color: var(--content-default);
+    --track-line-color: var(--chrome-orbit-color);
+
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: var(--space-fib-2);
-    contain: layout style;
+    padding-block: var(--space-fib-1);
+    padding-inline: var(--schematic-gutter-start) var(--schematic-gutter-end);
+    background: var(--track-row-bg);
+    color: var(--track-row-color);
+    text-decoration: none;
+    position: relative;
+    box-sizing: border-box;
+    transition:
+      background var(--motion-duration-feedback) var(--motion-ease-default),
+      color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .trackRow:hover {
+    --track-row-bg: var(--surface-block-hover-bg);
+    --track-row-color: var(--content-prominent);
+  }
+
+  .trackRow:focus-visible {
+    --track-row-bg: var(--surface-block-hover-bg);
+    --track-row-color: var(--content-prominent);
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: calc(-1 * var(--state-focus-ring-width));
+  }
+
+  .symbolHalo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    inline-size: var(--space-fib-5);
+    block-size: var(--space-fib-5);
+    border-radius: var(--radius-full);
+    background: var(--surface-canvas-bg);
+  }
+
+  .trackLine {
+    flex: 1 1 auto;
+    min-inline-size: var(--space-fib-4);
+    block-size: var(--stroke-width-1);
+    background: repeating-linear-gradient(
+      to right,
+      var(--track-line-color) 0,
+      var(--track-line-color) var(--chrome-dash-size),
+      transparent var(--chrome-dash-size),
+      transparent calc(var(--chrome-dash-size) + var(--chrome-dash-gap))
+    );
+    transition: background var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .trackName {
+    flex: 0 1 auto;
+    max-inline-size: 55%;
+    font-family: var(--font-interface);
+    font-size: var(--text-content-data-label-size);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-control);
+    text-align: end;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .zoneBand {
+    --zone-band-bg: transparent;
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-block-size: var(--space-fib-6);
+    background: var(--zone-band-bg);
+    box-sizing: border-box;
+  }
+
+  .zoneTitleLink,
+  .zoneTitleLabel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-block: var(--space-fib-1);
+    padding-inline: var(--schematic-gutter-start) var(--schematic-gutter-end);
+    font-family: var(--font-interface);
+    font-size: var(--text-content-footnote-size);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-eyebrow);
+    line-height: var(--leading-control);
+    text-transform: uppercase;
+    color: var(--content-muted);
+    text-decoration: none;
+    text-align: center;
+    transition: color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .zoneTitleLink:hover {
+    color: var(--content-prominent);
+  }
+
+  .zoneTitleLink:focus-visible {
+    color: var(--content-prominent);
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: calc(-1 * var(--state-focus-ring-width));
+  }
+}
+
+@layer exceptions {
+  .trackLine[data-line-style="dotted"] {
+    background: repeating-linear-gradient(
+      to right,
+      var(--track-line-color) 0,
+      var(--track-line-color) var(--chrome-dot-size),
+      transparent var(--chrome-dot-size),
+      transparent calc(var(--chrome-dot-size) + var(--chrome-dot-gap))
+    );
+  }
+
+  .trackRow:hover .trackLine,
+  .trackRow:focus-visible .trackLine,
+  .trackRow[data-focused="true"] .trackLine,
+  .trackRow[data-selected="true"] .trackLine {
+    --track-line-color: var(--chrome-kinematic-color);
+  }
+
+  .trackRow[data-selected="true"] {
+    --track-row-bg: var(--surface-block-hover-bg);
+    --track-row-color: var(--content-prominent);
+  }
+
+  .trackRow[data-focused="true"] {
+    --track-row-bg: var(--surface-block-selected-bg);
+    --track-row-color: var(--content-prominent);
+  }
+
+  .zoneBand[data-region-kind="belt"],
+  .zoneBand[data-region-kind="debris-disk"] {
+    --zone-band-bg:
+      radial-gradient(
+        circle,
+        color-mix(in oklch, var(--content-default) 20%, transparent) var(--stroke-width-1),
+        transparent var(--stroke-width-1)
+      ),
+      radial-gradient(
+        ellipse at center,
+        color-mix(in oklch, var(--content-default) 15%, transparent) 0%,
+        color-mix(in oklch, var(--content-muted) 8%, transparent) 60%,
+        transparent 100%
+      );
+    background-size: var(--space-fib-3) var(--space-fib-3), 100% 100%;
+  }
+
+  .zoneBand[data-region-kind="ring-system"] {
+    --zone-band-bg: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent var(--stroke-width-2),
+      color-mix(in oklch, var(--content-default) 16%, transparent) var(--stroke-width-2),
+      color-mix(in oklch, var(--content-default) 16%, transparent) calc(var(--stroke-width-2) + var(--stroke-width-1))
+    );
+  }
+
+  .zoneBand[data-selected="true"] {
+    box-shadow: inset var(--stroke-width-2) 0 0 0 var(--state-selected);
+  }
+
+  .zoneBand[data-focused="true"] {
+    box-shadow: inset var(--stroke-width-2) 0 0 0 var(--state-focus);
   }
 }

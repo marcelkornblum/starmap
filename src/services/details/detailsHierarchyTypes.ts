@@ -1,5 +1,5 @@
 import type { CelestialClassification } from '../../types/spatial';
-import type { CircumstellarDiskRecord } from '../../types/astro';
+import type { CelestialSymbolType, CircumstellarDiskRecord } from '../../types/astro';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
 import type { DecodedEntityAnnotation } from '../../utils/datasetLayerTypes';
@@ -113,62 +113,69 @@ export interface BuildPlanetaryBodiesSummaryInput {
   readonly focusedEntityId?: string;
 }
 
-export type OrbitalSchematicRegion =
-  | 'habitable-zone'
-  | 'asteroid-belt'
-  | 'kuiper-belt';
-
+export type OrbitalSchematicZoneKind = 'belt' | 'debris-disk' | 'ring-system';
+export type OrbitalSchematicLineStyle = 'dashed' | 'dotted';
+export type OrbitalSchematicTier = 'primary' | 'minor';
+export type OrbitalSchematicParentKind = 'system' | 'star' | 'planet' | 'dwarf-planet' | 'minor-body';
 export type OrbitalSchematicEntityKind =
   | 'star'
   | 'planet'
-  | 'belt'
   | 'dwarf-planet'
   | 'moon'
   | 'minor-body'
+  | 'comet'
   | 'spacecraft';
 
-export interface OrbitalSchematicItem {
+export interface OrbitalSchematicZone {
+  readonly id: string;
+  readonly name: string;
+  readonly href?: string;
+  readonly kind: OrbitalSchematicZoneKind;
+  readonly innerRadiusAu: number;
+  readonly outerRadiusAu: number;
+  readonly sortDistanceAu: number;
+  readonly isFocused: boolean;
+  readonly isSelected: boolean;
+}
+
+export interface OrbitalSchematicTrackRow {
   readonly id: string;
   readonly name: string;
   readonly href: string;
   readonly kind: OrbitalSchematicEntityKind;
-  readonly orbitRank: number;
-  readonly summaryLabel: string;
+  readonly reticleType: CelestialSymbolType;
+  readonly tier: OrbitalSchematicTier;
+  readonly sortDistanceAu: number;
+  readonly lineStyle: OrbitalSchematicLineStyle;
   readonly inHabitableZone: boolean;
-  readonly region?: OrbitalSchematicRegion;
   readonly isFocused: boolean;
   readonly isSelected: boolean;
-  readonly children?: readonly OrbitalSchematicItem[];
-  readonly radialSpanAu?: readonly [number, number];
-  readonly composition?: string;
+  readonly zoneId?: string;
 }
+
+export type OrbitalSchematicBand =
+  | {
+      readonly type: 'row';
+      readonly row: OrbitalSchematicTrackRow;
+      readonly inHabitableZone: boolean;
+    }
+  | {
+      readonly type: 'zone';
+      readonly zone: OrbitalSchematicZone;
+      readonly rows: readonly OrbitalSchematicTrackRow[];
+      readonly titleInsertIndex: number;
+      readonly inHabitableZone: boolean;
+    };
 
 export interface OrbitalSchematicSummary {
-  readonly scope: 'system' | 'planet';
+  readonly parentId: string;
+  readonly parentName: string;
+  readonly parentKind: OrbitalSchematicParentKind;
   readonly systemId: string;
   readonly systemName: string;
-  readonly planetId?: string;
-  readonly planetName?: string;
   readonly habitableZoneAu?: readonly [number, number];
-  readonly items: readonly OrbitalSchematicItem[];
+  readonly rows: readonly OrbitalSchematicTrackRow[];
+  readonly zones: readonly OrbitalSchematicZone[];
+  readonly minorBodyCount: number;
+  readonly hasMinorToggle: boolean;
 }
-
-export type SystemOrbitalSchematicInput =
-  | (Partial<SystemBodiesSummary> &
-      Pick<SystemBodiesSummary, 'systemId' | 'systemName' | 'stars' | 'planets'> & {
-        readonly corpus?: readonly CompactSearchEntry[];
-      })
-  | (SystemBodiesSummary & {
-      readonly corpus?: readonly CompactSearchEntry[];
-    })
-  | Pick<
-      FocusedEntityDetails,
-      | 'id'
-      | 'systemId'
-      | 'name'
-      | 'systemName'
-      | 'focusedKind'
-      | 'stars'
-      | 'planets'
-      | 'disks'
-    >;

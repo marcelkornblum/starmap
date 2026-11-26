@@ -10,10 +10,7 @@ import { DetailsIdentityHeader } from './DetailsIdentityHeader';
 import { DetailsQuickTelemetrySection } from './DetailsQuickTelemetrySection';
 import { DetailsTelemetrySections } from './DetailsTelemetrySections';
 import { PreviewPanel } from '../PreviewPanel';
-import {
-  DetailsDeferredFull,
-  DetailsDeferredPartialLower,
-} from './DetailsDeferredSections';
+import { DetailsDeferredPartialLower } from './DetailsDeferredSections';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
@@ -123,15 +120,7 @@ export const DetailsPanel = memo(function DetailsPanel({
     </>
   );
 
-  const fullContent = (
-    <>
-      <DetailsTelemetrySections details={details} />
-      <DetailsDeferredFull
-        isSystemFocus={isSystemFocus}
-        schematic={schematic}
-      />
-    </>
-  );
+  const fullContent = <DetailsTelemetrySections details={details} />;
 
   return (
     <DetentSheet

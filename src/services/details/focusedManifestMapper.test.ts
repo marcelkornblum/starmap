@@ -39,6 +39,14 @@ describe('focusedManifestMapper', () => {
             argumentOfPeriapsis: 0,
             meanAnomaly: 0,
           },
+          rings: [
+            {
+              id: 'earth-dust-ring',
+              name: 'Dust Ring',
+              innerRadiusAu: 0.0001,
+              outerRadiusAu: 0.0002,
+            },
+          ],
         },
       ],
       disks: [
@@ -60,6 +68,14 @@ describe('focusedManifestMapper', () => {
     expect(mapped.planets).toHaveLength(1);
     expect(mapped.planets[0]?.id).toBe('earth');
     expect(mapped.planets[0]?.composition).toBe('terrestrial');
+    expect(mapped.planets[0]?.rings).toEqual([
+      {
+        id: 'earth-dust-ring',
+        name: 'Dust Ring',
+        innerRadiusAu: 0.0001,
+        outerRadiusAu: 0.0002,
+      },
+    ]);
     expect(mapped.disks).toHaveLength(1);
     expect(mapped.disks[0]?.id).toBe('asteroid-belt');
   });

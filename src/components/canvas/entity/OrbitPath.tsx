@@ -4,7 +4,6 @@ import { useFrame } from '@react-three/fiber';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
 import { CartoLineMaterial } from '../materials/CartoLineMaterial';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { calculateScreenInvariantScale, NOOP_RAYCAST } from '../engineConfig';
@@ -94,8 +93,6 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     return new CartoLineMaterial({
       lineWidth: 2.0,
       lineStyle: lineStyle ?? orbitStyle ?? 'dashed',
-      dashSize: CARTO_LINE_CONSTANTS.dashSize,
-      gapSize: CARTO_LINE_CONSTANTS.gapSize,
       transparent: true,
       depthWrite: false,
     });

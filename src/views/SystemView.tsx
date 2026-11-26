@@ -177,8 +177,8 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
   );
 
   const bodiesNode = useMemo(
-    () => (panelsReady ? <BodiesPanel elements={systemBodies} schematic={orbitalSchematic} /> : undefined),
-    [panelsReady, systemBodies, orbitalSchematic],
+    () => (panelsReady ? <BodiesPanel elements={systemBodies} /> : undefined),
+    [panelsReady, systemBodies],
   );
 
   return (

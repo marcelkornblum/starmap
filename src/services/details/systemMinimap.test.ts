@@ -93,4 +93,37 @@ describe('systemMinimap', () => {
 
     expect(orientation.planeInclinationDeg).toBe(60.19);
   });
+
+  it('computes habitableZoneAu fallback from star luminosity when schematic habitableZoneAu is undefined', () => {
+    const bodiesSummary: SystemBodiesSummary = {
+      scope: 'system',
+      systemId: 'sol',
+      systemName: 'Sol',
+      systemHref: '/system/sol',
+      stars: [
+        {
+          id: 'sol-star',
+          name: 'Sol',
+          componentDesignation: 'A',
+          spectralType: 'G2V',
+          mag: -26.74,
+          absmag: 4.83,
+          luminosityLsun: 1.0,
+        },
+      ],
+      planets: [],
+      moonsAndDwarfPlanets: [],
+      minorBodiesAndSpacecraft: [],
+      canonAnnotations: [],
+    };
+
+    const orientation = buildSystemMinimapOrientation(
+      bodiesSummary,
+      null,
+      null,
+      null,
+    );
+
+    expect(orientation.habitableZoneAu).toEqual([0.75, 1.77]);
+  });
 });

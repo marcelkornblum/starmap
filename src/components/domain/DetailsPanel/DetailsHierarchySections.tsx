@@ -8,8 +8,7 @@ import type {
   OrbitalSchematicSummary,
   SystemElementBodyItem,
 } from '../../../services/details/detailsHierarchyTypes';
-import { Heading } from '../../interface';
-import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
+import { OrbitalSchematicPanel } from '../OrbitalSchematicPanel';
 import { DetailsDisksSection } from './DetailsDisksSection';
 import { DetailsOrbitingBodiesSection } from './DetailsOrbitingBodiesSection';
 import { DetailsPlanetsSection } from './DetailsPlanetsSection';
@@ -21,6 +20,11 @@ export {
   DetailsPlanetsSection,
   DetailsStarsSection,
 };
+
+const hasOrbitalSchematicContent = (
+  schematic?: OrbitalSchematicSummary | null,
+): schematic is OrbitalSchematicSummary =>
+  Boolean(schematic && (schematic.rows.length > 0 || schematic.zones.length > 0));
 
 export interface DetailsPlanetHierarchyProps {
   readonly focusedKind: string;
@@ -34,25 +38,11 @@ export const DetailsPlanetHierarchy = memo(function DetailsPlanetHierarchy({
   orbitingBodies,
 }: DetailsPlanetHierarchyProps) {
   if (
-    focusedKind === 'planet' &&
-    schematic &&
-    schematic.scope === 'planet' &&
-    schematic.items.length > 0
+    focusedKind !== 'system' &&
+    focusedKind !== 'star' &&
+    hasOrbitalSchematicContent(schematic)
   ) {
-    return (
-      <section
-        aria-labelledby="details-schematic-heading"
-        data-testid="orbital-schematic-panel"
-        data-scope={schematic.scope}
-        data-system-id={schematic.systemId}
-        data-planet-id={schematic.planetId}
-      >
-        <Heading as="h4" size="eyebrow" id="details-schematic-heading">
-          Orbital Schematic
-        </Heading>
-        <OrbitalSchematicList items={schematic.items} />
-      </section>
-    );
+    return <OrbitalSchematicPanel elements={schematic} />;
   }
 
   return (
@@ -86,21 +76,8 @@ export const DetailsSystemHierarchy = memo(function DetailsSystemHierarchy({
     return null;
   }
 
-  if (schematic && schematic.scope === 'system' && schematic.items.length > 0) {
-    return (
-      <section
-        aria-labelledby="details-schematic-heading"
-        data-testid="orbital-schematic-panel"
-        data-scope={schematic.scope}
-        data-system-id={schematic.systemId}
-        data-planet-id={undefined}
-      >
-        <Heading as="h4" size="eyebrow" id="details-schematic-heading">
-          Orbital Schematic
-        </Heading>
-        <OrbitalSchematicList items={schematic.items} />
-      </section>
-    );
+  if (hasOrbitalSchematicContent(schematic)) {
+    return <OrbitalSchematicPanel elements={schematic} />;
   }
 
   return (
