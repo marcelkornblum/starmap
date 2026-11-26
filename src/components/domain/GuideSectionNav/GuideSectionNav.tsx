@@ -5,11 +5,12 @@ import {
   PLANET_TYPES_GUIDE_PATH,
   METRICS_GUIDE_PATH,
   HAZARDS_GUIDE_PATH,
+  LEGEND_GUIDE_PATH,
 } from '../../../content/guide';
 import styles from './GuideSectionNav.module.css';
 
 export interface GuideSectionNavProps {
-  readonly currentSection?: 'star-types' | 'planet-types' | 'metrics' | 'hazards';
+  readonly currentSection?: 'star-types' | 'planet-types' | 'metrics' | 'hazards' | 'legend';
 }
 
 export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection }) => {
@@ -54,6 +55,15 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
             aria-current={currentSection === 'hazards' ? 'page' : undefined}
           >
             Environmental Hazards
+          </a>
+        </li>
+        <li>
+          <a
+            href={LEGEND_GUIDE_PATH}
+            className={styles.sectionNavLink}
+            aria-current={currentSection === 'legend' ? 'page' : undefined}
+          >
+            Legend
           </a>
         </li>
       </Cluster>

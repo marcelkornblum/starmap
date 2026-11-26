@@ -8,3 +8,4 @@ export * from './starTypes';
 export * from './planetTypes';
 export * from './hazardTypes';
 export * from './metricTypes';
+export * from './legendData';

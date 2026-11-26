@@ -13,7 +13,7 @@ const meta: Meta<typeof GuideSectionNav> = {
   argTypes: {
     currentSection: {
       control: 'select',
-      options: ['star-types', 'planet-types', 'metrics', 'hazards'],
+      options: ['star-types', 'planet-types', 'metrics', 'hazards', 'legend'],
       description: 'Active guide section navigation pill',
     },
   },
@@ -32,7 +32,7 @@ export const GuideSectionNavStory: Story = {
       <header className={storyStyles.header}>
         <h1 className={storyStyles.title}>GuideSectionNav</h1>
         <p className={storyStyles.description}>
-          Horizontal section switcher between Star Types, Planet Types, Metrics, and Hazards guides.
+          Horizontal section switcher between Star Types, Planet Types, Metrics, Hazards, and Legend guides.
         </p>
       </header>
 
@@ -53,6 +53,7 @@ export const GuideSectionNavStory: Story = {
             <GuideSectionNav currentSection="planet-types" />
             <GuideSectionNav currentSection="metrics" />
             <GuideSectionNav currentSection="hazards" />
+            <GuideSectionNav currentSection="legend" />
           </Stack>
         </section>
       </Stack>
