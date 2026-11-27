@@ -182,6 +182,21 @@ describe('<DiscoverPanel />', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('does not invoke onSelectLayer on modified-key link clicks (e.g. ctrlKey)', () => {
+    const onSelectLayer = vi.fn();
+
+    render(
+      <DiscoverPanel
+        layers={SAMPLE_LAYERS}
+        onSelectLayer={onSelectLayer}
+      />,
+    );
+
+    const links = screen.getAllByTestId('discover-layer-link');
+    fireEvent.click(links[2], { ctrlKey: true });
+    expect(onSelectLayer).not.toHaveBeenCalled();
+  });
+
   it('omits close button when onClose is not provided', () => {
     render(<DiscoverPanel layers={SAMPLE_LAYERS} />);
     expect(screen.queryByTestId('discover-close-button')).not.toBeInTheDocument();

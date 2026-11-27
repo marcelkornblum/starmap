@@ -54,6 +54,10 @@ describe('<DetentSheet />', () => {
 
     const handle = screen.getByRole('separator', { name: 'Drag to resize panel' });
     expect(handle).toBeInTheDocument();
+    expect(handle).toHaveAttribute('aria-valuemin', '0');
+    expect(handle).toHaveAttribute('aria-valuemax', '2');
+    expect(handle).toHaveAttribute('aria-valuenow', '0');
+    expect(handle).toHaveAttribute('aria-valuetext', 'peek');
   });
 
   it('reacts to activeDetent prop updates and reflects progress & beyond-partial flags', () => {
@@ -67,10 +71,13 @@ describe('<DetentSheet />', () => {
     );
 
     let panel = screen.getByTestId('catalog-panel');
+    const handle = screen.getByTestId('catalog-drag-handle');
     expect(panel.getAttribute('data-detent')).toBe('peek');
     expect(panel.getAttribute('data-is-full-screen')).toBe('false');
     expect(panel.getAttribute('data-beyond-partial')).toBe('false');
     expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('0');
+    expect(handle).toHaveAttribute('aria-valuenow', '0');
+    expect(handle).toHaveAttribute('aria-valuetext', 'peek');
 
     rerender(
       <DetentSheet
@@ -86,6 +93,8 @@ describe('<DetentSheet />', () => {
     expect(panel.getAttribute('data-is-full-screen')).toBe('false');
     expect(panel.getAttribute('data-beyond-partial')).toBe('false');
     expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
+    expect(handle).toHaveAttribute('aria-valuenow', '1');
+    expect(handle).toHaveAttribute('aria-valuetext', 'partial');
 
     rerender(
       <DetentSheet
@@ -101,6 +110,8 @@ describe('<DetentSheet />', () => {
     expect(panel.getAttribute('data-is-full-screen')).toBe('true');
     expect(panel.getAttribute('data-beyond-partial')).toBe('true');
     expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
+    expect(handle).toHaveAttribute('aria-valuenow', '2');
+    expect(handle).toHaveAttribute('aria-valuetext', 'full');
   });
 
   it('defers data-is-dragging until drag threshold is exceeded and snaps on touch drag anywhere on <aside>', () => {

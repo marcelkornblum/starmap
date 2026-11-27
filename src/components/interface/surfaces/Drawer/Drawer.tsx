@@ -6,6 +6,7 @@ import {
   type ReactNode,
   type TouchEventHandler,
 } from 'react';
+import { Icon } from '../../layouts/Icon/Icon';
 import { Stack } from '../../layouts/Stack/Stack';
 import { Button } from '../../controls/Button/Button';
 import styles from './Drawer.module.css';
@@ -134,7 +135,11 @@ export const Drawer = ({
               aria-label="Close drawer"
               data-testid="drawer-close-button"
             >
-              ✕
+              <Icon size="sm">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M3 3L9 9M9 3L3 9" />
+                </svg>
+              </Icon>
             </Button>
           </header>
         )}

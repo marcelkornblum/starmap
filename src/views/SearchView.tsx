@@ -4,7 +4,7 @@ import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Search } from '../components/domain/Search';
 import { SearchResultItem } from '../components/domain/SearchResultItem';
 import { SpatialShell } from '../components/domain/SpatialShell';
-import { Center, Stack } from '../components/interface';
+import { Center, Panel, Stack } from '../components/interface';
 import styles from './SearchView.module.css';
 
 export const SearchView: FC = () => {
@@ -27,7 +27,7 @@ export const SearchView: FC = () => {
             ]}
           />
           <Center max="lg" gutter="none">
-            <section className={styles.searchPanel}>
+            <Panel aria-label="Search">
               <Search.Root>
                 <Search.Panel scope="search" />
                 <Search.Results
@@ -37,7 +37,7 @@ export const SearchView: FC = () => {
                   )}
                 />
               </Search.Root>
-            </section>
+            </Panel>
           </Center>
         </Stack>
       </div>

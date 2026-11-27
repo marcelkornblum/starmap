@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Cluster } from '../../interface';
+import { Button, Cluster } from '../../interface';
 import {
   STAR_TYPES_GUIDE_PATH,
   PLANET_TYPES_GUIDE_PATH,
@@ -7,8 +7,6 @@ import {
   HAZARDS_GUIDE_PATH,
   LEGEND_GUIDE_PATH,
 } from '../../../content/guide';
-import { useSpaLinkClick } from '../../../hooks/spaNavigation';
-import { resolveAppHref } from '../../../utils/url';
 import styles from './GuideSectionNav.module.css';
 
 export type GuideSectionId = 'star-types' | 'planet-types' | 'metrics' | 'hazards' | 'legend';
@@ -30,29 +28,28 @@ const GUIDE_SECTIONS: readonly {
 ];
 
 export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection }) => {
-  const handleSpaLinkClick = useSpaLinkClick();
-
   return (
     <nav
       aria-label="Guide sections"
       data-testid="guide-section-nav"
       className={styles.sectionNav}
     >
-      <Cluster as="ul" gap="fib-1" align="stretch">
-        {GUIDE_SECTIONS.map(({ id, label, path }) => (
-          <li key={id}>
-            <a
-              href={resolveAppHref(path)}
-              className={styles.sectionNavLink}
-              aria-current={currentSection === id ? 'page' : undefined}
-              onClick={(e) => {
-                handleSpaLinkClick(e, path);
-              }}
-            >
-              {label}
-            </a>
-          </li>
-        ))}
+      <Cluster as="ul" gap="fib-1" align="center">
+        {GUIDE_SECTIONS.map(({ id, label, path }) => {
+          const isCurrent = currentSection === id;
+          return (
+            <li key={id}>
+              <Button
+                href={path}
+                size="sm"
+                variant={isCurrent ? 'primary' : 'subtle'}
+                aria-current={isCurrent ? 'page' : undefined}
+              >
+                {label}
+              </Button>
+            </li>
+          );
+        })}
       </Cluster>
     </nav>
   );

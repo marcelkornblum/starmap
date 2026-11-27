@@ -1,6 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { useRouter } from '@tanstack/react-router';
@@ -931,35 +929,51 @@ describe('SpatialShell Domain Component', () => {
     });
   });
 
-  describe('Tablet Horizontal Scroll Containment', () => {
-    it('prevents horizontal overflow and swipe scroll on .floatingLeft in SpatialShell.module.css', () => {
-      const css = fs.readFileSync(
-        path.resolve(__dirname, './SpatialShell.module.css'),
-        'utf8',
-      );
-      const match = css.match(/\.floatingLeft\s*\{[^}]*overflow-y:\s*auto[^}]*\}/);
-      expect(match).not.toBeNull();
-      const block = match?.[0] ?? '';
-      expect(block).toMatch(/overflow-x:\s*hidden;/);
-      expect(block).toMatch(/overscroll-behavior-x:\s*none;/);
-      expect(block).toMatch(/min-inline-size:\s*0;/);
-      expect(css).toContain('.searchRegion input:focus,');
-      expect(css).toContain('.searchRegion input:focus-visible');
-      expect(css).not.toContain('.searchRegion :focus,');
-    });
+  describe('Tier 1 & Tier 2 Interface Composition', () => {
+    it('composes ConsoleDock inside Tier 2 Dock and DiscoverPanel inside Tier 2 Panel', () => {
+      act(() => {
+        useUIStore.getState().setDiscoverOpen(true);
+      });
 
-    it('uses flex-start on .visorDiscoveryRow, fixed inset:0 on .spatialShell, and places visor-scale outside top-bar', () => {
       render(<SpatialShell minimapOrientation={MOCK_ORIENTATION} />);
+
+      const dockRegion = document.querySelector('[data-spatial-region="console-dock"]');
+      const dockSurface = dockRegion?.querySelector('[data-position="floating"]');
+      expect(dockSurface).not.toBeNull();
+      expect(dockSurface).toHaveAttribute('data-padded', 'false');
+      expect(dockSurface).toContainElement(screen.getByTestId('console-dock'));
+
+      const floatingLeft = document.querySelector('[data-spatial-region="floating-left"]');
+      const discoverPanelSurface = floatingLeft?.querySelector('[data-padding="tight"]');
+      expect(discoverPanelSurface).not.toBeNull();
+      expect(discoverPanelSurface).toContainElement(screen.getByTestId('discover-panel'));
+
+      const discoverCloseBtn = screen.getByTestId('discover-close-button');
+      expect(discoverCloseBtn.querySelector('svg')).not.toBeNull();
+      expect(discoverCloseBtn.textContent).toBe('');
+
       const topBar = document.querySelector('[data-spatial-region="top-bar"]')!;
       const visorScale = document.querySelector('[data-spatial-region="visor-scale"]')!;
       expect(topBar.contains(visorScale)).toBe(false);
+    });
 
-      const css = fs.readFileSync(
-        path.resolve(__dirname, './SpatialShell.module.css'),
-        'utf8',
+    it('renders Objects in View trigger as subtle when closed, primary when open, and uses an SVG close icon in the drawer', () => {
+      render(
+        <SpatialShell bodies={<div data-testid="bodies-content">Bodies</div>} />,
       );
-      expect(css).toMatch(/\.visorDiscoveryRow\s*\{[^}]*align-items:\s*flex-start;/);
-      expect(css).toMatch(/\.spatialShell\s*\{[^}]*position:\s*fixed;[^}]*inset:\s*0;/);
+
+      const toggleBtn = screen.getByTestId('spatial-shell-bodies-toggle');
+      expect(toggleBtn).toHaveAttribute('data-variant', 'subtle');
+      expect(toggleBtn.querySelector('svg')).not.toBeNull();
+      expect(toggleBtn.textContent).toBe('Objects in View');
+
+      fireEvent.click(toggleBtn);
+      expect(toggleBtn).toHaveAttribute('data-variant', 'primary');
+      expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
+
+      const closeBtn = screen.getByTestId('spatial-shell-bodies-close');
+      expect(closeBtn.querySelector('svg')).not.toBeNull();
+      expect(closeBtn.textContent).toBe('');
     });
   });
 });

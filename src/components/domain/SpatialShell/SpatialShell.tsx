@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Button } from '../../interface';
+import { Button, Icon, Panel } from '../../interface';
 import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useLayerIndex } from '../../../hooks/useLayerData';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
@@ -14,12 +14,8 @@ import { DiscoverPanel } from '../DiscoverPanel';
 import { VisorScalePill } from '../VisorScalePill';
 import { SpatialShellBodiesDrawer } from './spatialShellBodiesDrawer';
 import {
-  isSpatialMapPath,
-  resolveConsoleDockConfig,
-  resolvePrimaryPanelsMeta,
-  useIsWideViewport,
-  useSpatialKeyboardShortcuts,
-  useSpatialShellBodiesDrawerState,
+  isSpatialMapPath, resolveConsoleDockConfig, resolvePrimaryPanelsMeta,
+  useIsWideViewport, useSpatialKeyboardShortcuts, useSpatialShellBodiesDrawerState,
 } from './spatialShellHelpers';
 import { useViewportSafeRectObserver } from './useViewportSafeRectObserver';
 import styles from './SpatialShell.module.css';
@@ -113,9 +109,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
   }, [prefersReducedMotion]);
 
   const { isBodiesDrawerOpen, handleToggle, handleClose } = useSpatialShellBodiesDrawerState(
-    initialBodiesDrawerOpen,
-    controlledBodiesOpen,
-    onBodiesDrawerOpenChange,
+    initialBodiesDrawerOpen, controlledBodiesOpen, onBodiesDrawerOpenChange,
   );
 
   useSpatialKeyboardShortcuts(mode === 'spatial');
@@ -161,13 +155,8 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
   );
 
   const { content: resolvedPrimaryFloat, isShowingDetails } = resolvePrimaryPanelsMeta({
-    detailsPanel,
-    directionsPanel,
-    isDetailsOpen,
-    isDirectionsOpen,
-    primaryPanelPriority,
-    dualPanelPolicy,
-    isWideViewport,
+    detailsPanel, directionsPanel, isDetailsOpen, isDirectionsOpen,
+    primaryPanelPriority, dualPanelPolicy, isWideViewport,
   });
 
   const resolvedPreview = isShowingDetails ? null : preview;
@@ -226,11 +215,19 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                     <div className={styles.bodiesTriggerRegion} data-spatial-region="bodies-trigger">
                       <Button
                         size="sm"
-                        variant={isBodiesDrawerOpen ? 'primary' : 'default'}
+                        variant={isBodiesDrawerOpen ? 'primary' : 'subtle'}
                         data-testid="spatial-shell-bodies-toggle"
                         aria-expanded={isBodiesDrawerOpen}
                         onClick={handleToggle}
                       >
+                        <Icon size="sm">
+                          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                            <circle cx="2.25" cy="3" r="0.75" fill="currentColor" stroke="none" />
+                            <circle cx="2.25" cy="6" r="0.75" fill="currentColor" stroke="none" />
+                            <circle cx="2.25" cy="9" r="0.75" fill="currentColor" stroke="none" />
+                            <path d="M4.75 3H10M4.75 6H10M4.75 9H10" />
+                          </svg>
+                        </Icon>
                         Objects in View
                       </Button>
                     </div>
@@ -253,12 +250,14 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                   data-camera-retracted={ssrInFlightAttr}
                 >
                   {isDiscoverOpen ? (
-                    <div className={styles.discoverSurface}>
-                      <DiscoverPanel
-                        activeLayerSlug={activeLayerSlug}
-                        onClose={() => setDiscoverOpen(false)}
-                        onSelectLayer={() => setDiscoverOpen(false)}
-                      />
+                    <div className={styles.discoverRegion}>
+                      <Panel padding="tight">
+                        <DiscoverPanel
+                          activeLayerSlug={activeLayerSlug}
+                          onClose={() => setDiscoverOpen(false)}
+                          onSelectLayer={() => setDiscoverOpen(false)}
+                        />
+                      </Panel>
                     </div>
                   ) : (
                     <>

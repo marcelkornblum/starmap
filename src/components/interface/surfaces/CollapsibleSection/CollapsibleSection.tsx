@@ -1,6 +1,7 @@
 import { useId, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { Heading } from '../../information/Heading/Heading';
 import { Cluster } from '../../layouts/Cluster/Cluster';
+import { Icon } from '../../layouts/Icon/Icon';
 import styles from './CollapsibleSection.module.css';
 
 export interface CollapsibleSectionProps
@@ -67,7 +68,7 @@ export const CollapsibleSection = ({
               data-expanded={isOpen ? 'true' : 'false'}
               aria-hidden="true"
             >
-              ▾
+              <Icon direction="down" size="sm" />
             </span>
           </button>
         </Heading>

@@ -4,11 +4,13 @@ import '@testing-library/jest-dom/vitest';
 import { ConsoleDock } from './ConsoleDock';
 
 describe('<ConsoleDock />', () => {
-  it('renders primary navigation landmark with Map, Discover, and Guide items', () => {
+  it('renders primary navigation landmark inside Tier 2 Dock with Icon-wrapped Map, Discover, and Guide items', () => {
     render(<ConsoleDock activeItem="map" onToggleDiscover={vi.fn()} />);
 
     const nav = screen.getByRole('navigation', { name: 'Primary navigation' });
     expect(nav).toHaveAttribute('data-testid', 'console-dock');
+    expect(nav.parentElement).toHaveAttribute('data-position', 'floating');
+    expect(nav.parentElement).toHaveAttribute('data-padded', 'false');
 
     const mapItem = screen.getByTestId('console-dock-map');
     const discoverItem = screen.getByTestId('console-dock-discover');
@@ -22,9 +24,12 @@ describe('<ConsoleDock />', () => {
     expect(discoverItem).toHaveTextContent('Discover');
     expect(guideItem).toHaveTextContent('Guide');
 
-    expect(mapItem.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
-    expect(discoverItem.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
-    expect(guideItem.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    for (const item of [mapItem, discoverItem, guideItem]) {
+      const svg = item.querySelector('svg');
+      expect(svg).toHaveAttribute('aria-hidden', 'true');
+      expect(svg?.parentElement).toHaveAttribute('data-size', 'md');
+      expect(svg?.parentElement).toHaveAttribute('aria-hidden', 'true');
+    }
   });
 
   it('uses default hrefs for Map and Guide and sets active state on activeItem="map"', () => {
@@ -99,6 +104,25 @@ describe('<ConsoleDock />', () => {
 
     fireEvent.click(guideLink);
     expect(onNavigateItem).toHaveBeenCalledWith('guide');
+  });
+
+  it('does not invoke onNavigateItem on modified-key clicks (e.g. ctrlKey)', () => {
+    const onNavigateItem = vi.fn();
+    render(
+      <ConsoleDock
+        activeItem="discover"
+        mapHref="/galaxy"
+        guideHref="/guide/star-types"
+        onNavigateItem={onNavigateItem}
+      />,
+    );
+
+    const mapLink = screen.getByTestId('console-dock-map');
+    const guideLink = screen.getByTestId('console-dock-guide');
+
+    fireEvent.click(mapLink, { ctrlKey: true });
+    fireEvent.click(guideLink, { ctrlKey: true });
+    expect(onNavigateItem).not.toHaveBeenCalled();
   });
 
   it('sets active state on Guide when activeItem="guide" and renders Discover as button', () => {

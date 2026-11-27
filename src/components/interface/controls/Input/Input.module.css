@@ -36,6 +36,15 @@
     color: var(--input-placeholder-color);
   }
 
+  .input::-webkit-search-decoration,
+  .input::-webkit-search-cancel-button,
+  .input::-webkit-search-results-button,
+  .input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
+
   .input:focus {
     --input-border-color: oklch(from var(--state-focus) l c h / 0.55);
     --input-shadow: var(--state-focus-halo);

@@ -6,6 +6,7 @@ import { MetricComparativePanel } from '../components/domain/MetricComparativePa
 import { SpatialShell } from '../components/domain/SpatialShell';
 import {
   Badge,
+  Block,
   Button,
   Cluster,
   CollapsibleSection,
@@ -141,37 +142,39 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
                   />
                 )}
 
-                <section className={styles.cardItem}>
-                  <Cluster gap="tight" align="center">
-                    <strong>{entry.title}</strong>{' '}
-                    <Unit inParens>{entry.unitSymbol}</Unit>{' '}
-                    <Badge status="neutral">{entry.category}</Badge>
-                  </Cluster>
+                <Block as="section" padding="default">
+                  <Stack gap="fib-3">
+                    <Cluster gap="tight" align="center">
+                      <strong>{entry.title}</strong>{' '}
+                      <Unit inParens>{entry.unitSymbol}</Unit>{' '}
+                      <Badge status="neutral">{entry.category}</Badge>
+                    </Cluster>
 
-                  <p
-                    data-testid="metric-familiar-conversion"
-                    className={styles.familiarConversion}
-                  >
-                    {entry.familiarConversion}
-                  </p>
+                    <p
+                      data-testid="metric-familiar-conversion"
+                      className={styles.familiarConversion}
+                    >
+                      {entry.familiarConversion}
+                    </p>
 
-                  <p data-testid="guide-detail-summary">{entry.summary}</p>
+                    <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-                  <CollapsibleSection title="Standard Formulation & Baseline" headingAs="h3">
-                    <Stack gap="none" data-testid="guide-detail-telemetry">
-                      <Datum label="Unit Symbol" value={entry.unitSymbol} />
-                      <Datum label="Category" value={entry.category} />
-                      <Datum
-                        label="Physical Definition"
-                        value={entry.physicalDefinition}
-                      />
-                      <Datum
-                        label="Reference Baseline"
-                        value={entry.referenceBaseline}
-                      />
-                    </Stack>
-                  </CollapsibleSection>
-                </section>
+                    <CollapsibleSection title="Standard Formulation & Baseline" headingAs="h3">
+                      <Stack gap="none" data-testid="guide-detail-telemetry">
+                        <Datum label="Unit Symbol" value={entry.unitSymbol} />
+                        <Datum label="Category" value={entry.category} />
+                        <Datum
+                          label="Physical Definition"
+                          value={entry.physicalDefinition}
+                        />
+                        <Datum
+                          label="Reference Baseline"
+                          value={entry.referenceBaseline}
+                        />
+                      </Stack>
+                    </CollapsibleSection>
+                  </Stack>
+                </Block>
 
                 <GuideExamplesList
                   examples={getGuideExamplesForEntry('metricTypes', entry.id)}

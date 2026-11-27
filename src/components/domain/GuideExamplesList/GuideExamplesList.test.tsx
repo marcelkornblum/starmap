@@ -80,4 +80,13 @@ describe('<GuideExamplesList />', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByTestId('guide-examples-list')).toBeInTheDocument();
   });
+
+  it('uses a minimal wrapper without an outer Block surface so it does not double-nest cards', () => {
+    const { container } = render(<GuideExamplesList examples={mockExamples} />);
+
+    const root = container.firstElementChild;
+    expect(root).not.toBeNull();
+    expect(root?.tagName).toBe('DIV');
+    expect(root).not.toHaveAttribute('data-block');
+  });
 });

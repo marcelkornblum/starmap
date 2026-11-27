@@ -3,7 +3,7 @@ import type { DatasetLayerIndexEntry } from '../../../types/datasetLayers';
 import { useLayerIndex } from '../../../hooks/useLayerData';
 import { useSpaLinkClick } from '../../../hooks/spaNavigation';
 import { resolveAppHref } from '../../../utils/url';
-import { Block, Button, Cluster, CollapsibleSection, Heading, Input, Quantity, Stack } from '../../interface';
+import { Block, Button, Cluster, CollapsibleSection, Heading, Icon, Input, Quantity, Stack } from '../../interface';
 import {
   buildDiscoverLayerHref,
   filterAndGroupDiscoverLayers,
@@ -64,8 +64,12 @@ const DiscoverGroup = React.memo(function DiscoverGroup({
                 className={styles.itemLink}
                 data-testid="discover-layer-link"
                 onClick={(e) => {
-                  onSelectLayer?.(slug, href);
+                  const isPlainPrimaryClick =
+                    e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
                   handleSpaLinkClick(e, href);
+                  if (isPlainPrimaryClick) {
+                    onSelectLayer?.(slug, href);
+                  }
                 }}
               >
                 <Stack gap="fib-1">
@@ -127,7 +131,11 @@ export const DiscoverPanel = React.memo(function DiscoverPanel({
             aria-label="Close Discover"
             data-testid="discover-close-button"
           >
-            ✕
+            <Icon size="sm">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M3 3L9 9M9 3L3 9" />
+              </svg>
+            </Icon>
           </Button>
         ) : null}
       </header>

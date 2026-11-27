@@ -20,7 +20,7 @@ export const GuideExamplesList: React.FC<GuideExamplesListProps> = ({
   reticleType,
 }) => {
   return (
-    <div className={styles.cardItem}>
+    <div className={styles.examplesContainer}>
       <CollapsibleSection title={title} headingAs="h3">
         <DataTable data-testid="guide-examples-list">
           <DataTable.Head>

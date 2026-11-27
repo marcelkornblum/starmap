@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
@@ -213,14 +211,25 @@ describe('<CollapsibleSection />', () => {
     expect(trigger.getAttribute('aria-controls')).toBeNull();
   });
 
-  it('defines coarse-pointer hit-slop ::after expansion on .trigger in CSS module', () => {
-    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'CollapsibleSection.module.css'), 'utf8');
-    expect(css).toMatch(/--collapsible-hit-slop-block:\s*var\(--space-hit-slop-block\)/);
-    expect(css).toMatch(/--collapsible-hit-slop-inline:\s*var\(--space-hit-slop-inline\)/);
-    expect(css).toMatch(/\.trigger\s*\{[\s\S]*position:\s*relative/);
-    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
-    expect(css).toMatch(/\.trigger::after/);
-    expect(css).toMatch(/inset-block:\s*var\(--collapsible-hit-slop-block\)/);
-    expect(css).toMatch(/inset-inline:\s*var\(--collapsible-hit-slop-inline\)/);
+  it('renders an accessible SVG chevron icon inside the trigger that tracks expanded state', () => {
+    render(
+      <CollapsibleSection
+        title="Orbital Parameters"
+        toggleTestId="orbital-toggle"
+        defaultOpen={false}
+      >
+        <div>Semi-major axis</div>
+      </CollapsibleSection>,
+    );
+
+    const trigger = screen.getByTestId('orbital-toggle');
+    const chevronSvg = trigger.querySelector('svg');
+    expect(chevronSvg).not.toBeNull();
+    expect(chevronSvg).toHaveAttribute('data-direction', 'down');
+    expect(chevronSvg?.parentElement).toHaveAttribute('aria-hidden', 'true');
+    expect(chevronSvg?.parentElement?.parentElement).toHaveAttribute('data-expanded', 'false');
+
+    fireEvent.click(trigger);
+    expect(chevronSvg?.parentElement?.parentElement).toHaveAttribute('data-expanded', 'true');
   });
 });

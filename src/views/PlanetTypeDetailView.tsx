@@ -5,6 +5,7 @@ import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { SpatialShell } from '../components/domain/SpatialShell';
 import {
+  Block,
   Button,
   CelestialBadge,
   Cluster,
@@ -104,36 +105,38 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
       {entries.length > 0 ? (
         <>
           {entries.map((entry) => (
-            <section key={entry.id} className={styles.cardItem}>
-              <Guide3DPreview
-                kind="planet"
-                composition={entry.composition}
-                radiusRearth={entry.canonicalRadiusRearth}
-                textureTheme={entry.textureTheme}
-                isDetail
-              />
+            <Block as="section" padding="default" key={entry.id}>
+              <Stack gap="fib-3">
+                <Guide3DPreview
+                  kind="planet"
+                  composition={entry.composition}
+                  radiusRearth={entry.canonicalRadiusRearth}
+                  textureTheme={entry.textureTheme}
+                  isDetail
+                />
 
-              <Cluster gap="tight" align="center">
-                <CelestialBadge type={entry.composition} />
-                <strong>{entry.title}</strong>
-              </Cluster>
+                <Cluster gap="tight" align="center">
+                  <CelestialBadge type={entry.composition} />
+                  <strong>{entry.title}</strong>
+                </Cluster>
 
-              <p data-testid="guide-detail-summary">{entry.summary}</p>
+                <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-              <CollapsibleSection title="Geophysical & Atmospheric Telemetry" headingAs="h3">
-                <Stack gap="none" data-testid="guide-detail-telemetry">
-                  <Datum label="Mass Range" value={entry.massRangeMearth} />
-                  <Datum label="Radius Range" value={entry.radiusRangeRearth} />
-                  <Datum label="Bulk Composition" value={entry.bulkComposition} />
-                  <Datum label="Habitability" value={entry.habitabilityNotes} />
-                </Stack>
-              </CollapsibleSection>
+                <CollapsibleSection title="Geophysical & Atmospheric Telemetry" headingAs="h3">
+                  <Stack gap="none" data-testid="guide-detail-telemetry">
+                    <Datum label="Mass Range" value={entry.massRangeMearth} />
+                    <Datum label="Radius Range" value={entry.radiusRangeRearth} />
+                    <Datum label="Bulk Composition" value={entry.bulkComposition} />
+                    <Datum label="Habitability" value={entry.habitabilityNotes} />
+                  </Stack>
+                </CollapsibleSection>
 
-              <GuideExamplesList
-                examples={getGuideExamplesForEntry('planetTypes', entry.id)}
-                reticleType={entry.composition ?? 'terrestrial'}
-              />
-            </section>
+                <GuideExamplesList
+                  examples={getGuideExamplesForEntry('planetTypes', entry.id)}
+                  reticleType={entry.composition ?? 'terrestrial'}
+                />
+              </Stack>
+            </Block>
           ))}
         </>
       ) : (

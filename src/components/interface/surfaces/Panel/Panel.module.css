@@ -50,6 +50,10 @@
   }
 
   .body {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+    overflow-y: auto;
     padding: var(--panel-padding);
     flex: 1 1 auto;
   }

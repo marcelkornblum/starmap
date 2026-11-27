@@ -4,10 +4,13 @@ import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { SpatialShell } from '../components/domain/SpatialShell';
 import { Badge, Block, Cluster, Datum, Grid, HazardBadge, Heading } from '../components/interface';
 import { HAZARD_GUIDE_ENTRIES } from '../content/guide';
+import { useSpaLinkClick } from '../hooks/spaNavigation';
 import { resolveAppHref } from '../utils/url';
 import styles from './GuideViews.module.css';
 
 export const HazardsListView: React.FC = () => {
+  const handleSpaLinkClick = useSpaLinkClick();
+
   return (
     <SpatialShell
       mode="document"
@@ -33,6 +36,9 @@ export const HazardsListView: React.FC = () => {
               href={resolveAppHref(entry.href)}
               data-testid="hazards-guide-link"
               className={styles.cardLink}
+              onClick={(e) => {
+                handleSpaLinkClick(e, entry.href);
+              }}
             >
               <Guide3DPreview
                 kind="hazard"

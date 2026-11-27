@@ -32,9 +32,7 @@ export interface DetentSheetProps {
   readonly partial?: ReactNode;
   readonly full?: ReactNode;
   readonly children?: ReactNode;
-  readonly 'data-entity-id'?: string;
-  readonly 'data-system-id'?: string;
-  readonly 'data-focused-kind'?: string;
+  readonly [key: `data-${string}`]: string | undefined;
 }
 
 /**
@@ -54,9 +52,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   partial,
   full,
   children,
-  'data-entity-id': entityId,
-  'data-system-id': systemId,
-  'data-focused-kind': focusedKind,
+  ...rest
 }) => {
   const resolvedHeadingId = headingId ?? `${testIdPrefix}-panel-heading`;
   const {
@@ -78,6 +74,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
 
   return (
     <aside
+      {...rest}
       ref={sheetRef}
       aria-labelledby={resolvedHeadingId}
       data-testid={`${testIdPrefix}-panel`}
@@ -100,9 +97,6 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
           e.stopPropagation();
         }
       }}
-      {...(entityId !== undefined ? { 'data-entity-id': entityId } : {})}
-      {...(systemId !== undefined ? { 'data-system-id': systemId } : {})}
-      {...(focusedKind !== undefined ? { 'data-focused-kind': focusedKind } : {})}
     >
       <div
         ref={dragHandleRef}
@@ -112,6 +106,10 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
         tabIndex={0}
         aria-orientation="horizontal"
         aria-label="Drag to resize panel"
+        aria-valuemin={0}
+        aria-valuemax={2}
+        aria-valuenow={detentState === 'peek' ? 0 : detentState === 'partial' ? 1 : 2}
+        aria-valuetext={detentState}
         onClick={() => {
           if (isRecentDrag()) return;
           applyTapDetent(detentStateRef.current === 'peek' ? 'partial' : 'peek');

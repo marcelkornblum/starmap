@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { ReactNode } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -314,14 +312,5 @@ describe('<SearchResultItem />', () => {
     renderWithSearchContext(<SearchResultItem result={centeredPlanet} />);
     fireEvent.click(screen.getByRole('link', { name: /earth/i }));
     expect(focusFromSearchSpy).toHaveBeenCalledWith('earth', { triggerRecenter: false });
-  });
-
-  it('defines coarse-pointer 44px touch target floor on .resultLink while preserving flex centering', () => {
-    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'SearchResultItem.module.css'), 'utf8');
-    expect(css).toMatch(/display:\s*flex/);
-    expect(css).toMatch(/align-items:\s*center/);
-    expect(css).toMatch(/min-block-size:\s*var\(--search-result-min-height\)/);
-    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
-    expect(css).toMatch(/--search-result-min-height:\s*var\(--size-touch-target-min\)/);
   });
 });

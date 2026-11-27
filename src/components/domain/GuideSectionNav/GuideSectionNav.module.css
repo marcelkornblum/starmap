@@ -3,12 +3,6 @@
     --guide-section-nav-bg: var(--surface-panel-bg);
     --guide-section-nav-backdrop: var(--surface-panel-backdrop-filter);
     --guide-section-nav-border: var(--border-subtle);
-    --guide-section-nav-link-color: var(--content-muted);
-    --guide-section-nav-link-hover-color: var(--content-prominent);
-    --guide-section-nav-link-hover-bg: var(--surface-block-hover-bg);
-    --guide-section-nav-link-active-color: var(--content-accent);
-    --guide-section-nav-link-active-bg: var(--surface-block-selected-bg);
-    --guide-section-nav-link-active-indicator: var(--state-focus);
 
     position: sticky;
     top: 0;
@@ -34,40 +28,8 @@
     inline-size: 100%;
   }
 
-  .sectionNavLink {
-    display: inline-flex;
-    align-items: center;
+  .sectionNav li {
+    flex: 0 0 auto;
     white-space: nowrap;
-    color: var(--guide-section-nav-link-color);
-    text-decoration: none;
-    font-size: var(--text-ui-nav-tab-size);
-    font-weight: var(--font-weight-medium);
-    padding: var(--space-fib-2) var(--space-fib-3);
-    border-radius: var(--radius-control);
-    border-block-end: var(--stroke-width-2) var(--border-style-boundary) transparent;
-    transition:
-      color var(--motion-duration-feedback) var(--motion-ease-default),
-      background-color var(--motion-duration-feedback) var(--motion-ease-default),
-      border-color var(--motion-duration-feedback) var(--motion-ease-default);
-  }
-
-  .sectionNavLink:hover {
-    color: var(--guide-section-nav-link-hover-color);
-    background: var(--guide-section-nav-link-hover-bg);
-  }
-}
-
-@layer exceptions {
-  .sectionNavLink[aria-current='page'] {
-    color: var(--guide-section-nav-link-active-color);
-    background: var(--guide-section-nav-link-active-bg);
-    border-block-end-color: var(--guide-section-nav-link-active-indicator);
-    font-weight: var(--font-weight-semibold);
-  }
-
-  @media (pointer: coarse) {
-    .sectionNavLink {
-      min-block-size: var(--size-touch-target-min);
-    }
   }
 }

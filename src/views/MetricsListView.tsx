@@ -5,6 +5,7 @@ import { SpatialShell } from '../components/domain/SpatialShell';
 import { Badge, Block, Cluster, Datum, Grid, Heading, Unit } from '../components/interface';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { METRIC_GUIDE_ENTRIES } from '../content/guide';
+import { useSpaLinkClick } from '../hooks/spaNavigation';
 import { useReferenceBaselines } from '../hooks/useGuideData';
 import { formatSlugFallbackTitle } from '../utils/starNaming';
 import { resolveAppHref } from '../utils/url';
@@ -12,6 +13,7 @@ import styles from './GuideViews.module.css';
 
 export const MetricsListView: React.FC = () => {
   const baselines = useReferenceBaselines();
+  const handleSpaLinkClick = useSpaLinkClick();
 
   return (
     <SpatialShell
@@ -47,6 +49,9 @@ export const MetricsListView: React.FC = () => {
                 href={resolveAppHref(entry.href)}
                 data-testid="metrics-guide-link"
                 className={styles.cardLink}
+                onClick={(e) => {
+                  handleSpaLinkClick(e, entry.href);
+                }}
               >
                 <Guide3DPreview
                   kind="metric"

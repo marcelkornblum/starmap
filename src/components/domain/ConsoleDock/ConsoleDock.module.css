@@ -1,10 +1,7 @@
 @layer blocks {
   .consoleDock {
-    --console-dock-bg: var(--surface-dock-bg);
     --console-dock-border-color: var(--surface-dock-border-color);
     --console-dock-border-style: var(--surface-dock-border-style);
-    --console-dock-shadow: var(--surface-dock-shadow);
-    --console-dock-z-index: var(--layer-dock);
     --console-dock-mobile-size: var(--size-dock-shelf-mobile);
     --console-dock-rail-size: var(--size-dock-rail);
     --console-dock-touch-min: var(--size-touch-target-min);
@@ -15,9 +12,8 @@
 
     display: flex;
     box-sizing: border-box;
-    background: var(--console-dock-bg);
-    box-shadow: var(--console-dock-shadow);
-    z-index: var(--console-dock-z-index);
+    inline-size: 100%;
+    block-size: 100%;
     padding: var(--console-dock-padding);
     gap: var(--console-dock-gap);
     margin: 0;
@@ -29,10 +25,6 @@
     white-space: nowrap;
     overflow: visible;
     text-overflow: clip;
-  }
-
-  .icon {
-    flex-shrink: 0;
   }
 }
 
@@ -53,8 +45,7 @@
 
   @media (max-width: 767px) {
     .consoleDock {
-      inline-size: 100%;
-      block-size: calc(var(--console-dock-mobile-size) + env(safe-area-inset-bottom, 0px));
+      min-block-size: calc(var(--console-dock-mobile-size) + env(safe-area-inset-bottom, 0px));
       padding-block-end: calc(var(--console-dock-padding) + env(safe-area-inset-bottom, 0px));
       flex-direction: row;
       align-items: center;
@@ -70,8 +61,7 @@
 
   @media (min-width: 768px) {
     .consoleDock {
-      inline-size: var(--console-dock-rail-size);
-      block-size: 100%;
+      min-inline-size: var(--console-dock-rail-size);
       flex-direction: column;
       align-items: stretch;
       justify-content: flex-start;

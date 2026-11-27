@@ -22,11 +22,14 @@ import {
   LEGEND_SYMBOL_GROUPS,
   LEGEND_ZONE_ENTRIES,
 } from '../content/guide';
+import { useSpaLinkClick } from '../hooks/spaNavigation';
 import { resolveAppHref } from '../utils/url';
 import guideStyles from './GuideViews.module.css';
 import styles from './LegendGuideView.module.css';
 
 export const LegendGuideView: React.FC = () => {
+  const handleSpaLinkClick = useSpaLinkClick();
+
   return (
     <SpatialShell
       mode="document"
@@ -145,6 +148,9 @@ export const LegendGuideView: React.FC = () => {
                               href={resolveAppHref(meta.defaultGuideHref)}
                               className={styles.symbolGuideLink}
                               data-testid="legend-symbol-guide-link"
+                              onClick={(e) => {
+                                handleSpaLinkClick(e, meta.defaultGuideHref);
+                              }}
                             >
                               Guide
                             </a>

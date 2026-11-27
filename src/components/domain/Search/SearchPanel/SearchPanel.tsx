@@ -23,12 +23,13 @@ export const SearchPanel = ({
   children,
   scope,
 }: SearchPanelProps) => {
-  const { isFocused, setIsFocused } = useSearchContext();
+  const { query, filter, submitSearch, isFocused, setIsFocused } = useSearchContext();
   const layerIndex = useLayerIndex();
   const router = useOptionalRouter();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
+    submitSearch?.(query, filter);
   };
 
   const handleExplore = (): void => {
@@ -96,7 +97,7 @@ export const SearchPanel = ({
               <Button
                 type="button"
                 size="sm"
-                variant="default"
+                variant="subtle"
                 data-testid="search-explore-button"
                 onClick={handleExplore}
               >

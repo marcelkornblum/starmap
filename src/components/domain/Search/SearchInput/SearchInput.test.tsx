@@ -1,16 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createRef } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { SearchInput } from './SearchInput';
 import { SearchContext } from '../SearchContext';
 import { executeCatalogSearch } from '../../../../services/search/searchExecution';
 
 describe('<SearchInput />', () => {
-  it('renders input with placeholder, handles change and clear, and binds searchInputRef', () => {
+  it('renders input with placeholder, clear and submit icon buttons, and binds searchInputRef', () => {
     const setQuery = vi.fn();
     const searchInputRef = createRef<HTMLInputElement>();
 
-    render(
+    const { rerender } = render(
       <SearchContext.Provider
         value={{
           query: 'alpha',
@@ -38,7 +39,40 @@ describe('<SearchInput />', () => {
     expect(setQuery).toHaveBeenCalledWith('beta');
 
     const clearBtn = screen.getByTestId('search-clear-button');
+    expect(clearBtn).toHaveAttribute('aria-label', 'Clear search');
+    expect(clearBtn).toHaveAttribute('data-variant', 'default');
+    expect(clearBtn.parentElement).toHaveAttribute('data-has-query', 'true');
+    expect(clearBtn.querySelector('svg')).not.toBeNull();
+
+    const submitBtn = screen.getByTestId('search-submit-button');
+    expect(submitBtn).toHaveAttribute('aria-label', 'Search');
+    expect(submitBtn).toHaveAttribute('type', 'submit');
+    expect(submitBtn).toHaveAttribute('data-variant', 'primary');
+    expect(submitBtn.querySelector('svg')).not.toBeNull();
+
     fireEvent.click(clearBtn);
     expect(setQuery).toHaveBeenCalledWith('');
+
+    rerender(
+      <SearchContext.Provider
+        value={{
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: '', filter: 'all' }),
+          setQuery,
+          setFilter: vi.fn(),
+          submitSearch: vi.fn(),
+          isFocused: false,
+          searchInputRef,
+        }}
+      >
+        <SearchInput />
+      </SearchContext.Provider>,
+    );
+
+    expect(screen.getByTestId('search-clear-button').parentElement).toHaveAttribute('data-has-query', 'false');
+    expect(screen.getByTestId('search-submit-button')).toHaveAttribute('data-variant', 'subtle');
   });
 });

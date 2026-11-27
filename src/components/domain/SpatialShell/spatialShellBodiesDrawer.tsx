@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useRef, type RefObject } from 'react';
-import { Button, Heading } from '../../interface';
+import { Button, Heading, Icon } from '../../interface';
 import {
   DESKTOP_DOCK_BREAKPOINT_PX,
   shouldCloseBodiesDrawerOnClick,
@@ -108,7 +108,11 @@ export const SpatialShellBodiesDrawer = memo(function SpatialShellBodiesDrawer({
             aria-label="Close objects in view drawer"
             data-testid="spatial-shell-bodies-close"
           >
-            ✕
+            <Icon size="sm">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M3 3L9 9M9 3L3 9" />
+              </svg>
+            </Icon>
           </Button>
         </div>
         {bodies}

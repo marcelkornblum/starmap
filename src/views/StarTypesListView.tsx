@@ -4,10 +4,13 @@ import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { SpatialShell } from '../components/domain/SpatialShell';
 import { Block, CelestialSymbol, Cluster, Datum, Grid, Heading, SpectralBadge } from '../components/interface';
 import { STAR_TYPE_GUIDE_ENTRIES } from '../content/guide';
+import { useSpaLinkClick } from '../hooks/spaNavigation';
 import { resolveAppHref } from '../utils/url';
 import styles from './GuideViews.module.css';
 
 export const StarTypesListView: React.FC = () => {
+  const handleSpaLinkClick = useSpaLinkClick();
+
   return (
     <SpatialShell
       mode="document"
@@ -31,6 +34,9 @@ export const StarTypesListView: React.FC = () => {
               href={resolveAppHref(entry.href)}
               data-testid="star-types-guide-link"
               className={styles.cardLink}
+              onClick={(e) => {
+                handleSpaLinkClick(e, entry.href);
+              }}
             >
               <Guide3DPreview
                 kind="star"

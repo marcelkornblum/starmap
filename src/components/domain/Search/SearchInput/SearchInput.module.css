@@ -1,11 +1,13 @@
 @layer blocks {
   .inputRow {
-    --search-input-gap: var(--space-fib-2);
+    --search-input-gap: var(--space-fib-1);
 
     display: flex;
     align-items: center;
+    flex-wrap: nowrap;
     gap: var(--search-input-gap);
     inline-size: 100%;
+    min-inline-size: 0;
   }
 
   .srOnly {
@@ -22,20 +24,22 @@
   .inputWrapper {
     flex: 1 1 auto;
     min-inline-size: 0;
-    inline-size: 100%;
+    inline-size: auto;
   }
 
-  .expandedControl {
+  .clearControl {
     display: none;
+    flex: 0 0 auto;
+  }
+
+  .submitControl {
+    display: inline-flex;
     flex: 0 0 auto;
   }
 }
 
 @layer exceptions {
-  .inputRow[data-search-focused="true"] .expandedControl,
-  .inputRow:focus-within .expandedControl,
-  :global([data-search-focused="true"]) .expandedControl,
-  :global([data-scope="search"]) .expandedControl {
+  .clearControl[data-has-query="true"] {
     display: inline-flex;
   }
 }

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { SearchPanel } from './SearchPanel';
+import { SearchContext } from '../SearchContext';
+import { executeCatalogSearch } from '../../../../services/search/searchExecution';
 import { useRouter } from '@tanstack/react-router';
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
@@ -44,6 +47,34 @@ describe('<SearchPanel />', () => {
 
     expect(screen.getByRole('search')).toBeInTheDocument();
     expect(screen.getByTestId('search-expanded-drawer')).toBeInTheDocument();
+    expect(screen.getByTestId('search-explore-button')).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByTestId('search-submit-button')).toHaveAttribute('aria-label', 'Search');
+  });
+
+  it('invokes submitSearch with current query and filter when the search form is submitted', () => {
+    const submitSearch = vi.fn().mockResolvedValue(undefined);
+    render(
+      <SearchContext.Provider
+        value={{
+          query: 'tau ceti',
+          filter: 'stars',
+          status: 'ready',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: 'tau ceti', filter: 'stars' }),
+          setQuery: vi.fn(),
+          setFilter: vi.fn(),
+          submitSearch,
+          isFocused: true,
+        }}
+      >
+        <SearchPanel scope="galaxy" />
+      </SearchContext.Provider>,
+    );
+
+    const submitBtn = screen.getByTestId('search-submit-button');
+    fireEvent.click(submitBtn);
+    expect(submitSearch).toHaveBeenCalledTimes(1);
+    expect(submitSearch).toHaveBeenCalledWith('tau ceti', 'stars');
   });
 
   it('reads current layer from typed TanStack Router search state on Explore click', () => {
