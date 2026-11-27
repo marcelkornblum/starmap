@@ -2,7 +2,12 @@ import React, { useMemo, useState, type ReactNode } from 'react';
 import type { DatasetLayerIndexEntry } from '../../../types/datasetLayers';
 import { useLayerIndex } from '../../../hooks/useLayerData';
 import { useSpaLinkClick } from '../../../hooks/spaNavigation';
-import { resolveAppHref } from '../../../utils/url';
+import {
+  useOptionalRouter,
+  type StarmapSearchParams,
+} from '../../../hooks/useSpaLocation';
+import { pickRandomLayerOverviewHref } from '../../../services/layerCardService';
+import { parseLayerQueryParam, resolveAppHref } from '../../../utils/url';
 import { Block, Button, Cluster, CollapsibleSection, Heading, Icon, Input, Quantity, Stack } from '../../interface';
 import {
   buildDiscoverLayerHref,
@@ -104,6 +109,29 @@ export const DiscoverPanel = React.memo(function DiscoverPanel({
   const resolvedLayers = layers ?? storeLayers;
   const [query, setQuery] = useState('');
   const handleSpaLinkClick = useSpaLinkClick();
+  const router = useOptionalRouter();
+
+  const handleRandomLayer = (): void => {
+    if (resolvedLayers.length === 0) return;
+    const routerSearch = router?.state?.location?.search as StarmapSearchParams | undefined;
+    const currentLayer = activeLayerSlug ?? routerSearch?.layer ?? null;
+    const nextHref = pickRandomLayerOverviewHref(currentLayer, Math.random, resolvedLayers);
+    const parsedNext = parseLayerQueryParam(
+      new URLSearchParams(nextHref.split('?')[1] ?? '').get('layer'),
+    );
+    if (!parsedNext?.layerSlug) return;
+    onSelectLayer?.(parsedNext.layerSlug, nextHref);
+    if (router?.state && typeof router.navigate === 'function') {
+      void router.navigate({
+        to: '/galaxy',
+        search: (prev) => ({
+          ...prev,
+          select: `layer:${parsedNext.layerSlug}`,
+          layer: parsedNext.layerSlug,
+        }),
+      });
+    }
+  };
 
   const grouped = useMemo(
     () => filterAndGroupDiscoverLayers(resolvedLayers, query),
@@ -123,21 +151,32 @@ export const DiscoverPanel = React.memo(function DiscoverPanel({
     >
       <header className={styles.header}>
         <Heading as="h2">Discover</Heading>
-        {onClose ? (
+        <Cluster gap="tight" align="center">
           <Button
-            variant="subtle"
+            variant="default"
             size="sm"
-            onClick={onClose}
-            aria-label="Close Discover"
-            data-testid="discover-close-button"
+            onClick={handleRandomLayer}
+            disabled={resolvedLayers.length === 0}
+            data-testid="discover-random-layer-button"
           >
-            <Icon size="sm">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M3 3L9 9M9 3L3 9" />
-              </svg>
-            </Icon>
+            Random Layer
           </Button>
-        ) : null}
+          {onClose ? (
+            <Button
+              variant="subtle"
+              size="sm"
+              onClick={onClose}
+              aria-label="Close Discover"
+              data-testid="discover-close-button"
+            >
+              <Icon size="sm">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M3 3L9 9M9 3L3 9" />
+                </svg>
+              </Icon>
+            </Button>
+          ) : null}
+        </Cluster>
       </header>
 
       <div className={styles.filterRow}>

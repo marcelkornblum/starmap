@@ -1,9 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { useRouter } from '@tanstack/react-router';
 import type { DatasetLayerIndexEntry } from '../../../types/datasetLayers';
 import { useLayerStore } from '../../../stores/useLayerStore';
 import { DiscoverPanel } from './DiscoverPanel';
+
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-router')>();
+  return {
+    ...actual,
+    useRouter: vi.fn(() => undefined),
+  };
+});
 
 const SAMPLE_LAYERS: readonly DatasetLayerIndexEntry[] = [
   {
@@ -64,6 +73,11 @@ const CUSTOM_LAYER: DatasetLayerIndexEntry = {
 describe('<DiscoverPanel />', () => {
   beforeEach(() => {
     useLayerStore.setState({ index: [] });
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('renders heading, search filter, and groups scientific highlights and fictional universes', () => {
@@ -221,5 +235,98 @@ describe('<DiscoverPanel />', () => {
     fireEvent.click(sciToggle);
     expect(sciToggle).toHaveAttribute('aria-expanded', 'true');
     expect(within(sciGroup).getByText('Recent Discoveries')).toBeInTheDocument();
+  });
+
+  it('renders Random Layer button in header and disables it when no layers are available', () => {
+    render(<DiscoverPanel layers={[]} />);
+
+    const randomBtn = screen.getByTestId('discover-random-layer-button');
+    expect(randomBtn).toHaveTextContent('Random Layer');
+    expect(randomBtn).toHaveAttribute('data-variant', 'default');
+    expect(randomBtn).toHaveAttribute('data-size', 'sm');
+    expect(randomBtn).toBeDisabled();
+  });
+
+  it('excludes activeLayerSlug when picking a random layer, calls onSelectLayer, and navigates via TanStack Router', () => {
+    const navigate = vi.fn();
+    vi.mocked(useRouter).mockReturnValue({
+      navigate,
+      state: { location: { pathname: '/galaxy', search: { q: 'test', layer: 'recent-discoveries' } } },
+    } as never);
+    const onSelectLayer = vi.fn();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    const twoMultiEntryLayers: readonly DatasetLayerIndexEntry[] = [
+      SAMPLE_LAYERS[0], // recent-discoveries (entryCount: 4)
+      SAMPLE_LAYERS[2], // project-hail-mary (entryCount: 2)
+    ];
+
+    render(
+      <DiscoverPanel
+        layers={twoMultiEntryLayers}
+        activeLayerSlug="recent-discoveries"
+        onSelectLayer={onSelectLayer}
+      />,
+    );
+
+    const randomBtn = screen.getByTestId('discover-random-layer-button');
+    expect(randomBtn).toBeEnabled();
+    fireEvent.click(randomBtn);
+
+    expect(onSelectLayer).toHaveBeenCalledTimes(1);
+    expect(onSelectLayer).toHaveBeenCalledWith(
+      'project-hail-mary',
+      '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary',
+    );
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const navCall = navigate.mock.calls[0]?.[0] as {
+      to: string;
+      search: (prev: Record<string, unknown>) => Record<string, unknown>;
+    };
+    expect(navCall.to).toBe('/galaxy');
+    expect(navCall.search({ q: 'test', layer: 'recent-discoveries' })).toEqual({
+      q: 'test',
+      select: 'layer:project-hail-mary',
+      layer: 'project-hail-mary',
+    });
+  });
+
+  it('falls back to router search layer when activeLayerSlug is omitted', () => {
+    const navigate = vi.fn();
+    vi.mocked(useRouter).mockReturnValue({
+      navigate,
+      state: { location: { pathname: '/galaxy', search: { layer: 'project-hail-mary' } } },
+    } as never);
+    const onSelectLayer = vi.fn();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    const twoMultiEntryLayers: readonly DatasetLayerIndexEntry[] = [
+      SAMPLE_LAYERS[0], // recent-discoveries (entryCount: 4)
+      SAMPLE_LAYERS[2], // project-hail-mary (entryCount: 2)
+    ];
+
+    render(
+      <DiscoverPanel
+        layers={twoMultiEntryLayers}
+        onSelectLayer={onSelectLayer}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('discover-random-layer-button'));
+
+    expect(onSelectLayer).toHaveBeenCalledWith(
+      'recent-discoveries',
+      '/galaxy?select=layer:recent-discoveries&layer=recent-discoveries',
+    );
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const navCall = navigate.mock.calls[0]?.[0] as {
+      to: string;
+      search: (prev: Record<string, unknown>) => Record<string, unknown>;
+    };
+    expect(navCall.search({ layer: 'project-hail-mary' })).toEqual({
+      select: 'layer:recent-discoveries',
+      layer: 'recent-discoveries',
+    });
   });
 });

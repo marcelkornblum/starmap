@@ -56,8 +56,10 @@ This document records the canonical inventory of screens, URL paths, information
       - Heading: `Search`
       - Search Input (`<Search.Input />` composing Tier 1 `<Input type="search" />`): Reactively updates search results and synchronises `?q=`.
       - Clear Button (`<Button data-testid="search-clear-button">`): Clears query and resets URL.
+      - Submit Button (`<Button type="submit" data-testid="search-submit-button">`): Executes immediate search submission on the single-line input row.
       - Category Filter (`<Search.CategoryFilterSelect />` composing Tier 1 `<Select>`): Filters by `all`, `stars`, `planets`, `structures`, `minor-bodies`, `layers`, synchronising `?searchCategory=`.
-      - Explore Button (`<Button data-testid="search-explore-button">`): Selects a random curated layer and navigates to `/galaxy?select=layer:<layerSlug>&layer=<layerSlug>`.
+  - `<DiscoverPanel />` (toggled via `ConsoleDock` `Discover`):
+    - Groups curated layers into *Scientific Highlights*, *Fictional Universes*, and *Saved Collections* with text filtering and a `Random Layer` action (`<Button data-testid="discover-random-layer-button">`) that navigates to `/galaxy?select=layer:<layerSlug>&layer=<layerSlug>`.
     - `<Search.Results searchViewPath="/search" />`:
       - Truncated to 3 items per category with deep-link `<a href="/search?q=...">View all search results</a>` and category headers linking to `/search?q=...&searchCategory=<cat>`.
       - Domain rows rendered via `<SearchResultItem />`.
