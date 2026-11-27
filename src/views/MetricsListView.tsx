@@ -1,5 +1,4 @@
 import type React from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { SpatialShell } from '../components/domain/SpatialShell';
@@ -21,14 +20,8 @@ export const MetricsListView: React.FC = () => {
       activeWorkspace="guide"
     >
       <div className={styles.guideRoot}>
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Telemetry Metrics' },
-        ]}
-      />
       <GuideSectionNav currentSection="metrics" />
-      <Heading as="h1">Telemetry Metrics</Heading>
+      <Heading as="h1" size="title">Telemetry Metrics</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="metrics-guide-list">
         {METRIC_GUIDE_ENTRIES.map((entry) => {
           const metricBaseline = baselines?.metrics[entry.id];

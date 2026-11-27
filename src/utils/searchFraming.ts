@@ -48,9 +48,134 @@ function resolvePositiveOption(value: number | undefined, fallback: number): num
   return value !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
+function createSingleResultFraming(
+  first: readonly [number, number, number],
+  minDistance: number,
+  maxDistance: number,
+): SearchFramingBounds {
+  return {
+    target: [first[0], first[1], first[2]],
+    distance: clamp(DEFAULT_SINGLE_RESULT_DISTANCE_PC, minDistance, maxDistance),
+    radius: 0,
+  };
+}
+
+function computeBoundingBoxSphere(
+  positions: readonly (readonly [number, number, number])[],
+): { readonly center: [number, number, number]; readonly radius: number } {
+  const seed = positions[0];
+  if (!seed) {
+    return { center: [0, 0, 0], radius: 0 };
+  }
+  let minX = seed[0];
+  let maxX = seed[0];
+  let minY = seed[1];
+  let maxY = seed[1];
+  let minZ = seed[2];
+  let maxZ = seed[2];
+
+  for (let i = 1; i < positions.length; i++) {
+    const p = positions[i];
+    if (!p) continue;
+    if (p[0] < minX) minX = p[0];
+    if (p[0] > maxX) maxX = p[0];
+    if (p[1] < minY) minY = p[1];
+    if (p[1] > maxY) maxY = p[1];
+    if (p[2] < minZ) minZ = p[2];
+    if (p[2] > maxZ) maxZ = p[2];
+  }
+
+  const center: [number, number, number] = [
+    (minX + maxX) / 2,
+    (minY + maxY) / 2,
+    (minZ + maxZ) / 2,
+  ];
+
+  let radius = 0;
+  for (const p of positions) {
+    const dist = Math.hypot(p[0] - center[0], p[1] - center[1], p[2] - center[2]);
+    if (dist > radius) {
+      radius = dist;
+    }
+  }
+
+  return { center, radius };
+}
+
+function computeLimitingTan(
+  fovDeg: number,
+  fullW: number,
+  fullH: number,
+  safeRect?: ViewportSafeRect | null,
+): number {
+  const vHalf = (fovDeg * Math.PI) / 360;
+  const tanVHalf = Math.tan(vHalf);
+  const hasActiveSafeRect = Boolean(
+    safeRect && !safeRect.bypass && safeRect.width > 0 && safeRect.height > 0,
+  );
+
+  let vTan: number;
+  let hTan: number;
+  if (hasActiveSafeRect && safeRect) {
+    const safeFullH = safeRect.height + safeRect.top + safeRect.bottom;
+    const denomH = Math.max(safeFullH, 1);
+    vTan = tanVHalf * (safeRect.height / denomH);
+    hTan = tanVHalf * (safeRect.width / denomH);
+  } else {
+    vTan = tanVHalf;
+    hTan = tanVHalf * (fullW / Math.max(fullH, 1));
+  }
+
+  return Math.max(Math.min(vTan, hTan), MIN_LIMITING_TAN);
+}
+
+function computeAnchoredFraming(
+  validPositions: readonly [number, number, number][],
+  first: readonly [number, number, number],
+  limitingTan: number,
+  padding: number,
+  minDistance: number,
+  maxDistance: number,
+): SearchFramingBounds {
+  const maxFramableRadius = (maxDistance * limitingTan) / padding;
+  const candidateRadii = [maxFramableRadius * 2, maxFramableRadius, maxFramableRadius * 0.5];
+
+  for (const candidateRadius of candidateRadii) {
+    const anchored = validPositions.filter(
+      (p) => Math.hypot(p[0] - first[0], p[1] - first[1], p[2] - first[2]) <= candidateRadius,
+    );
+
+    if (anchored.length <= 1) {
+      return createSingleResultFraming(first, minDistance, maxDistance);
+    }
+
+    const { center: anchoredCenter, radius: anchoredRadius } = computeBoundingBoxSphere(anchored);
+    if (anchoredRadius <= CO_LOCATED_EPSILON_PC) {
+      return {
+        target: anchoredCenter,
+        distance: clamp(minDistance, minDistance, maxDistance),
+        radius: 0,
+      };
+    }
+
+    const anchoredRawDistance = (anchoredRadius * padding) / limitingTan;
+    if (anchoredRawDistance <= maxDistance) {
+      return {
+        target: anchoredCenter,
+        distance: clamp(anchoredRawDistance, minDistance, maxDistance),
+        radius: anchoredRadius,
+      };
+    }
+  }
+
+  return createSingleResultFraming(first, minDistance, maxDistance);
+}
+
 /**
  * Computes a galactic camera target and distance that frames a bounding sphere around
  * a set of 3D parsec coordinates, accounting for HUD safe-rect insets and FOV limits.
+ * When the full match set exceeds `maxDistance`, anchors onto `positions[0]` and frames
+ * only co-fit neighbours so the primary match never falls outside the camera frustum.
  */
 export function computeBoundingSphereFraming(
   positions: readonly (readonly [number, number, number])[],
@@ -80,45 +205,10 @@ export function computeBoundingSphereFraming(
   const maxDistance = Math.max(minDistance, rawMaxDistance);
 
   if (validPositions.length === 1) {
-    return {
-      target: [first[0], first[1], first[2]],
-      distance: clamp(DEFAULT_SINGLE_RESULT_DISTANCE_PC, minDistance, maxDistance),
-      radius: 0,
-    };
+    return createSingleResultFraming(first, minDistance, maxDistance);
   }
 
-  let minX = first[0];
-  let maxX = first[0];
-  let minY = first[1];
-  let maxY = first[1];
-  let minZ = first[2];
-  let maxZ = first[2];
-
-  for (let i = 1; i < validPositions.length; i++) {
-    const p = validPositions[i];
-    if (!p) continue;
-    if (p[0] < minX) minX = p[0];
-    if (p[0] > maxX) maxX = p[0];
-    if (p[1] < minY) minY = p[1];
-    if (p[1] > maxY) maxY = p[1];
-    if (p[2] < minZ) minZ = p[2];
-    if (p[2] > maxZ) maxZ = p[2];
-  }
-
-  const center: [number, number, number] = [
-    (minX + maxX) / 2,
-    (minY + maxY) / 2,
-    (minZ + maxZ) / 2,
-  ];
-
-  let radius = 0;
-  for (const p of validPositions) {
-    const dist = Math.hypot(p[0] - center[0], p[1] - center[1], p[2] - center[2]);
-    if (dist > radius) {
-      radius = dist;
-    }
-  }
-
+  const { center, radius } = computeBoundingBoxSphere(validPositions);
   if (radius <= CO_LOCATED_EPSILON_PC) {
     return {
       target: center,
@@ -127,31 +217,23 @@ export function computeBoundingSphereFraming(
     };
   }
 
-  const vHalf = (fovDeg * Math.PI) / 360;
-  const tanVHalf = Math.tan(vHalf);
-  const safeRect = options?.safeRect;
-  const hasActiveSafeRect = Boolean(
-    safeRect && !safeRect.bypass && safeRect.width > 0 && safeRect.height > 0,
-  );
-
-  let vTan: number;
-  let hTan: number;
-  if (hasActiveSafeRect && safeRect) {
-    const safeFullH = safeRect.height + safeRect.top + safeRect.bottom;
-    const denomH = Math.max(safeFullH, 1);
-    vTan = tanVHalf * (safeRect.height / denomH);
-    hTan = tanVHalf * (safeRect.width / denomH);
-  } else {
-    vTan = tanVHalf;
-    hTan = tanVHalf * (fullW / Math.max(fullH, 1));
-  }
-
-  const limitingTan = Math.max(Math.min(vTan, hTan), MIN_LIMITING_TAN);
+  const limitingTan = computeLimitingTan(fovDeg, fullW, fullH, options?.safeRect);
   const rawDistance = (radius * padding) / limitingTan;
 
-  return {
-    target: center,
-    distance: clamp(rawDistance, minDistance, maxDistance),
-    radius,
-  };
+  if (rawDistance <= maxDistance) {
+    return {
+      target: center,
+      distance: clamp(rawDistance, minDistance, maxDistance),
+      radius,
+    };
+  }
+
+  return computeAnchoredFraming(
+    validPositions,
+    first,
+    limitingTan,
+    padding,
+    minDistance,
+    maxDistance,
+  );
 }

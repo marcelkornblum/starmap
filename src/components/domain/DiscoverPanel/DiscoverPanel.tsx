@@ -3,7 +3,7 @@ import type { DatasetLayerIndexEntry } from '../../../types/datasetLayers';
 import { useLayerIndex } from '../../../hooks/useLayerData';
 import { useSpaLinkClick } from '../../../hooks/spaNavigation';
 import { resolveAppHref } from '../../../utils/url';
-import { Block, Button, Cluster, Heading, Input, Quantity, Stack } from '../../interface';
+import { Block, Button, Cluster, CollapsibleSection, Heading, Input, Quantity, Stack } from '../../interface';
 import {
   buildDiscoverLayerHref,
   filterAndGroupDiscoverLayers,
@@ -43,10 +43,7 @@ const DiscoverGroup = React.memo(function DiscoverGroup({
   }
 
   return (
-    <div className={styles.group} data-testid={testId}>
-      <Heading as="h3" size="eyebrow">
-        {title}
-      </Heading>
+    <CollapsibleSection title={title} headingAs="h3" data-testid={testId}>
       <Stack as="ul" gap="dense">
         {entries.map((entry) => {
           const { slug, href } = buildDiscoverLayerHref(entry.layerId);
@@ -89,7 +86,7 @@ const DiscoverGroup = React.memo(function DiscoverGroup({
           );
         })}
       </Stack>
-    </div>
+    </CollapsibleSection>
   );
 });
 

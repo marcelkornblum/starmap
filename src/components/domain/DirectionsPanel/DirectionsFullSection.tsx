@@ -2,6 +2,7 @@ import React from 'react';
 import type { JourneyPlan } from '../../../services/journey/journeyTypes';
 import {
   CelestialSymbol,
+  CollapsibleSection,
   Heading,
   Icon,
   Stack,
@@ -34,17 +35,12 @@ export const DirectionsFullSection: React.FC<DirectionsFullSectionProps> = ({
 
   if (isDetailMode && selectedOption) {
     return (
-      <section
-        aria-labelledby="directions-flight-steps-heading"
-        className={styles.telemetrySection}
+      <CollapsibleSection
+        key="transit-steps"
+        title="Transit Steps & Timings"
+        headingAs="h4"
+        headingId="directions-flight-steps-heading"
       >
-        <Heading
-          as="h4"
-          size="eyebrow"
-          id="directions-flight-steps-heading"
-        >
-          Transit Steps & Timings
-        </Heading>
         <Stack as="ol" gap="tight" data-testid="directions-steps-list">
           {selectedOption.stepMetrics.map((stepMetric) => (
             <li
@@ -87,22 +83,17 @@ export const DirectionsFullSection: React.FC<DirectionsFullSectionProps> = ({
             </li>
           ))}
         </Stack>
-      </section>
+      </CollapsibleSection>
     );
   }
 
   return (
-    <section
-      aria-labelledby="directions-all-steps-heading"
-      className={styles.telemetrySection}
+    <CollapsibleSection
+      key="step-details"
+      title="Step Details"
+      headingAs="h4"
+      headingId="directions-all-steps-heading"
     >
-      <Heading
-        as="h4"
-        size="eyebrow"
-        id="directions-all-steps-heading"
-      >
-        Step Details
-      </Heading>
       <Stack as="ol" gap="tight" data-testid="directions-steps-list">
         {journey.steps.map((step) => (
           <li
@@ -147,6 +138,6 @@ export const DirectionsFullSection: React.FC<DirectionsFullSectionProps> = ({
           </li>
         ))}
       </Stack>
-    </section>
+    </CollapsibleSection>
   );
 };

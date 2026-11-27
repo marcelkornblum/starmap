@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
@@ -209,5 +211,16 @@ describe('<CollapsibleSection />', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(section.getAttribute('data-expanded')).toBe('false');
     expect(trigger.getAttribute('aria-controls')).toBeNull();
+  });
+
+  it('defines coarse-pointer hit-slop ::after expansion on .trigger in CSS module', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'CollapsibleSection.module.css'), 'utf8');
+    expect(css).toMatch(/--collapsible-hit-slop-block:\s*var\(--space-hit-slop-block\)/);
+    expect(css).toMatch(/--collapsible-hit-slop-inline:\s*var\(--space-hit-slop-inline\)/);
+    expect(css).toMatch(/\.trigger\s*\{[\s\S]*position:\s*relative/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/\.trigger::after/);
+    expect(css).toMatch(/inset-block:\s*var\(--collapsible-hit-slop-block\)/);
+    expect(css).toMatch(/inset-inline:\s*var\(--collapsible-hit-slop-inline\)/);
   });
 });

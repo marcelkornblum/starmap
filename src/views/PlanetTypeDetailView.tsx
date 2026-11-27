@@ -8,6 +8,7 @@ import {
   Button,
   CelestialBadge,
   Cluster,
+  CollapsibleSection,
   Datum,
   Heading,
   Stack,
@@ -64,42 +65,41 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
       data-planet-type={resolvedPlanetType}
     >
       <div className={styles.guideRoot}>
+      <GuideSectionNav currentSection="planet-types" />
+      <Cluster justify="between" align="center" gap="tight">
         <Breadcrumbs
           items={[
-            { label: 'Guide', href: '/guide/star-types' },
             { label: 'Planet Types', href: PLANET_TYPES_GUIDE_PATH },
             { label: resolvedPlanetType || 'Planet Type' },
           ]}
         />
-      <GuideSectionNav currentSection="planet-types" />
-      <Heading as="h1">
+        <Cluster gap="tight" align="center">
+          <Button
+            href={PLANET_TYPES_GUIDE_PATH}
+            variant="subtle"
+            size="sm"
+            data-testid="planet-types-list-link"
+          >
+            All Planet Types
+          </Button>
+          {focusedEntityId && (
+            <div data-testid="guide-focus-context">
+              <Button
+                href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+                variant="subtle"
+                size="sm"
+              >
+                Return to {focusedEntityId}
+              </Button>
+            </div>
+          )}
+        </Cluster>
+      </Cluster>
+      <Heading as="h1" size="title">
         {resolvedPlanetType
           ? `Planet Type: ${resolvedPlanetType}`
           : 'Planet Type'}
       </Heading>
-
-      {focusedEntityId && (
-        <div data-testid="guide-focus-context">
-          <Button
-            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
-            variant="subtle"
-            size="sm"
-          >
-            Return to {focusedEntityId}
-          </Button>
-        </div>
-      )}
-
-      <p>
-        <Button
-          href={PLANET_TYPES_GUIDE_PATH}
-          variant="subtle"
-          size="sm"
-          data-testid="planet-types-list-link"
-        >
-          All Planet Types
-        </Button>
-      </p>
 
       {entries.length > 0 ? (
         <>
@@ -120,13 +120,14 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
 
               <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-              <Heading as="h3">Geophysical & Atmospheric Telemetry</Heading>
-              <Stack gap="none" data-testid="guide-detail-telemetry">
-                <Datum label="Mass Range" value={entry.massRangeMearth} />
-                <Datum label="Radius Range" value={entry.radiusRangeRearth} />
-                <Datum label="Bulk Composition" value={entry.bulkComposition} />
-                <Datum label="Habitability" value={entry.habitabilityNotes} />
-              </Stack>
+              <CollapsibleSection title="Geophysical & Atmospheric Telemetry" headingAs="h3">
+                <Stack gap="none" data-testid="guide-detail-telemetry">
+                  <Datum label="Mass Range" value={entry.massRangeMearth} />
+                  <Datum label="Radius Range" value={entry.radiusRangeRearth} />
+                  <Datum label="Bulk Composition" value={entry.bulkComposition} />
+                  <Datum label="Habitability" value={entry.habitabilityNotes} />
+                </Stack>
+              </CollapsibleSection>
 
               <GuideExamplesList
                 examples={getGuideExamplesForEntry('planetTypes', entry.id)}

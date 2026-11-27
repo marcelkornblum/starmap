@@ -327,20 +327,20 @@ describe('SpatialShell Domain Component', () => {
       const toggleBtn = screen.getByTestId('spatial-shell-bodies-toggle');
 
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
-      expect(toggleBtn.textContent).toContain('Bodies');
+      expect(toggleBtn.textContent).toBe('Objects in View');
       expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
 
       fireEvent.click(toggleBtn);
 
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
-      expect(toggleBtn.textContent).toContain('Close Bodies');
+      expect(toggleBtn.textContent).toBe('Objects in View');
       expect(toggleBtn.getAttribute('aria-expanded')).toBe('true');
       expect(useUIStore.getState().activeDrawer).toBe('bodies');
 
       fireEvent.click(toggleBtn);
 
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
-      expect(toggleBtn.textContent).toContain('Bodies');
+      expect(toggleBtn.textContent).toBe('Objects in View');
       expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
       expect(useUIStore.getState().activeDrawer).toBeNull();
     });
@@ -380,7 +380,12 @@ describe('SpatialShell Domain Component', () => {
 
       const root = screen.getByTestId('spatial-shell-root');
       const bodiesAside = root.querySelector('[data-spatial-region="bodies"]')!;
-      expect(bodiesAside).toHaveAttribute('aria-label', 'Bodies');
+      expect(bodiesAside).toHaveAttribute('aria-label', 'Objects in view');
+      expect(screen.getByRole('heading', { level: 2, name: 'Objects in View' })).toBeInTheDocument();
+      expect(screen.getByTestId('spatial-shell-bodies-close')).toHaveAttribute(
+        'aria-label',
+        'Close objects in view drawer',
+      );
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
 
       fireEvent.keyDown(window, { key: 'Escape' });
@@ -772,7 +777,7 @@ describe('SpatialShell Domain Component', () => {
       const floatingLeft = root.querySelector('[data-spatial-region="floating-left"]');
       const detailsCard = floatingLeft?.firstElementChild ?? null;
       const bodiesRegion = root.querySelector('[data-spatial-region="bodies"]');
-      const leftColumn = floatingLeft?.parentElement ?? null;
+      const leftColumn = topBar?.parentElement ?? null;
 
       setRect(root, { left: 0, top: 0, width: 1440, height: 900 });
       setRect(leftColumn, { left: 0, top: 0, width: 700, height: 800 });
@@ -941,6 +946,20 @@ describe('SpatialShell Domain Component', () => {
       expect(css).toContain('.searchRegion input:focus,');
       expect(css).toContain('.searchRegion input:focus-visible');
       expect(css).not.toContain('.searchRegion :focus,');
+    });
+
+    it('uses flex-start on .visorDiscoveryRow, fixed inset:0 on .spatialShell, and places visor-scale outside top-bar', () => {
+      render(<SpatialShell minimapOrientation={MOCK_ORIENTATION} />);
+      const topBar = document.querySelector('[data-spatial-region="top-bar"]')!;
+      const visorScale = document.querySelector('[data-spatial-region="visor-scale"]')!;
+      expect(topBar.contains(visorScale)).toBe(false);
+
+      const css = fs.readFileSync(
+        path.resolve(__dirname, './SpatialShell.module.css'),
+        'utf8',
+      );
+      expect(css).toMatch(/\.visorDiscoveryRow\s*\{[^}]*align-items:\s*flex-start;/);
+      expect(css).toMatch(/\.spatialShell\s*\{[^}]*position:\s*fixed;[^}]*inset:\s*0;/);
     });
   });
 });

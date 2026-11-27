@@ -8,6 +8,7 @@ import {
   Button,
   CelestialSymbol,
   Cluster,
+  CollapsibleSection,
   Datum,
   Heading,
   SpectralBadge,
@@ -95,38 +96,37 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
       data-star-type={resolvedStarType}
     >
       <div className={styles.guideRoot}>
+      <GuideSectionNav currentSection="star-types" />
+      <Cluster justify="between" align="center" gap="tight">
         <Breadcrumbs
           items={[
-            { label: 'Guide', href: '/guide/star-types' },
             { label: 'Star Types', href: STAR_TYPES_GUIDE_PATH },
             { label: resolvedStarType || 'Star Type' },
           ]}
         />
-      <GuideSectionNav currentSection="star-types" />
-      <Heading as="h1">{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</Heading>
-
-      {focusedEntityId && (
-        <div data-testid="guide-focus-context">
+        <Cluster gap="tight" align="center">
           <Button
-            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+            href={STAR_TYPES_GUIDE_PATH}
             variant="subtle"
             size="sm"
+            data-testid="star-types-list-link"
           >
-            Return to {focusedEntityId}
+            All Star Types
           </Button>
-        </div>
-      )}
-
-      <p>
-        <Button
-          href={STAR_TYPES_GUIDE_PATH}
-          variant="subtle"
-          size="sm"
-          data-testid="star-types-list-link"
-        >
-          All Star Types
-        </Button>
-      </p>
+          {focusedEntityId && (
+            <div data-testid="guide-focus-context">
+              <Button
+                href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+                variant="subtle"
+                size="sm"
+              >
+                Return to {focusedEntityId}
+              </Button>
+            </div>
+          )}
+        </Cluster>
+      </Cluster>
+      <Heading as="h1" size="title">{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</Heading>
 
       {resolvedDetails.length > 0 ? (
         <>
@@ -167,8 +167,11 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
               <p data-testid="guide-detail-summary">{resolvedDetail.entry.summary}</p>
 
               {resolvedDetail.decodedSubtype && (
-                <section data-testid="star-type-decoded-subtype">
-                  <Heading as="h3">Decoded Yerkes Classification</Heading>
+                <CollapsibleSection
+                  title="Decoded Yerkes Classification"
+                  headingAs="h3"
+                  data-testid="star-type-decoded-subtype"
+                >
                   <Stack gap="none">
                     <Datum label="Spectral Letter" value={resolvedDetail.decodedSubtype.spectralLetter} />
                     {resolvedDetail.decodedSubtype.subdivision && (
@@ -185,18 +188,19 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
                       />
                     )}
                   </Stack>
-                </section>
+                </CollapsibleSection>
               )}
 
-              <Heading as="h3">Reference Telemetry Range</Heading>
-              <Stack gap="none" data-testid="guide-detail-telemetry">
-                <Datum label="Effective Temperature" value={resolvedDetail.entry.effectiveTempRange} />
-                <Datum label="Mass Range" value={resolvedDetail.entry.massRangeMsun} />
-                <Datum label="Radius Range" value={resolvedDetail.entry.radiusRangeRsun} />
-                <Datum label="Luminosity Range" value={resolvedDetail.entry.luminosityRangeLsun} />
-                <Datum label="Habitable Zone" value={resolvedDetail.entry.habitableZoneAu} />
-                <Datum label="Chromaticity" value={resolvedDetail.entry.chromaticity} />
-              </Stack>
+              <CollapsibleSection title="Reference Telemetry Range" headingAs="h3">
+                <Stack gap="none" data-testid="guide-detail-telemetry">
+                  <Datum label="Effective Temperature" value={resolvedDetail.entry.effectiveTempRange} />
+                  <Datum label="Mass Range" value={resolvedDetail.entry.massRangeMsun} />
+                  <Datum label="Radius Range" value={resolvedDetail.entry.radiusRangeRsun} />
+                  <Datum label="Luminosity Range" value={resolvedDetail.entry.luminosityRangeLsun} />
+                  <Datum label="Habitable Zone" value={resolvedDetail.entry.habitableZoneAu} />
+                  <Datum label="Chromaticity" value={resolvedDetail.entry.chromaticity} />
+                </Stack>
+              </CollapsibleSection>
 
               <GuideExamplesList
                 examples={getGuideExamplesForEntry('starTypes', resolvedDetail.entry.id)}

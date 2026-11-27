@@ -574,7 +574,8 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     unmountSView();
 
     const { container: stlView, unmount: unmountStl } = render(createElement(StarTypesListView));
-    expect(stlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(stlView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(stlView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountStl();
 
     const { container: stdView, unmount: unmountStd } = render(
@@ -586,7 +587,8 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     unmountStd();
 
     const { container: ptlView, unmount: unmountPtl } = render(createElement(PlanetTypesListView));
-    expect(ptlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(ptlView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(ptlView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountPtl();
 
     const { container: ptdView, unmount: unmountPtd } = render(
@@ -598,7 +600,8 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     unmountPtd();
 
     const { container: mlView, unmount: unmountMl } = render(createElement(MetricsListView));
-    expect(mlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(mlView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(mlView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountMl();
 
     const { container: mdView, unmount: unmountMd } = render(

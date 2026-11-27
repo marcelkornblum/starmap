@@ -11,12 +11,6 @@
     z-index: 1;
   }
 
-  .section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-fib-2);
-  }
-
   .distanceCaption {
     margin: 0;
     font-size: var(--type-scale-neg-1);

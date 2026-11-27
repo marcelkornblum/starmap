@@ -84,22 +84,24 @@ export function applyDetentSheetCssVars(
   heightPx: number,
   detent: DetentLevel,
   metrics: MeasuredSheetMetrics,
-): { readonly beyondPartial: boolean; readonly peekHeightPx: number } {
+): { readonly beyondPartial: boolean; readonly peekHeightPx: number; readonly scrollable: boolean } {
   const partialH = computePartialSheetHeightPx({
     peekHeightPx: metrics.peekHeightPx,
     midStageNaturalPx: metrics.midStageNaturalPx,
     viewportHeightPx: metrics.stageHeightPx,
   });
   const beyondPartial = heightPx > partialH + 4 || detent === 'full';
+  const partialClamped = detent === 'partial' && metrics.peekHeightPx + metrics.midStageNaturalPx > partialH + 4;
+  const scrollable = detent === 'full' || beyondPartial || partialClamped;
   if (!sheet) {
-    return { beyondPartial, peekHeightPx: metrics.peekHeightPx };
+    return { beyondPartial, peekHeightPx: metrics.peekHeightPx, scrollable };
   }
   const progress = computeDetentExpandProgress(heightPx, metrics.peekHeightPx, partialH);
   // DEC-R051: Sanctioned scoped custom properties for mobile DetentSheet choreography
   setCssVarIfChanged(sheet, '--detent-sheet-block-size', `${Math.round(heightPx)}px`);
   setCssVarIfChanged(sheet, '--detent-mid-stage-size', `${Math.round(metrics.midStageNaturalPx)}px`);
   setCssVarIfChanged(sheet, '--detent-expand-progress', formatDetentExpandProgress(progress));
-  return { beyondPartial, peekHeightPx: metrics.peekHeightPx };
+  return { beyondPartial, peekHeightPx: metrics.peekHeightPx, scrollable };
 }
 
 /**
@@ -145,5 +147,46 @@ export function observeDetentSheetLayout(
     observer?.disconnect();
     mutationObserver?.disconnect();
     window.removeEventListener('resize', onLayout);
+  };
+}
+
+/**
+ * Registers non-passive touch listeners on the sheet element for full-panel mobile drag.
+ */
+export function bindDetentTouchListeners(
+  sheet: HTMLElement,
+  handlers: {
+    onTouchStart: (e: TouchEvent) => void;
+    onTouchMove: (e: TouchEvent) => void;
+    onTouchEnd: () => void;
+  },
+): () => void {
+  sheet.addEventListener('touchstart', handlers.onTouchStart, { passive: false });
+  sheet.addEventListener('touchmove', handlers.onTouchMove, { passive: false });
+  sheet.addEventListener('touchend', handlers.onTouchEnd, { passive: false });
+  sheet.addEventListener('touchcancel', handlers.onTouchEnd, { passive: false });
+  return () => {
+    sheet.removeEventListener('touchstart', handlers.onTouchStart);
+    sheet.removeEventListener('touchmove', handlers.onTouchMove);
+    sheet.removeEventListener('touchend', handlers.onTouchEnd);
+    sheet.removeEventListener('touchcancel', handlers.onTouchEnd);
+  };
+}
+
+/**
+ * Registers window-level pointer move/up/cancel listeners while a pointer drag session is active.
+ */
+export function bindDetentWindowPointerListeners(handlers: {
+  onMove: (e: globalThis.PointerEvent) => void;
+  onRelease: () => void;
+}): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('pointermove', handlers.onMove);
+  window.addEventListener('pointerup', handlers.onRelease);
+  window.addEventListener('pointercancel', handlers.onRelease);
+  return () => {
+    window.removeEventListener('pointermove', handlers.onMove);
+    window.removeEventListener('pointerup', handlers.onRelease);
+    window.removeEventListener('pointercancel', handlers.onRelease);
   };
 }

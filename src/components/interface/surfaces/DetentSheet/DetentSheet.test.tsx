@@ -103,33 +103,145 @@ describe('<DetentSheet />', () => {
     expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
   });
 
-  it('handles pointer drag interactions exclusively on resize handle and ignores touch events on sheet and handle', () => {
+  it('defers data-is-dragging until drag threshold is exceeded and snaps on touch drag anywhere on <aside>', () => {
+    const onDetentChange = vi.fn();
     render(
       <DetentSheet
         testIdPrefix="test"
         heading="Interactive Sheet"
-        peek={<div>Content</div>}
+        activeDetent="peek"
+        onDetentChange={onDetentChange}
+        peek={<div data-testid="peek-child">Content</div>}
       />
     );
 
     const panel = screen.getByTestId('test-panel');
     const handle = screen.getByTestId('test-drag-handle');
+    const peekChild = screen.getByTestId('peek-child');
 
-    fireEvent.pointerDown(handle, { clientY: 600, pointerId: 1 });
+    // Dragging via touch starting on a child inside peek (peek -> partial)
+    fireEvent.touchStart(peekChild, { touches: [{ clientY: 700 }] });
+    expect(panel.getAttribute('data-is-dragging')).toBe('false');
+
+    // Below 5px threshold keeps data-is-dragging false
+    fireEvent.touchMove(panel, { touches: [{ clientY: 697 }], cancelable: true });
+    expect(panel.getAttribute('data-is-dragging')).toBe('false');
+
+    // Exceeding threshold starts drag and updates progress
+    fireEvent.touchMove(panel, { touches: [{ clientY: 470 }], cancelable: true });
     expect(panel.getAttribute('data-is-dragging')).toBe('true');
-
-    fireEvent.pointerMove(handle, { clientY: 480, pointerId: 1, cancelable: true });
     const progressDuringDrag = Number(panel.style.getPropertyValue('--detent-expand-progress'));
     expect(progressDuringDrag).toBeGreaterThan(0);
-    expect(progressDuringDrag).toBeLessThan(1);
+    expect(progressDuringDrag).toBeLessThanOrEqual(1);
 
-    fireEvent.pointerUp(handle, { pointerId: 1 });
+    fireEvent.touchEnd(panel);
     expect(panel.getAttribute('data-is-dragging')).toBe('false');
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(onDetentChange).toHaveBeenLastCalledWith('partial');
 
-    fireEvent.touchStart(panel, { touches: [{ clientY: 500 }] });
+    // Touch drag partial -> full
+    fireEvent.touchStart(peekChild, { touches: [{ clientY: 700 }] });
+    fireEvent.touchMove(panel, { touches: [{ clientY: 150 }], cancelable: true });
+    fireEvent.touchEnd(panel);
+    expect(panel.getAttribute('data-detent')).toBe('full');
+    expect(onDetentChange).toHaveBeenLastCalledWith('full');
+
+    // Touch drag on handle in full collapses to partial even when panel is scrolled
+    Object.defineProperty(panel, 'scrollTop', { configurable: true, writable: true, value: 120 });
+    fireEvent.touchStart(handle, { touches: [{ clientY: 100 }] });
+    fireEvent.touchMove(panel, { touches: [{ clientY: 500 }], cancelable: true });
+    fireEvent.touchEnd(panel);
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(onDetentChange).toHaveBeenLastCalledWith('partial');
+
+    // Touch drag partial -> peek
+    fireEvent.touchStart(peekChild, { touches: [{ clientY: 400 }] });
+    fireEvent.touchMove(panel, { touches: [{ clientY: 700 }], cancelable: true });
+    fireEvent.touchEnd(panel);
+    expect(panel.getAttribute('data-detent')).toBe('peek');
+    expect(onDetentChange).toHaveBeenLastCalledWith('peek');
+  });
+
+  it('supports pointer drag on <aside> via window listeners, suppresses child onClick after drag, and preserves pure taps', () => {
+    const onChildClick = vi.fn();
+    render(
+      <DetentSheet
+        testIdPrefix="ptr"
+        heading="Pointer Sheet"
+        activeDetent="peek"
+        peek={
+          <button type="button" data-testid="ptr-child-btn" onClick={onChildClick}>
+            Child Action
+          </button>
+        }
+      />
+    );
+
+    const panel = screen.getByTestId('ptr-panel');
+    const childBtn = screen.getByTestId('ptr-child-btn');
+
+    // Pure tap without movement fires child onClick cleanly
+    fireEvent.pointerDown(childBtn, { clientY: 700, button: 0, pointerId: 1 });
     expect(panel.getAttribute('data-is-dragging')).toBe('false');
-    fireEvent.touchStart(handle, { touches: [{ clientY: 500 }] });
+    fireEvent.pointerUp(window, { clientY: 700, pointerId: 1 });
+    fireEvent.click(childBtn);
+    expect(onChildClick).toHaveBeenCalledTimes(1);
+
+    // Real pointer drag (> 5px) via window listeners suppresses child onClick via onClickCapture
+    onChildClick.mockClear();
+    fireEvent.pointerDown(childBtn, { clientY: 700, button: 0, pointerId: 2 });
     expect(panel.getAttribute('data-is-dragging')).toBe('false');
+    fireEvent.pointerMove(window, { clientY: 460, pointerId: 2, cancelable: true });
+    expect(panel.getAttribute('data-is-dragging')).toBe('true');
+    fireEvent.pointerUp(window, { clientY: 460, pointerId: 2 });
+    expect(panel.getAttribute('data-is-dragging')).toBe('false');
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+
+    fireEvent.click(childBtn);
+    expect(onChildClick).not.toHaveBeenCalled();
+  });
+
+  it('sets data-scrollable="false" in peek and unclamped partial, and "true" in full or clamped partial', () => {
+    const { rerender } = render(
+      <DetentSheet
+        testIdPrefix="scroll"
+        heading="Scrollable Sheet"
+        activeDetent="peek"
+        peek={<div>Peek</div>}
+        peekMidStage={<div data-testid="scroll-mid">Mid</div>}
+      />
+    );
+
+    const panel = screen.getByTestId('scroll-panel');
+    expect(panel.getAttribute('data-scrollable')).toBe('false');
+
+    rerender(
+      <DetentSheet
+        testIdPrefix="scroll"
+        heading="Scrollable Sheet"
+        activeDetent="partial"
+        peek={<div>Peek</div>}
+        peekMidStage={<div data-testid="scroll-mid">Mid</div>}
+      />
+    );
+    expect(panel.getAttribute('data-scrollable')).toBe('false');
+
+    // Clamped partial (tall mid-stage exceeding MAX_PARTIAL_SHEET_RATIO) becomes scrollable
+    const midInner = screen.getByTestId('scroll-overview-mid-stage').querySelector('[data-detent-mid-inner="true"]') as HTMLElement;
+    Object.defineProperty(midInner, 'scrollHeight', { configurable: true, value: 900 });
+    fireEvent(window, new Event('resize'));
+    expect(panel.getAttribute('data-scrollable')).toBe('true');
+
+    rerender(
+      <DetentSheet
+        testIdPrefix="scroll"
+        heading="Scrollable Sheet"
+        activeDetent="full"
+        peek={<div>Peek</div>}
+        peekMidStage={<div data-testid="scroll-mid">Mid</div>}
+      />
+    );
+    expect(panel.getAttribute('data-scrollable')).toBe('true');
   });
 
   it('invokes onDetentChange when dragging and releasing to a new detent', () => {

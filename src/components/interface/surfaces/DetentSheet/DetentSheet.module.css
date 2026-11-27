@@ -143,11 +143,14 @@
       display: none;
     }
 
-    .detentSheet[data-detent="partial"],
-    .detentSheet[data-beyond-partial="true"],
-    .detentSheet[data-detent="full"] {
+    .dragHandleBar {
+      padding-block: var(--space-fib-2);
+    }
+
+    .detentSheet[data-scrollable="true"] {
       overflow-y: auto;
       touch-action: pan-y;
+      overscroll-behavior-y: contain;
     }
 
     .detentSheet:not(:has([data-detent-mid-stage="true"]))[data-detent="partial"] [data-detent-section="partial"],

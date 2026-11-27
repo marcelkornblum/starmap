@@ -264,9 +264,19 @@ describe('<BodiesPanel />', () => {
 
     const heading = screen.getByRole('heading', { level: 3, name: /minor bodies/i });
     expect(heading).toBeInTheDocument();
-    expect(heading.parentElement).toBe(minorBodiesSection);
+    expect(minorBodiesSection).toContainElement(heading);
     expect(heading.getAttribute('data-size')).toBe('eyebrow');
 
+    expect(screen.getByText('Voyager 1')).toBeInTheDocument();
+    expect(minorBodiesSection).toHaveAttribute('data-expanded', 'true');
+
+    const toggle = screen.getByRole('button', { name: /Minor Bodies & Spacecraft/i });
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Voyager 1')).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Voyager 1')).toBeInTheDocument();
   });
 

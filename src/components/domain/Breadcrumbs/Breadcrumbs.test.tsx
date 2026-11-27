@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Breadcrumbs } from './Breadcrumbs';
@@ -17,29 +15,27 @@ describe('<Breadcrumbs />', () => {
       { label: 'Earth' },
     ];
 
-    render(
-      <Breadcrumbs
-        items={items}
-      />
-    );
+    render(<Breadcrumbs items={items} />);
 
-    expect(screen.getByTestId('view-breadcrumbs')).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(nav).toBeInTheDocument();
+    expect(screen.getByTestId('view-breadcrumbs')).toBe(nav);
     expect(screen.queryByTestId('breadcrumbs-mode-menu')).toBeNull();
     expect(screen.queryByTestId('breadcrumbs-mode-galaxy')).toBeNull();
     expect(screen.queryByTestId('breadcrumbs-mode-guide')).toBeNull();
     expect(screen.queryByTestId('breadcrumbs-companion-link')).toBeNull();
 
     const renderedItems = screen.getAllByTestId('breadcrumb-item');
-    expect(renderedItems.length).toBe(3);
+    expect(renderedItems).toHaveLength(3);
 
     const links = screen.getAllByTestId('breadcrumb-link');
-    expect(links.length).toBe(2);
-    expect(links[0].getAttribute('href')).toContain('/galaxy');
-    expect(links[1].getAttribute('href')).toContain('/system/sol');
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute('href', expect.stringContaining('/galaxy'));
+    expect(links[1]).toHaveAttribute('href', expect.stringContaining('/system/sol'));
 
     const current = screen.getByTestId('breadcrumb-current');
-    expect(current.getAttribute('aria-current')).toBe('page');
-    expect(current.textContent).toContain('Earth');
+    expect(current).toHaveAttribute('aria-current', 'page');
+    expect(current).toHaveTextContent('Earth');
   });
 
   it('renders explicit reticleType and does not infer from index or label', () => {
@@ -54,17 +50,26 @@ describe('<Breadcrumbs />', () => {
     expect(container.querySelector('[data-celestial-title="super-earth"]')).not.toBeNull();
   });
 
-  it('defines coarse-pointer hit-slop ::before expansion and readable mobile typography in CSS module', () => {
-    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'Breadcrumbs.module.css'), 'utf8');
-    expect(css).not.toMatch(/\.modeMenu/);
-    expect(css).not.toMatch(/data-mode-button/);
-    expect(css).not.toMatch(/--type-scale-neg-2/);
-    expect(css).toMatch(/\.breadcrumbItem\s+a[\s\S]*position:\s*relative/);
-    expect(css).toMatch(/--breadcrumbs-hit-slop-block:\s*var\(--space-hit-slop-block\)/);
-    expect(css).toMatch(/--breadcrumbs-hit-slop-inline:\s*var\(--space-hit-slop-inline\)/);
-    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
-    expect(css).toMatch(/\.breadcrumbItem\s+a::before/);
-    expect(css).toMatch(/inset-block:\s*var\(--breadcrumbs-hit-slop-block\)/);
-    expect(css).toMatch(/inset-inline:\s*var\(--breadcrumbs-hit-slop-inline\)/);
+  it('renders keyboard-focusable ancestor links and non-interactive current-page item with accessible celestial titles', () => {
+    render(
+      <Breadcrumbs
+        items={[
+          { label: 'Galaxy', href: '/galaxy' },
+          { label: 'Sol', href: '/system/sol', reticleType: 'stellar-system' },
+          { label: 'Earth (Terra)', reticleType: 'terrestrial' },
+        ]}
+      />,
+    );
+
+    const galaxyLink = screen.getByRole('link', { name: 'Galaxy' });
+    const solLink = screen.getByRole('link', { name: /Sol/ });
+    expect(galaxyLink).toBeVisible();
+    expect(solLink).toBeVisible();
+    expect(solLink).toHaveAttribute('href', expect.stringContaining('/system/sol'));
+
+    const currentItem = screen.getByTestId('breadcrumb-current');
+    expect(currentItem).toHaveAttribute('aria-current', 'page');
+    expect(currentItem).toHaveTextContent('Earth (Terra)');
+    expect(screen.queryByRole('link', { name: /Earth/ })).toBeNull();
   });
 });

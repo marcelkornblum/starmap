@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Cluster,
+  CollapsibleSection,
   Datum,
   HazardBadge,
   Heading,
@@ -67,39 +68,38 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
       data-hazard-id={resolvedHazardId}
     >
       <div className={styles.guideRoot}>
+      <GuideSectionNav currentSection="hazards" />
+      <Cluster justify="between" align="center" gap="tight">
         <Breadcrumbs
           items={[
-            { label: 'Guide', href: '/guide/star-types' },
             { label: 'Environmental Hazards', href: HAZARDS_GUIDE_PATH },
             { label: primaryEntry?.title || resolvedHazardId || 'Hazard' },
           ]}
         />
-      <GuideSectionNav currentSection="hazards" />
-      <Heading as="h1">
+        <Cluster gap="tight" align="center">
+          <Button href={HAZARDS_GUIDE_PATH} variant="subtle" size="sm" data-testid="hazards-list-link">
+            All Environmental Hazards
+          </Button>
+          {focusedEntityId && (
+            <div data-testid="guide-focus-context">
+              <Button
+                href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+                variant="subtle"
+                size="sm"
+              >
+                Return to {focusedEntityId}
+              </Button>
+            </div>
+          )}
+        </Cluster>
+      </Cluster>
+      <Heading as="h1" size="title">
         {primaryEntry
           ? `Environmental Hazard: ${primaryEntry.title}`
           : resolvedHazardId
             ? `Environmental Hazard: ${resolvedHazardId}`
             : 'Environmental Hazard'}
       </Heading>
-
-      {focusedEntityId && (
-        <div data-testid="guide-focus-context">
-          <Button
-            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
-            variant="subtle"
-            size="sm"
-          >
-            Return to {focusedEntityId}
-          </Button>
-        </div>
-      )}
-
-      <p>
-        <Button href={HAZARDS_GUIDE_PATH} variant="subtle" size="sm" data-testid="hazards-list-link">
-          All Environmental Hazards
-        </Button>
-      </p>
 
       {entries.length > 0 ? (
         <>
@@ -124,20 +124,21 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
 
               <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-              <Heading as="h3">Hazard Parameters & Operational Impact</Heading>
-              <Stack gap="none" data-testid="guide-detail-telemetry">
-                <Datum label="Scope" value={entry.domainLabel} />
-                <Datum
-                  label="Severity Tier"
-                  value={entry.severity === 'critical'
-                    ? 'Critical Hazard'
-                    : 'Operational Warning'}
-                />
-                <Datum label="Trigger Threshold" value={entry.thresholdCriteria} />
-                <Datum label="Physical Mechanism" value={entry.physicalMechanism} />
-                <Datum label="Operational Impact" value={entry.operationalImpact} />
-                <Datum label="Mitigation" value={entry.mitigationNotes} />
-              </Stack>
+              <CollapsibleSection title="Hazard Parameters & Operational Impact" headingAs="h3">
+                <Stack gap="none" data-testid="guide-detail-telemetry">
+                  <Datum label="Scope" value={entry.domainLabel} />
+                  <Datum
+                    label="Severity Tier"
+                    value={entry.severity === 'critical'
+                      ? 'Critical Hazard'
+                      : 'Operational Warning'}
+                  />
+                  <Datum label="Trigger Threshold" value={entry.thresholdCriteria} />
+                  <Datum label="Physical Mechanism" value={entry.physicalMechanism} />
+                  <Datum label="Operational Impact" value={entry.operationalImpact} />
+                  <Datum label="Mitigation" value={entry.mitigationNotes} />
+                </Stack>
+              </CollapsibleSection>
 
               <GuideExamplesList
                 examples={getGuideExamplesForEntry('hazardTypes', entry.id)}

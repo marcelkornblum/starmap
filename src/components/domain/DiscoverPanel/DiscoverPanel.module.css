@@ -36,13 +36,6 @@
     margin: 0;
   }
 
-  .group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-stack-dense);
-    margin: 0;
-  }
-
   .itemLink {
     display: block;
     inline-size: 100%;

@@ -4,6 +4,7 @@ import {
   Badge,
   Button,
   CelestialSymbol,
+  CollapsibleSection,
   DataTable,
   Heading,
   Icon,
@@ -55,14 +56,13 @@ export const DirectionsPartialSection: React.FC<DirectionsPartialSectionProps> =
           {selectedOption.shortDescription}
         </p>
 
-        <section
+        <CollapsibleSection
+          key="flight-profile"
+          title="Flight Profile"
+          headingAs="h4"
+          headingId="directions-profile-heading"
           data-testid="directions-option-profile"
-          aria-labelledby="directions-profile-heading"
-          className={styles.telemetrySection}
         >
-          <Heading as="h4" size="eyebrow" id="directions-profile-heading">
-            Flight Profile
-          </Heading>
           <Stack gap="none" data-testid="directions-option-telemetry-list">
             {renderDirectionsDatum(
               'Ship Time (Proper)',
@@ -105,7 +105,7 @@ export const DirectionsPartialSection: React.FC<DirectionsPartialSectionProps> =
               'directions-stat-propulsion',
             )}
           </Stack>
-        </section>
+        </CollapsibleSection>
       </div>
     );
   }
@@ -154,13 +154,12 @@ export const DirectionsPartialSection: React.FC<DirectionsPartialSectionProps> =
         ))}
       </Stack>
 
-      <section
-        aria-labelledby="directions-geometry-heading"
-        className={styles.telemetrySection}
+      <CollapsibleSection
+        key="route-geometry"
+        title="Route Geometry"
+        headingAs="h4"
+        headingId="directions-geometry-heading"
       >
-        <Heading as="h4" size="eyebrow" id="directions-geometry-heading">
-          Route Geometry
-        </Heading>
         <DataTable data-testid="directions-geometry-list">
           <DataTable.Head>
             <DataTable.Row>
@@ -191,7 +190,7 @@ export const DirectionsPartialSection: React.FC<DirectionsPartialSectionProps> =
             ))}
           </DataTable.Body>
         </DataTable>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 };

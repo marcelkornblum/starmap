@@ -25,8 +25,8 @@ test.describe('Journey 2: The Author Flow (Candidate Hunting & Territory Mapping
     await centreLink.click();
     await expect(page).toHaveURL(/center=/);
 
-    // 2. User opens the Galactic Systems drawer via the Bodies button if not already open on desktop
-    const bodiesToggleButton = page.getByRole('button', { name: /Bodies/i });
+    // 2. User opens the Objects in View drawer via the top-right button if not already docked on desktop
+    const bodiesToggleButton = page.getByRole('button', { name: /Objects in View/i });
     if (await bodiesToggleButton.isVisible()) {
       await bodiesToggleButton.click();
     }

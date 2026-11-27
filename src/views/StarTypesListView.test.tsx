@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { StarTypesListView } from './StarTypesListView';
 
 describe('<StarTypesListView />', () => {
-  it('renders root, breadcrumbs, section nav, heading, and all star type items', () => {
+  it('renders root, active section nav without duplicate breadcrumbs, heading, and all star type items', () => {
     render(<StarTypesListView />);
 
     const root = screen.getByTestId('star-types-list-view-root');
@@ -14,13 +14,11 @@ describe('<StarTypesListView />', () => {
     expect(screen.getByTestId('console-dock')).toBeTruthy();
     expect(screen.getByTestId('console-dock-guide').getAttribute('data-active')).toBe('true');
 
-    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
-    expect(breadcrumbs).toBeTruthy();
-    expect(breadcrumbs.textContent).toContain('Guide');
-    expect(breadcrumbs.textContent).toContain('Star Types');
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
 
     const sectionNav = screen.getByTestId('guide-section-nav');
     expect(sectionNav).toBeTruthy();
+    expect(within(sectionNav).getByRole('link', { name: 'Star Types' }).getAttribute('aria-current')).toBe('page');
 
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Star Types');

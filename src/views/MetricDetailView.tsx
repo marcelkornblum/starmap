@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Cluster,
+  CollapsibleSection,
   Datum,
   Heading,
   Stack,
@@ -88,42 +89,41 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
       data-metric-id={resolvedMetricId}
     >
       <div className={styles.guideRoot}>
+      <GuideSectionNav currentSection="metrics" />
+      <Cluster justify="between" align="center" gap="tight">
         <Breadcrumbs
           items={[
-            { label: 'Guide', href: '/guide/star-types' },
             { label: 'Telemetry Metrics', href: METRICS_GUIDE_PATH },
             { label: resolvedMetricId || 'Telemetry Metric' },
           ]}
         />
-      <GuideSectionNav currentSection="metrics" />
-      <Heading as="h1">
+        <Cluster gap="tight" align="center">
+          <Button
+            href={METRICS_GUIDE_PATH}
+            variant="subtle"
+            size="sm"
+            data-testid="metrics-list-link"
+          >
+            All Telemetry Metrics
+          </Button>
+          {resolvedFocusId && (
+            <div data-testid="guide-focus-context">
+              <Button
+                href={`/system/${encodeURIComponent(resolvedFocusId)}?focus=${encodeURIComponent(resolvedFocusId)}`}
+                variant="subtle"
+                size="sm"
+              >
+                Return to {resolvedFocusId}
+              </Button>
+            </div>
+          )}
+        </Cluster>
+      </Cluster>
+      <Heading as="h1" size="title">
         {resolvedMetricId
           ? `Telemetry Metric: ${resolvedMetricId}`
           : 'Telemetry Metric'}
       </Heading>
-
-      {resolvedFocusId && (
-        <div data-testid="guide-focus-context">
-          <Button
-            href={`/system/${encodeURIComponent(resolvedFocusId)}?focus=${encodeURIComponent(resolvedFocusId)}`}
-            variant="subtle"
-            size="sm"
-          >
-            Return to {resolvedFocusId}
-          </Button>
-        </div>
-      )}
-
-      <p>
-        <Button
-          href={METRICS_GUIDE_PATH}
-          variant="subtle"
-          size="sm"
-          data-testid="metrics-list-link"
-        >
-          All Telemetry Metrics
-        </Button>
-      </p>
 
       {entries.length > 0 ? (
         <>
@@ -157,19 +157,20 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
 
                   <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-                  <Heading as="h3">Standard Formulation & Baseline</Heading>
-                  <Stack gap="none" data-testid="guide-detail-telemetry">
-                    <Datum label="Unit Symbol" value={entry.unitSymbol} />
-                    <Datum label="Category" value={entry.category} />
-                    <Datum
-                      label="Physical Definition"
-                      value={entry.physicalDefinition}
-                    />
-                    <Datum
-                      label="Reference Baseline"
-                      value={entry.referenceBaseline}
-                    />
-                  </Stack>
+                  <CollapsibleSection title="Standard Formulation & Baseline" headingAs="h3">
+                    <Stack gap="none" data-testid="guide-detail-telemetry">
+                      <Datum label="Unit Symbol" value={entry.unitSymbol} />
+                      <Datum label="Category" value={entry.category} />
+                      <Datum
+                        label="Physical Definition"
+                        value={entry.physicalDefinition}
+                      />
+                      <Datum
+                        label="Reference Baseline"
+                        value={entry.referenceBaseline}
+                      />
+                    </Stack>
+                  </CollapsibleSection>
                 </section>
 
                 <GuideExamplesList

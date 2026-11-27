@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { GuideExamplesList } from './GuideExamplesList';
 import type { GuideExampleTarget } from '../../../content/guide';
 
@@ -63,5 +63,21 @@ describe('<GuideExamplesList />', () => {
 
     const titleEl = container.querySelector('[data-celestial-title="gas-giant"]');
     expect(titleEl).not.toBeNull();
+  });
+
+  it('wraps the examples table in a CollapsibleSection that toggles visibility on click', () => {
+    render(<GuideExamplesList examples={mockExamples} />);
+
+    const toggle = screen.getByRole('button', { name: /Canonical System Benchmarks/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('guide-examples-list')).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('guide-examples-list')).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('guide-examples-list')).toBeInTheDocument();
   });
 });

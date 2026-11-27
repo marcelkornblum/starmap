@@ -1,13 +1,35 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { useRouter } from '@tanstack/react-router';
 import { GuideSectionNav } from './GuideSectionNav';
 
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-router')>();
+  return {
+    ...actual,
+    useRouter: vi.fn(() => undefined),
+  };
+});
+
 describe('<GuideSectionNav />', () => {
+  const mockNavigate = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useRouter).mockReturnValue({
+      navigate: mockNavigate,
+      history: { push: mockNavigate },
+    } as never);
+  });
+
   it('renders all 5 guide section links', () => {
     render(<GuideSectionNav />);
 
     const nav = screen.getByTestId('guide-section-nav');
     expect(nav).toBeInTheDocument();
+    expect(nav.querySelector('ul')).not.toBeNull();
 
     expect(screen.getByRole('link', { name: 'Star Types' })).toHaveAttribute('href', '/guide/star-types');
     expect(screen.getByRole('link', { name: 'Planet Types' })).toHaveAttribute('href', '/guide/planet-types');
@@ -28,5 +50,34 @@ describe('<GuideSectionNav />', () => {
     rerender(<GuideSectionNav currentSection="legend" />);
     expect(screen.getByRole('link', { name: 'Telemetry Metrics' }).getAttribute('aria-current')).toBeNull();
     expect(screen.getByRole('link', { name: 'Legend' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('navigates via SPA router on unmodified click and respects modified clicks', () => {
+    render(<GuideSectionNav currentSection="star-types" />);
+
+    const metricsLink = screen.getByRole('link', { name: 'Telemetry Metrics' });
+    const clickHandled = fireEvent.click(metricsLink);
+    expect(clickHandled).toBe(false);
+    expect(mockNavigate).toHaveBeenCalledWith({ href: '/guide/metrics' });
+
+    mockNavigate.mockClear();
+    const ctrlHandled = fireEvent.click(screen.getByRole('link', { name: 'Legend' }), { ctrlKey: true });
+    expect(ctrlHandled).toBe(true);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('defines sticky horizontal nowrap tab bar and coarse-pointer tap target in CSS module', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'GuideSectionNav.module.css'), 'utf8');
+    expect(css).toMatch(/position:\s*sticky/);
+    expect(css).toMatch(/top:\s*0/);
+    expect(css).toMatch(/overflow-x:\s*auto/);
+    expect(css).toMatch(/scrollbar-width:\s*none/);
+    expect(css).toMatch(/\.sectionNav\s*>\s*ul/);
+    expect(css).toMatch(/flex-wrap:\s*nowrap/);
+    expect(css).toMatch(/white-space:\s*nowrap/);
+    expect(css).toMatch(/--guide-section-nav-link-active-indicator:\s*var\(--state-focus\)/);
+    expect(css).toMatch(/border-block-end-color:\s*var\(--guide-section-nav-link-active-indicator\)/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/min-block-size:\s*var\(--size-touch-target-min\)/);
   });
 });

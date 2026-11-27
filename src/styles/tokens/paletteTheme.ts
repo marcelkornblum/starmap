@@ -45,19 +45,31 @@ export function resolveThemeBrowserColor(theme: UITheme): string {
 }
 
 /**
- * Synchronises `<meta name="theme-color">` in `document.head` (creating it if absent)
- * so mobile browser chrome matches the active Starmap theme.
+ * Synchronises all `<meta name="theme-color">` tags in `document.head` (creating one if absent)
+ * and `document.documentElement.style.colorScheme` so mobile browser chrome matches the active Starmap theme.
  */
 export function syncThemeColorMeta(theme: UITheme): void {
-  if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return;
+  if (typeof document === 'undefined') return;
   const color = resolveThemeBrowserColor(theme);
-  let meta = document.querySelector('meta[name="theme-color"]');
-  if (!meta && typeof document.createElement === 'function' && document.head) {
-    meta = document.createElement('meta');
+  const existing =
+    typeof document.querySelectorAll === 'function'
+      ? Array.from(document.querySelectorAll('meta[name="theme-color"]'))
+      : typeof document.querySelector === 'function'
+        ? [document.querySelector('meta[name="theme-color"]')].filter((el): el is Element => el !== null)
+        : [];
+  if (existing.length > 0) {
+    for (const meta of existing) {
+      meta.setAttribute('content', color);
+    }
+  } else if (typeof document.createElement === 'function' && document.head) {
+    const meta = document.createElement('meta');
     meta.setAttribute('name', 'theme-color');
+    meta.setAttribute('content', color);
     document.head.appendChild(meta);
   }
-  meta?.setAttribute('content', color);
+  if (document.documentElement?.style) {
+    document.documentElement.style.colorScheme = theme === 'light' ? 'light' : 'dark';
+  }
 }
 
 /**

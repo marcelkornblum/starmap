@@ -120,6 +120,9 @@ describe('occlusionClusterSolver', () => {
 
     // Fanned 44px hit circles (22px radius each) must be separated by at least 44px
     expect(fannedCenterDistance).toBeGreaterThanOrEqual(44);
+    // Each star's visual dot must remain comfortably inside its own hit circle
+    expect(Math.hypot(fp1.hitAreaOffsetX ?? 0, fp1.hitAreaOffsetY ?? 0)).toBeLessThan(12);
+    expect(Math.hypot(fp2.hitAreaOffsetX ?? 0, fp2.hitAreaOffsetY ?? 0)).toBeLessThan(12);
   });
 
   it('fans out nearly-coincident stars on touch so 44px hit circles do not overlap', () => {

@@ -276,5 +276,38 @@ describe('searchFramingPolicy', () => {
         href: '/system/exo-sys-1',
       });
     });
+
+    it('anchors on highest-ranked Sol match when distant outlier exceeds mobile maxDistance', () => {
+      const matches: readonly SearchFramingItem[] = [
+        {
+          id: SOL_REFERENCE_TARGET.id,
+          category: 'stars',
+          entityKind: 'star-system',
+          href: `/galaxy?focus=${SOL_REFERENCE_TARGET.id}`,
+          isSolarSystem: true,
+          position: [...SOL_REFERENCE_TARGET.coordinatesPc],
+        },
+        {
+          id: 'wasp-96',
+          category: 'stars',
+          entityKind: 'star-system',
+          href: '/galaxy?focus=wasp-96',
+          position: [200, 250, -145],
+        },
+      ];
+
+      expect(
+        resolveSearchFramingAction(matches, {
+          viewportWidth: 390,
+          viewportHeight: 844,
+          maxDistance: 122,
+        }),
+      ).toEqual({
+        kind: 'frame-galaxy',
+        target: [0, 0, 0],
+        distance: DEFAULT_SINGLE_RESULT_DISTANCE_PC,
+        matchCount: 2,
+      });
+    });
   });
 });

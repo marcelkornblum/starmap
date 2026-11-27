@@ -310,7 +310,12 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         await page.mouse.move(400, 300);
         await page.mouse.wheel(0, 400);
         await expect
-          .poll(() => page.evaluate(() => window.scrollY))
+          .poll(() =>
+            page.evaluate(() => {
+              const docRegion = document.querySelector('[data-spatial-region="document"]');
+              return (docRegion instanceof HTMLElement ? docRegion.scrollTop : 0) || window.scrollY;
+            }),
+          )
           .toBeGreaterThan(0);
 
         // Plus-delimited compound star types (e.g. G2V+K1V)

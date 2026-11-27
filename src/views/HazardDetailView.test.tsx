@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { HazardDetailView } from './HazardDetailView';
 import {
@@ -95,5 +95,20 @@ describe('<HazardDetailView />', () => {
     const links = screen.getAllByTestId('guide-example-link');
     expect(links[0]?.textContent).toBe('Tau Ceti e');
     expect(links[0]?.getAttribute('href')).toBe('/system/tau-ceti?focus=tau-ceti-e');
+  });
+
+  it('renders 2-crumb breadcrumbs without redundant Guide prefix and wraps telemetry in a CollapsibleSection', () => {
+    render(<HazardDetailView hazardId="high-gravity" />);
+
+    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
+    expect(within(breadcrumbs).getAllByTestId('breadcrumb-item')).toHaveLength(2);
+    expect(breadcrumbs.textContent).not.toContain('Guide');
+    expect(breadcrumbs.textContent).toContain('Environmental Hazards');
+
+    const telemetryToggle = screen.getByRole('button', { name: /Hazard Parameters & Operational Impact/i });
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(telemetryToggle);
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('guide-detail-telemetry')).toBeNull();
   });
 });

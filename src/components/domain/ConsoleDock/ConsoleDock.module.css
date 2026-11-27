@@ -54,7 +54,8 @@
   @media (max-width: 767px) {
     .consoleDock {
       inline-size: 100%;
-      block-size: var(--console-dock-mobile-size);
+      block-size: calc(var(--console-dock-mobile-size) + env(safe-area-inset-bottom, 0px));
+      padding-block-end: calc(var(--console-dock-padding) + env(safe-area-inset-bottom, 0px));
       flex-direction: row;
       align-items: center;
       justify-content: space-around;

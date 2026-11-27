@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import {
+  DEFAULT_SINGLE_RESULT_DISTANCE_PC,
   MIN_SEARCH_FRAMING_DISTANCE_PC,
   SEARCH_FRAMING_SETTLE_MS,
 } from '../../../utils/searchFraming';
@@ -1163,7 +1164,7 @@ describe('useSearchFraming', () => {
     vi.stubGlobal('innerWidth', 1440);
     vi.stubGlobal('innerHeight', 900);
 
-    // Distant >100 pc cluster: centroid at [200, 0, 0], radius = 80 pc -> framed using hardware ceiling
+    // Distant >100 pc cluster: centroid at [170, 0, 0], radius = 50 pc -> fits within tier3 hardware ceiling (>100 pc)
     const distantCorpus: readonly CompactSearchEntry[] = [
       {
         i: 'distant-1',
@@ -1175,7 +1176,7 @@ describe('useSearchFraming', () => {
       {
         i: 'distant-2',
         n: 'Distant Two',
-        p: [280, 0, 0],
+        p: [220, 0, 0],
         m: [8.2, 'G5V', 1],
         a: 'distant two',
       },
@@ -1224,7 +1225,7 @@ describe('useSearchFraming', () => {
 
     const frame = useCameraStore.getState().pendingSearchFrame;
     expect(frame).not.toBeNull();
-    expect(frame?.target).toEqual([200, 0, 0]);
+    expect(frame?.target).toEqual([170, 0, 0]);
     expect(frame?.distance).toBeGreaterThan(100);
 
     // Inside-100 pc wide cluster: centroid at [50, 0, 0], radius = 30 pc -> NOT choked to ~53 pc dense ceiling
@@ -1274,5 +1275,74 @@ describe('useSearchFraming', () => {
     expect(denseFrame).not.toBeNull();
     expect(denseFrame?.target).toEqual([50, 0, 0]);
     expect(denseFrame?.distance).toBeGreaterThan(60);
+  });
+
+  it('anchors on primary match instead of empty midpoint when outlier exceeds computeCeilingMaxCameraDistancePc', () => {
+    vi.stubGlobal('navigator', { hardwareConcurrency: 8, deviceMemory: 16 });
+    vi.stubGlobal('innerWidth', 1440);
+    vi.stubGlobal('innerHeight', 900);
+
+    const outlierCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'anchor-1',
+        n: 'Anchor One',
+        p: [0, 0, 0],
+        m: [4.0, 'G2V', 1],
+        a: 'anchor one',
+      },
+      {
+        i: 'anchor-2',
+        n: 'Anchor Two',
+        p: [400, 0, 0],
+        m: [9.0, 'G5V', 1],
+        a: 'anchor two',
+      },
+    ];
+    const { router } = createMockRouter('/galaxy', '');
+    const anchorResults = searchCatalog(outlierCorpus, {
+      query: 'Anchor',
+      filter: 'all',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: outlierCorpus,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=Anchor',
+      query: 'Anchor',
+      filter: 'all',
+      status: 'ready',
+      results: anchorResults,
+      initialCorpus: outlierCorpus,
+      router,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+
+    const frame = useCameraStore.getState().pendingSearchFrame;
+    expect(frame).not.toBeNull();
+    expect(frame?.target).toEqual([0, 0, 0]);
+    expect(frame?.distance).toBe(DEFAULT_SINGLE_RESULT_DISTANCE_PC);
   });
 });

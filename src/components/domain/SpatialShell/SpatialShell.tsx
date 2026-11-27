@@ -217,9 +217,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                   <div className={styles.breadcrumbsRegion} data-spatial-region="breadcrumbs">
                     {breadcrumbs}
                   </div>
-                  <div className={styles.visorScaleRegion} data-spatial-region="visor-scale">
-                    {minimapOrientation ? <VisorScalePill orientation={minimapOrientation} /> : null}
-                  </div>
                 </div>
                 <div className={styles.visorDiscoveryRow} data-spatial-region="visor-discovery-row">
                   <div className={styles.searchRegion} data-spatial-region="search">
@@ -234,7 +231,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                         aria-expanded={isBodiesDrawerOpen}
                         onClick={handleToggle}
                       >
-                        {isBodiesDrawerOpen ? 'Close Bodies' : 'Bodies'}
+                        Objects in View
                       </Button>
                     </div>
                   ) : null}
@@ -243,26 +240,33 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                   {layerCard}
                 </div>
               </header>
-              <div
-                ref={floatingLeftRef}
-                className={styles.floatingLeft}
-                data-spatial-region="floating-left"
-                data-camera-retracted={ssrInFlightAttr}
-              >
-                {isDiscoverOpen ? (
-                  <div className={styles.discoverSurface}>
-                    <DiscoverPanel
-                      activeLayerSlug={activeLayerSlug}
-                      onClose={() => setDiscoverOpen(false)}
-                      onSelectLayer={() => setDiscoverOpen(false)}
-                    />
+              <div className={styles.mobileBottomOverlay}>
+                <div className={styles.visorScaleRow}>
+                  <div className={styles.visorScaleRegion} data-spatial-region="visor-scale">
+                    {minimapOrientation ? <VisorScalePill orientation={minimapOrientation} /> : null}
                   </div>
-                ) : (
-                  <>
-                    {resolvedPrimaryFloat}
-                    {resolvedPreview}
-                  </>
-                )}
+                </div>
+                <div
+                  ref={floatingLeftRef}
+                  className={styles.floatingLeft}
+                  data-spatial-region="floating-left"
+                  data-camera-retracted={ssrInFlightAttr}
+                >
+                  {isDiscoverOpen ? (
+                    <div className={styles.discoverSurface}>
+                      <DiscoverPanel
+                        activeLayerSlug={activeLayerSlug}
+                        onClose={() => setDiscoverOpen(false)}
+                        onSelectLayer={() => setDiscoverOpen(false)}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      {resolvedPrimaryFloat}
+                      {resolvedPreview}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div

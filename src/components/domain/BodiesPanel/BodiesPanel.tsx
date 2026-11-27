@@ -10,7 +10,7 @@ import type {
   SystemBodiesSummary,
   SystemElementBodyItem,
 } from '../../../services/details/detailsHierarchyTypes';
-import { Block, Button, Heading, Stack } from '../../interface';
+import { Block, Button, CollapsibleSection, Heading, Stack } from '../../interface';
 import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
 import { BodiesGalaxySystemRow } from './BodiesGalaxySystemRow';
 import { BodiesMinorBodyRow } from './BodiesMinorBodyRow';
@@ -133,14 +133,12 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
   );
 
   return (
-    <section
-      aria-labelledby="bodies-minor-bodies-heading"
+    <CollapsibleSection
+      title="Minor Bodies & Spacecraft"
+      headingAs="h3"
+      headingId="bodies-minor-bodies-heading"
       data-testid="bodies-minor-bodies-section"
-      className={styles.section}
     >
-      <Heading as="h3" size="eyebrow" id="bodies-minor-bodies-heading">
-        Minor Bodies &amp; Spacecraft
-      </Heading>
       <Stack as="ul" gap="fib-1" data-testid="bodies-minor-bodies-list">
         {visibleItems.map((body) => (
           <BodiesMinorBodyRow
@@ -162,7 +160,7 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
           {`Show ${Math.min(MINOR_BODIES_PAGE_STEP, remainingCount)} more (${remainingCount.toLocaleString()} remaining)`}
         </Button>
       ) : null}
-    </section>
+    </CollapsibleSection>
   );
 });
 

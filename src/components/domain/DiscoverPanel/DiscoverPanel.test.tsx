@@ -186,4 +186,25 @@ describe('<DiscoverPanel />', () => {
     render(<DiscoverPanel layers={SAMPLE_LAYERS} />);
     expect(screen.queryByTestId('discover-close-button')).not.toBeInTheDocument();
   });
+
+  it('renders each group as a CollapsibleSection that toggles group items on click', () => {
+    render(<DiscoverPanel layers={[...SAMPLE_LAYERS, CUSTOM_LAYER]} />);
+
+    const sciGroup = screen.getByTestId('discover-scientific-group');
+    expect(sciGroup.tagName).toBe('SECTION');
+    expect(sciGroup).toHaveAttribute('data-expanded', 'true');
+
+    const sciToggle = within(sciGroup).getByRole('button', { name: /Scientific Highlights/i });
+    expect(sciToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(sciGroup).getByText('Recent Discoveries')).toBeInTheDocument();
+
+    fireEvent.click(sciToggle);
+    expect(sciToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(sciGroup).toHaveAttribute('data-expanded', 'false');
+    expect(within(sciGroup).queryByText('Recent Discoveries')).toBeNull();
+
+    fireEvent.click(sciToggle);
+    expect(sciToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(sciGroup).getByText('Recent Discoveries')).toBeInTheDocument();
+  });
 });

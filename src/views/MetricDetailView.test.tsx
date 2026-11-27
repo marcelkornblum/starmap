@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { MetricDetailView } from './MetricDetailView';
 
@@ -141,5 +141,20 @@ describe('<MetricDetailView />', () => {
     expect(compSection.getAttribute('data-focused-entity')).toBe('tau-ceti');
     expect(screen.getByTestId('metric-comparison-baseline').textContent).toContain('Sol');
     expect(screen.getByTestId('metric-comparison-target').textContent).toContain('Tau Ceti');
+  });
+
+  it('renders 2-crumb breadcrumbs without redundant Guide prefix and wraps telemetry in a CollapsibleSection', () => {
+    render(<MetricDetailView metricId="stellar-mass" />);
+
+    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
+    expect(within(breadcrumbs).getAllByTestId('breadcrumb-item')).toHaveLength(2);
+    expect(breadcrumbs.textContent).not.toContain('Guide');
+    expect(breadcrumbs.textContent).toContain('Telemetry Metrics');
+
+    const telemetryToggle = screen.getByRole('button', { name: /Standard Formulation & Baseline/i });
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(telemetryToggle);
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('guide-detail-telemetry')).toBeNull();
   });
 });

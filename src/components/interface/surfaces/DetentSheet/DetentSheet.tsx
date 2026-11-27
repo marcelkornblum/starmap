@@ -68,12 +68,12 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
     isFullScreenState,
     isDraggingState,
     isBeyondPartialState,
+    isScrollableState,
     peekHeightPxState,
     applyTapDetent,
     handlePointerDown,
-    handlePointerMove,
-    handlePointerRelease,
     isRecentDrag,
+    isSheetDraggable,
   } = useDetentSheetController({ activeDetent, onDetentChange });
 
   return (
@@ -85,8 +85,21 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       data-is-full-screen={isFullScreenState ? 'true' : 'false'}
       data-is-dragging={isDraggingState ? 'true' : 'false'}
       data-beyond-partial={isBeyondPartialState ? 'true' : 'false'}
+      data-scrollable={isScrollableState ? 'true' : 'false'}
       data-min-height-px={peekHeightPxState}
       className={styles.detentSheet}
+      onPointerDown={handlePointerDown}
+      onDragStart={(e) => {
+        if (isSheetDraggable()) {
+          e.preventDefault();
+        }
+      }}
+      onClickCapture={(e) => {
+        if (isRecentDrag()) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
       {...(entityId !== undefined ? { 'data-entity-id': entityId } : {})}
       {...(systemId !== undefined ? { 'data-system-id': systemId } : {})}
       {...(focusedKind !== undefined ? { 'data-focused-kind': focusedKind } : {})}
@@ -109,10 +122,6 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
           e.preventDefault();
           applyTapDetent(next);
         }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerRelease}
-        onPointerCancel={handlePointerRelease}
       >
         <span className={styles.dragHandlePill} />
       </div>

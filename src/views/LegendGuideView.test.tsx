@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import { CELESTIAL_SYMBOL_META } from '../components/interface';
 import {
   LEGEND_CHROMATIC_ENTRIES,
@@ -12,7 +12,7 @@ import {
 import { LegendGuideView } from './LegendGuideView';
 
 describe('<LegendGuideView />', () => {
-  it('renders root, breadcrumbs, active Legend section nav, and heading', () => {
+  it('renders root, active Legend section nav without duplicate breadcrumbs, and heading', () => {
     render(<LegendGuideView />);
 
     const root = screen.getByTestId('legend-guide-view-root');
@@ -23,9 +23,7 @@ describe('<LegendGuideView />', () => {
     expect(screen.getByTestId('console-dock')).toBeInTheDocument();
     expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
-    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
-    expect(breadcrumbs.textContent).toContain('Guide');
-    expect(breadcrumbs.textContent).toContain('Cartography & Symbology');
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
 
     const sectionNav = screen.getByTestId('guide-section-nav');
     expect(within(sectionNav).getByRole('link', { name: 'Legend' }).getAttribute('aria-current')).toBe('page');
@@ -102,5 +100,23 @@ describe('<LegendGuideView />', () => {
       expect(coveredSet.has(key)).toBe(true);
     }
     expect(coveredSet.size).toBe(metaKeys.length);
+  });
+
+  it('renders top-level legend sections and symbol groups inside CollapsibleSections', () => {
+    render(<LegendGuideView />);
+
+    const linesSection = screen.getByTestId('legend-lines-section');
+    expect(linesSection).toHaveAttribute('data-expanded', 'true');
+
+    const linesToggle = screen.getByRole('button', { name: /Lines & Trajectories/i });
+    fireEvent.click(linesToggle);
+    expect(linesToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(linesSection).queryByTestId('legend-line-item')).toBeNull();
+
+    const symbolsSection = screen.getByTestId('legend-symbols-section');
+    const firstGroupToggle = within(symbolsSection).getByRole('button', { name: new RegExp(LEGEND_SYMBOL_GROUPS[0].title, 'i') });
+    expect(firstGroupToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(firstGroupToggle);
+    expect(firstGroupToggle).toHaveAttribute('aria-expanded', 'false');
   });
 });

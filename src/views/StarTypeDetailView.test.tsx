@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { StarTypeDetailView } from './StarTypeDetailView';
 import {
@@ -107,5 +107,25 @@ describe('<StarTypeDetailView />', () => {
     const links = screen.getAllByTestId('guide-example-link');
     expect(links[0]?.textContent).toBe('Sol');
     expect(links[0]?.getAttribute('href')).toBe('/system/sol');
+  });
+
+  it('renders 2-crumb breadcrumbs without redundant Guide prefix and wraps decoded subtype and telemetry in CollapsibleSections', () => {
+    render(<StarTypeDetailView starType="G8.5V" />);
+
+    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
+    expect(within(breadcrumbs).getAllByTestId('breadcrumb-item')).toHaveLength(2);
+    expect(breadcrumbs.textContent).not.toContain('Guide');
+    expect(breadcrumbs.textContent).toContain('Star Types');
+
+    const decodedToggle = screen.getByRole('button', { name: /Decoded Yerkes Classification/i });
+    expect(decodedToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(decodedToggle);
+    expect(decodedToggle).toHaveAttribute('aria-expanded', 'false');
+
+    const telemetryToggle = screen.getByRole('button', { name: /Reference Telemetry Range/i });
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(telemetryToggle);
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('guide-detail-telemetry')).toBeNull();
   });
 });

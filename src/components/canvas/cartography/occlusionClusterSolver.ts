@@ -2,6 +2,8 @@ import type { CelestialFootprint } from './occlusionTypes';
 import type { ScreenSpatialGrid } from './occlusionGeometryMath';
 import { getCoarsePointerSnapshot, resolveEffectiveHitRadiusPx } from '../engineConfig';
 
+const _scratchSatellites: CelestialFootprint[] = [];
+
 function getHierarchyRank(classification?: string): number {
   if (classification === 'star' || classification === 'system') return 2;
   if (classification === 'planet' || classification === 'dwarf-planet') return 1;
@@ -79,9 +81,15 @@ export function computeHitAreaCluster(
     const anchorX = dominantAnchor.screenX;
     const anchorY = dominantAnchor.screenY;
     const anchorHitRadius = resolveEffectiveHitRadiusPx(dominantAnchor.reticleRadius, isCoarseOrTouch);
-    const satellites = cluster.filter((member) => member !== dominantAnchor);
+    _scratchSatellites.length = 0;
+    for (let i = 0; i < cluster.length; i++) {
+      const member = cluster[i];
+      if (member !== dominantAnchor) {
+        _scratchSatellites.push(member);
+      }
+    }
 
-    satellites.sort((a, b) => {
+    _scratchSatellites.sort((a, b) => {
       const angleA = Math.atan2(a.screenY - anchorY, a.screenX - anchorX);
       const angleB = Math.atan2(b.screenY - anchorY, b.screenX - anchorX);
       const diff = angleA - angleB;
@@ -89,11 +97,11 @@ export function computeHitAreaCluster(
       return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     });
 
-    const firstSat = satellites[0];
+    const firstSat = _scratchSatellites[0];
     const baseAngle = firstSat ? Math.atan2(firstSat.screenY - anchorY, firstSat.screenX - anchorX) : 0;
-    for (let i = 0; i < satellites.length; i++) {
-      const sat = satellites[i];
-      const angle = baseAngle + (2 * Math.PI * i) / satellites.length;
+    for (let i = 0; i < _scratchSatellites.length; i++) {
+      const sat = _scratchSatellites[i];
+      const angle = baseAngle + (2 * Math.PI * i) / _scratchSatellites.length;
       const satHitRadius = resolveEffectiveHitRadiusPx(sat.reticleRadius, isCoarseOrTouch);
       const ringRadius = Math.max(satHitRadius * 1.2, anchorHitRadius * 0.6 + satHitRadius * 0.65);
       sat.hitAreaOffsetX = anchorX + ringRadius * Math.cos(angle) - sat.screenX;
@@ -122,14 +130,18 @@ export function computeHitAreaCluster(
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 
-  // 3. Assign fan offsets outward from centroid using floored hit radii
+  // 3. Assign fan offsets outward from centroid so hit circles separate cleanly without abandoning each star's dot
+  const sinHalfStep = Math.sin(Math.PI / cluster.length);
   const baseAngle = Math.atan2(cluster[0].screenY - centroidY, cluster[0].screenX - centroidX);
   for (let i = 0; i < cluster.length; i++) {
     const member = cluster[i];
     const angle = baseAngle + (2 * Math.PI * i) / cluster.length;
     const memberHitRadius = resolveEffectiveHitRadiusPx(member.reticleRadius, isCoarseOrTouch);
-    member.hitAreaOffsetX = memberHitRadius * Math.cos(angle);
-    member.hitAreaOffsetY = memberHitRadius * Math.sin(angle);
+    const minRingRadius = sinHalfStep > 1e-4 ? memberHitRadius / sinHalfStep : memberHitRadius;
+    const existingDist = Math.hypot(member.screenX - centroidX, member.screenY - centroidY);
+    const ringRadius = Math.max(minRingRadius, existingDist);
+    member.hitAreaOffsetX = centroidX + ringRadius * Math.cos(angle) - member.screenX;
+    member.hitAreaOffsetY = centroidY + ringRadius * Math.sin(angle) - member.screenY;
     member.hitAreaEvaluatedAt = evalTime;
   }
 }

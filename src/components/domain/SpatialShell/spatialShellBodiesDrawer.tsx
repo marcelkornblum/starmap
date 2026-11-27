@@ -90,7 +90,7 @@ export const SpatialShellBodiesDrawer = memo(function SpatialShellBodiesDrawer({
       <aside
         ref={bodiesRegionRef}
         className={styles.bodiesRegion}
-        aria-label="Bodies"
+        aria-label="Objects in view"
         data-spatial-region="bodies"
         data-bodies-drawer-open={isBodiesDrawerOpen ? 'true' : 'false'}
         onTouchStart={handleTouchStart}
@@ -99,13 +99,13 @@ export const SpatialShellBodiesDrawer = memo(function SpatialShellBodiesDrawer({
       >
         <div className={styles.bodiesDrawerHeader}>
           <Heading as="h2" size="eyebrow">
-            Bodies
+            Objects in View
           </Heading>
           <Button
             variant="subtle"
             size="sm"
             onClick={onClose}
-            aria-label="Close bodies drawer"
+            aria-label="Close objects in view drawer"
             data-testid="spatial-shell-bodies-close"
           >
             ✕

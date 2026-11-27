@@ -11,7 +11,7 @@ describe('<MetricsListView />', () => {
     clearReferenceBaselinesCache();
   });
 
-  it('renders root, breadcrumbs, section nav, heading, and all 13 metric items', () => {
+  it('renders root, active section nav without duplicate breadcrumbs, heading, and all 13 metric items', () => {
     render(<MetricsListView />);
 
     const root = screen.getByTestId('metrics-list-view-root');
@@ -22,13 +22,11 @@ describe('<MetricsListView />', () => {
     expect(screen.getByTestId('console-dock')).toBeTruthy();
     expect(screen.getByTestId('console-dock-guide').getAttribute('data-active')).toBe('true');
 
-    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
-    expect(breadcrumbs).toBeTruthy();
-    expect(breadcrumbs.textContent).toContain('Guide');
-    expect(breadcrumbs.textContent).toContain('Telemetry Metrics');
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
 
     const sectionNav = screen.getByTestId('guide-section-nav');
     expect(sectionNav).toBeTruthy();
+    expect(within(sectionNav).getByRole('link', { name: 'Telemetry Metrics' }).getAttribute('aria-current')).toBe('page');
 
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Telemetry Metrics');

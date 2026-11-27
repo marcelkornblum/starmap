@@ -1,5 +1,4 @@
 import type React from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { SpatialShell } from '../components/domain/SpatialShell';
@@ -16,14 +15,8 @@ export const HazardsListView: React.FC = () => {
       activeWorkspace="guide"
     >
       <div className={styles.guideRoot}>
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Environmental Hazards' },
-        ]}
-      />
       <GuideSectionNav currentSection="hazards" />
-      <Heading as="h1">Environmental Hazards</Heading>
+      <Heading as="h1" size="title">Environmental Hazards</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="hazards-guide-list">
         {HAZARD_GUIDE_ENTRIES.map((entry) => (
           <Block
