@@ -1,0 +1,27 @@
+# Implementation Plan: Mobile UX, Fluid Details & Console Dock
+
+## Phase 1: Theme-Color Meta, Coarse-Pointer Hit Targets & Tablet Overflow Fix
+- [ ] **Task 1.1: Browser `theme-color` Meta & Theme Sync** — Add `<meta name="theme-color">` to `index.html` and synchronise its hex colour with active `UITheme` (`dark`, `light`, `amoled`) in `src/styles/tokens/paletteTheme.ts` with unit tests.
+- [ ] **Task 1.2: Coarse-Pointer Control & Inline Link Hit Areas** — Add touch-target and coarse-input tokens in `src/styles/tokens/literal.css` and `semantic.css`; update `Button`, `Input`, `Select`, `Toggle`, `Slider`, `Badge`, `Unit`, `CelestialSymbol`, and `Breadcrumbs` under `@media (pointer: coarse)` (`>= 44px` controls, `16px` inputs/selects, pseudo-element hit-slop on inline links) with unit tests.
+- [ ] **Task 1.3: Tablet Overflow Containment, Wrapping `<Datum>` & Full-Row `BodiesPanel` Links** — Allow `<Datum>` to render non-numeric `ReactNode` values without `<Quantity>` `white-space: nowrap`; enforce inline containment on `SpatialShell` `.floatingLeft` and `DetentSheet`; make `BodiesGalaxySystemRow`, `BodiesPrimaryRow`, and `BodiesMinorBodyRow` full-row links (`>= 44px` on coarse pointer) with unit tests.
+- [ ] **Task 1.4: Phase 1 Checkpoint** — Run `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, and `npm run test:coverage`; commit checkpoint.
+
+## Phase 2: 3D Canvas Touch Picking & Empty-Canvas Tap Ergonomics
+- [ ] **Task 2.1: Screen-Space Hit Floor, Cluster Fan-Out & Planet Disc Picking** — Enforce `44px` touch / `28px` mouse minimum pixel hit diameters in `engineConfig.ts` and `BodyMarker.tsx`, pass floored radii into `computeHitAreaCluster` (`occlusionClusterSolver.ts`), set `14px` touch tap-slop, and scale central body hit picking to cover the projected planet disc in `PlanetView` with unit tests.
+- [ ] **Task 2.2: Two-Step Touch Empty-Canvas Dismissal** — Update `useViewportPointerHandlers.ts` and `SpatialViewportContent.tsx` so touch `onPointerMissed` steps `detailsDetent` from `'partial' | 'full'` down to `'peek'` before clearing focus on a subsequent miss, with unit tests.
+- [ ] **Task 2.3: Phase 2 Checkpoint** — Run `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:r3f`, and `npm run test:coverage`; commit checkpoint.
+
+## Phase 3: Fluid Variable-Detent `DetailsPanel` (`Peek` ↔ `Partial` ↔ `Full`)
+- [ ] **Task 3.1: Intrinsic `ResizeObserver` Detent Math & Progress Interpolation** — Refactor `detentSheetMath.ts` and `DetentSheet.tsx` to measure `H_peek` and `H_partial` (`<= 68dvh`), drive `--detent-expand-progress` (`0..1`) during drag and spatial transitions (`prefers-reduced-motion` safe), and toggle `Peek ↔ Partial` on handle tap while keeping `DirectionsPanel` compatible, with unit tests.
+- [ ] **Task 3.2: Anchored-CTA `DetailsPanel` Slot Choreography** — Restructure mobile `DetailsPanel` / `DetailsIdentityHeader` slots so `Peek` shows handle + title row + CTAs, `Partial` reveals Prose + `<PreviewPanel />` fluidly above the stationary CTA row, and `Full` scrolls lower telemetry naturally below the overview frame, with unit tests.
+- [ ] **Task 3.3: Phase 3 Checkpoint** — Run `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, and `npm run test:coverage`; commit checkpoint.
+
+## Phase 4: Console `<Dock>`, `DiscoverPanel`, Predictable `Bodies` Drawer & Bilateral Visor
+- [ ] **Task 4.1: `ControlBar` Unmount & Predictable `Bodies` Drawer** — Unmount `<ControlBar />` from `GalaxyView`, `SystemView`, and `PlanetView`; repair Tier 2 `Drawer.tsx` / `Drawer.module.css`; present `< 1280px` `Bodies` as a headered right slide-over drawer (`44×44` close button, scrim/Escape close, auto-close on selection) and align `DESKTOP_DOCK_BREAKPOINT_PX` (`1280`) in `useViewportSafeRectObserver.ts`, with tests.
+- [ ] **Task 4.2: `DiscoverPanel` Component Quad** — Implement `src/components/domain/DiscoverPanel/` (`.tsx`, `.module.css`, `.stories.tsx`, `.test.tsx`) over `useLayerIndex()` grouped into *Scientific Highlights* and *Fictional Universes* with search filter, navigating to `?select=layer:<slug>&layer=<slug>` to launch `<LayerCard />`.
+- [ ] **Task 4.3: `ConsoleDock`, Persistent Shell & Bilateral Stage Visor** — Implement `src/components/domain/ConsoleDock/` quad (`Map · Discover · Guide`, bottom bar `< 768px`, `64px` left rail `>= 768px`); remove `.modeMenu` from `<Breadcrumbs>`; wrap `/guide/*` and `/search` inside the persistent `<Dock>` shell preserving return map URLs; implement mobile Visor Scale/Attitude pill (`Minimap` helpers + `resetView()`) and bilateral `Left (Breadcrumbs + Details/Discover) / Right (Search + Bodies)` layout across breakpoints, with tests.
+- [ ] **Task 4.4: Phase 4 Checkpoint** — Run `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, and `npm run test:coverage`; commit checkpoint.
+
+## Phase 5: Multi-Viewport Visual Review, Documentation, Dual Reviews & PR Delivery
+- [ ] **Task 5.1: Documentation & Changelog** — Update `docs/design/design-system.md` and `CHANGELOG.md`.
+- [ ] **Task 5.2: Multi-Viewport Capture & Dual Reviews** — Capture 5-viewport Playwright renders via `npm run capture:views`, run `code-review` and `architecture-review`, resolve any findings, run full `npm run check`, `npm run test:coverage`, and `npm run build`, and deliver via Pull Request.

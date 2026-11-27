@@ -3,6 +3,7 @@
 ## Active Tracks
 
 ### Product & Spatial Feature Tracks
+- [~] **Track: Mobile UX, Fluid Details & Console Dock** *Link: [conductor/tracks/mobile-ux-and-console-dock_20261127/index.md](./tracks/mobile-ux-and-console-dock_20261127/index.md)* *(Theme-color meta, coarse-pointer UI & 3D hit targets, fluid variable-detent DetailsPanel, predictable Bodies drawer, Console Dock `Map · Discover · Guide` & bilateral visor)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)* *(Input-capability detection, shortcut registry + keyboard help modal, navigation modes)*
 
 ## Backlog
