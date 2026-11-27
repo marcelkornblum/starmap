@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import { StarTypeCombinator } from '../components/domain/StarTypeCombinator';
 import {
   Button,
@@ -81,24 +82,26 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
     return 'V';
   }, [primaryDetail]);
 
+  const companionMapHref = focusedEntityId
+    ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+    : undefined;
+
   return (
-    <main
-      data-testid="star-type-detail-view-root"
+    <SpatialShell
+      mode="document"
+      testId="star-type-detail-view-root"
+      activeWorkspace="guide"
+      companionMapHref={companionMapHref}
       data-star-type={resolvedStarType}
-      className={styles.guideRoot}
     >
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Star Types', href: STAR_TYPES_GUIDE_PATH },
-          { label: resolvedStarType || 'Star Type' },
-        ]}
-        companionHref={
-          focusedEntityId
-            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
-            : undefined
-        }
-      />
+      <div className={styles.guideRoot}>
+        <Breadcrumbs
+          items={[
+            { label: 'Guide', href: '/guide/star-types' },
+            { label: 'Star Types', href: STAR_TYPES_GUIDE_PATH },
+            { label: resolvedStarType || 'Star Type' },
+          ]}
+        />
       <GuideSectionNav currentSection="star-types" />
       <Heading as="h1">{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</Heading>
 
@@ -205,6 +208,7 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
       ) : (
         <p>No guide record found for stellar classification &quot;{resolvedStarType}&quot;.</p>
       )}
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

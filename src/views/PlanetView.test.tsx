@@ -92,7 +92,7 @@ describe('<PlanetView />', () => {
     seedDetailRecord('earth', { kind: 'system', record: SOL_FIXTURE });
   });
 
-  it('renders planet spatial shell, breadcrumbs, search, control bar, and canvas layer', async () => {
+  it('renders planet spatial shell, console dock, breadcrumbs, visor scale pill, search, and canvas layer without control bar', async () => {
     await act(async () => {
       render(
         <SpatialEntityProvider>
@@ -107,11 +107,13 @@ describe('<PlanetView />', () => {
     });
 
     expect(screen.getByTestId('planet-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('console-dock')).toBeInTheDocument();
     expect(screen.getByTestId('view-breadcrumbs')).toBeInTheDocument();
     expect(screen.getByTestId('view-breadcrumbs').textContent).toContain('Galaxy');
     expect(screen.getByTestId('view-breadcrumbs').textContent).toContain('Earth');
+    expect(screen.getByTestId('visor-scale-pill')).toBeInTheDocument();
     expect(screen.getByTestId('search-root')).toBeInTheDocument();
-    expect(screen.getByTestId('control-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('control-bar')).toBeNull();
     const canvas = screen.getByTestId('canvas-layer');
     expect(canvas.getAttribute('data-scope')).toBe('planet');
   });

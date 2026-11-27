@@ -233,4 +233,23 @@ describe('useKeyboardShortcuts', () => {
     expect(navigate).toHaveBeenCalledTimes(1);
     mockRouter = undefined;
   });
+
+  it('closes Discover panel first when Escape is pressed while Discover is open, and respects enabled=false', () => {
+    useUIStore.getState().setDiscoverOpen(true);
+    const onClearFocus = vi.fn();
+
+    const { rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) => useKeyboardShortcuts({ enabled, onClearFocus }),
+      { initialProps: { enabled: false } },
+    );
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+    expect(onClearFocus).not.toHaveBeenCalled();
+
+    rerender({ enabled: true });
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(useUIStore.getState().isDiscoverOpen).toBe(false);
+    expect(onClearFocus).not.toHaveBeenCalled();
+  });
 });

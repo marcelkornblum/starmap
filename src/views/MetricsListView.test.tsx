@@ -16,6 +16,11 @@ describe('<MetricsListView />', () => {
 
     const root = screen.getByTestId('metrics-list-view-root');
     expect(root).toBeTruthy();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
+
+    expect(screen.getByTestId('console-dock')).toBeTruthy();
+    expect(screen.getByTestId('console-dock-guide').getAttribute('data-active')).toBe('true');
 
     const breadcrumbs = screen.getByTestId('view-breadcrumbs');
     expect(breadcrumbs).toBeTruthy();

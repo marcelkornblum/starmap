@@ -1,6 +1,8 @@
 @layer blocks {
   .searchView {
-    min-block-size: 100dvh;
+    inline-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 100%;
     background: var(--surface-canvas-stage-bg);
     color: var(--content-default);
     padding: var(--space-fib-4);

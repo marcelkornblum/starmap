@@ -21,16 +21,20 @@ describe('canvasStageCallbacks', () => {
     const onInspect = vi.fn();
     const onSelect = vi.fn();
     const onFocusChange = vi.fn();
+    const onTouchPointerMissed = vi.fn(() => true);
 
-    setStageCallbacks({ onInspect, onSelect, onFocusChange });
+    setStageCallbacks({ onInspect, onSelect, onFocusChange, onTouchPointerMissed });
 
     const callbacks = getStageCallbacks();
     expect(callbacks.onInspect).toBe(onInspect);
     expect(callbacks.onSelect).toBe(onSelect);
     expect(callbacks.onFocusChange).toBe(onFocusChange);
+    expect(callbacks.onTouchPointerMissed).toBe(onTouchPointerMissed);
 
     callbacks.onInspect?.('alpha-centauri');
     expect(onInspect).toHaveBeenCalledWith('alpha-centauri');
+    expect(callbacks.onTouchPointerMissed?.()).toBe(true);
+    expect(onTouchPointerMissed).toHaveBeenCalledTimes(1);
   });
 
   it('notifies subscribers when callbacks change and skips redundant updates', () => {

@@ -449,4 +449,41 @@ describe('<BodiesPanel />', () => {
     expect(screen.getAllByTestId('bodies-minor-body-item')).toHaveLength(120);
     expect(screen.queryByTestId('bodies-minor-bodies-show-more')).toBeNull();
   });
+
+  it('renders stretched primary links on galaxy, primary, and minor-body rows without nesting secondary anchors', () => {
+    const { unmount } = renderWithProvider(<BodiesPanel elements={mockGalaxyFixture} />);
+
+    const galaxyRows = screen.getAllByTestId('bodies-galaxy-system-item');
+    for (const row of galaxyRows) {
+      const primaryLink = row.querySelector('[data-testid="bodies-galaxy-system-link"]');
+      expect(primaryLink?.tagName).toBe('A');
+      expect(primaryLink).toHaveAttribute('data-stretch-link', 'true');
+      expect(primaryLink?.querySelector('a')).toBeNull();
+
+      const anchors = Array.from(row.querySelectorAll('a'));
+      expect(anchors.length).toBeGreaterThan(1);
+      for (const anchor of anchors) {
+        expect(anchor.querySelector('a')).toBeNull();
+      }
+      const secondaryAnchors = anchors.filter((a) => a !== primaryLink);
+      for (const secondary of secondaryAnchors) {
+        expect(secondary).not.toHaveAttribute('data-stretch-link');
+      }
+    }
+
+    unmount();
+    renderWithProvider(<BodiesPanel elements={mockSystemFixture} />);
+
+    const primaryLinks = screen.getAllByTestId('bodies-item-link');
+    expect(primaryLinks.length).toBeGreaterThan(0);
+    for (const primaryLink of primaryLinks) {
+      expect(primaryLink.tagName).toBe('A');
+      expect(primaryLink).toHaveAttribute('data-stretch-link', 'true');
+      expect(primaryLink.querySelector('a')).toBeNull();
+    }
+
+    const minorBodyLink = screen.getByTestId('bodies-minor-body-link');
+    expect(minorBodyLink.tagName).toBe('A');
+    expect(minorBodyLink).toHaveAttribute('data-stretch-link', 'true');
+  });
 });

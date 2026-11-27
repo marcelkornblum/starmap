@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import { SpatialShell } from './SpatialShell';
 import { Breadcrumbs } from '../Breadcrumbs/Breadcrumbs';
-import { ControlBar } from '../ControlBar/ControlBar';
 import { Button, Card, Heading, Stack } from '../../interface';
 import { CanvasLayer } from '../CanvasLayer/CanvasLayer';
 
@@ -16,11 +16,27 @@ const meta: Meta<typeof SpatialShell> = {
 export default meta;
 type Story = StoryObj<typeof SpatialShell>;
 
+const MOCK_ORIENTATION: MinimapOrientationSummary = {
+  scope: 'galaxy',
+  anchorId: 'origin',
+  anchorName: 'Origin',
+  systemId: 'origin',
+  systemName: 'Origin',
+  coordinatesPc: [0, 0, 0],
+  distanceFromOriginPc: 0,
+  cameraAzimuthDeg: 45,
+  cameraElevationDeg: 30,
+  cameraDistance: 42,
+  focusedMarker: null,
+  selectedMarkers: [],
+  markers: [],
+};
+
 const MockDetailsPanel = () => (
   <Card padding="default">
     <Stack gap="tight">
       <Heading as="h3" size="lead">
-        Tau Ceti
+        G-Type Star System
       </Heading>
       <span>G8.5V Main Sequence Star · 11.9 ly</span>
       <span>4 Confirmed Exoplanets (3 Terrestrial, 1 Ice Giant)</span>
@@ -32,7 +48,7 @@ const MockDirectionsPanel = () => (
   <Card padding="default">
     <Stack gap="tight">
       <Heading as="h3" size="lead">
-        Route: Sol → Tau Ceti
+        Interstellar Transit Plan
       </Heading>
       <span>Distance: 3.65 pc (11.90 ly) · 1 Leg</span>
       <span>Subspace Transit Estimated: 4.2 weeks</span>
@@ -47,10 +63,10 @@ const MockBodiesList = () => (
         System Bodies
       </Heading>
       <Stack gap="tight">
-        <span>Tau Ceti e (Habitable)</span>
-        <span>Tau Ceti f (Cold Desert)</span>
-        <span>Tau Ceti g (Terrestrial)</span>
-        <span>Tau Ceti h (Ice Giant)</span>
+        <span>Planet e (Habitable)</span>
+        <span>Planet f (Cold Desert)</span>
+        <span>Planet g (Terrestrial)</span>
+        <span>Planet h (Ice Giant)</span>
       </Stack>
     </Stack>
   </Card>
@@ -66,7 +82,7 @@ export const Default: Story = {
       </Button>
     ),
     detailsPanel: <MockDetailsPanel />,
-    controls: <ControlBar scope="galaxy" />,
+    minimapOrientation: MOCK_ORIENTATION,
     bodies: <MockBodiesList />,
   },
 };
@@ -74,9 +90,9 @@ export const Default: Story = {
 export const WithBodiesDrawerOpen: Story = {
   args: {
     canvas: <CanvasLayer scope="system" targetId="tau-ceti" />,
-    breadcrumbs: <Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'Tau Ceti' }]} />,
+    breadcrumbs: <Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'System' }]} />,
     detailsPanel: <MockDetailsPanel />,
-    controls: <ControlBar scope="system" />,
+    minimapOrientation: { ...MOCK_ORIENTATION, scope: 'system', cameraDistance: 18 },
     bodies: <MockBodiesList />,
     initialBodiesDrawerOpen: true,
   },
@@ -88,7 +104,23 @@ export const DualPanelsSimultaneous: Story = {
     breadcrumbs: <Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'Route Plan' }]} />,
     detailsPanel: <MockDetailsPanel />,
     directionsPanel: <MockDirectionsPanel />,
-    controls: <ControlBar scope="galaxy" />,
+    minimapOrientation: MOCK_ORIENTATION,
     bodies: <MockBodiesList />,
+  },
+};
+
+export const DocumentMode: Story = {
+  args: {
+    mode: 'document',
+    activeWorkspace: 'guide',
+    companionMapHref: '/galaxy',
+    children: (
+      <Card padding="loose">
+        <Stack gap="default">
+          <Heading as="h1">Reference Guide</Heading>
+          <p>Scrollable document workspace hosted inside SpatialShell with ConsoleDock navigation.</p>
+        </Stack>
+      </Card>
+    ),
   },
 };

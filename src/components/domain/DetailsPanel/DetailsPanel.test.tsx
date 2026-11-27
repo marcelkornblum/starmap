@@ -290,7 +290,7 @@ describe('<DetailsPanel />', () => {
     expect(useUIStore.getState().detailsDetent).toBe('partial');
   });
 
-  it('renders PreviewPanel inside partial detent in vertical order (Preview -> Orbiting Bodies -> References -> Environmental Hazards -> Telemetry) and DetailsActionControls inside peek Hero Block', () => {
+  it('renders PreviewPanel inside overview mid-stage above CTAs without duplicating in partial or full detents, and keeps Partial lower sections in order', () => {
     const mockPreview = {
       targetId: 'earth',
       targetName: 'Earth',
@@ -308,22 +308,44 @@ describe('<DetailsPanel />', () => {
       <DetailsPanel
         details={planetWithCanon}
         isOpen={true}
-        activeDetent="full"
+        activeDetent="partial"
         preview={mockPreview}
       />,
     );
 
+    const panel = container.querySelector('[data-testid="details-panel"]') as HTMLElement;
     const peekDetent = container.querySelector('[data-testid="details-detent-peek"]');
     const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
     const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
-    const previewPanel = partialDetent?.querySelector('[data-testid="preview-panel"]');
+    const titleRow = peekDetent?.querySelector('[data-overview-title-row="true"]');
+    const midStage = peekDetent?.querySelector('[data-testid="details-overview-mid-stage"]');
+    const previewPanel = midStage?.querySelector('[data-testid="preview-panel"]');
+    const summaryText = midStage?.querySelector('[data-testid="details-system-summary"]');
+    const ctaGroup = peekDetent?.querySelector('[data-testid="details-cta-group"]');
+
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
+    expect(titleRow).not.toBeNull();
+    expect(midStage).not.toBeNull();
+    expect(summaryText).not.toBeNull();
     expect(previewPanel).not.toBeNull();
+    expect(ctaGroup).not.toBeNull();
+    expect(screen.getAllByTestId('preview-panel')).toHaveLength(1);
+    expect(partialDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
     expect(fullDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
-    expect(peekDetent?.querySelector('[data-testid="details-cta-group"]')).not.toBeNull();
     expect(partialDetent?.querySelector('[data-testid="details-cta-group"]')).toBeNull();
 
+    // Title Row -> Mid-Stage (Prose + PreviewPanel) -> CTA Row in DOM order
+    expect(
+      titleRow!.compareDocumentPosition(midStage!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      summaryText!.compareDocumentPosition(previewPanel!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      previewPanel!.compareDocumentPosition(ctaGroup!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
     const orderedSelectors = [
-      '[data-testid="preview-panel"]',
       '[data-testid="details-orbiting-bodies-section"]',
       '[data-testid="details-canon-section"]',
       '[data-testid="details-hazards-section"]',
@@ -341,6 +363,25 @@ describe('<DetailsPanel />', () => {
         current.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     }
+  });
+
+  it('renders title row and CTA buttons at Peek detent with --detent-expand-progress = 0 and no detent pill buttons', () => {
+    render(
+      <DetailsPanel
+        details={mockPlanetDetails}
+        isOpen={true}
+        activeDetent="peek"
+      />,
+    );
+
+    const panel = screen.getByTestId('details-panel');
+    expect(panel.getAttribute('data-detent')).toBe('peek');
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('0');
+
+    expect(screen.getByTestId('details-peek-name')).toBeInTheDocument();
+    expect(screen.getByTestId('details-button-system-details')).toBeInTheDocument();
+    expect(screen.getByTestId('details-button-directions')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^(peek|part|partial|full)$/i })).toBeNull();
   });
 
   it('collapses and re-expands section bodies when clicking a section heading trigger', () => {

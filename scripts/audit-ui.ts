@@ -612,7 +612,11 @@ const MARGIN_DECL_REGEX = /^\s*(?:margin|margin-top|margin-right|margin-bottom|m
 // Regexes for CSS custom property definitions and var() usages
 const CSS_CUSTOM_PROP_DECL_REGEX = /--[a-zA-Z0-9_-]+(?=\s*:)/g;
 const CSS_VAR_USAGE_REGEX = /var\(\s*(--[a-zA-Z0-9_-]+)\s*(,)?/g;
-const RUNTIME_JS_SET_CSS_TOKENS = new Set<string>(['--detent-sheet-block-size']);
+const RUNTIME_JS_SET_CSS_TOKENS = new Set<string>([
+  '--detent-sheet-block-size',
+  '--detent-mid-stage-size',
+  '--detent-expand-progress',
+]);
 
 function stripCssCommentsPreserveLines(content: string): string {
   return content.replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, ' '));

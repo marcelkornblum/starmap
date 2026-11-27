@@ -1,0 +1,106 @@
+@layer blocks {
+  .discoverPanel {
+    --discover-panel-gap: var(--space-stack-default);
+    --discover-panel-title-color: var(--content-prominent);
+    --discover-panel-creator-color: var(--content-accent);
+    --discover-panel-desc-color: var(--content-muted);
+    --discover-panel-title-size: var(--text-content-body-size);
+    --discover-panel-meta-size: var(--text-content-caption-size);
+
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    min-block-size: 0;
+    gap: var(--discover-panel-gap);
+    margin: 0;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-cluster-default);
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .filterRow {
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    overflow-y: auto;
+    margin: 0;
+  }
+
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-dense);
+    margin: 0;
+  }
+
+  .itemLink {
+    display: block;
+    inline-size: 100%;
+    text-decoration: none;
+    color: inherit;
+    outline: none;
+    border-radius: var(--radius-control);
+    margin: 0;
+  }
+
+  .itemLink::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .itemLink:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+  }
+
+  .itemTitle {
+    font-family: var(--font-interface);
+    font-size: var(--discover-panel-title-size);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-heading);
+    color: var(--discover-panel-title-color);
+    margin: 0;
+  }
+
+  .itemCreator {
+    font-family: var(--font-interface);
+    font-size: var(--discover-panel-meta-size);
+    line-height: var(--leading-body);
+    color: var(--discover-panel-creator-color);
+    margin: 0;
+  }
+
+  .itemDescription {
+    font-family: var(--font-interface);
+    font-size: var(--discover-panel-meta-size);
+    line-height: var(--leading-body);
+    color: var(--discover-panel-desc-color);
+    margin: 0;
+  }
+
+  .emptyState {
+    font-family: var(--font-interface);
+    font-size: var(--discover-panel-meta-size);
+    line-height: var(--leading-body);
+    color: var(--discover-panel-desc-color);
+    padding: var(--space-inset-well-default);
+    margin: 0;
+  }
+}
+
+@layer exceptions {
+  .itemLink:hover .itemTitle {
+    --discover-panel-title-color: var(--content-accent);
+  }
+}

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Slider } from './Slider';
@@ -137,5 +139,14 @@ describe('<Slider />', () => {
 
     const slider = screen.getByRole('slider', { name: 'Density' });
     expect(slider.className).toBeTruthy();
+  });
+
+  it('defines coarse-pointer 44px rangeInput hit height and enlarged thumb tokens', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'Slider.module.css'), 'utf8');
+    expect(css).toMatch(/min-block-size:\s*var\(--slider-input-min-height\)/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/--slider-input-min-height:\s*var\(--size-touch-target-min\)/);
+    expect(css).toMatch(/--slider-thumb-width:\s*var\(--space-fib-5\)/);
+    expect(css).toMatch(/--slider-thumb-height:\s*var\(--space-fib-5\)/);
   });
 });

@@ -17,9 +17,6 @@ test.describe('Camera Choreography Contracts (FS-003, FS-012, FS-013)', () => {
 
     const detailsPanel = page.getByTestId('details-panel');
     await expect(detailsPanel).toBeVisible({ timeout: 10_000 });
-    if ((await page.locator('[data-testid="details-detent-partial"]').count()) === 0) {
-      await page.getByTestId('details-drag-handle').click();
-    }
 
     const bodiesList = page.getByTestId('bodies-panel').getByTestId('bodies-primary-list');
     await expect(bodiesList).toBeVisible({ timeout: 10_000 });

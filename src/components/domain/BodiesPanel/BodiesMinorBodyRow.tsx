@@ -51,6 +51,7 @@ export const BodiesMinorBodyRow = React.memo(function BodiesMinorBodyRow({
         title={body.name}
         href={body.href}
         showTooltip={false}
+        stretchLink={Boolean(body.href)}
         titleTestId="bodies-minor-body-link"
       />
     </Block>

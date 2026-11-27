@@ -92,4 +92,53 @@ describe('<Datum />', () => {
     expect(screen.getByText('Classification')).toBeInTheDocument();
     expect(screen.getByTestId('badge-elem').textContent).toBe('Terrestrial');
   });
+
+  it('uses <Quantity> for numeric values and string values with a unit', () => {
+    const { rerender } = render(
+      <Datum label="Distance" value={4.25} valueTestId="numeric-val" />
+    );
+
+    expect(screen.getByTestId('numeric-val').getAttribute('data-quantity')).toBe('true');
+
+    rerender(
+      <Datum label="Orbital Period" value="365.25" unit="d" valueTestId="unit-val" />
+    );
+
+    expect(screen.getByTestId('unit-val').getAttribute('data-quantity')).toBe('true');
+  });
+
+  it('renders ReactNode and prose string values without unit outside <Quantity> while preserving valueTestId', () => {
+    const { rerender } = render(
+      <Datum
+        label="Tags"
+        value={
+          <>
+            <span data-testid="tag-1">HabitableCandidate</span>
+            <span data-testid="tag-2">TidallyLocked</span>
+          </>
+        }
+        valueTestId="details-astrometry-tags"
+      />
+    );
+
+    const tagsEl = screen.getByTestId('details-astrometry-tags');
+    expect(tagsEl.getAttribute('data-quantity')).toBeNull();
+    expect(tagsEl.closest('[data-quantity="true"]')).toBeNull();
+    expect(screen.getByTestId('tag-1')).toBeInTheDocument();
+    expect(screen.getByTestId('tag-2')).toBeInTheDocument();
+
+    rerender(
+      <Datum
+        label="Tidal Status"
+        status="caution"
+        value="Tidally locked (synchronous)"
+        valueTestId="details-planet-telemetry-tidal"
+      />
+    );
+
+    const proseEl = screen.getByTestId('details-planet-telemetry-tidal');
+    expect(proseEl.getAttribute('data-quantity')).toBeNull();
+    expect(proseEl.closest('[data-quantity="true"]')).toBeNull();
+    expect(proseEl).toHaveTextContent('Tidally locked (synchronous)');
+  });
 });

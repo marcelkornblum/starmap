@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
 import type { Box2D, CelestialFootprint, LabelOcclusionResult } from './occlusionTypes';
+import { getCoarsePointerSnapshot } from '../engineConfig';
 import { ScreenSpatialGrid, checkGridIntersection } from './occlusionGeometryMath';
 import { computeHitAreaCluster, resolveCyclicSelectionTarget } from './occlusionClusterSolver';
 import { evaluateLabelVisibility, solveLabelOcclusion } from './occlusionLabelSolver';
@@ -204,7 +205,11 @@ export class CelestialOcclusionManager {
     return solveLabelOcclusion(target, labelBox, this.grid, this.scratchCandidateBox, result);
   }
 
-  public evaluateHitAreaOffset(nodeId: string, outOffset?: { x: number; y: number }): { x: number; y: number } {
+  public evaluateHitAreaOffset(
+    nodeId: string,
+    isCoarseOrTouch: boolean = getCoarsePointerSnapshot(),
+    outOffset?: { x: number; y: number },
+  ): { x: number; y: number } {
     const offset = outOffset ?? this.scratchHitOffset;
     offset.x = 0;
     offset.y = 0;
@@ -214,7 +219,7 @@ export class CelestialOcclusionManager {
     const evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now();
     if (target.hitAreaEvaluatedAt !== evalTime) {
       this.ensureGrid();
-      computeHitAreaCluster(target, this.grid, this.scratchCluster, evalTime);
+      computeHitAreaCluster(target, this.grid, this.scratchCluster, evalTime, isCoarseOrTouch);
     }
 
     offset.x = target.hitAreaOffsetX ?? 0;
@@ -251,7 +256,7 @@ export class CelestialOcclusionManager {
     outState?: { isReticleSuppressed: boolean; hitOffset: { x: number; y: number }; labelEval: LabelOcclusionResult },
   ): { isReticleSuppressed: boolean; hitOffset: { x: number; y: number }; labelEval: LabelOcclusionResult } {
     const isReticleSuppressed = this.evaluateReticleOcclusion(nodeId);
-    const hitOffset = this.evaluateHitAreaOffset(nodeId, outState?.hitOffset);
+    const hitOffset = this.evaluateHitAreaOffset(nodeId, getCoarsePointerSnapshot(), outState?.hitOffset);
     const labelEval = this.evaluateLabelOcclusion(nodeId, labelBox, outState?.labelEval);
     if (outState) {
       outState.isReticleSuppressed = isReticleSuppressed;

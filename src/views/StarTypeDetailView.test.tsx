@@ -23,7 +23,10 @@ describe('<StarTypeDetailView />', () => {
     render(<StarTypeDetailView starType="G8.5V" />);
     const root = screen.getByTestId('star-type-detail-view-root');
     expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
     expect(root.getAttribute('data-star-type')).toBe('G8.5V');
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     expect(screen.getAllByText(/G8.5V/i).length).toBeGreaterThan(0);
     const decoded = screen.getByTestId('star-type-decoded-subtype');
@@ -63,6 +66,7 @@ describe('<StarTypeDetailView />', () => {
     const focusContext = screen.getByTestId('guide-focus-context');
     expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('sol');
+    expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=sol');
   });
 
   it('renders fallback gracefully when star type is not recognized', () => {

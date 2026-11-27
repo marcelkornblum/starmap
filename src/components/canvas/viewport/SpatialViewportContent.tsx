@@ -43,11 +43,11 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
   showInstrument = true,
   showPlanarFootprint = false,
   debugHitarea = false,
-  syncWithUIStore: _syncWithUIStore = true,
   initialSelectedId,
   enableFocusTransition = true,
   focusTransitionDuration,
   onDoubleClick,
+  onTouchPointerMissed,
   lighting,
   journeyLegs,
   activeJourneyMethod,
@@ -55,6 +55,7 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
   const storeApi = useSpatialEntityStoreApi();
   const occlusionManager = useOcclusionManager();
   const invalidate = useThree((s) => s.invalidate);
+  const gl = useThree((s) => s.gl as { domElement?: HTMLElement } | undefined);
   const { transitionTo } = useCameraTransition();
   const prevEntityIdsRef = useRef<Set<string>>(new Set());
   const frameCtx = useSpatialFrameSafe();
@@ -130,6 +131,7 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
     handleEntityClick,
     handleEntityDoubleClick,
     handlePointerMissed,
+    recordPointerDown,
   } = useViewportPointerHandlers({
     storeApi,
     occlusionManager,
@@ -141,7 +143,20 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
     onSelect,
     onFocusChange,
     onDoubleClick,
+    onTouchPointerMissed,
   });
+
+  useEffect(() => {
+    const domElement = gl?.domElement;
+    if (!domElement || typeof domElement.addEventListener !== 'function') return;
+    const onPointerDown = (e: PointerEvent) => {
+      recordPointerDown(e);
+    };
+    domElement.addEventListener('pointerdown', onPointerDown, { passive: true });
+    return () => {
+      domElement.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [gl, recordPointerDown]);
 
   return (
     <EntityDotsBatchContext.Provider value={dotsBatchRegistry}>

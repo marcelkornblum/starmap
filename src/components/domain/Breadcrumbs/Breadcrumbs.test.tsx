@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Breadcrumbs } from './Breadcrumbs';
@@ -8,16 +10,25 @@ describe('<Breadcrumbs />', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders breadcrumb items and marks last item as current page', () => {
+  it('renders breadcrumb items, marks last item as current page, and does not render a mode menu', () => {
     const items = [
       { label: 'Galaxy', href: '/galaxy' },
       { label: 'Sol', href: '/system/sol' },
       { label: 'Earth' },
     ];
 
-    render(<Breadcrumbs items={items} />);
+    render(
+      <Breadcrumbs
+        items={items}
+      />
+    );
 
     expect(screen.getByTestId('view-breadcrumbs')).toBeInTheDocument();
+    expect(screen.queryByTestId('breadcrumbs-mode-menu')).toBeNull();
+    expect(screen.queryByTestId('breadcrumbs-mode-galaxy')).toBeNull();
+    expect(screen.queryByTestId('breadcrumbs-mode-guide')).toBeNull();
+    expect(screen.queryByTestId('breadcrumbs-companion-link')).toBeNull();
+
     const renderedItems = screen.getAllByTestId('breadcrumb-item');
     expect(renderedItems.length).toBe(3);
 
@@ -31,45 +42,6 @@ describe('<Breadcrumbs />', () => {
     expect(current.textContent).toContain('Earth');
   });
 
-  it('renders mode menu with Galaxy active in galaxy context', () => {
-    const items = [{ label: 'Galaxy', href: '/galaxy' }, { label: 'Sol' }];
-    render(<Breadcrumbs items={items} companionHref="/guide/star-types/G2V" />);
-
-    const modeMenu = screen.getByTestId('breadcrumbs-mode-menu');
-    expect(modeMenu).toBeInTheDocument();
-
-    const galaxyBtn = screen.getByTestId('breadcrumbs-mode-galaxy');
-    expect(galaxyBtn.getAttribute('aria-current')).toBe('page');
-    expect(galaxyBtn.getAttribute('data-active')).toBe('true');
-    expect(galaxyBtn.hasAttribute('data-mode-button')).toBe(true);
-
-    const companionLink = screen.getByTestId('breadcrumbs-companion-link');
-    expect(companionLink.getAttribute('href')).toContain('/guide/star-types/G2V');
-    expect(companionLink.hasAttribute('data-mode-button')).toBe(true);
-  });
-
-  it('renders mode menu with Guide active in guide context', () => {
-    const items = [{ label: 'Guide', href: '/guide' }, { label: 'Star Types' }];
-    render(<Breadcrumbs items={items} companionHref="/galaxy?focus=sol" />);
-
-    const guideBtn = screen.getByTestId('breadcrumbs-mode-guide');
-    expect(guideBtn.getAttribute('aria-current')).toBe('page');
-    expect(guideBtn.getAttribute('data-active')).toBe('true');
-    expect(guideBtn.hasAttribute('data-mode-button')).toBe(true);
-
-    const companionLink = screen.getByTestId('breadcrumbs-companion-link');
-    expect(companionLink.getAttribute('href')).toContain('/galaxy?focus=sol');
-    expect(companionLink.hasAttribute('data-mode-button')).toBe(true);
-  });
-
-  it('falls back to default /galaxy companion href in guide context when companionHref is omitted', () => {
-    const items = [{ label: 'Guide', href: '/guide/star-types' }, { label: 'Star Types' }];
-    render(<Breadcrumbs items={items} />);
-
-    const companionLink = screen.getByTestId('breadcrumbs-companion-link');
-    expect(companionLink.getAttribute('href')).toBe('/galaxy');
-  });
-
   it('renders explicit reticleType and does not infer from index or label', () => {
     const items = [
       { label: 'Galaxy', href: '/galaxy' },
@@ -80,5 +52,19 @@ describe('<Breadcrumbs />', () => {
 
     expect(container.querySelector('[data-celestial-title="stellar-system"]')).not.toBeNull();
     expect(container.querySelector('[data-celestial-title="super-earth"]')).not.toBeNull();
+  });
+
+  it('defines coarse-pointer hit-slop ::before expansion and readable mobile typography in CSS module', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'Breadcrumbs.module.css'), 'utf8');
+    expect(css).not.toMatch(/\.modeMenu/);
+    expect(css).not.toMatch(/data-mode-button/);
+    expect(css).not.toMatch(/--type-scale-neg-2/);
+    expect(css).toMatch(/\.breadcrumbItem\s+a[\s\S]*position:\s*relative/);
+    expect(css).toMatch(/--breadcrumbs-hit-slop-block:\s*var\(--space-hit-slop-block\)/);
+    expect(css).toMatch(/--breadcrumbs-hit-slop-inline:\s*var\(--space-hit-slop-inline\)/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/\.breadcrumbItem\s+a::before/);
+    expect(css).toMatch(/inset-block:\s*var\(--breadcrumbs-hit-slop-block\)/);
+    expect(css).toMatch(/inset-inline:\s*var\(--breadcrumbs-hit-slop-inline\)/);
   });
 });

@@ -1,4 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
+import { useUIStore } from '../../../stores/useUIStore';
+
+export function useSpatialKeyboardShortcuts(enabled: boolean): void {
+  const options = useMemo(() => ({ enabled }), [enabled]);
+  useKeyboardShortcuts(options);
+}
+
+export const DESKTOP_DOCK_BREAKPOINT_PX = 1280;
 
 export interface ResolvePrimaryPanelsOptions {
   readonly detailsPanel?: React.ReactNode;
@@ -10,7 +19,12 @@ export interface ResolvePrimaryPanelsOptions {
   readonly isWideViewport?: boolean;
 }
 
-export function resolvePrimaryPanels({
+export interface ResolvePrimaryPanelsMetaResult {
+  readonly content: React.ReactNode;
+  readonly isShowingDetails: boolean;
+}
+
+export function resolvePrimaryPanelsMeta({
   detailsPanel,
   directionsPanel,
   isDetailsOpen = true,
@@ -18,42 +32,43 @@ export function resolvePrimaryPanels({
   primaryPanelPriority = 'directions',
   dualPanelPolicy = 'auto',
   isWideViewport = false,
-}: ResolvePrimaryPanelsOptions): React.ReactNode {
-  // Filter by isDetailsOpen and isDirectionsOpen
+}: ResolvePrimaryPanelsOptions): ResolvePrimaryPanelsMetaResult {
   const showDetails = Boolean(detailsPanel && isDetailsOpen);
   const showDirections = Boolean(directionsPanel && isDirectionsOpen);
 
-  // If neither is available/open
   if (!showDetails && !showDirections) {
-    return null;
+    return { content: null, isShowingDetails: false };
   }
-
-  // If only one is available/open, render that one
   if (showDetails && !showDirections) {
-    return detailsPanel;
+    return { content: detailsPanel, isShowingDetails: true };
   }
   if (!showDetails && showDirections) {
-    return directionsPanel;
+    return { content: directionsPanel, isShowingDetails: false };
   }
 
-  // Both are available and open:
   const isSimultaneous =
     dualPanelPolicy === 'simultaneous' || (dualPanelPolicy === 'auto' && isWideViewport);
 
   if (isSimultaneous) {
-    // Render both panels in priority order inside the primary float region!
-    return React.createElement(
+    const content = React.createElement(
       React.Fragment,
       null,
       primaryPanelPriority === 'directions'
         ? React.createElement(React.Fragment, null, directionsPanel, detailsPanel)
         : React.createElement(React.Fragment, null, detailsPanel, directionsPanel),
     );
+    return { content, isShowingDetails: true };
   }
 
-  // When dualPanelPolicy === 'single' (or 'auto' on narrower viewports < 1920px),
-  // render the panel matching primaryPanelPriority
-  return primaryPanelPriority === 'directions' ? directionsPanel : detailsPanel;
+  const isShowingDetails = primaryPanelPriority === 'details';
+  return {
+    content: isShowingDetails ? detailsPanel : directionsPanel,
+    isShowingDetails,
+  };
+}
+
+export function resolvePrimaryPanels(options: ResolvePrimaryPanelsOptions): React.ReactNode {
+  return resolvePrimaryPanelsMeta(options).content;
 }
 
 export function useIsWideViewport(): boolean {
@@ -82,4 +97,119 @@ export function useIsWideViewport(): boolean {
   }, []);
 
   return isWide;
+}
+
+export function isSpatialMapPath(pathname: string): boolean {
+  return (
+    pathname === '/' ||
+    pathname === '/galaxy' ||
+    pathname.startsWith('/system/') ||
+    pathname.startsWith('/planet/')
+  );
+}
+
+export interface ResolveConsoleDockConfigOptions {
+  readonly mode: 'spatial' | 'document';
+  readonly activeWorkspace?: 'map' | 'discover' | 'guide';
+  readonly companionMapHref?: string;
+  readonly lastMapHref: string;
+  readonly pathname: string;
+  readonly isDiscoverOpen: boolean;
+}
+
+export function resolveConsoleDockConfig({
+  mode,
+  activeWorkspace,
+  companionMapHref,
+  lastMapHref,
+  pathname,
+  isDiscoverOpen,
+}: ResolveConsoleDockConfigOptions): {
+  readonly activeItem: 'map' | 'discover' | 'guide';
+  readonly mapHref: string;
+  readonly guideHref: string;
+} {
+  const activeItem = isDiscoverOpen
+    ? 'discover'
+    : activeWorkspace ?? (mode === 'document' && pathname.startsWith('/guide') ? 'guide' : 'map');
+
+  const mapHref =
+    mode === 'document'
+      ? lastMapHref && lastMapHref !== '/galaxy'
+        ? lastMapHref
+        : (companionMapHref ?? lastMapHref ?? '/galaxy')
+      : '/galaxy';
+
+  return {
+    activeItem,
+    mapHref,
+    guideHref: '/guide/star-types',
+  };
+}
+
+export function shouldCloseBodiesDrawerOnClick(
+  target: EventTarget | null,
+  viewportWidth: number,
+): boolean {
+  if (viewportWidth >= DESKTOP_DOCK_BREAKPOINT_PX) {
+    return false;
+  }
+  const el = target && typeof (target as Element).closest === 'function' ? (target as Element) : null;
+  if (!el) {
+    return false;
+  }
+  if (el.closest('[data-bodies-select="true"]')) {
+    return true;
+  }
+  const anchor = el.closest('a[href]');
+  if (!anchor) {
+    return false;
+  }
+  if (anchor.getAttribute('data-stretch-link') === 'true') {
+    return true;
+  }
+  const href = anchor.getAttribute('href') ?? '';
+  return !href.startsWith('/guide/') && !href.includes('/guide/');
+}
+
+export function useSpatialShellBodiesDrawerState(
+  initialBodiesDrawerOpen: boolean | undefined,
+  controlledBodiesOpen: boolean | undefined,
+  onBodiesDrawerOpenChange: ((isOpen: boolean) => void) | undefined,
+) {
+  const activeDrawer = useUIStore((s) => s.activeDrawer);
+  const setActiveDrawer = useUIStore((s) => s.setActiveDrawer);
+  const [isLocallyOverridden, setIsLocallyOverridden] = useState(false);
+  const [initialStoreDrawer] = useState(activeDrawer);
+
+  useEffect(() => {
+    if (controlledBodiesOpen === undefined && initialBodiesDrawerOpen !== undefined && !isLocallyOverridden) {
+      setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
+    }
+  }, [controlledBodiesOpen, initialBodiesDrawerOpen, isLocallyOverridden, setActiveDrawer]);
+
+  const isBodiesDrawerOpen =
+    controlledBodiesOpen !== undefined
+      ? controlledBodiesOpen
+      : initialBodiesDrawerOpen !== undefined && !isLocallyOverridden && activeDrawer === initialStoreDrawer
+        ? initialBodiesDrawerOpen
+        : activeDrawer === 'bodies';
+
+  const setDrawerState = useCallback(
+    (next: boolean) => {
+      setIsLocallyOverridden(true);
+      if (controlledBodiesOpen !== undefined) {
+        onBodiesDrawerOpenChange?.(next);
+      } else {
+        setActiveDrawer(next ? 'bodies' : null);
+        onBodiesDrawerOpenChange?.(next);
+      }
+    },
+    [controlledBodiesOpen, onBodiesDrawerOpenChange, setActiveDrawer],
+  );
+
+  const handleToggle = useCallback(() => setDrawerState(!isBodiesDrawerOpen), [isBodiesDrawerOpen, setDrawerState]);
+  const handleClose = useCallback(() => setDrawerState(false), [setDrawerState]);
+
+  return { isBodiesDrawerOpen, handleToggle, handleClose };
 }

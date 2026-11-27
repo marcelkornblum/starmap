@@ -29,6 +29,8 @@ export interface EphemeralUIState {
   dualPanelPolicy: DualPanelPolicy;
   activeDrawer: ActiveDrawer;
   isLayerCardOpen: boolean;
+  isDiscoverOpen: boolean;
+  lastMapHref: string;
   viewportSafeRect: ViewportSafeRect | null;
 }
 
@@ -48,6 +50,9 @@ export interface EphemeralUIActions {
   setActiveDrawer: (drawer: ActiveDrawer) => void;
   toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) => void;
   setLayerCardOpen: (isOpen: boolean) => void;
+  setDiscoverOpen: (isOpen: boolean) => void;
+  toggleDiscover: () => void;
+  setLastMapHref: (href: string) => void;
   setViewportSafeRect: (rect: ViewportSafeRect | null) => void;
   resetUI: () => void;
 }
@@ -68,6 +73,8 @@ export const INITIAL_UI_STATE: EphemeralUIState = {
   dualPanelPolicy: 'auto',
   activeDrawer: null,
   isLayerCardOpen: true,
+  isDiscoverOpen: false,
+  lastMapHref: '/galaxy',
   viewportSafeRect: null,
 };
 
@@ -89,6 +96,10 @@ export const useUIStore = create<UIStore>()((set) => ({
   toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) =>
     set((state) => ({ activeDrawer: state.activeDrawer === drawer ? null : drawer })),
   setLayerCardOpen: (isLayerCardOpen: boolean) => set({ isLayerCardOpen }),
+  setDiscoverOpen: (isDiscoverOpen: boolean) => set({ isDiscoverOpen }),
+  toggleDiscover: () => set((state) => ({ isDiscoverOpen: !state.isDiscoverOpen })),
+  setLastMapHref: (lastMapHref: string) =>
+    set((state) => (state.lastMapHref === lastMapHref ? state : { lastMapHref })),
   setViewportSafeRect: (viewportSafeRect: ViewportSafeRect | null) =>
     set((state) =>
       areViewportSafeRectsEqual(state.viewportSafeRect, viewportSafeRect)

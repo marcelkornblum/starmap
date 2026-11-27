@@ -1,24 +1,65 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import { render, screen, act, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { useRouter } from '@tanstack/react-router';
 import { SpatialShell } from './SpatialShell';
 import { useUIStore } from '../../../stores/useUIStore';
+import { useLayerStore } from '../../../stores/useLayerStore';
+import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import { REDUCED_MOTION_MEDIA_QUERY } from '../../../utils/reducedMotion';
+
+vi.mock('@tanstack/react-router', () => ({
+  useRouter: vi.fn(() => undefined),
+}));
+
+const MOCK_ORIENTATION: MinimapOrientationSummary = {
+  scope: 'galaxy',
+  anchorId: 'anchor-a',
+  anchorName: 'Anchor A',
+  systemId: 'sys-a',
+  systemName: 'System A',
+  coordinatesPc: [0, 0, 0],
+  distanceFromOriginPc: 0,
+  cameraAzimuthDeg: 45,
+  cameraElevationDeg: 30,
+  cameraDistance: 42,
+  focusedMarker: null,
+  selectedMarkers: [],
+  markers: [],
+};
 
 describe('SpatialShell Domain Component', () => {
   beforeEach(() => {
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
     act(() => {
       useUIStore.getState().resetUI();
+      useLayerStore.setState({
+        index: [
+          {
+            layerId: 'overlay-recent-discoveries',
+            title: 'Recent Discoveries',
+            kind: 'scientific-overlay',
+            description: 'Confirmed nearby exoplanet discoveries.',
+            entryCount: 3,
+            path: '/data/overlays/layers/overlay-recent-discoveries.json',
+          },
+        ],
+      });
     });
   });
 
   describe('Landmarks and Spatial Regions', () => {
-    it('renders root landmark with default testId and data attributes', () => {
+    it('renders root landmark with default testId, spatial mode, and ConsoleDock', () => {
       render(<SpatialShell />);
 
       const root = screen.getByTestId('spatial-shell-root');
       expect(root.tagName).toBe('MAIN');
       expect(root.hasAttribute('data-spatial-shell')).toBe(true);
+      expect(root.getAttribute('data-mode')).toBe('spatial');
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
+      expect(screen.getByTestId('console-dock')).toBeInTheDocument();
     });
 
     it('renders custom testId without dynamic className prop', () => {
@@ -29,59 +70,254 @@ describe('SpatialShell Domain Component', () => {
       expect(root.getAttribute('data-spatial-shell')).not.toBeNull();
     });
 
-    it('renders all dedicated spatial regions with injected slots', () => {
+    it('renders dedicated spatial regions with injected slots and supports data-* root attributes', () => {
       render(
         <SpatialShell
+          data-star-type="G2V"
           canvas={<div data-testid="slot-canvas">Canvas Slot</div>}
           breadcrumbs={<div data-testid="slot-breadcrumbs">Breadcrumbs Slot</div>}
           search={<div data-testid="slot-search">Search Slot</div>}
           layerCard={<div data-testid="slot-layer-card">LayerCard Slot</div>}
           detailsPanel={<div data-testid="slot-details">Details Slot</div>}
-          controls={<div data-testid="slot-controls">Controls Slot</div>}
           minimap={<div data-testid="slot-minimap">Minimap Slot</div>}
+          minimapOrientation={MOCK_ORIENTATION}
           bodies={<div data-testid="slot-bodies">Bodies Slot</div>}
         >
           <div data-testid="slot-children">Children Slot</div>
         </SpatialShell>,
       );
 
+      expect(screen.getByTestId('spatial-shell-root')).toHaveAttribute('data-star-type', 'G2V');
       expect(screen.getByTestId('slot-canvas')).toBeInTheDocument();
       expect(screen.getByTestId('slot-breadcrumbs')).toBeInTheDocument();
       expect(screen.getByTestId('slot-search')).toBeInTheDocument();
       expect(screen.getByTestId('slot-layer-card')).toBeInTheDocument();
       expect(screen.getByTestId('slot-details')).toBeInTheDocument();
-      expect(screen.getByTestId('slot-controls')).toBeInTheDocument();
       expect(screen.getByTestId('slot-minimap')).toBeInTheDocument();
+      expect(screen.getByTestId('visor-scale-pill')).toBeInTheDocument();
       expect(screen.getByTestId('slot-bodies')).toBeInTheDocument();
       expect(screen.getByTestId('slot-children')).toBeInTheDocument();
+      expect(screen.getByTestId('console-dock')).toBeInTheDocument();
 
+      expect(document.querySelector('[data-spatial-region="console-dock"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="canvas"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="top-bar"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="visor-top-row"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="visor-discovery-row"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="breadcrumbs"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="visor-scale"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="search"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="bodies-trigger"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="layer-card"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="floating-left"]')).not.toBeNull();
-      expect(document.querySelector('[data-spatial-region="controls"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="controls"]')).toBeNull();
       expect(document.querySelector('[data-spatial-region="minimap"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="bodies"]')).not.toBeNull();
     });
 
-    it('renders all regions even when slot props are omitted', () => {
+    it('renders base regions and omits bodies trigger and VisorScalePill when optional slots are omitted', () => {
       render(<SpatialShell testId="empty-shell" />);
 
       const root = screen.getByTestId('empty-shell');
       expect(root).toBeDefined();
       expect(root.getAttribute('data-spatial-shell')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="console-dock"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="canvas"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="top-bar"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="floating-left"]')).not.toBeNull();
-      expect(document.querySelector('[data-spatial-region="controls"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="minimap"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="bodies"]')).not.toBeNull();
+      expect(screen.queryByTestId('spatial-shell-bodies-toggle')).toBeNull();
+      expect(screen.queryByTestId('visor-scale-pill')).toBeNull();
+    });
+  });
+
+  describe('ConsoleDock, Document Mode, and DiscoverPanel Integration', () => {
+    it('syncs lastMapHref in spatial mode for map routes and resolves ConsoleDock activeItem', () => {
+      const mockRouter = {
+        state: {
+          location: {
+            pathname: '/system/alpha',
+            searchStr: '?focus=beta',
+          },
+        },
+        navigate: vi.fn(),
+        subscribe: vi.fn(() => () => {}),
+      };
+      vi.mocked(useRouter).mockReturnValue(mockRouter as never);
+
+      render(<SpatialShell />);
+
+      expect(useUIStore.getState().lastMapHref).toBe('/system/alpha?focus=beta');
+      expect(screen.getByTestId('console-dock-map')).toHaveAttribute('data-active', 'true');
+      expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('href', '/guide/star-types');
+    });
+
+    it('opens DiscoverPanel in floatingLeft in spatial mode, closes open Bodies drawer, and closes on close/select', () => {
+      act(() => {
+        useUIStore.getState().setActiveDrawer('bodies');
+        useUIStore.getState().setDetailsOpen(true);
+      });
+
+      render(
+        <SpatialShell
+          detailsPanel={<div data-testid="slot-details">Details Slot</div>}
+          preview={<div data-testid="slot-preview">Preview Slot</div>}
+          bodies={<div data-testid="slot-bodies">Bodies Slot</div>}
+        />,
+      );
+
+      expect(screen.getByTestId('slot-details')).toBeInTheDocument();
+      expect(screen.getByTestId('spatial-shell-root')).toHaveAttribute('data-bodies-drawer-open', 'true');
+
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+
+      expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+      expect(useUIStore.getState().activeDrawer).toBeNull();
+      expect(screen.getByTestId('spatial-shell-root')).toHaveAttribute('data-bodies-drawer-open', 'false');
+      expect(screen.getByTestId('discover-panel')).toBeInTheDocument();
+      expect(screen.queryByTestId('slot-details')).toBeNull();
+      expect(screen.getByTestId('console-dock-discover')).toHaveAttribute('data-active', 'true');
+
+      fireEvent.click(screen.getByTestId('discover-layer-link'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(false);
+      expect(screen.queryByTestId('discover-panel')).toBeNull();
+      expect(screen.getByTestId('slot-details')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(screen.getByTestId('discover-panel')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('discover-close-button'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(false);
+      expect(screen.queryByTestId('discover-panel')).toBeNull();
+
+      // Clicking Map or Guide in ConsoleDock clears isDiscoverOpen
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+      fireEvent.click(screen.getByTestId('console-dock-map'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(false);
+
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+      fireEvent.click(screen.getByTestId('console-dock-guide'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(false);
+    });
+
+    it('highlights active layer in DiscoverPanel from ?select=layer:<slug>', () => {
+      const mockRouter = {
+        state: {
+          location: {
+            pathname: '/galaxy',
+            searchStr: '?select=layer:recent-discoveries',
+          },
+        },
+        navigate: vi.fn(),
+        subscribe: vi.fn(() => () => {}),
+      };
+      vi.mocked(useRouter).mockReturnValue(mockRouter as never);
+      act(() => {
+        useUIStore.getState().setDiscoverOpen(true);
+      });
+
+      render(<SpatialShell />);
+
+      const item = screen.getByTestId('discover-layer-item');
+      expect(item).toHaveAttribute('data-layer-slug', 'recent-discoveries');
+      expect(item).toHaveAttribute('data-selected', 'true');
+    });
+
+    it('renders document mode layout with ConsoleDock, prefers non-default lastMapHref over companionMapHref, and uses companionMapHref on cold load', () => {
+      act(() => {
+        useUIStore.getState().setLastMapHref('/planet/mars-prime');
+      });
+      const navigateMock = vi.fn();
+      const mockRouter = {
+        state: {
+          location: {
+            pathname: '/guide/star-types',
+            searchStr: '',
+          },
+        },
+        navigate: navigateMock,
+        subscribe: vi.fn(() => () => {}),
+      };
+      vi.mocked(useRouter).mockReturnValue(mockRouter as never);
+
+      const { unmount } = render(
+        <SpatialShell mode="document" companionMapHref="/galaxy?focus=vega">
+          <article data-testid="doc-content">Guide Content</article>
+        </SpatialShell>,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      expect(root.getAttribute('data-mode')).toBe('document');
+      expect(screen.getByTestId('doc-content')).toBeInTheDocument();
+      expect(document.querySelector('[data-spatial-region="document"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="canvas"]')).toBeNull();
+      expect(document.querySelector('[data-spatial-region="bodies"]')).toBeNull();
+
+      expect(useUIStore.getState().lastMapHref).toBe('/planet/mars-prime');
+      expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
+      expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/planet/mars-prime');
+
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+      expect(navigateMock).toHaveBeenCalledWith({ href: '/planet/mars-prime' });
+      unmount();
+
+      // Cold load (lastMapHref === '/galaxy'): uses companionMapHref
+      act(() => {
+        useUIStore.getState().resetUI();
+      });
+      navigateMock.mockClear();
+      render(
+        <SpatialShell mode="document" companionMapHref="/galaxy?focus=sol">
+          <article data-testid="doc-content">Guide Content</article>
+        </SpatialShell>,
+      );
+      expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=sol');
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(navigateMock).toHaveBeenCalledWith({ href: '/galaxy?focus=sol' });
+    });
+
+    it('falls back to lastMapHref in document mode when companionMapHref is omitted', () => {
+      act(() => {
+        useUIStore.getState().setLastMapHref('/system/cygnus-a');
+      });
+      const mockRouter = {
+        state: {
+          location: {
+            pathname: '/search',
+            searchStr: '?q=test',
+          },
+        },
+        navigate: vi.fn(),
+        subscribe: vi.fn(() => () => {}),
+      };
+      vi.mocked(useRouter).mockReturnValue(mockRouter as never);
+
+      render(
+        <SpatialShell mode="document" activeWorkspace="guide">
+          <div>Search Results</div>
+        </SpatialShell>,
+      );
+
+      expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
+      expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/system/cygnus-a');
     });
   });
 
   describe('Bodies Drawer Mechanics', () => {
+    const originalInnerWidth = window.innerWidth;
+
+    afterEach(() => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalInnerWidth,
+      });
+    });
+
     it('initialises closed by default and toggles via toggle button', () => {
       render(
         <SpatialShell bodies={<div data-testid="bodies-content">Bodies</div>} />,
@@ -109,7 +345,7 @@ describe('SpatialShell Domain Component', () => {
       expect(useUIStore.getState().activeDrawer).toBeNull();
     });
 
-    it('closes drawer when clicking backdrop scrim', () => {
+    it('closes drawer when clicking backdrop scrim or sticky close button', () => {
       render(
         <SpatialShell
           initialBodiesDrawerOpen
@@ -118,14 +354,106 @@ describe('SpatialShell Domain Component', () => {
       );
 
       const root = screen.getByTestId('spatial-shell-root');
-      const backdrop = screen.getByTestId('spatial-shell-bodies-backdrop');
-
+      const closeBtn = screen.getByTestId('spatial-shell-bodies-close');
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
 
-      fireEvent.click(backdrop);
-
+      fireEvent.click(closeBtn);
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
       expect(useUIStore.getState().activeDrawer).toBeNull();
+
+      fireEvent.click(screen.getByTestId('spatial-shell-bodies-toggle'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+
+      fireEvent.click(screen.getByTestId('spatial-shell-bodies-backdrop'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
+    });
+
+    it('closes drawer on Escape key and right-swipe touch below 1280px, but ignores on >= 1280px', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1024 });
+
+      render(
+        <SpatialShell
+          initialBodiesDrawerOpen
+          bodies={<div data-testid="bodies-content">Bodies</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const bodiesAside = root.querySelector('[data-spatial-region="bodies"]')!;
+      expect(bodiesAside).toHaveAttribute('aria-label', 'Bodies');
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
+
+      fireEvent.click(screen.getByTestId('spatial-shell-bodies-toggle'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+
+      // Diagonal swipe below 1.5x horizontal dominance ratio does not dismiss
+      fireEvent.touchStart(bodiesAside, { touches: [{ clientX: 120, clientY: 200 }] });
+      fireEvent.touchEnd(bodiesAside, { changedTouches: [{ clientX: 180, clientY: 250 }] });
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+
+      fireEvent.touchStart(bodiesAside, { touches: [{ clientX: 120, clientY: 200 }] });
+      fireEvent.touchEnd(bodiesAside, { changedTouches: [{ clientX: 190, clientY: 210 }] });
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
+
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1440 });
+      fireEvent.click(screen.getByTestId('spatial-shell-bodies-toggle'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+    });
+
+    it('auto-closes drawer below 1280px when selecting an entity link while keeping open for guide links or filter buttons', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 390 });
+
+      render(
+        <SpatialShell
+          initialBodiesDrawerOpen
+          bodies={
+            <div>
+              <button type="button" data-testid="body-filter-btn">Filter</button>
+              <a
+                href="/guide/planet-types/rocky"
+                data-testid="body-guide-link"
+                onClick={(e) => e.preventDefault()}
+              >
+                Guide
+              </a>
+              <a
+                href="/system/alpha?focus=beta"
+                data-stretch-link="true"
+                data-testid="body-entity-link"
+                onClick={(e) => e.preventDefault()}
+              >
+                <span>Beta</span>
+              </a>
+              <button type="button" data-bodies-select="true" data-testid="body-select-btn">
+                Select
+              </button>
+            </div>
+          }
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+
+      fireEvent.click(screen.getByTestId('body-filter-btn'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+
+      fireEvent.click(screen.getByTestId('body-guide-link'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+
+      fireEvent.click(screen.getByTestId('body-entity-link'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
+
+      fireEvent.click(screen.getByTestId('spatial-shell-bodies-toggle'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+      fireEvent.click(screen.getByTestId('body-select-btn'));
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
     });
 
     it('honours controlled isBodiesDrawerOpen and onBodiesDrawerOpenChange', () => {
@@ -435,7 +763,6 @@ describe('SpatialShell Domain Component', () => {
         <SpatialShell
           breadcrumbs={<div data-testid="obs-breadcrumbs">Breadcrumbs</div>}
           detailsPanel={<div data-testid="obs-details">Details</div>}
-          controls={<div data-testid="obs-controls">Controls</div>}
           bodies={<div data-testid="obs-bodies">Bodies</div>}
         />,
       );
@@ -445,7 +772,6 @@ describe('SpatialShell Domain Component', () => {
       const floatingLeft = root.querySelector('[data-spatial-region="floating-left"]');
       const detailsCard = floatingLeft?.firstElementChild ?? null;
       const bodiesRegion = root.querySelector('[data-spatial-region="bodies"]');
-      const controlsRegion = root.querySelector('[data-spatial-region="controls"]');
       const leftColumn = floatingLeft?.parentElement ?? null;
 
       setRect(root, { left: 0, top: 0, width: 1440, height: 900 });
@@ -453,13 +779,10 @@ describe('SpatialShell Domain Component', () => {
       setRect(topBar, { left: 8, top: 8, width: 377, height: 60 });
       setRect(detailsCard, { left: 8, top: 76, width: 377, height: 420 });
       setRect(bodiesRegion, { left: 1008, top: 0, width: 432, height: 900 });
-      setRect(controlsRegion, { left: 0, top: 844, width: 1440, height: 56 });
 
-      // Ensure .leftColumn itself was never observed by ResizeObserver
       expect(leftColumn).not.toBeNull();
       expect(observeSpy).not.toHaveBeenCalledWith(leftColumn);
 
-      // Trigger resize observer and flush rAF
       vi.useFakeTimers();
       try {
         act(() => {
@@ -470,14 +793,13 @@ describe('SpatialShell Domain Component', () => {
         vi.useRealTimers();
       }
 
-      // Left inset comes from detailsCard (385), NOT .leftColumn (700)
       expect(useUIStore.getState().viewportSafeRect).toEqual({
         top: 0,
         right: 432,
-        bottom: 56,
+        bottom: 0,
         left: 385,
         width: 1440 - 385 - 432,
-        height: 900 - 56,
+        height: 900,
         bypass: false,
       });
 
@@ -542,7 +864,6 @@ describe('SpatialShell Domain Component', () => {
 
       setRect(root, { left: 0, top: 0, width: 768, height: 1024 });
       setRect(detentEl, { left: 8, top: 100, width: 377, height: 400 });
-      // Closed drawer on tablet still occupies layout box in jsdom, but must be ignored when closed
       setRect(bodiesEl, { left: 391, top: 0, width: 377, height: 1024 });
 
       vi.useFakeTimers();
@@ -581,7 +902,6 @@ describe('SpatialShell Domain Component', () => {
       const bodiesEl = root.querySelector('[data-spatial-region="bodies"]');
 
       setRect(root, { left: 0, top: 0, width: 1000, height: 800 });
-      // Mid-transition translateX(100%): left is still 1000 (off-screen), width is 384
       setRect(bodiesEl, { left: 1000, top: 0, width: 384, height: 800 });
 
       vi.useFakeTimers();
@@ -603,6 +923,24 @@ describe('SpatialShell Domain Component', () => {
         height: 800,
         bypass: false,
       });
+    });
+  });
+
+  describe('Tablet Horizontal Scroll Containment', () => {
+    it('prevents horizontal overflow and swipe scroll on .floatingLeft in SpatialShell.module.css', () => {
+      const css = fs.readFileSync(
+        path.resolve(__dirname, './SpatialShell.module.css'),
+        'utf8',
+      );
+      const match = css.match(/\.floatingLeft\s*\{[^}]*overflow-y:\s*auto[^}]*\}/);
+      expect(match).not.toBeNull();
+      const block = match?.[0] ?? '';
+      expect(block).toMatch(/overflow-x:\s*hidden;/);
+      expect(block).toMatch(/overscroll-behavior-x:\s*none;/);
+      expect(block).toMatch(/min-inline-size:\s*0;/);
+      expect(css).toContain('.searchRegion input:focus,');
+      expect(css).toContain('.searchRegion input:focus-visible');
+      expect(css).not.toContain('.searchRegion :focus,');
     });
   });
 });

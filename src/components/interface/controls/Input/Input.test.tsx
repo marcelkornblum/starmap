@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { createRef } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -85,5 +87,14 @@ describe('<Input />', () => {
     render(<Input placeholder="Custom" />);
     const input = screen.getByPlaceholderText('Custom');
     expect(input.className).toBeTruthy();
+  });
+
+  it('defines coarse-pointer 44px touch target and 16px font floor to prevent iOS zoom', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'Input.module.css'), 'utf8');
+    expect(css).toMatch(/min-block-size:\s*var\(--input-min-height\)/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/--input-min-height:\s*var\(--size-touch-target-min\)/);
+    expect(css).toMatch(/--input-font-size:\s*var\(--text-ui-control-coarse-size\)/);
+    expect(css).toMatch(/\.input\[data-size="sm"\]/);
   });
 });

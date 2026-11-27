@@ -6,9 +6,6 @@
     --datum-label-color: var(--content-muted);
     --datum-value-color: var(--content-prominent);
     --datum-value-weight: var(--font-weight-medium);
-    --datum-border-color: var(--border-color-subtle);
-    --datum-border-width: var(--stroke-width-0);
-    --datum-border-style: var(--border-style-provisional);
     --datum-padding-y: var(--space-inset-cell-y);
     --datum-unit-font-size: var(--text-content-metric-unit-size);
 
@@ -18,6 +15,8 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    gap: var(--space-gap-datum);
+    min-inline-size: 0;
     padding-block: var(--datum-padding-y);
     border-block-end: none;
     font-family: var(--datum-font-family);
@@ -30,12 +29,27 @@
     color: var(--datum-label-color);
     font-size: var(--datum-label-font-size);
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .valueGroup {
     display: inline-flex;
     align-items: center;
     gap: var(--space-gap-datum);
+    min-inline-size: 0;
+  }
+
+  .valueSlot {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: var(--space-gap-badge);
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+    text-align: end;
+    color: var(--datum-value-color);
+    font-variant-numeric: tabular-nums;
   }
 }
 

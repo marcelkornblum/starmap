@@ -88,7 +88,7 @@ describe('<GalaxyView />', () => {
     clearDetailsRepositoryCache();
   });
 
-  it('renders spatial shell, breadcrumbs, search, control bar, and canvas layer', async () => {
+  it('renders spatial shell, console dock, breadcrumbs, visor scale pill, search, and canvas layer without control bar', async () => {
     await act(async () => {
       render(
         <SpatialEntityProvider>
@@ -102,10 +102,12 @@ describe('<GalaxyView />', () => {
     });
 
     expect(screen.getByTestId('galaxy-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('console-dock')).toBeInTheDocument();
     expect(screen.getByTestId('view-breadcrumbs')).toBeInTheDocument();
     expect(screen.getByTestId('view-breadcrumbs').textContent).toContain('Galaxy');
+    expect(screen.getByTestId('visor-scale-pill')).toBeInTheDocument();
     expect(screen.getByTestId('search-root')).toBeInTheDocument();
-    expect(screen.getByTestId('control-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('control-bar')).toBeNull();
     expect(screen.getByTestId('canvas-layer')).toBeInTheDocument();
   });
 

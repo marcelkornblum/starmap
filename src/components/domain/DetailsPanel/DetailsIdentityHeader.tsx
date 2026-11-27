@@ -9,6 +9,7 @@ import {
   CelestialBadge,
   CelestialTitle,
   Cluster,
+  DetentSheetMidStage,
   Quantity,
   SpectralBadge,
   Stack,
@@ -25,6 +26,7 @@ export interface DetailsIdentityHeaderProps {
   readonly starCount?: number;
   readonly isHabitableCandidate?: boolean;
   readonly systemSummarySegments?: readonly SystemSummarySegment[];
+  readonly preview?: ReactNode;
   readonly actionControls?: ReactNode;
 }
 
@@ -37,15 +39,16 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
   starCount,
   isHabitableCandidate,
   systemSummarySegments,
+  preview,
   actionControls,
 }: DetailsIdentityHeaderProps) {
   const isSystemFocus = focusedKind === 'system';
-  const hasHeroBody = systemSummarySegments !== undefined || Boolean(actionControls);
+  const hasMidStage = systemSummarySegments !== undefined || Boolean(preview);
 
   return (
     <Block padding="loose" data-testid="details-peek-header">
       <Stack gap="fib-3">
-        <Cluster gap="tight" align="center">
+        <Cluster gap="tight" align="center" data-overview-title-row="true">
           <span className={styles.entityTitle}>
             <CelestialTitle
               type={reticleType}
@@ -76,25 +79,28 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
             />
           ) : null}
           {isHabitableCandidate ? (
-            <Cluster as="span" gap="tight" align="center" data-hero-extra="true">
-              <CelestialBadge
-                type="habitable-zone"
-                href={buildTagGalaxyHref('HabitableCandidate')}
-                showLabel
-                data-testid="details-planet-habitable-link"
-              />
-            </Cluster>
+            <CelestialBadge
+              type="habitable-zone"
+              href={buildTagGalaxyHref('HabitableCandidate')}
+              showLabel
+              data-testid="details-planet-habitable-link"
+            />
           ) : null}
         </Cluster>
-        {hasHeroBody ? (
-          <Stack gap="fib-3" data-hero-body="true">
-            {systemSummarySegments !== undefined ? (
-              <p className={styles.summaryText} data-testid="details-system-summary">
-                {renderSystemSummarySegments(systemSummarySegments)}
-              </p>
-            ) : null}
-            {actionControls}
-          </Stack>
+        {hasMidStage ? (
+          <DetentSheetMidStage testId="details-overview-mid-stage">
+            <Stack gap="fib-3">
+              {systemSummarySegments !== undefined ? (
+                <p className={styles.summaryText} data-testid="details-system-summary">
+                  {renderSystemSummarySegments(systemSummarySegments)}
+                </p>
+              ) : null}
+              {preview}
+            </Stack>
+          </DetentSheetMidStage>
+        ) : null}
+        {actionControls ? (
+          <div className={styles.actionsSlot}>{actionControls}</div>
         ) : null}
       </Stack>
     </Block>

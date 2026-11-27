@@ -1,9 +1,9 @@
-import { type RefObject, useEffect } from 'react';
+import { type RefObject, useEffect, useRef } from 'react';
 import { useUIStore } from '../../../stores/useUIStore';
 import { computeViewportSafeRect, type PanelRectLike } from '../../../utils/viewportSafeRect';
+import { DESKTOP_DOCK_BREAKPOINT_PX } from './spatialShellHelpers';
 
 const MOBILE_BREAKPOINT_PX = 768;
-const DESKTOP_DOCK_BREAKPOINT_PX = 1024;
 const FULL_WIDTH_SHEET_RATIO = 0.65;
 const POST_FLIGHT_SETTLE_DELAY_MS = 180;
 
@@ -12,7 +12,7 @@ export interface SpatialShellRegionRefs {
   readonly topBarRef: RefObject<HTMLElement | null>;
   readonly floatingLeftRef: RefObject<HTMLElement | null>;
   readonly bodiesRegionRef: RefObject<HTMLElement | null>;
-  readonly controlsRegionRef: RefObject<HTMLElement | null>;
+  readonly controlsRegionRef?: RefObject<HTMLElement | null>;
 }
 
 function toPanelRectLike(rect: DOMRect): PanelRectLike {
@@ -77,6 +77,10 @@ export function useViewportSafeRectObserver(
     controlsRegionRef,
   } = refs;
 
+  const isBodiesDrawerOpenRef = useRef(isBodiesDrawerOpen);
+  const scheduleMeasureRef = useRef<(() => void) | null>(null);
+  const hasMountedDrawerEffectRef = useRef(false);
+
   useEffect(() => {
     const shellEl = shellRef.current;
     if (!shellEl) return;
@@ -103,7 +107,7 @@ export function useViewportSafeRectObserver(
       const topBarEl = topBarRef.current;
       const floatingLeftEl = floatingLeftRef.current;
       const bodiesEl = bodiesRegionRef.current;
-      const controlsEl = controlsRegionRef.current;
+      const controlsEl = controlsRegionRef?.current ?? null;
 
       const topBar =
         topBarEl && isElementVisible(topBarEl)
@@ -125,7 +129,7 @@ export function useViewportSafeRectObserver(
 
       const bodiesRegion = resolveBodiesRegion(
         bodiesEl,
-        isBodiesDrawerOpen,
+        isBodiesDrawerOpenRef.current,
         viewportWidth,
       );
 
@@ -176,7 +180,7 @@ export function useViewportSafeRectObserver(
       const topBarEl = topBarRef.current;
       const floatingLeftEl = floatingLeftRef.current;
       const bodiesEl = bodiesRegionRef.current;
-      const controlsEl = controlsRegionRef.current;
+      const controlsEl = controlsRegionRef?.current ?? null;
 
       if (topBarEl) resizeObserver.observe(topBarEl);
       if (floatingLeftEl) {
@@ -245,10 +249,12 @@ export function useViewportSafeRectObserver(
       window.addEventListener('resize', scheduleMeasure);
     }
 
+    scheduleMeasureRef.current = scheduleMeasure;
     syncResizeObservers();
     measure();
 
     return () => {
+      scheduleMeasureRef.current = null;
       if (rafId !== null && typeof cancelAnimationFrame === 'function') {
         cancelAnimationFrame(rafId);
       }
@@ -270,6 +276,14 @@ export function useViewportSafeRectObserver(
     floatingLeftRef,
     bodiesRegionRef,
     controlsRegionRef,
-    isBodiesDrawerOpen,
   ]);
+
+  useEffect(() => {
+    isBodiesDrawerOpenRef.current = isBodiesDrawerOpen;
+    if (!hasMountedDrawerEffectRef.current) {
+      hasMountedDrawerEffectRef.current = true;
+      return;
+    }
+    scheduleMeasureRef.current?.();
+  }, [isBodiesDrawerOpen]);
 }

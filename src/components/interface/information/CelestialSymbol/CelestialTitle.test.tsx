@@ -129,4 +129,40 @@ describe('<CelestialTitle />', () => {
     );
     expect(document.querySelector('[role="tooltip"]')).toBeNull();
   });
+
+  it('sets data-stretch-link="true" on the link only when stretchLink and href are provided', () => {
+    const { rerender } = render(
+      <CelestialTitle
+        type="star"
+        title="Sirius"
+        href="/system/sirius"
+        stretchLink
+        titleTestId="sirius-link"
+      />,
+    );
+
+    expect(screen.getByTestId('sirius-link')).toHaveAttribute('data-stretch-link', 'true');
+
+    rerender(
+      <CelestialTitle
+        type="star"
+        title="Sirius"
+        href="/system/sirius"
+        titleTestId="sirius-link"
+      />,
+    );
+    expect(screen.getByTestId('sirius-link')).not.toHaveAttribute('data-stretch-link');
+
+    rerender(
+      <CelestialTitle
+        type="star"
+        title="Sirius"
+        stretchLink
+        titleTestId="sirius-link"
+      />,
+    );
+    const nonLink = screen.getByTestId('sirius-link');
+    expect(nonLink.tagName.toLowerCase()).toBe('span');
+    expect(nonLink).not.toHaveAttribute('data-stretch-link');
+  });
 });

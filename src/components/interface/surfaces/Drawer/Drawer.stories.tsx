@@ -4,6 +4,7 @@ import { Drawer } from './Drawer';
 import { Stack } from '../../layouts/Stack/Stack';
 import { Cluster } from '../../layouts/Cluster/Cluster';
 import { Button } from '../../controls/Button/Button';
+import { Badge } from '../../information/Badge/Badge';
 import storyStyles from '../surfaceStories.module.css';
 
 const meta: Meta<typeof Drawer> = {
@@ -58,6 +59,7 @@ const DrawerDemo = () => {
             onClose={() => setOpenRight(false)}
             position="right"
             title="Telemetry Diagnostics"
+            headerExtra={<Badge status="nominal">LIVE</Badge>}
           >
             <Stack gap="default">
               <p>Sublight engine manifold pressure: 98.4 kPa.</p>

@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { BodiesPanel } from '../components/domain/BodiesPanel';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { CanvasLayer } from '../components/domain/CanvasLayer';
-import { ControlBar } from '../components/domain/ControlBar';
 import { DetailsPanel } from '../components/domain/DetailsPanel';
 import { DirectionsPanel } from '../components/domain/DirectionsPanel';
 import { LayerCard } from '../components/domain/LayerCard';
@@ -14,6 +13,7 @@ import { SpatialShell } from '../components/domain/SpatialShell';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { prefetchEntitySelection } from '../services/details/prefetchEntitySelection';
+import { handleSpatialTouchPointerMissed } from './spatialTouchMiss';
 import { useGalaxyViewModel } from './useGalaxyViewModel';
 
 export interface GalaxyViewProps {
@@ -24,7 +24,6 @@ export interface GalaxyViewProps {
 
 const GALAXY_BREADCRUMBS = [{ label: 'Galaxy' }];
 const GALAXY_BREADCRUMBS_NODE = <Breadcrumbs items={GALAXY_BREADCRUMBS} />;
-const GALAXY_CONTROLS_NODE = <ControlBar scope="galaxy" />;
 
 const renderGalaxySearchResultItem = (
   result: React.ComponentProps<typeof SearchResultItem>['result'],
@@ -87,10 +86,11 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           onInspect={handleSelectSystem}
           onSelect={handleSelectSystem}
           onFocusChange={handleFocusChange}
+          onTouchPointerMissed={handleSpatialTouchPointerMissed}
         />
       }
       breadcrumbs={GALAXY_BREADCRUMBS_NODE}
-      controls={GALAXY_CONTROLS_NODE}
+      minimapOrientation={minimapOrientation}
       search={
         <Search.Root
           limitPerCategory={3}

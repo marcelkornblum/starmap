@@ -1,6 +1,7 @@
 import type React from 'react';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import symbologyStyles from '../components/domain/OrbitalSchematicPanel/schematicSymbology.module.css';
 import {
   Badge,
@@ -28,7 +29,12 @@ import styles from './LegendGuideView.module.css';
 
 export const LegendGuideView: React.FC = () => {
   return (
-    <main data-testid="legend-guide-view-root" className={guideStyles.guideRoot}>
+    <SpatialShell
+      mode="document"
+      testId="legend-guide-view-root"
+      activeWorkspace="guide"
+    >
+      <div className={guideStyles.guideRoot}>
       <Breadcrumbs
         items={[
           { label: 'Guide', href: STAR_TYPES_GUIDE_PATH },
@@ -237,6 +243,7 @@ export const LegendGuideView: React.FC = () => {
           </Stack>
         </section>
       </Stack>
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

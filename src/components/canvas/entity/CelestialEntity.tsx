@@ -18,7 +18,7 @@ import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { getCrossScaleSceneScale } from '../instrument/crossScaleVisualState';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
-import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
+import { DEFAULT_RETICLE_SIZE } from '../engineConfig';
 import {
   projectedPixelDiameter,
   nodeVisibility,
@@ -215,6 +215,7 @@ const CelestialEntityComponent: React.FC<CelestialEntityProps> = ({
       <group ref={nodeGroupRef} name={`node-representation-${id}`}>
         <BodyMarker
           id={id} position={ZERO_POS} worldPosition={resolvedPos} reticleSize={DEFAULT_RETICLE_SIZE}
+          minWorldHitRadius={hasBodyCrossfade ? bodyRadius : undefined}
           debugHitarea={debugHitarea} interactive={activeState !== 'passive'}
           nodeAlphaRef={hasBodyCrossfade ? nodeAlphaRef : undefined}
           onClick={handleMarkerClick} onDoubleClick={handleMarkerDoubleClick}

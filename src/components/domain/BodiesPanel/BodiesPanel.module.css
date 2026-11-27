@@ -6,6 +6,11 @@
     inline-size: 100%;
   }
 
+  .root [data-block="true"][data-interactive="true"] a:not([data-stretch-link="true"]) {
+    position: relative;
+    z-index: 1;
+  }
+
   .section {
     display: flex;
     flex-direction: column;

@@ -1,5 +1,34 @@
 import type { CelestialFootprint } from './occlusionTypes';
 import type { ScreenSpatialGrid } from './occlusionGeometryMath';
+import { getCoarsePointerSnapshot, resolveEffectiveHitRadiusPx } from '../engineConfig';
+
+function getHierarchyRank(classification?: string): number {
+  if (classification === 'star' || classification === 'system') return 2;
+  if (classification === 'planet' || classification === 'dwarf-planet') return 1;
+  return 0;
+}
+
+function findSingleDominantAnchor(cluster: readonly CelestialFootprint[]): CelestialFootprint | null {
+  let maxRank = -1;
+  let minRank = Infinity;
+  let maxCount = 0;
+  let candidate: CelestialFootprint | null = null;
+  for (let i = 0; i < cluster.length; i++) {
+    const member = cluster[i];
+    const rank = getHierarchyRank(member.classification);
+    if (rank > maxRank) {
+      maxRank = rank;
+      maxCount = 1;
+      candidate = member;
+    } else if (rank === maxRank) {
+      maxCount += 1;
+    }
+    if (rank < minRank) {
+      minRank = rank;
+    }
+  }
+  return maxRank > minRank && maxCount === 1 ? candidate : null;
+}
 
 /**
  * Computes hit area fan-out offsets for a target footprint and its overlapping cluster.
@@ -9,6 +38,7 @@ export function computeHitAreaCluster(
   grid: ScreenSpatialGrid,
   cluster: CelestialFootprint[],
   evalTime: number,
+  isCoarseOrTouch = getCoarsePointerSnapshot(),
 ): void {
   if (!target.hasReticle) {
     target.hitAreaOffsetX = 0;
@@ -18,14 +48,16 @@ export function computeHitAreaCluster(
   }
 
   cluster.length = 0;
-  const searchRadius = target.reticleRadius * 2.5;
+  const targetHitRadius = resolveEffectiveHitRadiusPx(target.reticleRadius, isCoarseOrTouch);
+  const searchRadius = targetHitRadius * 2.5;
 
   grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
     if (!other.visible || !other.hasReticle) return;
     const dx = target.screenX - other.screenX;
     const dy = target.screenY - other.screenY;
     const dist = Math.hypot(dx, dy);
-    const threshold = Math.max(target.reticleRadius, other.reticleRadius) * 0.9;
+    const otherHitRadius = resolveEffectiveHitRadiusPx(other.reticleRadius, isCoarseOrTouch);
+    const threshold = (targetHitRadius + otherHitRadius) * 0.9;
     if (dist <= threshold) {
       cluster.push(other);
     }
@@ -38,7 +70,40 @@ export function computeHitAreaCluster(
     return;
   }
 
-  // 1. Calculate centroid
+  const dominantAnchor = findSingleDominantAnchor(cluster);
+  if (dominantAnchor) {
+    dominantAnchor.hitAreaOffsetX = 0;
+    dominantAnchor.hitAreaOffsetY = 0;
+    dominantAnchor.hitAreaEvaluatedAt = evalTime;
+
+    const anchorX = dominantAnchor.screenX;
+    const anchorY = dominantAnchor.screenY;
+    const anchorHitRadius = resolveEffectiveHitRadiusPx(dominantAnchor.reticleRadius, isCoarseOrTouch);
+    const satellites = cluster.filter((member) => member !== dominantAnchor);
+
+    satellites.sort((a, b) => {
+      const angleA = Math.atan2(a.screenY - anchorY, a.screenX - anchorX);
+      const angleB = Math.atan2(b.screenY - anchorY, b.screenX - anchorX);
+      const diff = angleA - angleB;
+      if (Math.abs(diff) > 1e-4) return diff;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+
+    const firstSat = satellites[0];
+    const baseAngle = firstSat ? Math.atan2(firstSat.screenY - anchorY, firstSat.screenX - anchorX) : 0;
+    for (let i = 0; i < satellites.length; i++) {
+      const sat = satellites[i];
+      const angle = baseAngle + (2 * Math.PI * i) / satellites.length;
+      const satHitRadius = resolveEffectiveHitRadiusPx(sat.reticleRadius, isCoarseOrTouch);
+      const ringRadius = Math.max(satHitRadius * 1.2, anchorHitRadius * 0.6 + satHitRadius * 0.65);
+      sat.hitAreaOffsetX = anchorX + ringRadius * Math.cos(angle) - sat.screenX;
+      sat.hitAreaOffsetY = anchorY + ringRadius * Math.sin(angle) - sat.screenY;
+      sat.hitAreaEvaluatedAt = evalTime;
+    }
+    return;
+  }
+
+  // 1. Calculate centroid for peer clusters
   let centroidX = 0;
   let centroidY = 0;
   for (let i = 0; i < cluster.length; i++) {
@@ -57,14 +122,14 @@ export function computeHitAreaCluster(
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 
-  // 3. Assign fan offsets outward from centroid
+  // 3. Assign fan offsets outward from centroid using floored hit radii
   const baseAngle = Math.atan2(cluster[0].screenY - centroidY, cluster[0].screenX - centroidX);
   for (let i = 0; i < cluster.length; i++) {
     const member = cluster[i];
     const angle = baseAngle + (2 * Math.PI * i) / cluster.length;
-    const fanRadius = member.reticleRadius * 0.85;
-    member.hitAreaOffsetX = fanRadius * Math.cos(angle);
-    member.hitAreaOffsetY = fanRadius * Math.sin(angle);
+    const memberHitRadius = resolveEffectiveHitRadiusPx(member.reticleRadius, isCoarseOrTouch);
+    member.hitAreaOffsetX = memberHitRadius * Math.cos(angle);
+    member.hitAreaOffsetY = memberHitRadius * Math.sin(angle);
     member.hitAreaEvaluatedAt = evalTime;
   }
 }
@@ -78,19 +143,22 @@ export function resolveCyclicSelectionTarget(
   footprints: Map<string, CelestialFootprint>,
   grid: ScreenSpatialGrid,
   cluster: CelestialFootprint[],
+  isCoarseOrTouch = getCoarsePointerSnapshot(),
 ): string {
   const target = footprints.get(clickedId);
   if (!target || !target.visible || !target.hasReticle) return clickedId;
 
   cluster.length = 0;
-  const searchRadius = target.reticleRadius * 2.0;
+  const targetHitRadius = resolveEffectiveHitRadiusPx(target.reticleRadius, isCoarseOrTouch);
+  const searchRadius = targetHitRadius * 2.5;
 
   grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
     if (!other.visible || !other.hasReticle) return;
     const dx = target.screenX - other.screenX;
     const dy = target.screenY - other.screenY;
     const dist = Math.hypot(dx, dy);
-    const threshold = Math.max(target.reticleRadius, other.reticleRadius) * 0.8;
+    const otherHitRadius = resolveEffectiveHitRadiusPx(other.reticleRadius, isCoarseOrTouch);
+    const threshold = (targetHitRadius + otherHitRadius) * 0.85;
     if (dist <= threshold) {
       cluster.push(other);
     }

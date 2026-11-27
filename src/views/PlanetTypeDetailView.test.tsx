@@ -23,7 +23,10 @@ describe('<PlanetTypeDetailView />', () => {
     render(<PlanetTypeDetailView planetType="terrestrial" />);
     const root = screen.getByTestId('planet-type-detail-view-root');
     expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
     expect(root.getAttribute('data-planet-type')).toBe('terrestrial');
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     const summary = screen.getByTestId('guide-detail-summary');
     expect(summary.textContent).toBeTruthy();
@@ -49,6 +52,7 @@ describe('<PlanetTypeDetailView />', () => {
     const focusContext = screen.getByTestId('guide-focus-context');
     expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('earth');
+    expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=earth');
   });
 
   it('renders fallback gracefully when planet type is not recognized', () => {

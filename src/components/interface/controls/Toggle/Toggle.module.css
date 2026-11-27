@@ -26,9 +26,11 @@
     --toggle-thumb-bg: var(--ui-control-default);
     --toggle-thumb-glow: none;
     --toggle-thumb-transform: translateX(0);
+    --toggle-min-height: auto;
 
     display: inline-flex;
     align-items: center;
+    min-block-size: var(--toggle-min-height);
     gap: var(--toggle-gap);
     cursor: var(--toggle-cursor);
     font-family: var(--toggle-font-family);
@@ -97,5 +99,11 @@
   .toggleContainer[data-disabled="true"] {
     --toggle-opacity: var(--ui-disabled-opacity);
     --toggle-cursor: not-allowed;
+  }
+
+  @media (pointer: coarse) {
+    .toggleContainer {
+      --toggle-min-height: var(--size-touch-target-min);
+    }
   }
 }

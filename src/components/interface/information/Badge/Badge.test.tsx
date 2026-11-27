@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Badge } from './Badge';
@@ -63,5 +65,16 @@ describe('<Badge />', () => {
     );
     const badge = screen.getByTestId('test-badge');
     expect(badge.getAttribute('aria-label')).toBe('Hazard Indicator');
+  });
+
+  it('defines coarse-pointer hit-slop ::before expansion for interactive badge links', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'Badge.module.css'), 'utf8');
+    expect(css).toMatch(/\.badge:is\(a\)/);
+    expect(css).toMatch(/position:\s*relative/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/inset-block:\s*var\(--badge-hit-slop-block\)/);
+    expect(css).toMatch(/inset-inline:\s*var\(--badge-hit-slop-inline\)/);
+    expect(css).toMatch(/--badge-hit-slop-block:\s*var\(--space-hit-slop-block\)/);
+    expect(css).toMatch(/--badge-hit-slop-inline:\s*var\(--space-hit-slop-inline\)/);
   });
 });

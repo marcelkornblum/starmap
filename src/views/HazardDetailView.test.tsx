@@ -23,7 +23,10 @@ describe('<HazardDetailView />', () => {
     render(<HazardDetailView hazardId="high-gravity" />);
     const root = screen.getByTestId('hazard-detail-view-root');
     expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
     expect(root.getAttribute('data-hazard-id')).toBe('high-gravity');
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     const summary = screen.getByTestId('guide-detail-summary');
     expect(summary.textContent).toBeTruthy();
@@ -49,6 +52,7 @@ describe('<HazardDetailView />', () => {
     const focusContext = screen.getByTestId('guide-focus-context');
     expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('jupiter');
+    expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=jupiter');
   });
 
   it('renders fallback gracefully when hazard is not recognized', () => {

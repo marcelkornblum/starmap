@@ -15,7 +15,13 @@ describe('<LegendGuideView />', () => {
   it('renders root, breadcrumbs, active Legend section nav, and heading', () => {
     render(<LegendGuideView />);
 
-    expect(screen.getByTestId('legend-guide-view-root')).toBeInTheDocument();
+    const root = screen.getByTestId('legend-guide-view-root');
+    expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
+
+    expect(screen.getByTestId('console-dock')).toBeInTheDocument();
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     const breadcrumbs = screen.getByTestId('view-breadcrumbs');
     expect(breadcrumbs.textContent).toContain('Guide');

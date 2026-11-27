@@ -71,7 +71,10 @@ describe('<MetricDetailView />', () => {
     render(<MetricDetailView metricId="stellar-mass" />);
     const root = screen.getByTestId('metric-detail-view-root');
     expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
     expect(root.getAttribute('data-metric-id')).toBe('stellar-mass');
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     expect(screen.getByTestId('metric-comparative-3d')).toBeInTheDocument();
     const summary = screen.getByTestId('guide-detail-summary');
@@ -102,6 +105,7 @@ describe('<MetricDetailView />', () => {
     const focusContext = screen.getByTestId('guide-focus-context');
     expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('jupiter');
+    expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=jupiter');
   });
 
   it('renders cards for all classifications when multi-value metric is provided (AUD-092)', () => {

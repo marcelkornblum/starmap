@@ -1,8 +1,11 @@
 @layer blocks {
   .resultLink {
+    --search-result-min-height: auto;
+
     display: flex;
     align-items: center;
     inline-size: 100%;
+    min-block-size: var(--search-result-min-height);
     padding: var(--space-fib-2) var(--space-fib-3);
     box-sizing: border-box;
     text-decoration: none;
@@ -11,5 +14,13 @@
 
   .resultName {
     color: inherit;
+  }
+}
+
+@layer exceptions {
+  @media (pointer: coarse) {
+    .resultLink {
+      --search-result-min-height: var(--size-touch-target-min);
+    }
   }
 }

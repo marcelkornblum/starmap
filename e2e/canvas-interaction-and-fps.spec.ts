@@ -307,17 +307,21 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvas = rootHost.locator('canvas');
     await expect(canvas).toBeVisible();
 
-    const { x: cx, y: cy } = await getSafeCanvasCenter(page, 400);
+    let cx = 0;
+    let cy = 0;
 
-    // Wait until SystemScene mounts Tau Ceti's 3D hit-area and responds to pointer hover
+    // Wait until SystemScene settles optical view-offset and mounts Tau Ceti's 3D hit-area at safe centre
     await expect
       .poll(
         async () => {
+          const center = await getSafeCanvasCenter(page);
+          cx = center.x;
+          cy = center.y;
           await page.mouse.move(cx + 1, cy + 1);
           await page.mouse.move(cx, cy);
           return page.evaluate(() => document.body.style.cursor);
         },
-        { timeout: 10_000 },
+        { timeout: 15_000 },
       )
       .toBe('pointer');
 
@@ -1126,13 +1130,13 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
 
     await page.waitForTimeout(400);
 
-    // Navigate to Guide via the Breadcrumbs mode menu
-    await page.getByTestId('breadcrumbs-companion-link').click();
+    // Navigate to Guide via ConsoleDock
+    await page.getByTestId('console-dock-guide').click();
     await expect(page).toHaveURL(/\/guide/, { timeout: 10_000 });
     await expect(rootHost).toHaveAttribute('data-stage-inactive', 'true', { timeout: 10_000 });
 
-    // Navigate back to Galaxy via the Breadcrumbs mode menu
-    await page.getByTestId('breadcrumbs-companion-link').click();
+    // Navigate back to Galaxy via ConsoleDock
+    await page.getByTestId('console-dock-map').click();
     await expect(page).toHaveURL(/\/galaxy/, { timeout: 10_000 });
     await expect(rootHost).not.toHaveAttribute('data-stage-inactive', 'true', { timeout: 10_000 });
 

@@ -22,6 +22,7 @@ describe('useThemeTokenSync', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     resetDeviceTierRuntimeState();
+    document.head.querySelector('meta[name="theme-color"]')?.remove();
   });
 
   it('syncs initial data-theme, data-palette, and data-device-tier on mount', () => {
@@ -70,5 +71,40 @@ describe('useThemeTokenSync', () => {
       registerWebGLGpuTelemetry({ gpuRenderer: 'Apple M3 Max', maxTextureSize: 16384 });
     });
     expect(document.documentElement.dataset.deviceTier).toBeUndefined();
+  });
+
+  it('keeps meta[name="theme-color"] synchronised on mount and across dark, light, and amoled switches', () => {
+    renderHook(() => useThemeTokenSync());
+
+    const meta = document.head.querySelector('meta[name="theme-color"]');
+    expect(meta).not.toBeNull();
+    expect(meta?.getAttribute('content')).toBe('#050b0d');
+
+    act(() => {
+      useSettingsStore.getState().setTheme('light');
+    });
+    expect(document.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#f2f7f7');
+
+    act(() => {
+      useSettingsStore.getState().setTheme('amoled');
+    });
+    expect(document.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#000000');
+
+    act(() => {
+      useSettingsStore.getState().setTheme('dark');
+    });
+    expect(document.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#050b0d');
+  });
+
+  it('extracts tokens once per store theme switch without tearing down subscriptions', () => {
+    renderHook(() => useThemeTokenSync());
+
+    const spy = vi.spyOn(window, 'getComputedStyle');
+    act(() => {
+      useSettingsStore.getState().setTheme('light');
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(useThreeTokenStore.getState().tokens.theme).toBe('light');
   });
 });

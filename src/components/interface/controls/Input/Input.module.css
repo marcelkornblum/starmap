@@ -11,10 +11,12 @@
     --input-radius: var(--radius-control);
     --input-shadow: var(--ui-control-inset-shadow);
     --input-placeholder-color: var(--content-faint);
+    --input-min-height: auto;
 
     display: inline-flex;
     box-sizing: border-box;
     inline-size: 100%;
+    min-block-size: var(--input-min-height);
     font-family: var(--font-interface);
     font-size: var(--input-font-size);
     padding-inline: var(--input-padding-inline);
@@ -70,5 +72,13 @@
     --input-padding-inline: var(--space-fib-2);
     --input-padding-block: var(--space-fib-1);
     --input-font-size: var(--type-scale-neg-1);
+  }
+
+  @media (pointer: coarse) {
+    .input,
+    .input[data-size="sm"] {
+      --input-min-height: var(--size-touch-target-min);
+      --input-font-size: var(--text-ui-control-coarse-size);
+    }
   }
 }

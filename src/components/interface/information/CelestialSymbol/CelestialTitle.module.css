@@ -28,3 +28,12 @@
     text-decoration: underline;
   }
 }
+
+@layer exceptions {
+  .titleLink[data-stretch-link="true"]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+}

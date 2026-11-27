@@ -32,7 +32,11 @@
     padding: var(--space-inset-panel);
     color: var(--content-default);
     font-family: var(--font-interface);
-    max-width: var(--size-measure-2xl);
+    inline-size: 100%;
+    min-inline-size: 0;
+    max-inline-size: var(--size-measure-2xl);
+    min-block-size: 100%;
+    box-sizing: border-box;
     position: relative;
     z-index: var(--layer-hud);
   }

@@ -13,11 +13,15 @@
     --button-leading: var(--leading-control);
     --button-gap: var(--space-cluster-dense);
     --button-shadow: none;
+    --button-min-height: auto;
+    --button-min-width: auto;
 
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--button-gap);
+    min-block-size: var(--button-min-height);
+    min-inline-size: var(--button-min-width);
     box-sizing: border-box;
     font-family: var(--font-interface);
     font-size: var(--button-font-size);
@@ -129,5 +133,15 @@
     --button-padding-inline: var(--space-fib-5);
     --button-padding-block: var(--space-fib-3);
     --button-font-size: var(--type-scale-0);
+  }
+
+  @media (pointer: coarse) {
+    .button,
+    .button[data-size="sm"],
+    .button[data-size="md"],
+    .button[data-size="lg"] {
+      --button-min-height: var(--size-touch-target-min);
+      --button-min-width: var(--size-touch-target-min);
+    }
   }
 }

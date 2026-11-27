@@ -2,13 +2,20 @@ import type React from 'react';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import { Block, CelestialSymbol, Cluster, Datum, Grid, Heading, SpectralBadge } from '../components/interface';
 import { STAR_TYPE_GUIDE_ENTRIES } from '../content/guide';
+import { resolveAppHref } from '../utils/url';
 import styles from './GuideViews.module.css';
 
 export const StarTypesListView: React.FC = () => {
   return (
-    <main data-testid="star-types-list-view-root" className={styles.guideRoot}>
+    <SpatialShell
+      mode="document"
+      testId="star-types-list-view-root"
+      activeWorkspace="guide"
+    >
+      <div className={styles.guideRoot}>
       <Breadcrumbs
         items={[
           { label: 'Guide', href: '/guide/star-types' },
@@ -28,7 +35,7 @@ export const StarTypesListView: React.FC = () => {
             data-star-type={entry.id}
           >
             <a
-              href={entry.href}
+              href={resolveAppHref(entry.href)}
               data-testid="star-types-guide-link"
               className={styles.cardLink}
             >
@@ -62,6 +69,7 @@ export const StarTypesListView: React.FC = () => {
           </Block>
         ))}
       </Grid>
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

@@ -1,0 +1,34 @@
+@layer blocks {
+  .visorScalePill {
+    --visor-scale-pill-gap: var(--space-fib-1);
+    --visor-scale-pill-font-family: var(--font-data);
+    --visor-scale-pill-font-size: var(--type-scale-neg-2);
+    --visor-scale-pill-cue-color: var(--content-accent);
+
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    font-family: var(--visor-scale-pill-font-family);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .attitudeCue {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--visor-scale-pill-font-family);
+    font-size: var(--visor-scale-pill-font-size);
+    font-variant-numeric: tabular-nums;
+    color: var(--visor-scale-pill-cue-color);
+    white-space: nowrap;
+    margin: 0;
+  }
+}
+
+@layer exceptions {
+  .visorScalePill [data-size='sm'] {
+    --button-gap: var(--visor-scale-pill-gap);
+    --button-padding-inline: var(--space-fib-2);
+    --button-padding-block: var(--space-fib-1);
+    --button-radius: var(--radius-control);
+  }
+}

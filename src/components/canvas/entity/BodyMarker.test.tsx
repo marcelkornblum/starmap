@@ -10,16 +10,28 @@ import {
 } from './entityDotsBatchContext';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
 import { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
-import { NOOP_RAYCAST } from '../engineConfig';
+import {
+  NOOP_RAYCAST,
+  DEFAULT_RETICLE_SIZE,
+  MIN_HIT_RADIUS_TOUCH_PX,
+  MIN_HIT_RADIUS_MOUSE_PX,
+  screenRadiusPxToReticleWorldUnits,
+  resolveEntityScreenInvariantScale,
+  resetCoarsePointerForTesting,
+} from '../engineConfig';
 
 describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetCoarsePointerForTesting();
+    document.body.style.cursor = 'auto';
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    resetCoarsePointerForTesting();
+    document.body.style.cursor = 'auto';
   });
 
   it('renders central celestial marker in monochrome and hitarea mesh', async () => {
@@ -153,7 +165,7 @@ describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
     // Frame 1: Initial frame should sync billboard transform and update matrix
     await interactiveRenderer.advanceFrames(1, 0.016);
     expect(updateMatrixSpy).toHaveBeenCalledTimes(1);
-    expect(evalHitAreaSpy).toHaveBeenCalledWith('interactive-star');
+    expect(evalHitAreaSpy).toHaveBeenCalledWith('interactive-star', false);
 
     // Frame 2: Stationary camera should skip redundant updateMatrixWorld
     updateMatrixSpy.mockClear();
@@ -302,5 +314,313 @@ describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
     // Unmount unregisters cleanly
     await renderer.unmount();
     expect(registry.size).toBe(0);
+  });
+
+  it('uses 14px tap slop for touch pointers and 8px tap slop for mouse pointers', async () => {
+    const handleClick = vi.fn();
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <BodyMarker id="body-tap-test" position={[0, 0, 0]} onClick={handleClick} />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const hitarea = renderer.scene.find((node) => node.props.name === 'celestial-hitarea');
+
+    // Touch jitter of 12px (<= 14px touch slop) triggers onClick
+    await renderer.fireEvent(hitarea, 'pointerDown', {
+      pointerType: 'touch',
+      clientX: 100,
+      clientY: 100,
+      stopPropagation: vi.fn(),
+    });
+    await renderer.fireEvent(hitarea, 'pointerUp', {
+      pointerType: 'touch',
+      clientX: 112,
+      clientY: 100,
+      stopPropagation: vi.fn(),
+    });
+    expect(handleClick).toHaveBeenCalledTimes(1);
+
+    // Touch drag of 16px (> 14px touch slop) suppresses onClick
+    await renderer.fireEvent(hitarea, 'pointerDown', {
+      pointerType: 'touch',
+      clientX: 100,
+      clientY: 100,
+      stopPropagation: vi.fn(),
+    });
+    await renderer.fireEvent(hitarea, 'pointerUp', {
+      pointerType: 'touch',
+      clientX: 116,
+      clientY: 100,
+      stopPropagation: vi.fn(),
+    });
+    expect(handleClick).toHaveBeenCalledTimes(1);
+
+    // Mouse movement of 10px (> 8px mouse slop) suppresses onClick
+    await renderer.fireEvent(hitarea, 'pointerDown', {
+      pointerType: 'mouse',
+      clientX: 100,
+      clientY: 100,
+      stopPropagation: vi.fn(),
+    });
+    await renderer.fireEvent(hitarea, 'pointerUp', {
+      pointerType: 'mouse',
+      clientX: 110,
+      clientY: 100,
+      stopPropagation: vi.fn(),
+    });
+    expect(handleClick).toHaveBeenCalledTimes(1);
+
+    await renderer.unmount();
+  });
+
+  it('scales hitarea to enforce 44px touch and 28px mouse hit diameter floors on 390x844 and 844x390', async () => {
+    const originalMatchMedia = window.matchMedia;
+    const setCoarsePointer = (isCoarse: boolean) => {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: vi.fn((query: string) => ({
+          matches: isCoarse && query === '(pointer: coarse)',
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        })),
+      });
+    };
+
+    try {
+      setCoarsePointer(true);
+
+      // 1. Portrait mobile 390x844 with coarse pointer -> 22px radius (44px diameter)
+      const portraitTouch = await ReactThreeTest.create(
+        <SpatialEntityProvider>
+          <SpatialFrameProvider frame={GALACTIC_FRAME}>
+            <BodyMarker id="touch-portrait" position={[0, 0, 0]} reticleSize={DEFAULT_RETICLE_SIZE} />
+          </SpatialFrameProvider>
+        </SpatialEntityProvider>,
+        { width: 390, height: 844 },
+      );
+      await portraitTouch.advanceFrames(1, 0.016);
+      const portraitHitarea = portraitTouch.scene.find((node) => node.props.name === 'celestial-hitarea').instance as THREE.Mesh;
+      const camDist = 5;
+      const invScalePortrait = resolveEntityScreenInvariantScale(camDist, undefined);
+      expect(portraitHitarea.scale.x).toBeGreaterThan(
+        screenRadiusPxToReticleWorldUnits(MIN_HIT_RADIUS_MOUSE_PX, 844) * invScalePortrait,
+      );
+      const unflooredPortraitScale =
+        portraitHitarea.scale.x *
+        (DEFAULT_RETICLE_SIZE / screenRadiusPxToReticleWorldUnits(MIN_HIT_RADIUS_TOUCH_PX, 844));
+      expect(portraitHitarea.scale.x / unflooredPortraitScale).toBeCloseTo(
+        screenRadiusPxToReticleWorldUnits(MIN_HIT_RADIUS_TOUCH_PX, 844) / DEFAULT_RETICLE_SIZE,
+        3,
+      );
+      await portraitTouch.unmount();
+
+      // 2. Landscape mobile 844x390 with coarse pointer -> 22px radius (44px diameter)
+      const landscapeTouch = await ReactThreeTest.create(
+        <SpatialEntityProvider>
+          <SpatialFrameProvider frame={GALACTIC_FRAME}>
+            <BodyMarker id="touch-landscape" position={[0, 0, 0]} reticleSize={DEFAULT_RETICLE_SIZE} />
+          </SpatialFrameProvider>
+        </SpatialEntityProvider>,
+        { width: 844, height: 390 },
+      );
+      await landscapeTouch.advanceFrames(1, 0.016);
+      const landscapeTouchHitarea = landscapeTouch.scene.find((node) => node.props.name === 'celestial-hitarea').instance as THREE.Mesh;
+      const unflooredLandscapeScale =
+        landscapeTouchHitarea.scale.x *
+        (DEFAULT_RETICLE_SIZE / screenRadiusPxToReticleWorldUnits(MIN_HIT_RADIUS_TOUCH_PX, 390));
+      expect(landscapeTouchHitarea.scale.x / unflooredLandscapeScale).toBeCloseTo(
+        screenRadiusPxToReticleWorldUnits(MIN_HIT_RADIUS_TOUCH_PX, 390) / DEFAULT_RETICLE_SIZE,
+        3,
+      );
+      await landscapeTouch.unmount();
+
+      // 3. Landscape desktop 844x390 with fine pointer -> 14px radius (28px diameter)
+      resetCoarsePointerForTesting();
+      setCoarsePointer(false);
+      const landscapeMouse = await ReactThreeTest.create(
+        <SpatialEntityProvider>
+          <SpatialFrameProvider frame={GALACTIC_FRAME}>
+            <BodyMarker id="mouse-landscape" position={[0, 0, 0]} reticleSize={DEFAULT_RETICLE_SIZE} />
+          </SpatialFrameProvider>
+        </SpatialEntityProvider>,
+        { width: 844, height: 390 },
+      );
+      await landscapeMouse.advanceFrames(1, 0.016);
+      const landscapeMouseHitarea = landscapeMouse.scene.find((node) => node.props.name === 'celestial-hitarea').instance as THREE.Mesh;
+      expect(landscapeMouseHitarea.scale.x).toBeLessThan(landscapeTouchHitarea.scale.x);
+      expect(landscapeMouseHitarea.scale.x / landscapeTouchHitarea.scale.x).toBeCloseTo(
+        MIN_HIT_RADIUS_MOUSE_PX / MIN_HIT_RADIUS_TOUCH_PX,
+        3,
+      );
+      await landscapeMouse.unmount();
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: originalMatchMedia,
+      });
+    }
+  });
+
+  it('expands hitarea scale to cover minWorldHitRadius for large close-up planetary discs', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <BodyMarker
+            id="planet-disc"
+            position={[0, 0, 0]}
+            reticleSize={DEFAULT_RETICLE_SIZE}
+            minWorldHitRadius={2.5}
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+      { width: 390, height: 844 },
+    );
+
+    await renderer.advanceFrames(1, 0.016);
+    const hitarea = renderer.scene.find((node) => node.props.name === 'celestial-hitarea').instance as THREE.Mesh;
+    expect(hitarea.scale.x).toBeGreaterThanOrEqual(2.5);
+
+    await renderer.unmount();
+  });
+
+  it('shares module-level coarse-pointer subscription across many markers and avoids matchMedia in useFrame', async () => {
+    const originalMatchMedia = window.matchMedia;
+    const matchMediaSpy = vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaSpy,
+    });
+    resetCoarsePointerForTesting();
+
+    try {
+      const renderer = await ReactThreeTest.create(
+        <SpatialEntityProvider>
+          <SpatialFrameProvider frame={GALACTIC_FRAME}>
+            <BodyMarker id="m1" position={[0, 0, 0]} />
+            <BodyMarker id="m2" position={[1, 0, 0]} />
+            <BodyMarker id="m3" position={[2, 0, 0]} />
+            <BodyMarker id="m4" position={[3, 0, 0]} />
+            <BodyMarker id="m5" position={[4, 0, 0]} />
+          </SpatialFrameProvider>
+        </SpatialEntityProvider>,
+      );
+
+      const coarseCalls = matchMediaSpy.mock.calls.filter(
+        ([q]) => q === '(pointer: coarse)' || q === '(any-pointer: coarse)',
+      );
+      expect(coarseCalls).toHaveLength(2);
+      matchMediaSpy.mockClear();
+
+      await renderer.advanceFrames(2, 0.016);
+      expect(matchMediaSpy).not.toHaveBeenCalled();
+
+      await renderer.unmount();
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: originalMatchMedia,
+      });
+    }
+  });
+
+  it('resets cursor on unmount or interactive=false only for locally hovered marker', async () => {
+    const onPointerOver = vi.fn();
+    const onPointerOut = vi.fn();
+
+    // Marker A is hovered; Marker B is not hovered and unmounts -> must not clobber pointer cursor
+    const rendererA = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <BodyMarker
+            id="marker-a"
+            position={[0, 0, 0]}
+            interactive={true}
+            onPointerOver={onPointerOver}
+            onPointerOut={onPointerOut}
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    const rendererB = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <BodyMarker id="marker-b" position={[1, 0, 0]} interactive={true} />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const hitareaA = rendererA.scene.find((node) => node.props.name === 'celestial-hitarea');
+    await rendererA.fireEvent(hitareaA, 'pointerOver', {
+      pointerType: 'mouse',
+      buttons: 0,
+      stopPropagation: vi.fn(),
+    });
+    expect(document.body.style.cursor).toBe('pointer');
+
+    await rendererB.unmount();
+    expect(document.body.style.cursor).toBe('pointer');
+
+    // Switching hovered marker to interactive=false resets cursor
+    await rendererA.update(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <BodyMarker
+            id="marker-a"
+            position={[0, 0, 0]}
+            interactive={false}
+            onPointerOver={onPointerOver}
+            onPointerOut={onPointerOut}
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    expect(document.body.style.cursor).toBe('auto');
+
+    // Re-hover and unmount resets cursor
+    await rendererA.update(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <BodyMarker
+            id="marker-a"
+            position={[0, 0, 0]}
+            interactive={true}
+            onPointerOver={onPointerOver}
+            onPointerOut={onPointerOut}
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    const hitareaA2 = rendererA.scene.find((node) => node.props.name === 'celestial-hitarea');
+    await rendererA.fireEvent(hitareaA2, 'pointerOver', {
+      pointerType: 'mouse',
+      buttons: 0,
+      stopPropagation: vi.fn(),
+    });
+    expect(document.body.style.cursor).toBe('pointer');
+
+    await rendererA.unmount();
+    expect(document.body.style.cursor).toBe('auto');
   });
 });

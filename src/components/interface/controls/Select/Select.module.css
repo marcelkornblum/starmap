@@ -10,10 +10,12 @@
     --select-font-size: var(--text-ui-control-size);
     --select-radius: var(--radius-control);
     --select-shadow: var(--ui-control-inset-shadow);
+    --select-min-height: auto;
 
     display: inline-flex;
     box-sizing: border-box;
     inline-size: 100%;
+    min-block-size: var(--select-min-height);
     font-family: var(--font-interface);
     font-size: var(--select-font-size);
     padding-inline: var(--select-padding-inline);
@@ -59,5 +61,13 @@
     --select-padding-inline: var(--space-fib-2);
     --select-padding-block: var(--space-fib-1);
     --select-font-size: var(--type-scale-neg-1);
+  }
+
+  @media (pointer: coarse) {
+    .select,
+    .select[data-size="sm"] {
+      --select-min-height: var(--size-touch-target-min);
+      --select-font-size: var(--text-ui-control-coarse-size);
+    }
   }
 }

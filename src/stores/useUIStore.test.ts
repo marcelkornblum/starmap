@@ -17,7 +17,23 @@ describe('useUIStore (Ephemeral)', () => {
     expect(state.detailsDetent).toBe('peek');
     expect(state.activeDrawer).toBeNull();
     expect(state.isLayerCardOpen).toBe(true);
+    expect(state.isDiscoverOpen).toBe(false);
+    expect(state.lastMapHref).toBe('/galaxy');
     expect(state.viewportSafeRect).toBeNull();
+  });
+
+  it('manages Discover panel open state and lastMapHref', () => {
+    useUIStore.getState().toggleDiscover();
+    expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+
+    useUIStore.getState().toggleDiscover();
+    expect(useUIStore.getState().isDiscoverOpen).toBe(false);
+
+    useUIStore.getState().setDiscoverOpen(true);
+    expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+
+    useUIStore.getState().setLastMapHref('/system/sol?focus=earth');
+    expect(useUIStore.getState().lastMapHref).toBe('/system/sol?focus=earth');
   });
 
   it('handles audio toggle and explicit setter', () => {
@@ -137,6 +153,8 @@ describe('useUIStore (Ephemeral)', () => {
     useUIStore.getState().setDetailsDetent('full');
     useUIStore.getState().setActiveDrawer('bodies');
     useUIStore.getState().setLayerCardOpen(false);
+    useUIStore.getState().setDiscoverOpen(true);
+    useUIStore.getState().setLastMapHref('/planet/earth');
     useUIStore.getState().setViewportSafeRect({
       top: 0,
       right: 0,

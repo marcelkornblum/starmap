@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Unit } from './Unit';
@@ -62,5 +64,16 @@ describe('<Unit />', () => {
     const unit = screen.getByTestId('custom-unit');
     expect(unit.className).toMatch(/unit/);
     expect(unit.getAttribute('aria-label')).toBe('Astronomical Units');
+  });
+
+  it('defines coarse-pointer hit-slop ::before expansion for interactive linked units', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'Unit.module.css'), 'utf8');
+    expect(css).toMatch(/\.unit:is\(a\)|\.unit\[data-interactive="true"\]/);
+    expect(css).toMatch(/position:\s*relative/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/inset-block:\s*var\(--unit-hit-slop-block\)/);
+    expect(css).toMatch(/inset-inline:\s*var\(--unit-hit-slop-inline\)/);
+    expect(css).toMatch(/--unit-hit-slop-block:\s*var\(--space-hit-slop-block\)/);
+    expect(css).toMatch(/--unit-hit-slop-inline:\s*var\(--space-hit-slop-inline\)/);
   });
 });

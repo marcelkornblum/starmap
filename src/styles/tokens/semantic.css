@@ -196,8 +196,14 @@
     --border-style-guide:        var(--stroke-style-dotted);
 
     /* Control & Metric Dimensions */
-    --ui-control-height-default: calc(var(--space-fib-5) + var(--space-fib-3));
-    --ui-control-height-sm:      calc(var(--space-fib-4) + var(--space-fib-2));
+    --ui-control-height-default:   calc(var(--space-fib-5) + var(--space-fib-3));
+    --ui-control-height-sm:        calc(var(--space-fib-4) + var(--space-fib-2));
+    --size-touch-target-min:       calc(var(--space-fib-6) + var(--space-fib-3) + var(--stroke-width-2));
+    --size-dock-shelf-mobile:      var(--space-fib-7);
+    --size-dock-rail:              calc(var(--space-fib-7) + var(--space-fib-3));
+    --text-ui-control-coarse-size: var(--type-scale-0);
+    --space-hit-slop-block:        calc(-1 * var(--space-fib-3));
+    --space-hit-slop-inline:       calc(-1 * var(--space-fib-2));
 
     /* Elevation & Semantic Layers */
     --layer-canvas:              var(--z-canvas);

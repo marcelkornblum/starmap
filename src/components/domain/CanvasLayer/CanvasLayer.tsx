@@ -30,6 +30,7 @@ export interface CanvasLayerProps {
   readonly onInspect?: (id: string) => void;
   readonly onSelect?: (id: string | null) => void;
   readonly onFocusChange?: (id: string | null) => void;
+  readonly onTouchPointerMissed?: () => boolean;
 }
 
 const useIsomorphicLayoutEffect =
@@ -55,6 +56,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     onInspect,
     onSelect,
     onFocusChange,
+    onTouchPointerMissed,
   } = props;
 
   const router = useOptionalRouter();
@@ -89,7 +91,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
 
   useIsomorphicLayoutEffect(() => {
     if (!isRootHost) {
-      setStageCallbacks({ onInspect, onSelect, onFocusChange });
+      setStageCallbacks({ onInspect, onSelect, onFocusChange, onTouchPointerMissed });
       setStageProps({
         scope,
         targetId,
@@ -124,6 +126,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     onInspect,
     onSelect,
     onFocusChange,
+    onTouchPointerMissed,
     setStageProps,
   ]);
 

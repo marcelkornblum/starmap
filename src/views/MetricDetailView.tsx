@@ -3,6 +3,7 @@ import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { MetricComparativePanel } from '../components/domain/MetricComparativePanel';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import {
   Badge,
   Button,
@@ -74,24 +75,26 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
     return resolveMetricGuideEntries(resolvedMetricId);
   }, [resolvedMetricId]);
 
+  const companionMapHref = resolvedFocusId
+    ? `/galaxy?focus=${encodeURIComponent(resolvedFocusId)}`
+    : undefined;
+
   return (
-    <main
-      data-testid="metric-detail-view-root"
+    <SpatialShell
+      mode="document"
+      testId="metric-detail-view-root"
+      activeWorkspace="guide"
+      companionMapHref={companionMapHref}
       data-metric-id={resolvedMetricId}
-      className={styles.guideRoot}
     >
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Telemetry Metrics', href: METRICS_GUIDE_PATH },
-          { label: resolvedMetricId || 'Telemetry Metric' },
-        ]}
-        companionHref={
-          resolvedFocusId
-            ? `/galaxy?focus=${encodeURIComponent(resolvedFocusId)}`
-            : undefined
-        }
-      />
+      <div className={styles.guideRoot}>
+        <Breadcrumbs
+          items={[
+            { label: 'Guide', href: '/guide/star-types' },
+            { label: 'Telemetry Metrics', href: METRICS_GUIDE_PATH },
+            { label: resolvedMetricId || 'Telemetry Metric' },
+          ]}
+        />
       <GuideSectionNav currentSection="metrics" />
       <Heading as="h1">
         {resolvedMetricId
@@ -179,6 +182,7 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
       ) : (
         <p>No guide record found for telemetry metric &quot;{resolvedMetricId}&quot;.</p>
       )}
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

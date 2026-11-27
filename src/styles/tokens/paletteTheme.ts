@@ -31,13 +31,43 @@ export const THEME_PALETTES: Record<ThemePalette, PaletteDefinition> = {
 
 export const PALETTE_LIST = Object.values(THEME_PALETTES);
 
+const THEME_BROWSER_CHROME_COLORS: Record<UITheme, string> = {
+  dark: '#050b0d',
+  light: '#f2f7f7',
+  amoled: '#000000',
+};
+
+/**
+ * Resolves the canonical hex colour for `<meta name="theme-color">` from the active UI theme.
+ */
+export function resolveThemeBrowserColor(theme: UITheme): string {
+  return THEME_BROWSER_CHROME_COLORS[theme] ?? THEME_BROWSER_CHROME_COLORS.dark;
+}
+
+/**
+ * Synchronises `<meta name="theme-color">` in `document.head` (creating it if absent)
+ * so mobile browser chrome matches the active Starmap theme.
+ */
+export function syncThemeColorMeta(theme: UITheme): void {
+  if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return;
+  const color = resolveThemeBrowserColor(theme);
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta && typeof document.createElement === 'function' && document.head) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+  }
+  meta?.setAttribute('content', color);
+}
+
 /**
  * Clean literal tokens hue and theme swap function.
  * Synchronises DOM attributes with the authoritative store.
  */
-export function applyTheme(mode: ThemeMode): void {
+export function applyTheme(mode: UITheme): void {
   if (typeof document !== 'undefined') {
     document.documentElement.setAttribute('data-theme', mode);
+    syncThemeColorMeta(mode);
   }
   useSettingsStore.getState().setTheme(mode);
 }
@@ -49,10 +79,11 @@ export function applyPalette(palette: ThemePalette): void {
   useSettingsStore.getState().setPalette(palette);
 }
 
-export function applyThemePalette(palette: ThemePalette, mode: ThemeMode): void {
+export function applyThemePalette(palette: ThemePalette, mode: UITheme): void {
   if (typeof document !== 'undefined') {
     document.documentElement.setAttribute('data-palette', palette);
     document.documentElement.setAttribute('data-theme', mode);
+    syncThemeColorMeta(mode);
   }
   const store = useSettingsStore.getState();
   store.setTheme(mode);

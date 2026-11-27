@@ -1,10 +1,11 @@
 import { useEffect, useCallback } from 'react';
-import { useSettingsStore } from '../../stores/useSettingsStore';
+import { useSettingsStore, type UITheme } from '../../stores/useSettingsStore';
 import { useThreeTokenStore } from '../../stores/useThreeTokenStore';
 import { classifyDeviceTier, subscribeDeviceTier } from '../../services/deviceTierService';
 import { extractThreeTokens } from '../../utils/extractThreeTokens';
+import { syncThemeColorMeta } from '../../styles/tokens/paletteTheme';
 
-function syncDocumentAttributes(theme: string, palette: string): void {
+function syncDocumentAttributes(theme: UITheme, palette: string): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
   if (root.getAttribute('data-theme') !== theme) {
@@ -13,6 +14,7 @@ function syncDocumentAttributes(theme: string, palette: string): void {
   if (root.getAttribute('data-palette') !== palette) {
     root.setAttribute('data-palette', palette);
   }
+  syncThemeColorMeta(theme);
 }
 
 function syncDeviceTierAttribute(): void {
@@ -30,15 +32,15 @@ function syncDeviceTierAttribute(): void {
  * avoiding per-frame layout thrashing.
  */
 export function useThemeTokenSync(): void {
-  const theme = useSettingsStore((state) => state.theme);
   const setTokens = useThreeTokenStore((state) => state.setTokens);
 
   const resolveTokens = useCallback(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     const computed = window.getComputedStyle(document.documentElement);
+    const theme = useSettingsStore.getState().theme;
     const snapshot = extractThreeTokens(computed, theme);
     setTokens(snapshot);
-  }, [theme, setTokens]);
+  }, [setTokens]);
 
   useEffect(() => {
     // 1. Sync initial DOM attributes & device tier, then resolve tokens

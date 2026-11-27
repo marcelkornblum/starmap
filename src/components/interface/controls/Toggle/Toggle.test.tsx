@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Toggle } from './Toggle';
@@ -81,5 +83,12 @@ describe('<Toggle />', () => {
 
     const toggle = screen.getByRole('switch', { name: 'Toggle' });
     expect(toggle.className).toBeTruthy();
+  });
+
+  it('defines coarse-pointer 44px touch target on the switch button while keeping track centered', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'Toggle.module.css'), 'utf8');
+    expect(css).toMatch(/min-block-size:\s*var\(--toggle-min-height\)/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/--toggle-min-height:\s*var\(--size-touch-target-min\)/);
   });
 });

@@ -1,14 +1,29 @@
-import React, { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useOcclusionManager } from './SpatialEntityContext';
 import { useEntityDotsBatchRegistry } from './entityDotsBatchContext';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
-import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
-import { NOOP_RAYCAST, resolveEntityScreenInvariantScale, reticleSizeToScreenPx } from '../engineConfig';
+import {
+  NOOP_RAYCAST,
+  POINTER_TAP_SLOP_MOUSE_PX,
+  POINTER_TAP_SLOP_TOUCH_PX,
+  getCoarsePointerSnapshot,
+  promoteCoarseTouch,
+  subscribeCoarsePointer,
+} from '../engineConfig';
+import {
+  SHARED_DOT_GEOMETRY,
+  SHARED_HITAREA_GEOMETRY,
+  SHARED_HITAREA_INVISIBLE_MATERIAL,
+  computeMarkerDotWorldScale,
+  getPointerCoord,
+  syncBodyMarkerHitareaTransform,
+  type BillboardSyncState,
+} from './bodyMarkerHelpers';
 import type { NodeAlphaRef } from './types';
 
 export interface BodyMarkerProps {
@@ -18,6 +33,8 @@ export interface BodyMarkerProps {
   pixelSize?: number;
   hitRadius?: number;
   reticleSize?: number;
+  /** Optional physical body radius in world units (ensures hitarea covers large close-up discs). */
+  minWorldHitRadius?: number;
   color?: string | THREE.Color;
   interactive?: boolean;
   debugHitarea?: boolean;
@@ -27,24 +44,6 @@ export interface BodyMarkerProps {
   onDoubleClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
   onPointerOver?: (id: string, e: ThreeEvent<PointerEvent>) => void;
   onPointerOut?: (id: string, e: ThreeEvent<PointerEvent>) => void;
-}
-
-const SHARED_DOT_GEOMETRY = new THREE.SphereGeometry(0.5, 16, 16);
-const SHARED_HITAREA_GEOMETRY = new THREE.CircleGeometry(1.0, 32);
-const SHARED_HITAREA_INVISIBLE_MATERIAL = new THREE.MeshBasicMaterial({
-  transparent: true,
-  opacity: 0,
-  depthWrite: false,
-  side: THREE.DoubleSide,
-});
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-
-function getPointerCoord(e: ThreeEvent<PointerEvent>): { x: number; y: number } {
-  const n = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
-  return {
-    x: typeof e.clientX === 'number' ? e.clientX : (typeof n?.clientX === 'number' ? n.clientX : 0),
-    y: typeof e.clientY === 'number' ? e.clientY : (typeof n?.clientY === 'number' ? n.clientY : 0),
-  };
 }
 
 /**
@@ -59,6 +58,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   pixelSize = 5,
   hitRadius,
   reticleSize,
+  minWorldHitRadius,
   color,
   interactive = true,
   debugHitarea = false,
@@ -102,27 +102,33 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
     if (node === null || 'isGroup' in node) groupRef.current = node;
   }, [groupRef]);
 
-  const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
+  const pointerDownPosRef = useRef<{ x: number; y: number; isTouch: boolean } | null>(null);
+  const isCoarseOrTouchRef = useLazyRef(() => getCoarsePointerSnapshot());
+  const isLocalHoveredRef = useRef(false);
   const hasSyncedFrameRef = useRef(false);
   const lastAlphaRef = useRef(Number.NaN);
-  const lastBillboardSyncRef = useRef({
+  const lastBillboardSyncRef = useRef<BillboardSyncState>({
     qx: Number.NaN, qy: Number.NaN, qz: Number.NaN, qw: Number.NaN,
     scale: Number.NaN, hx: Number.NaN, hy: Number.NaN,
   });
 
+  useEffect(() => {
+    const syncCoarse = () => {
+      const next = getCoarsePointerSnapshot();
+      if (next && !isCoarseOrTouchRef.current) {
+        isCoarseOrTouchRef.current = true;
+        hasSyncedFrameRef.current = false;
+        invalidate();
+      }
+    };
+    syncCoarse();
+    return subscribeCoarsePointer(syncCoarse);
+  }, [isCoarseOrTouchRef, invalidate]);
+
   useIsomorphicLayoutEffect(() => {
     if (!batchRegistry) return;
-    if (groupRef.current) {
-      groupRef.current.position.set(posX, posY, posZ);
-    }
-    batchRegistry.register({
-      id,
-      groupRef,
-      worldPosition,
-      pixelSize,
-      color,
-      nodeAlphaRef,
-    });
+    if (groupRef.current) groupRef.current.position.set(posX, posY, posZ);
+    batchRegistry.register({ id, groupRef, worldPosition, pixelSize, color, nodeAlphaRef });
     return () => {
       batchRegistry.unregister(id);
     };
@@ -132,7 +138,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
     lastBillboardSyncRef.current.qx = Number.NaN;
     hasSyncedFrameRef.current = false;
     invalidate();
-  }, [id, posX, posY, posZ, worldPosition, pixelSize, hitRadius, reticleSize, interactive, debugHitarea, invalidate]);
+  }, [id, posX, posY, posZ, worldPosition, pixelSize, hitRadius, reticleSize, minWorldHitRadius, interactive, debugHitarea, invalidate]);
 
   const triggerClick = useCallback(
     (e: ThreeEvent<MouseEvent | PointerEvent>) => {
@@ -143,19 +149,31 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
 
   const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
-    pointerDownPosRef.current = getPointerCoord(e);
-  }, []);
+    const pointerType = e.pointerType || (e.nativeEvent as PointerEvent | undefined)?.pointerType;
+    const isTouch = pointerType === 'touch';
+    if (isTouch) {
+      promoteCoarseTouch();
+      if (!isCoarseOrTouchRef.current) {
+        isCoarseOrTouchRef.current = true;
+        hasSyncedFrameRef.current = false;
+        invalidate();
+      }
+    }
+    const coords = getPointerCoord(e);
+    pointerDownPosRef.current = { x: coords.x, y: coords.y, isTouch };
+  }, [isCoarseOrTouchRef, invalidate]);
 
   const handlePointerUp = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
       if (!pointerDownPosRef.current) return;
-      const startX = pointerDownPosRef.current.x;
-      const startY = pointerDownPosRef.current.y;
+      const { x: startX, y: startY, isTouch: downTouch } = pointerDownPosRef.current;
+      const pointerType = e.pointerType || (e.nativeEvent as PointerEvent | undefined)?.pointerType;
+      const isTouch = downTouch || pointerType === 'touch';
       pointerDownPosRef.current = null;
       const { x, y } = getPointerCoord(e);
-      const distance = Math.hypot(x - startX, y - startY);
-      if (distance <= 8) {
+      const tapSlopPx = isTouch ? POINTER_TAP_SLOP_TOUCH_PX : POINTER_TAP_SLOP_MOUSE_PX;
+      if (Math.hypot(x - startX, y - startY) <= tapSlopPx) {
         triggerClick(e);
       }
     },
@@ -163,14 +181,25 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   );
 
   useEffect(() => {
+    if (!interactive && isLocalHoveredRef.current) {
+      isLocalHoveredRef.current = false;
+      if (typeof document !== 'undefined' && document.body.style.cursor !== 'auto') {
+        document.body.style.cursor = 'auto';
+      }
+    }
+  }, [interactive]);
+
+  useEffect(() => {
     return () => {
-      document.body.style.cursor = 'auto';
+      if (isLocalHoveredRef.current) {
+        isLocalHoveredRef.current = false;
+        if (typeof document !== 'undefined') document.body.style.cursor = 'auto';
+      }
     };
   }, []);
 
   useFrame(({ camera, size }) => {
-    if (!groupRef.current) return;
-    if (isBatched && !interactive) return;
+    if (!groupRef.current || (isBatched && !interactive)) return;
 
     if (!isBatched && nodeAlphaRef && markerMaterialRef.current) {
       const nextAlpha = nodeAlphaRef.current;
@@ -189,96 +218,37 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
     }
     hasSyncedFrameRef.current = true;
 
-    // 1. Retrieve the actual world position of this node (supports arbitrary parent transforms)
     groupRef.current.position.set(posX, posY, posZ);
     if (worldPosition) {
-      if (worldPosition instanceof THREE.Vector3) {
-        worldPosRef.current.copy(worldPosition);
-      } else {
-        worldPosRef.current.set(worldPosition[0], worldPosition[1], worldPosition[2]);
-      }
+      if (worldPosition instanceof THREE.Vector3) worldPosRef.current.copy(worldPosition);
+      else worldPosRef.current.set(worldPosition[0], worldPosition[1], worldPosition[2]);
     } else {
       groupRef.current.getWorldPosition(worldPosRef.current);
     }
     const camDist = Math.max(camera.position.distanceTo(worldPosRef.current), 1e-4);
 
     if (!isBatched && markerRef.current) {
-      let worldScale = (pixelSize / Math.max(size.height, 1)) * 2;
-      if (camera instanceof THREE.PerspectiveCamera) {
-        const vFovRad = (camera.fov * Math.PI) / 180;
-        worldScale *= (Math.tan(vFovRad / 2) * camDist) / Math.max(camera.zoom, 1e-4);
-      } else if (camera instanceof THREE.OrthographicCamera) {
-        worldScale *= (camera.top - camera.bottom) / (2 * Math.max(camera.zoom, 1e-4));
-      }
+      const worldScale = computeMarkerDotWorldScale(camera, camDist, pixelSize, size.height);
       markerRef.current.scale.set(worldScale, worldScale, worldScale);
     }
 
-    // 2. Align invisible hitarea to face camera directly with invariant screen footprint matching reticle
     if (interactive && billboardRef.current && hitareaRef.current) {
-      const invScale = resolveEntityScreenInvariantScale(
-        camDist,
-        camera,
-        frameCtx?.frameRef?.current,
+      const hitOffset = occlusionManager.evaluateHitAreaOffset(id, isCoarseOrTouchRef.current);
+      syncBodyMarkerHitareaTransform(
+        camera, camDist, size.height, worldPosRef.current, frameCtx?.frameRef?.current,
+        reticleSize, hitRadius, minWorldHitRadius, isCoarseOrTouchRef.current,
+        hitOffset.x, hitOffset.y, billboardRef.current, hitareaRef.current, lastBillboardSyncRef.current,
       );
-      const rSize = reticleSize ?? DEFAULT_RETICLE_SIZE;
-      const effectiveHitRadius = (hitRadius ?? rSize) * invScale;
-
-      // Interactive Hit-Testing Fan-Out (Spec 2.2):
-      // When systems overlap in screen space, underlying invisible hit areas fan out radially around cluster centroid
-      const hitOffset = occlusionManager.evaluateHitAreaOffset(id);
-      const reticleRadiusPx = reticleSizeToScreenPx(rSize, size.height);
-      const pxToLocal = reticleRadiusPx > 0 ? (rSize * invScale) / reticleRadiusPx : 0;
-      const localHitX = hitOffset.x * pxToLocal;
-      const localHitY = -hitOffset.y * pxToLocal;
-
-      const cq = camera.quaternion;
-      const last = lastBillboardSyncRef.current;
-      const quatChanged =
-        Number.isNaN(last.qw) ||
-        Math.abs(last.qx - cq.x) > 1e-6 ||
-        Math.abs(last.qy - cq.y) > 1e-6 ||
-        Math.abs(last.qz - cq.z) > 1e-6 ||
-        Math.abs(last.qw - cq.w) > 1e-6;
-      const scaleChanged =
-        Number.isNaN(last.scale) ||
-        Math.abs(last.scale - effectiveHitRadius) > 1e-6;
-      const hitChanged =
-        Number.isNaN(last.hx) ||
-        Math.abs(last.hx - localHitX) > 1e-6 ||
-        Math.abs(last.hy - localHitY) > 1e-6;
-
-      if (quatChanged || scaleChanged || hitChanged) {
-        billboardRef.current.quaternion.copy(cq);
-        hitareaRef.current.scale.set(effectiveHitRadius, effectiveHitRadius, 1);
-        hitareaRef.current.position.set(localHitX, localHitY, 0);
-        billboardRef.current.updateMatrixWorld(true);
-
-        last.qx = cq.x;
-        last.qy = cq.y;
-        last.qz = cq.z;
-        last.qw = cq.w;
-        last.scale = effectiveHitRadius;
-        last.hx = localHitX;
-        last.hy = localHitY;
-      }
     }
   });
 
   return (
     <group ref={setGroupRef} position={[posX, posY, posZ]} name={`body-marker-${id}`}>
-      {/* Standalone Fallback Dot when rendered outside EntityDotsBatch */}
       {!isBatched && (
         <mesh ref={setMarkerRef} name="celestial-point-dot" geometry={SHARED_DOT_GEOMETRY} raycast={NOOP_RAYCAST}>
-          <meshBasicMaterial
-            ref={markerMaterialRef}
-            color={color ?? reticleBracketColor}
-            transparent
-            depthWrite={false}
-          />
+          <meshBasicMaterial ref={markerMaterialRef} color={color ?? reticleBracketColor} transparent depthWrite={false} />
         </mesh>
       )}
-
-      {/* Camera-Facing Invisible Hitarea (Billboarded with Screen-Space Fan-Out) */}
       {interactive && (
         <group ref={setBillboardRef} name={`hitarea-billboard-${id}`}>
           <mesh
@@ -297,25 +267,20 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
             onPointerOver={onPointerOver ? (e) => {
               e.stopPropagation();
               if (e.pointerType === 'touch' || e.buttons > 0) return;
+              isLocalHoveredRef.current = true;
               if (document.body.style.cursor !== 'pointer') document.body.style.cursor = 'pointer';
               onPointerOver(id, e);
             } : undefined}
             onPointerOut={onPointerOut ? (e) => {
               e.stopPropagation();
               if (e.pointerType === 'touch' || e.buttons > 0) return;
+              isLocalHoveredRef.current = false;
               if (document.body.style.cursor !== 'auto') document.body.style.cursor = 'auto';
               onPointerOut(id, e);
             } : undefined}
           >
             {debugHitarea && (
-              <meshBasicMaterial
-                color={stateFocus}
-                transparent
-                opacity={0.35}
-                wireframe
-                depthWrite={false}
-                side={THREE.DoubleSide}
-              />
+              <meshBasicMaterial color={stateFocus} transparent opacity={0.35} wireframe depthWrite={false} side={THREE.DoubleSide} />
             )}
           </mesh>
         </group>
@@ -325,4 +290,3 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
 });
 
 BodyMarker.displayName = 'BodyMarker';
-

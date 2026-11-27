@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Select } from './Select';
@@ -115,5 +117,14 @@ describe('<Select />', () => {
     );
     const select = screen.getByLabelText('Catalogue');
     expect(select.className).toBeTruthy();
+  });
+
+  it('defines coarse-pointer 44px touch target and 16px font floor to prevent iOS zoom', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'Select.module.css'), 'utf8');
+    expect(css).toMatch(/min-block-size:\s*var\(--select-min-height\)/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/--select-min-height:\s*var\(--size-touch-target-min\)/);
+    expect(css).toMatch(/--select-font-size:\s*var\(--text-ui-control-coarse-size\)/);
+    expect(css).toMatch(/\.select\[data-size="sm"\]/);
   });
 });

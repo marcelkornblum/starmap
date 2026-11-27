@@ -2,18 +2,25 @@ import type React from 'react';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import { Badge, Block, Cluster, Datum, Grid, Heading, Unit } from '../components/interface';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { METRIC_GUIDE_ENTRIES } from '../content/guide';
 import { useReferenceBaselines } from '../hooks/useGuideData';
 import { formatSlugFallbackTitle } from '../utils/starNaming';
+import { resolveAppHref } from '../utils/url';
 import styles from './GuideViews.module.css';
 
 export const MetricsListView: React.FC = () => {
   const baselines = useReferenceBaselines();
 
   return (
-    <main data-testid="metrics-list-view-root" className={styles.guideRoot}>
+    <SpatialShell
+      mode="document"
+      testId="metrics-list-view-root"
+      activeWorkspace="guide"
+    >
+      <div className={styles.guideRoot}>
       <Breadcrumbs
         items={[
           { label: 'Guide', href: '/guide/star-types' },
@@ -44,7 +51,7 @@ export const MetricsListView: React.FC = () => {
               data-metric-id={entry.id}
             >
               <a
-                href={entry.href}
+                href={resolveAppHref(entry.href)}
                 data-testid="metrics-guide-link"
                 className={styles.cardLink}
               >
@@ -73,6 +80,7 @@ export const MetricsListView: React.FC = () => {
           );
         })}
       </Grid>
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

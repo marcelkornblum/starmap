@@ -3,6 +3,7 @@ import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import {
   Badge,
   Button,
@@ -53,24 +54,26 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
 
   const primaryEntry = entries[0];
 
+  const companionMapHref = focusedEntityId
+    ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+    : undefined;
+
   return (
-    <main
-      data-testid="hazard-detail-view-root"
+    <SpatialShell
+      mode="document"
+      testId="hazard-detail-view-root"
+      activeWorkspace="guide"
+      companionMapHref={companionMapHref}
       data-hazard-id={resolvedHazardId}
-      className={styles.guideRoot}
     >
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Environmental Hazards', href: HAZARDS_GUIDE_PATH },
-          { label: primaryEntry?.title || resolvedHazardId || 'Hazard' },
-        ]}
-        companionHref={
-          focusedEntityId
-            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
-            : undefined
-        }
-      />
+      <div className={styles.guideRoot}>
+        <Breadcrumbs
+          items={[
+            { label: 'Guide', href: '/guide/star-types' },
+            { label: 'Environmental Hazards', href: HAZARDS_GUIDE_PATH },
+            { label: primaryEntry?.title || resolvedHazardId || 'Hazard' },
+          ]}
+        />
       <GuideSectionNav currentSection="hazards" />
       <Heading as="h1">
         {primaryEntry
@@ -149,6 +152,7 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
           </p>
         </section>
       )}
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

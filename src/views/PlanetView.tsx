@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { BodiesPanel } from '../components/domain/BodiesPanel';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { CanvasLayer } from '../components/domain/CanvasLayer';
-import { ControlBar } from '../components/domain/ControlBar';
 import { DetailsPanel } from '../components/domain/DetailsPanel';
 import { DirectionsPanel } from '../components/domain/DirectionsPanel';
 import { LayerCard } from '../components/domain/LayerCard';
@@ -11,8 +10,10 @@ import { PreviewPanel } from '../components/domain/PreviewPanel';
 import { Search } from '../components/domain/Search';
 import { SearchResultItem } from '../components/domain/SearchResultItem';
 import { SpatialShell } from '../components/domain/SpatialShell';
-import { useUIStore } from '../stores/useUIStore';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { handleSpatialTouchPointerMissed } from './spatialTouchMiss';
+import { stripCameraSearchParams } from './stripCameraSearchParams';
+import { usePanelsReadyAfterTransition } from './usePanelsReadyAfterTransition';
 import { usePlanetViewModel } from './usePlanetViewModel';
 
 export interface PlanetViewProps {
@@ -22,41 +23,13 @@ export interface PlanetViewProps {
   readonly planetId?: string;
 }
 
-const PLANET_CONTROLS_NODE = <ControlBar scope="planet" />;
 const renderPlanetSearchResultItem = (
   result: React.ComponentProps<typeof SearchResultItem>['result'],
 ) => <SearchResultItem key={result.id} result={result} />;
 
 export const PlanetView: React.FC<PlanetViewProps> = (props) => {
   const { initialCorpus } = props;
-  const [panelsReady, setPanelsReady] = useState(
-    () => !useUIStore.getState().isCameraTransitioning,
-  );
-
-  useEffect(() => {
-    if (panelsReady) return;
-    let cancelled = false;
-    if (!useUIStore.getState().isCameraTransitioning) {
-      queueMicrotask(() => {
-        if (!cancelled) {
-          setPanelsReady(true);
-        }
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-    const unsubscribe = useUIStore.subscribe((state) => {
-      if (!state.isCameraTransitioning && !cancelled) {
-        unsubscribe();
-        setPanelsReady(true);
-      }
-    });
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [panelsReady]);
+  const panelsReady = usePanelsReadyAfterTransition();
   const {
     pathname,
     search,
@@ -76,17 +49,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     handleSelectEntity,
   } = usePlanetViewModel(props);
 
-  const nonCameraSearch = useMemo(() => {
-    if (!search || (!search.includes('center=') && !search.includes('x=') && !search.includes('az=') && !search.includes('dist='))) {
-      return search;
-    }
-    const params = new URLSearchParams(search);
-    for (const key of ['center', 'x', 'y', 'z', 'az', 'el', 'dist', 'zoom']) {
-      params.delete(key);
-    }
-    const qs = params.toString();
-    return qs ? `?${qs}` : '';
-  }, [search]);
+  const nonCameraSearch = useMemo(() => stripCameraSearchParams(search), [search]);
 
   const breadcrumbsNode = useMemo(
     () => <Breadcrumbs items={resolvedBreadcrumbs} />,
@@ -127,6 +90,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
         journeyLegs={activeJourney?.chordLegs}
         activeJourneyMethod={activeJourneyMethod}
         onSelect={handleSelectEntity}
+        onTouchPointerMissed={handleSpatialTouchPointerMissed}
       />
     ),
     [
@@ -186,7 +150,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
       testId="planet-view-root"
       canvas={canvasNode}
       breadcrumbs={breadcrumbsNode}
-      controls={PLANET_CONTROLS_NODE}
+      minimapOrientation={minimapOrientation}
       search={searchNode}
       layerCard={layerCardNode}
       detailsPanel={detailsPanelNode}

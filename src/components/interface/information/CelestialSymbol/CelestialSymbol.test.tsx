@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CelestialSymbol, CELESTIAL_SYMBOL_META, type CelestialSymbolType } from './CelestialSymbol';
@@ -134,5 +136,16 @@ describe('<CelestialSymbol />', () => {
     const planet1 = renderGlyphContent('terrestrial');
     const planet2 = renderGlyphContent('terrestrial');
     expect(planet1).toBe(planet2);
+  });
+
+  it('defines coarse-pointer hit-slop ::before expansion for interactive symbol links', () => {
+    const css = fs.readFileSync(path.resolve(import.meta.dirname, 'CelestialSymbol.module.css'), 'utf8');
+    expect(css).toMatch(/\.symbol:is\(a\)/);
+    expect(css).toMatch(/position:\s*relative/);
+    expect(css).toMatch(/@media\s*\(\s*pointer:\s*coarse\s*\)/);
+    expect(css).toMatch(/inset-block:\s*var\(--symbol-hit-slop-block\)/);
+    expect(css).toMatch(/inset-inline:\s*var\(--symbol-hit-slop-inline\)/);
+    expect(css).toMatch(/--symbol-hit-slop-block:\s*var\(--space-hit-slop-block\)/);
+    expect(css).toMatch(/--symbol-hit-slop-inline:\s*var\(--space-hit-slop-inline\)/);
   });
 });

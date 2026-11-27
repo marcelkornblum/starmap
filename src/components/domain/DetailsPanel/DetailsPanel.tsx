@@ -18,7 +18,6 @@ export interface DetailsPanelProps {
   readonly schematic?: OrbitalSchematicSummary | null;
   readonly preview?: FocusedPreviewSummary | null;
   readonly isOpen?: boolean;
-  readonly onClose?: () => void;
   readonly onDetentChange?: (detent: DetentLevel) => void;
 }
 
@@ -33,7 +32,6 @@ export const DetailsPanel = memo(function DetailsPanel({
   schematic,
   preview,
   isOpen,
-  onClose: _onClose,
   onDetentChange,
 }: DetailsPanelProps) {
   const subscribedDetent = useUIStore((s) => s.detailsDetent);
@@ -88,6 +86,7 @@ export const DetailsPanel = memo(function DetailsPanel({
       starCount={starCount}
       isHabitableCandidate={planetTelemetry?.isHabitableCandidate}
       systemSummarySegments={systemSummarySegments}
+      preview={preview ? <PreviewPanel preview={preview} headingAs="h4" /> : undefined}
       actionControls={
         <DetailsActionControls
           id={id}
@@ -102,7 +101,6 @@ export const DetailsPanel = memo(function DetailsPanel({
 
   const partialContent = (
     <>
-      {preview ? <PreviewPanel preview={preview} headingAs="h4" /> : null}
       <DetailsDeferredPartialLower
         canonAnnotations={canonAnnotations}
         focusedKind={focusedKind}

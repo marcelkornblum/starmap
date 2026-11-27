@@ -1,108 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { DetentSheet } from './DetentSheet';
+import { DetentSheet, DetentSheetMidStage } from './DetentSheet';
 import {
-  MIN_SHEET_HEIGHT_PX,
-  DEFAULT_MOBILE_SHEET_RATIO,
-  PARTIAL_SHEET_RATIO,
-  SNAP_PROXIMITY_BAND_RATIO,
-  resolveDetentFromHeight,
-  computeSheetDragStep,
-  computeSheetReleaseSnap,
+  DEFAULT_PEEK_HEIGHT_PX,
+  FALLBACK_PARTIAL_SHEET_RATIO,
 } from './detentSheetMath';
 
 describe('<DetentSheet />', () => {
-  describe('pure math helpers and constants', () => {
-    it('exports expected constants', () => {
-      expect(MIN_SHEET_HEIGHT_PX).toBe(56);
-      expect(DEFAULT_MOBILE_SHEET_RATIO).toBe(0.45);
-      expect(PARTIAL_SHEET_RATIO).toBe(0.45);
-      expect(SNAP_PROXIMITY_BAND_RATIO).toBe(0.08);
-    });
-
-    it('resolves detent from height ratios correctly, including non-positive viewport heights', () => {
-      // vh = 1000 => midpoint = 253, full band = 920
-      expect(resolveDetentFromHeight(200, 1000)).toBe('peek');
-      expect(resolveDetentFromHeight(500, 1000)).toBe('partial');
-      expect(resolveDetentFromHeight(950, 1000)).toBe('full');
-
-      expect(resolveDetentFromHeight(50, 0)).toBe('full');
-      expect(resolveDetentFromHeight(50, -100)).toBe('full');
-    });
-
-    it('computes sheet drag step for upward expansion, clamping, and scroll prevention', () => {
-      const step = computeSheetDragStep({
-        startHeightPx: 100,
-        startClientY: 500,
-        currentClientY: 400, // dragged up by 100px => 200px
-        viewportHeightPx: 1000,
-        isFullScreen: false,
-        scrollTop: 0,
-      });
-
-      expect(step.nextHeightPx).toBe(200);
-      expect(step.isFullScreen).toBe(false);
-      expect(step.shouldPreventScroll).toBe(true);
-      expect(step.effectiveDetent).toBe('peek');
-
-      const clampedStep = computeSheetDragStep({
-        startHeightPx: 100,
-        startClientY: 300,
-        currentClientY: 700,
-        viewportHeightPx: 1000,
-        isFullScreen: false,
-        scrollTop: 0,
-      });
-      expect(clampedStep.nextHeightPx).toBe(MIN_SHEET_HEIGHT_PX);
-      expect(clampedStep.effectiveDetent).toBe('peek');
-
-      const scrollingStep = computeSheetDragStep({
-        startHeightPx: 1000,
-        startClientY: 200,
-        currentClientY: 350,
-        viewportHeightPx: 1000,
-        isFullScreen: true,
-        scrollTop: 45,
-      });
-      expect(scrollingStep.nextHeightPx).toBe(1000);
-      expect(scrollingStep.shouldPreventScroll).toBe(false);
-    });
-
-    it('computes sheet drag step at full screen boundary', () => {
-      const step = computeSheetDragStep({
-        startHeightPx: 950,
-        startClientY: 200,
-        currentClientY: 100, // dragged up by 100px towards 1000
-        viewportHeightPx: 1000,
-        isFullScreen: false,
-        scrollTop: 0,
-      });
-
-      expect(step.nextHeightPx).toBe(1000);
-      expect(step.isFullScreen).toBe(true);
-      expect(step.effectiveDetent).toBe('full');
-    });
-
-    it('computes snap physics correctly on release including free-resting and non-positive viewport', () => {
-      const snapPeek = computeSheetReleaseSnap({ heightPx: 200, viewportHeightPx: 1000 });
-      expect(snapPeek.detent).toBe('peek');
-      expect(snapPeek.snappedHeightPx).toBe(56);
-
-      const snapPartial = computeSheetReleaseSnap({ heightPx: 400, viewportHeightPx: 1000 });
-      expect(snapPartial.detent).toBe('partial');
-      expect(snapPartial.snappedHeightPx).toBe(450);
-
-      const snapFreeRest = computeSheetReleaseSnap({ heightPx: 725.4, viewportHeightPx: 1000 });
-      expect(snapFreeRest).toEqual({ snappedHeightPx: 725, detent: 'partial', isFullScreen: false });
-
-      const snapFull = computeSheetReleaseSnap({ heightPx: 950, viewportHeightPx: 1000 });
-      expect(snapFull.detent).toBe('full');
-      expect(snapFull.snappedHeightPx).toBe(1000);
-
-      const snapNonPositive = computeSheetReleaseSnap({ heightPx: 200, viewportHeightPx: 0 });
-      expect(snapNonPositive).toEqual({ snappedHeightPx: 56, detent: 'full', isFullScreen: true });
-    });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('renders aside element with accessible landmarks, detent sections, and children', () => {
@@ -125,10 +34,15 @@ describe('<DetentSheet />', () => {
     expect(panel.tagName.toLowerCase()).toBe('aside');
     expect(panel.getAttribute('data-detent')).toBe('peek');
     expect(panel.getAttribute('data-is-full-screen')).toBe('false');
-    expect(panel.getAttribute('data-min-height-px')).toBe('56');
+    expect(panel.getAttribute('data-is-dragging')).toBe('false');
+    expect(panel.getAttribute('data-beyond-partial')).toBe('false');
+    expect(panel.getAttribute('data-min-height-px')).toBe(String(DEFAULT_PEEK_HEIGHT_PX));
     expect(panel.getAttribute('data-entity-id')).toBe('trappist-1');
     expect(panel.getAttribute('data-system-id')).toBe('trappist-1-sys');
     expect(panel.getAttribute('data-focused-kind')).toBe('star');
+    expect(panel.style.getPropertyValue('--detent-sheet-block-size')).toBe(`${DEFAULT_PEEK_HEIGHT_PX}px`);
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('0');
+    expect(panel.style.getPropertyValue('--detent-mid-stage-size')).toBe('0px');
 
     const heading = screen.getByRole('heading', { level: 2, name: 'Target Details' });
     expect(heading).toBeInTheDocument();
@@ -142,7 +56,7 @@ describe('<DetentSheet />', () => {
     expect(handle).toBeInTheDocument();
   });
 
-  it('reacts to activeDetent prop updates', () => {
+  it('reacts to activeDetent prop updates and reflects progress & beyond-partial flags', () => {
     const { rerender } = render(
       <DetentSheet
         testIdPrefix="catalog"
@@ -155,6 +69,23 @@ describe('<DetentSheet />', () => {
     let panel = screen.getByTestId('catalog-panel');
     expect(panel.getAttribute('data-detent')).toBe('peek');
     expect(panel.getAttribute('data-is-full-screen')).toBe('false');
+    expect(panel.getAttribute('data-beyond-partial')).toBe('false');
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('0');
+
+    rerender(
+      <DetentSheet
+        testIdPrefix="catalog"
+        heading="Catalog"
+        activeDetent="partial"
+        peek={<div>Peek View</div>}
+      />
+    );
+
+    panel = screen.getByTestId('catalog-panel');
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(panel.getAttribute('data-is-full-screen')).toBe('false');
+    expect(panel.getAttribute('data-beyond-partial')).toBe('false');
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
 
     rerender(
       <DetentSheet
@@ -168,9 +99,11 @@ describe('<DetentSheet />', () => {
     panel = screen.getByTestId('catalog-panel');
     expect(panel.getAttribute('data-detent')).toBe('full');
     expect(panel.getAttribute('data-is-full-screen')).toBe('true');
+    expect(panel.getAttribute('data-beyond-partial')).toBe('true');
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
   });
 
-  it('handles pointer and touch drag interactions on resize handle', () => {
+  it('handles pointer drag interactions exclusively on resize handle and ignores touch events on sheet and handle', () => {
     render(
       <DetentSheet
         testIdPrefix="test"
@@ -179,17 +112,24 @@ describe('<DetentSheet />', () => {
       />
     );
 
-    const handle = screen.getByTestId('test-drag-handle');
-    fireEvent.pointerDown(handle, { clientY: 500, pointerId: 1 });
-    fireEvent.pointerMove(handle, { clientY: 200, pointerId: 1, cancelable: true });
-    fireEvent.pointerUp(handle, { pointerId: 1 });
-
-    fireEvent.touchStart(handle, { touches: [{ clientY: 500 }] });
-    fireEvent.touchMove(handle, { touches: [{ clientY: 350 }], cancelable: true });
-    fireEvent.touchEnd(handle);
-
     const panel = screen.getByTestId('test-panel');
-    expect(panel).toBeInTheDocument();
+    const handle = screen.getByTestId('test-drag-handle');
+
+    fireEvent.pointerDown(handle, { clientY: 600, pointerId: 1 });
+    expect(panel.getAttribute('data-is-dragging')).toBe('true');
+
+    fireEvent.pointerMove(handle, { clientY: 480, pointerId: 1, cancelable: true });
+    const progressDuringDrag = Number(panel.style.getPropertyValue('--detent-expand-progress'));
+    expect(progressDuringDrag).toBeGreaterThan(0);
+    expect(progressDuringDrag).toBeLessThan(1);
+
+    fireEvent.pointerUp(handle, { pointerId: 1 });
+    expect(panel.getAttribute('data-is-dragging')).toBe('false');
+
+    fireEvent.touchStart(panel, { touches: [{ clientY: 500 }] });
+    expect(panel.getAttribute('data-is-dragging')).toBe('false');
+    fireEvent.touchStart(handle, { touches: [{ clientY: 500 }] });
+    expect(panel.getAttribute('data-is-dragging')).toBe('false');
   });
 
   it('invokes onDetentChange when dragging and releasing to a new detent', () => {
@@ -213,7 +153,7 @@ describe('<DetentSheet />', () => {
   });
 
   it('sets --detent-sheet-block-size on initial mount when activeDetent is partial', () => {
-    const expectedHeight = `${Math.round(window.innerHeight * PARTIAL_SHEET_RATIO)}px`;
+    const expectedHeight = `${Math.round(window.innerHeight * FALLBACK_PARTIAL_SHEET_RATIO)}px`;
     render(
       <DetentSheet
         testIdPrefix="test-mount"
@@ -225,10 +165,11 @@ describe('<DetentSheet />', () => {
 
     const panel = screen.getByTestId('test-mount-panel');
     expect(panel.style.getPropertyValue('--detent-sheet-block-size')).toBe(expectedHeight);
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
   });
 
-  it('expands data-detent to partial, sets --detent-sheet-block-size, and invokes onDetentChange when clicking drag handle or peek section in peek detent', () => {
-    const expectedHeight = `${Math.round(window.innerHeight * PARTIAL_SHEET_RATIO)}px`;
+  it('toggles Peek -> Partial and Partial -> Peek on drag handle click, and expands Peek -> Partial on peek section click', () => {
+    const expectedHeight = `${Math.round(window.innerHeight * FALLBACK_PARTIAL_SHEET_RATIO)}px`;
     const onDetentChange = vi.fn();
     render(
       <DetentSheet
@@ -243,35 +184,55 @@ describe('<DetentSheet />', () => {
     const panel = screen.getByTestId('test-tap-panel');
     const handle = screen.getByTestId('test-tap-drag-handle');
 
-    // Click drag handle to expand
+    // Click drag handle to expand Peek -> Partial
     fireEvent.click(handle);
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(panel.style.getPropertyValue('--detent-sheet-block-size')).toBe(expectedHeight);
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
+    expect(onDetentChange).toHaveBeenCalledTimes(1);
+    expect(onDetentChange).toHaveBeenCalledWith('partial');
+
+    // Click drag handle again to collapse Partial -> Peek
+    fireEvent.click(handle);
+    expect(panel.getAttribute('data-detent')).toBe('peek');
+    expect(panel.style.getPropertyValue('--detent-sheet-block-size')).toBe(`${DEFAULT_PEEK_HEIGHT_PX}px`);
+    expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('0');
+    expect(onDetentChange).toHaveBeenCalledTimes(2);
+    expect(onDetentChange).toHaveBeenLastCalledWith('peek');
+
+    // Test peek section click expands Peek -> Partial
+    onDetentChange.mockClear();
+    const peekInner = screen.getByTestId('peek-inner');
+    fireEvent.click(peekInner);
     expect(panel.getAttribute('data-detent')).toBe('partial');
     expect(panel.style.getPropertyValue('--detent-sheet-block-size')).toBe(expectedHeight);
     expect(onDetentChange).toHaveBeenCalledTimes(1);
     expect(onDetentChange).toHaveBeenCalledWith('partial');
+  });
 
-    // Test peek section click
-    onDetentChange.mockClear();
+  it('collapses Full -> Peek when clicking drag handle in full detent', () => {
+    const onDetentChange = vi.fn();
     render(
       <DetentSheet
-        testIdPrefix="test-tap-2"
-        heading="Tap Sheet 2"
-        activeDetent="peek"
+        testIdPrefix="test-full-tap"
+        heading="Full Tap Sheet"
+        activeDetent="full"
         onDetentChange={onDetentChange}
-        peek={<div><span data-testid="peek-inner-2">Peek Body 2</span></div>}
+        peek={<div>Peek</div>}
       />
     );
 
-    const panel2 = screen.getByTestId('test-tap-2-panel');
-    const peekInner = screen.getByTestId('peek-inner-2');
-    fireEvent.click(peekInner);
-    expect(panel2.getAttribute('data-detent')).toBe('partial');
-    expect(panel2.style.getPropertyValue('--detent-sheet-block-size')).toBe(expectedHeight);
-    expect(onDetentChange).toHaveBeenCalledTimes(1);
-    expect(onDetentChange).toHaveBeenCalledWith('partial');
+    const panel = screen.getByTestId('test-full-tap-panel');
+    const handle = screen.getByTestId('test-full-tap-drag-handle');
+
+    fireEvent.click(handle);
+    expect(panel.getAttribute('data-detent')).toBe('peek');
+    expect(panel.getAttribute('data-is-full-screen')).toBe('false');
+    expect(panel.getAttribute('data-beyond-partial')).toBe('false');
+    expect(onDetentChange).toHaveBeenCalledWith('peek');
   });
 
-  it('does not expand or trigger onDetentChange when clicking an anchor link inside peek', () => {
+  it('does not expand or trigger onDetentChange when clicking an anchor link or button inside peek', () => {
     const onDetentChange = vi.fn();
     render(
       <DetentSheet
@@ -284,16 +245,261 @@ describe('<DetentSheet />', () => {
             <a href="/target" data-testid="target-link">
               Link Target
             </a>
+            <button type="button" data-testid="target-button">
+              Button Target
+            </button>
           </div>
         }
       />
     );
 
     const panel = screen.getByTestId('test-link-panel');
-    const link = screen.getByTestId('target-link');
-
-    fireEvent.click(link);
+    fireEvent.click(screen.getByTestId('target-link'));
+    fireEvent.click(screen.getByTestId('target-button'));
     expect(onDetentChange).not.toHaveBeenCalled();
     expect(panel.getAttribute('data-detent')).toBe('peek');
+  });
+
+  it('supports keyboard navigation (Enter, Space, ArrowUp, ArrowDown) on drag handle', () => {
+    const onDetentChange = vi.fn();
+    render(
+      <DetentSheet
+        testIdPrefix="kbd"
+        heading="Keyboard Sheet"
+        activeDetent="peek"
+        onDetentChange={onDetentChange}
+        peek={<div>Peek</div>}
+      />
+    );
+
+    const panel = screen.getByTestId('kbd-panel');
+    const handle = screen.getByTestId('kbd-drag-handle');
+    expect(handle).toHaveAttribute('tabindex', '0');
+
+    fireEvent.keyDown(handle, { key: 'Enter' });
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(onDetentChange).toHaveBeenLastCalledWith('partial');
+
+    fireEvent.keyDown(handle, { key: ' ' });
+    expect(panel.getAttribute('data-detent')).toBe('peek');
+    expect(onDetentChange).toHaveBeenLastCalledWith('peek');
+
+    fireEvent.keyDown(handle, { key: 'ArrowUp' });
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(onDetentChange).toHaveBeenLastCalledWith('partial');
+
+    fireEvent.keyDown(handle, { key: 'ArrowUp' });
+    expect(panel.getAttribute('data-detent')).toBe('full');
+    expect(onDetentChange).toHaveBeenLastCalledWith('full');
+
+    onDetentChange.mockClear();
+    fireEvent.keyDown(handle, { key: 'ArrowUp' });
+    expect(panel.getAttribute('data-detent')).toBe('full');
+    expect(onDetentChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' });
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(onDetentChange).toHaveBeenLastCalledWith('partial');
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' });
+    expect(panel.getAttribute('data-detent')).toBe('peek');
+    expect(onDetentChange).toHaveBeenLastCalledWith('peek');
+
+    onDetentChange.mockClear();
+    fireEvent.keyDown(handle, { key: 'ArrowDown' });
+    expect(panel.getAttribute('data-detent')).toBe('peek');
+    expect(onDetentChange).not.toHaveBeenCalled();
+  });
+
+  it('ignores synthetic clicks within 350ms of drag end and allows clicks afterward', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const onDetentChange = vi.fn();
+
+    render(
+      <DetentSheet
+        testIdPrefix="guard"
+        heading="Guard Sheet"
+        activeDetent="peek"
+        onDetentChange={onDetentChange}
+        peek={<div><span data-testid="guard-peek-body">Peek</span></div>}
+      />
+    );
+
+    const panel = screen.getByTestId('guard-panel');
+    const handle = screen.getByTestId('guard-drag-handle');
+
+    fireEvent.pointerDown(handle, { clientY: 600, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientY: 400, pointerId: 1, cancelable: true });
+    fireEvent.pointerUp(handle, { pointerId: 1 });
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    onDetentChange.mockClear();
+
+    // Immediate synthetic click (< 350ms) should be ignored
+    vi.advanceTimersByTime(100);
+    fireEvent.click(handle);
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(onDetentChange).not.toHaveBeenCalled();
+
+    // After 350ms window, click toggles detent normally
+    vi.advanceTimersByTime(300);
+    fireEvent.click(handle);
+    expect(panel.getAttribute('data-detent')).toBe('peek');
+    expect(onDetentChange).toHaveBeenCalledWith('peek');
+  });
+
+  it('renders peekMidStage and peekActions slots inside peek section with DetentSheet data attributes', () => {
+    render(
+      <DetentSheet
+        testIdPrefix="slots"
+        heading="Slots Sheet"
+        activeDetent="partial"
+        peek={<div>Title Row</div>}
+        peekMidStage={<div data-testid="slot-mid-content">Prose + Preview</div>}
+        peekActions={<button type="button" data-testid="slot-action">Go</button>}
+      />
+    );
+
+    const peekSection = screen.getByTestId('slots-detent-peek');
+    const midStage = screen.getByTestId('slots-overview-mid-stage');
+    expect(peekSection).toContainElement(midStage);
+    expect(midStage).toHaveAttribute('data-detent-mid-stage', 'true');
+    const midInner = midStage.querySelector('[data-detent-mid-inner="true"]');
+    expect(midInner).not.toBeNull();
+    expect(midInner).toContainElement(screen.getByTestId('slot-mid-content'));
+
+    const actions = peekSection.querySelector('[data-detent-actions="true"]');
+    expect(actions).not.toBeNull();
+    expect(actions).toContainElement(screen.getByTestId('slot-action'));
+  });
+
+  it('measures intrinsic mid-stage scrollHeight via ResizeObserver without observing sheet or churning on peek prop updates', () => {
+    const disconnectSpy = vi.fn();
+    const observeSpy = vi.fn();
+    class MockResizeObserver {
+      callback: ResizeObserverCallback;
+      observe = observeSpy;
+      unobserve = vi.fn();
+      disconnect = disconnectSpy;
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback;
+      }
+    }
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+
+    const { rerender, unmount } = render(
+      <DetentSheet
+        testIdPrefix="measured"
+        heading="Measured Sheet"
+        activeDetent="partial"
+        peek={
+          <DetentSheetMidStage testId="measured-mid-stage">
+            <div data-testid="mid-content">Overview Prose + Preview</div>
+          </DetentSheetMidStage>
+        }
+      />
+    );
+
+    const panel = screen.getByTestId('measured-panel');
+    const midStage = screen.getByTestId('measured-mid-stage');
+    const midInner = midStage.querySelector('[data-detent-mid-inner="true"]') as HTMLElement;
+    expect(midInner).not.toBeNull();
+    Object.defineProperty(midInner, 'scrollHeight', { configurable: true, value: 180 });
+    fireEvent(window, new Event('resize'));
+
+    expect(observeSpy).toHaveBeenCalled();
+    expect(observeSpy).not.toHaveBeenCalledWith(panel);
+    expect(observeSpy).toHaveBeenCalledWith(midInner);
+    expect(panel.style.getPropertyValue('--detent-mid-stage-size')).toBe('180px');
+    expect(panel.style.getPropertyValue('--detent-sheet-block-size')).toBe(`${DEFAULT_PEEK_HEIGHT_PX + 180}px`);
+
+    const observeCountBeforeRerender = observeSpy.mock.calls.length;
+    rerender(
+      <DetentSheet
+        testIdPrefix="measured"
+        heading="Measured Sheet"
+        activeDetent="partial"
+        peek={
+          <DetentSheetMidStage testId="measured-mid-stage">
+            <div data-testid="mid-content">Updated Prose + Preview</div>
+          </DetentSheetMidStage>
+        }
+      />
+    );
+    expect(observeSpy.mock.calls.length).toBe(observeCountBeforeRerender);
+
+    unmount();
+    expect(disconnectSpy).toHaveBeenCalled();
+  });
+
+  it('re-binds ResizeObserver via MutationObserver when mid-inner node mounts dynamically', async () => {
+    const observeSpy = vi.fn();
+    const disconnectSpy = vi.fn();
+    class MockResizeObserver {
+      observe = observeSpy;
+      unobserve = vi.fn();
+      disconnect = disconnectSpy;
+    }
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+
+    const { rerender } = render(
+      <DetentSheet
+        testIdPrefix="mut"
+        heading="Mutation Sheet"
+        activeDetent="partial"
+        peek={<div>Header Only</div>}
+      />
+    );
+
+    const initialObserveCalls = observeSpy.mock.calls.length;
+
+    rerender(
+      <DetentSheet
+        testIdPrefix="mut"
+        heading="Mutation Sheet"
+        activeDetent="partial"
+        peek={<div>Header Only</div>}
+        peekMidStage={<div data-testid="dynamic-mid">Dynamic Mid Stage</div>}
+      />
+    );
+
+    // Wait a microtask for MutationObserver callback
+    await Promise.resolve();
+    const midInner = screen.getByTestId('mut-overview-mid-stage').querySelector('[data-detent-mid-inner="true"]');
+    expect(midInner).not.toBeNull();
+    expect(observeSpy.mock.calls.length).toBeGreaterThan(initialObserveCalls);
+    expect(observeSpy).toHaveBeenCalledWith(midInner);
+  });
+
+  it('measures stage height from [data-detent-stage="true"] ancestor rather than an auto-sized immediate wrapper', () => {
+    render(
+      <div data-testid="stage-host" data-detent-stage="true">
+        <div data-testid="auto-wrapper">
+          <DetentSheet
+            testIdPrefix="stage"
+            heading="Stage Sheet"
+            activeDetent="peek"
+            peek={<div>Title Row</div>}
+            peekMidStage={<div>Mid Stage Prose</div>}
+          />
+        </div>
+      </div>
+    );
+
+    const stageHost = screen.getByTestId('stage-host');
+    const autoWrapper = screen.getByTestId('auto-wrapper');
+    const panel = screen.getByTestId('stage-panel');
+    const peekSection = screen.getByTestId('stage-detent-peek');
+    const midInner = screen.getByTestId('stage-overview-mid-stage').querySelector('[data-detent-mid-inner="true"]') as HTMLElement;
+
+    Object.defineProperty(stageHost, 'clientHeight', { configurable: true, value: 789 });
+    Object.defineProperty(autoWrapper, 'clientHeight', { configurable: true, value: 116 });
+    Object.defineProperty(panel, 'offsetHeight', { configurable: true, value: 116 });
+    Object.defineProperty(peekSection, 'offsetHeight', { configurable: true, value: 100 });
+    Object.defineProperty(midInner, 'scrollHeight', { configurable: true, value: 240 });
+
+    fireEvent.click(peekSection);
+    expect(panel).toHaveAttribute('data-detent', 'partial');
+    expect(parseFloat(panel.style.getPropertyValue('--detent-sheet-block-size'))).toBeGreaterThan(300);
   });
 });

@@ -3,6 +3,7 @@ import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import {
   Button,
   CelestialBadge,
@@ -50,24 +51,26 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
     [resolvedPlanetType],
   );
 
+  const companionMapHref = focusedEntityId
+    ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+    : undefined;
+
   return (
-    <main
-      data-testid="planet-type-detail-view-root"
+    <SpatialShell
+      mode="document"
+      testId="planet-type-detail-view-root"
+      activeWorkspace="guide"
+      companionMapHref={companionMapHref}
       data-planet-type={resolvedPlanetType}
-      className={styles.guideRoot}
     >
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Planet Types', href: PLANET_TYPES_GUIDE_PATH },
-          { label: resolvedPlanetType || 'Planet Type' },
-        ]}
-        companionHref={
-          focusedEntityId
-            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
-            : undefined
-        }
-      />
+      <div className={styles.guideRoot}>
+        <Breadcrumbs
+          items={[
+            { label: 'Guide', href: '/guide/star-types' },
+            { label: 'Planet Types', href: PLANET_TYPES_GUIDE_PATH },
+            { label: resolvedPlanetType || 'Planet Type' },
+          ]}
+        />
       <GuideSectionNav currentSection="planet-types" />
       <Heading as="h1">
         {resolvedPlanetType
@@ -135,6 +138,7 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
       ) : (
         <p>No guide record found for planet classification &quot;{resolvedPlanetType}&quot;.</p>
       )}
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

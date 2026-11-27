@@ -2,13 +2,20 @@ import type React from 'react';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import { Block, CelestialBadge, Cluster, Datum, Grid, Heading } from '../components/interface';
 import { PLANET_TYPE_GUIDE_ENTRIES } from '../content/guide';
+import { resolveAppHref } from '../utils/url';
 import styles from './GuideViews.module.css';
 
 export const PlanetTypesListView: React.FC = () => {
   return (
-    <main data-testid="planet-types-list-view-root" className={styles.guideRoot}>
+    <SpatialShell
+      mode="document"
+      testId="planet-types-list-view-root"
+      activeWorkspace="guide"
+    >
+      <div className={styles.guideRoot}>
       <Breadcrumbs
         items={[
           { label: 'Guide', href: '/guide/star-types' },
@@ -28,7 +35,7 @@ export const PlanetTypesListView: React.FC = () => {
             data-planet-type={entry.id}
           >
             <a
-              href={entry.href}
+              href={resolveAppHref(entry.href)}
               data-testid="planet-types-guide-link"
               className={styles.cardLink}
             >
@@ -48,6 +55,7 @@ export const PlanetTypesListView: React.FC = () => {
           </Block>
         ))}
       </Grid>
-    </main>
+      </div>
+    </SpatialShell>
   );
 };
