@@ -56,7 +56,7 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
   const storeApi = useSpatialEntityStoreApi();
   const occlusionManager = useOcclusionManager();
   const invalidate = useThree((s) => s.invalidate);
-  const gl = useThree((s) => s.gl as { domElement?: HTMLElement } | undefined);
+  const gl = useThree((s) => s.gl);
   const { transitionTo } = useCameraTransition();
   const prevEntityIdsRef = useRef<Set<string>>(new Set());
   const frameCtx = useSpatialFrameSafe();
