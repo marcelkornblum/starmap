@@ -7,7 +7,12 @@ import { useCameraRigStoreSync } from './useCameraRigStoreSync';
 import type { CameraRigThreeState } from './useCameraRigProjection';
 import type { OrbitControlsLike } from './cameraRigZoomAndPan';
 import { CameraTransitionProvider } from './useCameraTransition';
-import { GALACTIC_FRAME } from '../../../config/referenceFrames';
+import { GALACTIC_FRAME, PLANETARY_FRAME, SYSTEM_FRAME } from '../../../config/referenceFrames';
+import {
+  STANDARD_CAMERA_DISTANCES,
+  getStandardInitialCamera,
+} from '../cartography/cartographyCamera';
+import { buildCameraBasis } from '../../../utils/orientationProjectionMath';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useUIStore } from '../../../stores/useUIStore';
@@ -115,15 +120,15 @@ describe('useCameraRigStoreSync', () => {
     vi.restoreAllMocks();
   });
 
-  function renderSyncHook() {
+  function renderSyncHook(frame = GALACTIC_FRAME) {
     return renderHook(
       () =>
         useCameraRigStoreSync({
           camera,
           controls: mockControls,
           get: threeGet,
-          frame: GALACTIC_FRAME,
-          configuredBaseFov: 45,
+          frame,
+          configuredBaseFov: frame.camera.baseFov,
           snapThresholdRad: (10 * Math.PI) / 180,
           perspCamRef: { current: camera },
           orthoCamRef: { current: orthoCamera },
@@ -180,15 +185,19 @@ describe('useCameraRigStoreSync', () => {
     perfSpy.mockRestore();
   });
 
-  it('glides smoothly on radial preset and settles at 30 deg pitch / -45 deg yaw', () => {
+  it('glides smoothly on radial preset to canonical 32 deg elevation / 14 deg azimuth while preserving target and distance', () => {
     const perfSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    target.set(5, -3, 2);
+    persistentTargetRef.current.set(5, -3, 2);
+    camera.position.set(5, -3, 22);
+    camera.up.set(0, 1, 0);
     const initialDist = camera.position.distanceTo(target);
     renderSyncHook();
     const { transitionFrameCb } = getFrameCallbacks();
 
     act(() => { useCameraStore.getState().applyPreset('radial'); });
     expect(useUIStore.getState().isCameraTransitioning).toBe(true);
-    expect(camera.position.x).toBe(20);
+    expect(camera.position.x).toBe(5);
 
     act(() => { transitionFrameCb?.(liveThreeState as never, 0.016); });
     perfSpy.mockReturnValue(3000);
@@ -196,9 +205,161 @@ describe('useCameraRigStoreSync', () => {
 
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(camera.position.distanceTo(target)).toBeCloseTo(initialDist, 2);
-    const dir = camera.position.clone().sub(target).normalize();
-    expect(dir.z).toBeCloseTo(Math.sin((30 * Math.PI) / 180), 3);
+    expect(target.toArray()).toEqual([5, -3, 2]);
+    expect(camera.up.toArray()).toEqual([0, 0, 1]);
+
+    const expected = getStandardInitialCamera(initialDist, [5, -3, 2], 45);
+    expect(camera.position.x).toBeCloseTo(expected.position[0], 2);
+    expect(camera.position.y).toBeCloseTo(expected.position[1], 2);
+    expect(camera.position.z).toBeCloseTo(expected.position[2], 2);
+
+    const basis = buildCameraBasis(
+      [camera.position.x, camera.position.y, camera.position.z],
+      [target.x, target.y, target.z],
+      [camera.up.x, camera.up.y, camera.up.z],
+    );
+    expect(basis.elevationDeg).toBeCloseTo(32, 1);
+    expect(basis.azimuthDeg).toBeCloseTo(14, 1);
+    expect(useCameraStore.getState().savedGalaxyCamera).toBeNull();
     perfSpy.mockRestore();
+  });
+
+  it('updates savedGalaxyCamera on radial preset in GALACTIC_FRAME when savedGalaxyCamera is already present', () => {
+    setReducedMotion(true);
+    target.set(5, -3, 2);
+    persistentTargetRef.current.set(5, -3, 2);
+    camera.position.set(5, -3, 22);
+    camera.up.set(0, 1, 0);
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: [5, -3, 22],
+      target: [5, -3, 2],
+      up: [0, 1, 0],
+      zoom: 1,
+      focalDistance: 20,
+      centerKey: '5,-3,2',
+    });
+
+    renderSyncHook(GALACTIC_FRAME);
+    act(() => { useCameraStore.getState().applyPreset('radial'); });
+
+    const expected = getStandardInitialCamera(20, [5, -3, 2], GALACTIC_FRAME.camera.baseFov);
+    const saved = useCameraStore.getState().savedGalaxyCamera;
+    expect(saved).not.toBeNull();
+    expect(saved?.target).toEqual([5, -3, 2]);
+    expect(saved?.up).toEqual([0, 0, 1]);
+    expect(saved?.centerKey).toBe('5,-3,2');
+    expect(saved?.focalDistance).toBeCloseTo(20, 2);
+    expect(saved?.position[0]).toBeCloseTo(expected.position[0], 2);
+    expect(saved?.position[1]).toBeCloseTo(expected.position[1], 2);
+    expect(saved?.position[2]).toBeCloseTo(expected.position[2], 2);
+  });
+
+  it('handles reset-zoom by preserving target, resetting distance to scope standard, resetting zoom to 1, and updating savedGalaxyCamera if present', () => {
+    const perfSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    target.set(6, -2, 1);
+    persistentTargetRef.current.set(6, -2, 1);
+    camera.position.set(6, -2, 81);
+    camera.zoom = 2.0;
+    camera.updateProjectionMatrix();
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: [6, -2, 81],
+      target: [6, -2, 1],
+      up: [0, 0, 1],
+      zoom: 2.0,
+      focalDistance: 80,
+      centerKey: '6,-2,1',
+    });
+
+    renderSyncHook(GALACTIC_FRAME);
+    const { transitionFrameCb } = getFrameCallbacks();
+
+    act(() => { useCameraStore.getState().resetZoom(); });
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+    act(() => { transitionFrameCb?.(liveThreeState as never, 0.016); });
+    perfSpy.mockReturnValue(3000);
+    act(() => { transitionFrameCb?.(liveThreeState as never, 0.016); });
+
+    const expected = getStandardInitialCamera(
+      STANDARD_CAMERA_DISTANCES.galactic,
+      [6, -2, 1],
+      GALACTIC_FRAME.camera.baseFov,
+    );
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(camera.zoom).toBe(1.0);
+    expect(target.toArray()).toEqual([6, -2, 1]);
+    expect(camera.position.x).toBeCloseTo(expected.position[0], 2);
+    expect(camera.position.y).toBeCloseTo(expected.position[1], 2);
+    expect(camera.position.z).toBeCloseTo(expected.position[2], 2);
+    expect(useCameraStore.getState().savedGalaxyCamera).toEqual(
+      expect.objectContaining({
+        target: [6, -2, 1],
+        zoom: 1,
+        centerKey: '6,-2,1',
+      }),
+    );
+    expect(useCameraStore.getState().savedGalaxyCamera?.focalDistance).toBeCloseTo(
+      STANDARD_CAMERA_DISTANCES.galactic,
+      2,
+    );
+    perfSpy.mockRestore();
+  });
+
+  it('uses scope standard distances for system and planetary frames on reset-zoom', () => {
+    setReducedMotion(true);
+    camera.position.set(0, 0, 50);
+    const systemHook = renderSyncHook(SYSTEM_FRAME);
+    act(() => { useCameraStore.getState().resetZoom(); });
+    expect(camera.position.distanceTo(target)).toBeCloseTo(STANDARD_CAMERA_DISTANCES.system, 2);
+    systemHook.unmount();
+
+    camera.position.set(0, 0, 200);
+    const planetHook = renderSyncHook(PLANETARY_FRAME);
+    act(() => { useCameraStore.getState().resetZoom(); });
+    expect(camera.position.distanceTo(target)).toBeCloseTo(STANDARD_CAMERA_DISTANCES.planetary, 2);
+    planetHook.unmount();
+  });
+
+  it('handles reset-position by returning target to origin, clearing pendingCenterSlug, resetting zoom, and saving galactic pose', () => {
+    setReducedMotion(true);
+    liveThreeState.camera = orthoCamera;
+    useSettingsStore.getState().setProjection('top-down');
+    persistentTargetRef.current.set(12, -8, 4);
+    mockControls.target.set(12, -8, 4);
+    camera.position.set(12, -8, 60);
+    camera.zoom = 1.8;
+    camera.updateProjectionMatrix();
+    useCameraStore.getState().setPendingCenterSlug('tau-ceti');
+
+    renderSyncHook(GALACTIC_FRAME);
+    act(() => { useCameraStore.getState().resetPosition(); });
+
+    const expected = getStandardInitialCamera(
+      STANDARD_CAMERA_DISTANCES.galactic,
+      [0, 0, 0],
+      GALACTIC_FRAME.camera.baseFov,
+    );
+    expect(mockUnlockFromOrthographic).toHaveBeenCalledTimes(1);
+    expect(useSettingsStore.getState().projection).toBe('3d');
+    expect(justUnlockedRef.current).toBe(false);
+    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
+    expect(persistentTargetRef.current.toArray()).toEqual([0, 0, 0]);
+    expect(mockControls.target.toArray()).toEqual([0, 0, 0]);
+    expect(camera.zoom).toBe(1.0);
+    expect(camera.position.x).toBeCloseTo(expected.position[0], 2);
+    expect(camera.position.y).toBeCloseTo(expected.position[1], 2);
+    expect(camera.position.z).toBeCloseTo(expected.position[2], 2);
+    expect(useCameraStore.getState().savedGalaxyCamera).toEqual(
+      expect.objectContaining({
+        target: [0, 0, 0],
+        zoom: 1,
+        centerKey: '0,0,0',
+      }),
+    );
+    expect(useCameraStore.getState().savedGalaxyCamera?.focalDistance).toBeCloseTo(
+      STANDARD_CAMERA_DISTANCES.galactic,
+      2,
+    );
   });
 
   it('clears justUnlockedRef and updates persistentTargetRef on reset after ortho-unlock + reduced motion so useFrame does not overwrite target', () => {

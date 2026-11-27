@@ -78,7 +78,13 @@ export interface CameraState {
   clampBump: CanvasClampBumpEvent | null;
 }
 
-export type CameraPreset = 'top-down' | 'reset' | 'orbital-lock' | 'radial';
+export type CameraPreset =
+  | 'top-down'
+  | 'reset'
+  | 'orbital-lock'
+  | 'radial'
+  | 'reset-zoom'
+  | 'reset-position';
 
 export interface CameraActions {
   setMode: (mode: CameraProjectionMode) => void;
@@ -121,6 +127,8 @@ export interface CameraActions {
   resetView: () => void;
   setOrbitalLockView: () => void;
   setRadialView: () => void;
+  resetZoom: () => void;
+  resetPosition: () => void;
   triggerRecenter: () => void;
   triggerClampBump: (edges: readonly CanvasClampEdge[], reason: 'zoom-out' | 'pan', impulse?: number) => void;
   reset: () => void;
@@ -300,6 +308,8 @@ export const useCameraStore = create<CameraStore>()((set, get) => ({
   resetView: () => set({ pendingPresetRequest: 'reset' }),
   setOrbitalLockView: () => set({ pendingPresetRequest: 'orbital-lock' }),
   setRadialView: () => set({ pendingPresetRequest: 'radial' }),
+  resetZoom: () => set({ pendingPresetRequest: 'reset-zoom' }),
+  resetPosition: () => set({ pendingPresetRequest: 'reset-position' }),
   triggerRecenter: () => set((state) => ({ recenterTick: state.recenterTick + 1 })),
   triggerClampBump: (edges: readonly CanvasClampEdge[], reason: 'zoom-out' | 'pan', impulse = 1) => {
     if (edges.length === 0) return;

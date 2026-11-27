@@ -87,15 +87,16 @@ export const DetailsPanel = memo(function DetailsPanel({
       isHabitableCandidate={planetTelemetry?.isHabitableCandidate}
       systemSummarySegments={systemSummarySegments}
       preview={preview ? <PreviewPanel preview={preview} headingAs="h4" /> : undefined}
-      actionControls={
-        <DetailsActionControls
-          id={id}
-          directionsHref={details.directionsHref}
-          centerHref={details.centerHref}
-          systemDetailsHref={details.systemDetailsHref}
-          coordinatesPc={details.coordinatesPc}
-        />
-      }
+    />
+  );
+
+  const peekActions = (
+    <DetailsActionControls
+      id={id}
+      directionsHref={details.directionsHref}
+      centerHref={details.centerHref}
+      systemDetailsHref={details.systemDetailsHref}
+      coordinatesPc={details.coordinatesPc}
     />
   );
 
@@ -130,6 +131,7 @@ export const DetailsPanel = memo(function DetailsPanel({
       data-system-id={systemId}
       data-focused-kind={focusedKind}
       peek={peekContent}
+      peekActions={peekActions}
       partial={partialContent}
       full={fullContent}
     />

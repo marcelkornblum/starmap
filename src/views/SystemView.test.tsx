@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { SystemView } from './SystemView';
 
 vi.mock('@tanstack/react-router', () => ({
@@ -133,5 +134,37 @@ describe('<SystemView />', () => {
     });
 
     expect(screen.getByTestId('directions-panel')).toBeInTheDocument();
+  });
+
+  it('enables Objects in View toggle when system bodies are active and disables it when empty', async () => {
+    const { rerender } = await act(async () =>
+      render(
+        <SpatialEntityProvider>
+          <SystemView
+            systemId="sol"
+            initialCorpus={corpus}
+            locationPathname="/system/sol"
+            locationSearch=""
+          />
+        </SpatialEntityProvider>,
+      ),
+    );
+
+    expect(screen.getByTestId('spatial-shell-bodies-toggle')).toBeEnabled();
+
+    await act(async () => {
+      rerender(
+        <SpatialEntityProvider>
+          <SystemView
+            systemId="unseeded-system"
+            initialCorpus={[]}
+            locationPathname="/system/unseeded-system"
+            locationSearch=""
+          />
+        </SpatialEntityProvider>,
+      );
+    });
+
+    expect(screen.getByTestId('spatial-shell-bodies-toggle')).toBeDisabled();
   });
 });

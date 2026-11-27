@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  ALL_CANVAS_CLAMP_EDGES,
   useCameraStore,
   INITIAL_CAMERA_STATE,
   type PreSearchOrigin,
@@ -237,6 +238,12 @@ describe('Camera Store: useCameraStore.ts', () => {
 
       useCameraStore.getState().applyPreset('radial');
       expect(useCameraStore.getState().pendingPresetRequest).toBe('radial');
+
+      useCameraStore.getState().applyPreset('reset-zoom');
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('reset-zoom');
+
+      useCameraStore.getState().applyPreset('reset-position');
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('reset-position');
     });
 
     it('exposes dedicated convenience action dispatchers for presets', () => {
@@ -251,6 +258,12 @@ describe('Camera Store: useCameraStore.ts', () => {
 
       useCameraStore.getState().setRadialView();
       expect(useCameraStore.getState().pendingPresetRequest).toBe('radial');
+
+      useCameraStore.getState().resetZoom();
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('reset-zoom');
+
+      useCameraStore.getState().resetPosition();
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('reset-position');
     });
 
     it('focusFromSearch clears canvasFocusedSlugs, sets pendingCenterSlug, resets inFlightFocusSlug, and increments recenterTick in a single store notification', () => {
@@ -373,6 +386,56 @@ describe('Camera Store: useCameraStore.ts', () => {
       useCameraStore.getState().setCameraPose({ position: [4, 5, 10], target: [1, 2, 3] });
       expect(useCameraStore.getState().position).toBe(firstPosRef);
       expect(useCameraStore.getState().target).toBe(firstTargetRef);
+    });
+
+    it('manages triggerClampBump guards, impulse fallback, monotonic seq, and reset()', () => {
+      expect(useCameraStore.getState().clampBump).toBeNull();
+
+      // Empty edges guard: no-op
+      useCameraStore.getState().triggerClampBump([], 'pan', 0.5);
+      expect(useCameraStore.getState().clampBump).toBeNull();
+
+      // Valid edges + positive finite impulse -> seq 1
+      useCameraStore.getState().triggerClampBump(['left', 'top'], 'pan', 0.6);
+      expect(useCameraStore.getState().clampBump).toEqual({
+        edges: ['left', 'top'],
+        reason: 'pan',
+        impulse: 0.6,
+        seq: 1,
+      });
+
+      // Non-finite and non-positive impulse values fall back to 1 and increment seq monotonically
+      useCameraStore.getState().triggerClampBump(ALL_CANVAS_CLAMP_EDGES, 'zoom-out', Number.NaN);
+      expect(useCameraStore.getState().clampBump).toEqual({
+        edges: [...ALL_CANVAS_CLAMP_EDGES],
+        reason: 'zoom-out',
+        impulse: 1,
+        seq: 2,
+      });
+
+      useCameraStore.getState().triggerClampBump(['right'], 'pan', Number.POSITIVE_INFINITY);
+      expect(useCameraStore.getState().clampBump?.impulse).toBe(1);
+      expect(useCameraStore.getState().clampBump?.seq).toBe(3);
+
+      useCameraStore.getState().triggerClampBump(['bottom'], 'pan', 0);
+      expect(useCameraStore.getState().clampBump?.impulse).toBe(1);
+      expect(useCameraStore.getState().clampBump?.seq).toBe(4);
+
+      useCameraStore.getState().triggerClampBump(['left'], 'pan', -2);
+      expect(useCameraStore.getState().clampBump?.impulse).toBe(1);
+      expect(useCameraStore.getState().clampBump?.seq).toBe(5);
+
+      // reset() clears clampBump and resets seq counter
+      useCameraStore.getState().reset();
+      expect(useCameraStore.getState().clampBump).toBeNull();
+
+      useCameraStore.getState().triggerClampBump(['top'], 'zoom-out');
+      expect(useCameraStore.getState().clampBump).toEqual({
+        edges: ['top'],
+        reason: 'zoom-out',
+        impulse: 1,
+        seq: 1,
+      });
     });
   });
 });

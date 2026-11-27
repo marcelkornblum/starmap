@@ -1,15 +1,27 @@
 @layer blocks {
   .visorScalePill {
-    --visor-scale-pill-gap: var(--space-fib-1);
+    --visor-scale-pill-gap: var(--space-fib-2);
     --visor-scale-pill-font-family: var(--font-data);
     --visor-scale-pill-font-size: var(--type-scale-neg-2);
     --visor-scale-pill-cue-color: var(--content-accent);
+    --visor-scale-pill-position-color: var(--content-muted);
 
     display: inline-flex;
     align-items: center;
     margin: 0;
     font-family: var(--visor-scale-pill-font-family);
     font-variant-numeric: tabular-nums;
+  }
+
+  .positionCue {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--visor-scale-pill-font-family);
+    font-size: var(--visor-scale-pill-font-size);
+    font-variant-numeric: tabular-nums;
+    color: var(--visor-scale-pill-position-color);
+    white-space: nowrap;
+    margin: 0;
   }
 
   .attitudeCue {

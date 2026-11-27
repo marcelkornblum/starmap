@@ -30,6 +30,7 @@ export const SearchInput = ({
 
   const handleClearQuery = (): void => {
     setQuery('');
+    searchInputRef?.current?.focus();
   };
 
   return (
@@ -40,7 +41,10 @@ export const SearchInput = ({
       <label htmlFor={id} className={styles.srOnly}>
         {label}
       </label>
-      <div className={styles.inputWrapper}>
+      <div
+        className={styles.inputWrapper}
+        data-has-query={query.length > 0 ? 'true' : 'false'}
+      >
         <Input
           ref={searchInputRef}
           id={id}
@@ -52,32 +56,32 @@ export const SearchInput = ({
           onFocus={handleFocus}
           onChange={handleQueryChange}
         />
-      </div>
-      <span
-        className={styles.clearControl}
-        data-has-query={query.length > 0 ? 'true' : 'false'}
-      >
-        <Button
-          type="button"
-          size="sm"
-          variant="default"
-          aria-label="Clear search"
-          data-testid="search-clear-button"
-          onClick={handleClearQuery}
+        <span
+          className={styles.clearControl}
+          data-has-query={query.length > 0 ? 'true' : 'false'}
         >
-          <Icon size="sm">
-            <svg
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            >
-              <path d="M3 3L9 9M9 3L3 9" />
-            </svg>
-          </Icon>
-        </Button>
-      </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="subtle"
+            aria-label="Clear search"
+            data-testid="search-clear-button"
+            onClick={handleClearQuery}
+          >
+            <Icon size="sm">
+              <svg
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              >
+                <path d="M3 3L9 9M9 3L3 9" />
+              </svg>
+            </Icon>
+          </Button>
+        </span>
+      </div>
       <span className={styles.submitControl}>
         <Button
           type="submit"

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BodiesPanel } from '../components/domain/BodiesPanel';
+import { BodiesPanel, hasActiveBodiesSummary } from '../components/domain/BodiesPanel';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { CanvasLayer } from '../components/domain/CanvasLayer';
 import { DetailsPanel } from '../components/domain/DetailsPanel';
@@ -157,6 +157,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
       directionsPanel={directionsPanelNode}
       preview={previewNode}
       minimap={minimapNode}
+      hasActiveBodies={panelsReady && hasActiveBodiesSummary(planetaryBodies)}
       bodies={bodiesNode}
     />
   );

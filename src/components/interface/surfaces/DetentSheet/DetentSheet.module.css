@@ -127,6 +127,8 @@
       block-size: var(--detent-sheet-block-size, var(--detent-sheet-peek-size));
       min-block-size: var(--detent-sheet-peek-size);
       max-block-size: 100dvh;
+      border-inline: none;
+      border-block-end: none;
       border-end-start-radius: 0;
       border-end-end-radius: 0;
       overflow-y: hidden;

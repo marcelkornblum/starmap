@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { GalaxyView } from './GalaxyView';
 
 vi.mock('@tanstack/react-router', () => ({
@@ -145,5 +146,35 @@ describe('<GalaxyView />', () => {
     });
 
     expect(screen.getByTestId('directions-panel')).toBeInTheDocument();
+  });
+
+  it('enables Objects in View toggle when systems are in view and disables it when none are active', async () => {
+    const { rerender } = await act(async () =>
+      render(
+        <SpatialEntityProvider>
+          <GalaxyView
+            initialCorpus={corpus}
+            locationPathname="/galaxy"
+            locationSearch=""
+          />
+        </SpatialEntityProvider>,
+      ),
+    );
+
+    expect(screen.getByTestId('spatial-shell-bodies-toggle')).toBeEnabled();
+
+    await act(async () => {
+      rerender(
+        <SpatialEntityProvider>
+          <GalaxyView
+            initialCorpus={[]}
+            locationPathname="/galaxy"
+            locationSearch=""
+          />
+        </SpatialEntityProvider>,
+      );
+    });
+
+    expect(screen.getByTestId('spatial-shell-bodies-toggle')).toBeDisabled();
   });
 });

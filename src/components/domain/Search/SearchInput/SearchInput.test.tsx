@@ -40,7 +40,9 @@ describe('<SearchInput />', () => {
 
     const clearBtn = screen.getByTestId('search-clear-button');
     expect(clearBtn).toHaveAttribute('aria-label', 'Clear search');
-    expect(clearBtn).toHaveAttribute('data-variant', 'default');
+    expect(clearBtn).toHaveAttribute('data-variant', 'subtle');
+    expect(input.parentElement?.contains(clearBtn)).toBe(true);
+    expect(input.parentElement).toHaveAttribute('data-has-query', 'true');
     expect(clearBtn.parentElement).toHaveAttribute('data-has-query', 'true');
     expect(clearBtn.querySelector('svg')).not.toBeNull();
 
@@ -52,6 +54,7 @@ describe('<SearchInput />', () => {
 
     fireEvent.click(clearBtn);
     expect(setQuery).toHaveBeenCalledWith('');
+    expect(document.activeElement).toBe(input);
 
     rerender(
       <SearchContext.Provider
@@ -72,6 +75,7 @@ describe('<SearchInput />', () => {
       </SearchContext.Provider>,
     );
 
+    expect(input.parentElement).toHaveAttribute('data-has-query', 'false');
     expect(screen.getByTestId('search-clear-button').parentElement).toHaveAttribute('data-has-query', 'false');
     expect(screen.getByTestId('search-submit-button')).toHaveAttribute('data-variant', 'subtle');
   });

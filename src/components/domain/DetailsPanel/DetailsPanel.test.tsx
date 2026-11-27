@@ -321,14 +321,18 @@ describe('<DetailsPanel />', () => {
     const midStage = peekDetent?.querySelector('[data-testid="details-overview-mid-stage"]');
     const previewPanel = midStage?.querySelector('[data-testid="preview-panel"]');
     const summaryText = midStage?.querySelector('[data-testid="details-system-summary"]');
-    const ctaGroup = peekDetent?.querySelector('[data-testid="details-cta-group"]');
+    const peekHeader = peekDetent?.querySelector('[data-testid="details-peek-header"]');
+    const actionsSlot = peekDetent?.querySelector('[data-detent-actions="true"]');
+    const ctaGroup = actionsSlot?.querySelector('[data-testid="details-cta-group"]');
 
     expect(panel.style.getPropertyValue('--detent-expand-progress')).toBe('1');
     expect(titleRow).not.toBeNull();
     expect(midStage).not.toBeNull();
     expect(summaryText).not.toBeNull();
     expect(previewPanel).not.toBeNull();
+    expect(actionsSlot).not.toBeNull();
     expect(ctaGroup).not.toBeNull();
+    expect(peekHeader?.querySelector('[data-testid="details-cta-group"]')).toBeNull();
     expect(screen.getAllByTestId('preview-panel')).toHaveLength(1);
     expect(partialDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
     expect(fullDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
@@ -449,13 +453,15 @@ describe('<DetailsPanel />', () => {
     );
 
     const peekDetent = container.querySelector('[data-testid="details-detent-peek"]');
-    expect(peekDetent?.children).toHaveLength(2);
+    expect(peekDetent?.children).toHaveLength(3);
     expect(peekDetent?.children[0].tagName).toBe('H3');
     expect(peekDetent?.children[1]).toHaveAttribute('data-testid', 'details-peek-header');
     expect(peekDetent?.children[1]).toHaveAttribute('data-block', 'true');
     expect(peekDetent?.children[1].querySelector('[data-testid="details-peek-name"]')).not.toBeNull();
     expect(peekDetent?.children[1].querySelector('[data-testid="details-system-summary"]')).not.toBeNull();
-    expect(peekDetent?.children[1].querySelector('[data-testid="details-cta-group"]')).not.toBeNull();
+    expect(peekDetent?.children[1].querySelector('[data-testid="details-cta-group"]')).toBeNull();
+    expect(peekDetent?.children[2]).toHaveAttribute('data-detent-actions', 'true');
+    expect(peekDetent?.children[2].querySelector('[data-testid="details-cta-group"]')).not.toBeNull();
 
     const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
     expect(partialDetent?.querySelector('[data-testid="details-planet-composition"]')).not.toBeNull();

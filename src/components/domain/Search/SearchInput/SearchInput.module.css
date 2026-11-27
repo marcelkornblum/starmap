@@ -22,14 +22,20 @@
   }
 
   .inputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
     flex: 1 1 auto;
     min-inline-size: 0;
     inline-size: auto;
   }
 
   .clearControl {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block: 0;
     display: none;
-    flex: 0 0 auto;
+    align-items: center;
   }
 
   .submitControl {
@@ -41,5 +47,27 @@
 @layer exceptions {
   .clearControl[data-has-query="true"] {
     display: inline-flex;
+  }
+
+  .clearControl [data-size="sm"] {
+    --button-min-height: auto;
+    --button-min-width: auto;
+    --button-padding-inline: var(--space-fib-2);
+    --button-padding-block: var(--space-fib-1);
+  }
+
+  .inputWrapper[data-has-query="true"] input {
+    padding-inline-end: calc(var(--space-fib-5) + var(--space-fib-2));
+  }
+
+  @media (pointer: coarse) {
+    .clearControl [data-size="sm"] {
+      --button-min-height: var(--size-touch-target-min);
+      --button-min-width: var(--size-touch-target-min);
+    }
+
+    .inputWrapper[data-has-query="true"] input {
+      padding-inline-end: calc(var(--size-touch-target-min) + var(--space-fib-1));
+    }
   }
 }

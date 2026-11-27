@@ -35,6 +35,7 @@ export interface SpatialShellProps {
   readonly preview?: React.ReactNode;
   readonly minimap?: React.ReactNode;
   readonly bodies?: React.ReactNode;
+  readonly hasActiveBodies?: boolean;
   readonly initialBodiesDrawerOpen?: boolean;
   readonly isBodiesDrawerOpen?: boolean;
   readonly onBodiesDrawerOpenChange?: (isOpen: boolean) => void;
@@ -57,6 +58,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
   preview,
   minimap,
   bodies,
+  hasActiveBodies,
   initialBodiesDrawerOpen,
   isBodiesDrawerOpen: controlledBodiesOpen,
   onBodiesDrawerOpenChange,
@@ -111,6 +113,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
   const { isBodiesDrawerOpen, handleToggle, handleClose } = useSpatialShellBodiesDrawerState(
     initialBodiesDrawerOpen, controlledBodiesOpen, onBodiesDrawerOpenChange,
   );
+  const resolvedHasActiveBodies = hasActiveBodies ?? Boolean(bodies);
 
   useSpatialKeyboardShortcuts(mode === 'spatial');
   useViewportSafeRectObserver({ shellRef, topBarRef, floatingLeftRef, bodiesRegionRef }, isBodiesDrawerOpen);
@@ -217,7 +220,9 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                         size="sm"
                         variant={isBodiesDrawerOpen ? 'primary' : 'subtle'}
                         data-testid="spatial-shell-bodies-toggle"
+                        aria-label="Objects in View"
                         aria-expanded={isBodiesDrawerOpen}
+                        disabled={!resolvedHasActiveBodies && !isBodiesDrawerOpen}
                         onClick={handleToggle}
                       >
                         <Icon size="sm">
@@ -228,7 +233,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                             <path d="M4.75 3H10M4.75 6H10M4.75 9H10" />
                           </svg>
                         </Icon>
-                        Objects in View
                       </Button>
                     </div>
                   ) : null}

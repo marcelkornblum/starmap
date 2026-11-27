@@ -316,7 +316,7 @@ describe('SpatialShell Domain Component', () => {
       });
     });
 
-    it('initialises closed by default and toggles via toggle button', () => {
+    it('initialises closed by default and toggles icon-only button via aria-label', () => {
       render(
         <SpatialShell bodies={<div data-testid="bodies-content">Bodies</div>} />,
       );
@@ -325,22 +325,67 @@ describe('SpatialShell Domain Component', () => {
       const toggleBtn = screen.getByTestId('spatial-shell-bodies-toggle');
 
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
-      expect(toggleBtn.textContent).toBe('Objects in View');
+      expect(toggleBtn).toHaveAttribute('aria-label', 'Objects in View');
+      expect(toggleBtn.textContent).toBe('');
+      expect(toggleBtn.querySelector('svg')).not.toBeNull();
       expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
+      expect(toggleBtn).toBeEnabled();
 
       fireEvent.click(toggleBtn);
 
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
-      expect(toggleBtn.textContent).toBe('Objects in View');
+      expect(toggleBtn).toHaveAttribute('aria-label', 'Objects in View');
+      expect(toggleBtn.textContent).toBe('');
+      expect(toggleBtn.querySelector('svg')).not.toBeNull();
       expect(toggleBtn.getAttribute('aria-expanded')).toBe('true');
       expect(useUIStore.getState().activeDrawer).toBe('bodies');
+      expect(screen.getByRole('heading', { level: 2, name: 'Objects in View' })).toBeInTheDocument();
 
       fireEvent.click(toggleBtn);
 
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
-      expect(toggleBtn.textContent).toBe('Objects in View');
+      expect(toggleBtn).toHaveAttribute('aria-label', 'Objects in View');
+      expect(toggleBtn.textContent).toBe('');
+      expect(toggleBtn.querySelector('svg')).not.toBeNull();
       expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
       expect(useUIStore.getState().activeDrawer).toBeNull();
+    });
+
+    it('disables Objects in View trigger when hasActiveBodies is false and drawer is closed', () => {
+      render(
+        <SpatialShell
+          hasActiveBodies={false}
+          bodies={<div data-testid="bodies-content">Bodies</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const toggleBtn = screen.getByTestId('spatial-shell-bodies-toggle');
+
+      expect(toggleBtn).toBeDisabled();
+      fireEvent.click(toggleBtn);
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
+      expect(useUIStore.getState().activeDrawer).toBeNull();
+    });
+
+    it('keeps Objects in View trigger enabled when hasActiveBodies is false while drawer is already open', () => {
+      const onBodiesDrawerOpenChange = vi.fn();
+      render(
+        <SpatialShell
+          hasActiveBodies={false}
+          isBodiesDrawerOpen={true}
+          onBodiesDrawerOpenChange={onBodiesDrawerOpenChange}
+          bodies={<div data-testid="bodies-content">Bodies</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const toggleBtn = screen.getByTestId('spatial-shell-bodies-toggle');
+
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+      expect(toggleBtn).toBeEnabled();
+      fireEvent.click(toggleBtn);
+      expect(onBodiesDrawerOpenChange).toHaveBeenCalledWith(false);
     });
 
     it('closes drawer when clicking backdrop scrim or sticky close button', () => {
@@ -964,8 +1009,9 @@ describe('SpatialShell Domain Component', () => {
 
       const toggleBtn = screen.getByTestId('spatial-shell-bodies-toggle');
       expect(toggleBtn).toHaveAttribute('data-variant', 'subtle');
+      expect(toggleBtn).toHaveAttribute('aria-label', 'Objects in View');
       expect(toggleBtn.querySelector('svg')).not.toBeNull();
-      expect(toggleBtn.textContent).toBe('Objects in View');
+      expect(toggleBtn.textContent).toBe('');
 
       fireEvent.click(toggleBtn);
       expect(toggleBtn).toHaveAttribute('data-variant', 'primary');

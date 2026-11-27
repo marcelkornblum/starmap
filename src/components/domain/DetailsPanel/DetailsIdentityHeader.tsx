@@ -27,7 +27,6 @@ export interface DetailsIdentityHeaderProps {
   readonly isHabitableCandidate?: boolean;
   readonly systemSummarySegments?: readonly SystemSummarySegment[];
   readonly preview?: ReactNode;
-  readonly actionControls?: ReactNode;
 }
 
 export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
@@ -40,7 +39,6 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
   isHabitableCandidate,
   systemSummarySegments,
   preview,
-  actionControls,
 }: DetailsIdentityHeaderProps) {
   const isSystemFocus = focusedKind === 'system';
   const hasMidStage = systemSummarySegments !== undefined || Boolean(preview);
@@ -98,9 +96,6 @@ export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
               {preview}
             </Stack>
           </DetentSheetMidStage>
-        ) : null}
-        {actionControls ? (
-          <div className={styles.actionsSlot}>{actionControls}</div>
         ) : null}
       </Stack>
     </Block>

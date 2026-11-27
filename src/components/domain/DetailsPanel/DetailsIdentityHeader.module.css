@@ -15,12 +15,4 @@
     line-height: var(--leading-body);
     color: var(--content-default);
   }
-
-  .actionsSlot {
-    min-inline-size: 0;
-  }
-
-  .actionsSlot [data-cta-row="true"] > * {
-    flex: 1 1 0;
-  }
 }
