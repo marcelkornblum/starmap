@@ -219,4 +219,62 @@ describe('occlusionClusterSolver', () => {
     );
     expect(bDistFromStar).toBeGreaterThan(14);
   });
+
+  it('orders multi-body peer clusters deterministically by polar angle and ID tie-breaker', () => {
+    const grid = new ScreenSpatialGrid(100);
+    const members: CelestialFootprint[] = [
+      {
+        id: 'star-z',
+        state: 'active',
+        screenX: 200,
+        screenY: 205,
+        reticleRadius: 8,
+        starRadius: 3,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 100,
+      },
+      {
+        id: 'star-b',
+        state: 'active',
+        screenX: 200,
+        screenY: 195,
+        reticleRadius: 8,
+        starRadius: 3,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 100,
+      },
+      {
+        id: 'star-a',
+        state: 'active',
+        screenX: 200,
+        screenY: 195,
+        reticleRadius: 8,
+        starRadius: 3,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 100,
+      },
+      {
+        id: 'star-m',
+        state: 'active',
+        screenX: 192,
+        screenY: 197,
+        reticleRadius: 8,
+        starRadius: 3,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 100,
+      },
+    ];
+    for (const m of members) {
+      grid.insert(m);
+    }
+
+    const cluster: CelestialFootprint[] = [];
+    computeHitAreaCluster(members[0], grid, cluster, 300, true);
+
+    expect(cluster.map((m) => m.id)).toEqual(['star-m', 'star-a', 'star-b', 'star-z']);
+  });
 });

@@ -2,7 +2,48 @@ import type { CelestialFootprint } from './occlusionTypes';
 import type { ScreenSpatialGrid } from './occlusionGeometryMath';
 import { getCoarsePointerSnapshot, resolveEffectiveHitRadiusPx } from '../engineConfig';
 
+const _scratchNearby: CelestialFootprint[] = [];
 const _scratchSatellites: CelestialFootprint[] = [];
+const _scratchAngles: number[] = [];
+
+function compareFootprintsById(a: CelestialFootprint, b: CelestialFootprint): number {
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+/**
+ * Sorts `items` and pre-computed polar `angles` in place with deterministic ID tie-breaking,
+ * avoiding inline comparator closures and repeated `Math.atan2` calls on the frame hot path.
+ */
+function sortByPolarAngleAndId(
+  items: CelestialFootprint[],
+  angles: number[],
+  refX: number,
+  refY: number,
+): void {
+  const count = items.length;
+  angles.length = count;
+  for (let i = 0; i < count; i++) {
+    const member = items[i];
+    angles[i] = Math.atan2(member.screenY - refY, member.screenX - refX);
+  }
+
+  for (let i = 1; i < count; i++) {
+    const keyItem = items[i];
+    const keyAngle = angles[i];
+    let j = i - 1;
+    while (j >= 0) {
+      const diff = angles[j] - keyAngle;
+      const shouldShift =
+        Math.abs(diff) > 1e-4 ? diff > 0 : items[j].id > keyItem.id;
+      if (!shouldShift) break;
+      items[j + 1] = items[j];
+      angles[j + 1] = angles[j];
+      j--;
+    }
+    items[j + 1] = keyItem;
+    angles[j + 1] = keyAngle;
+  }
+}
 
 function getHierarchyRank(classification?: string): number {
   if (classification === 'star' || classification === 'system') return 2;
@@ -52,9 +93,11 @@ export function computeHitAreaCluster(
   cluster.length = 0;
   const targetHitRadius = resolveEffectiveHitRadiusPx(target.reticleRadius, isCoarseOrTouch);
   const searchRadius = targetHitRadius * 2.5;
+  const nearbyCount = grid.collectNearby(target.screenX, target.screenY, searchRadius, _scratchNearby);
 
-  grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
-    if (!other.visible || !other.hasReticle) return;
+  for (let i = 0; i < nearbyCount; i++) {
+    const other = _scratchNearby[i];
+    if (!other.visible || !other.hasReticle) continue;
     const dx = target.screenX - other.screenX;
     const dy = target.screenY - other.screenY;
     const dist = Math.hypot(dx, dy);
@@ -63,7 +106,7 @@ export function computeHitAreaCluster(
     if (dist <= threshold) {
       cluster.push(other);
     }
-  });
+  }
 
   if (cluster.length <= 1) {
     target.hitAreaOffsetX = 0;
@@ -89,16 +132,9 @@ export function computeHitAreaCluster(
       }
     }
 
-    _scratchSatellites.sort((a, b) => {
-      const angleA = Math.atan2(a.screenY - anchorY, a.screenX - anchorX);
-      const angleB = Math.atan2(b.screenY - anchorY, b.screenX - anchorX);
-      const diff = angleA - angleB;
-      if (Math.abs(diff) > 1e-4) return diff;
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-    });
+    sortByPolarAngleAndId(_scratchSatellites, _scratchAngles, anchorX, anchorY);
 
-    const firstSat = _scratchSatellites[0];
-    const baseAngle = firstSat ? Math.atan2(firstSat.screenY - anchorY, firstSat.screenX - anchorX) : 0;
+    const baseAngle = _scratchSatellites.length > 0 ? _scratchAngles[0] : 0;
     for (let i = 0; i < _scratchSatellites.length; i++) {
       const sat = _scratchSatellites[i];
       const angle = baseAngle + (2 * Math.PI * i) / _scratchSatellites.length;
@@ -121,18 +157,12 @@ export function computeHitAreaCluster(
   centroidX /= cluster.length;
   centroidY /= cluster.length;
 
-  // 2. Sort cluster by polar angle with ID tie-breaking
-  cluster.sort((a, b) => {
-    const angleA = Math.atan2(a.screenY - centroidY, a.screenX - centroidX);
-    const angleB = Math.atan2(b.screenY - centroidY, b.screenX - centroidX);
-    const diff = angleA - angleB;
-    if (Math.abs(diff) > 1e-4) return diff;
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-  });
+  // 2. Sort cluster by pre-computed polar angle with ID tie-breaking
+  sortByPolarAngleAndId(cluster, _scratchAngles, centroidX, centroidY);
 
   // 3. Assign fan offsets outward from centroid so hit circles separate cleanly without abandoning each star's dot
   const sinHalfStep = Math.sin(Math.PI / cluster.length);
-  const baseAngle = Math.atan2(cluster[0].screenY - centroidY, cluster[0].screenX - centroidX);
+  const baseAngle = _scratchAngles[0];
   for (let i = 0; i < cluster.length; i++) {
     const member = cluster[i];
     const angle = baseAngle + (2 * Math.PI * i) / cluster.length;
@@ -163,9 +193,11 @@ export function resolveCyclicSelectionTarget(
   cluster.length = 0;
   const targetHitRadius = resolveEffectiveHitRadiusPx(target.reticleRadius, isCoarseOrTouch);
   const searchRadius = targetHitRadius * 2.5;
+  const nearbyCount = grid.collectNearby(target.screenX, target.screenY, searchRadius, _scratchNearby);
 
-  grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
-    if (!other.visible || !other.hasReticle) return;
+  for (let i = 0; i < nearbyCount; i++) {
+    const other = _scratchNearby[i];
+    if (!other.visible || !other.hasReticle) continue;
     const dx = target.screenX - other.screenX;
     const dy = target.screenY - other.screenY;
     const dist = Math.hypot(dx, dy);
@@ -174,14 +206,20 @@ export function resolveCyclicSelectionTarget(
     if (dist <= threshold) {
       cluster.push(other);
     }
-  });
+  }
 
   if (cluster.length <= 1) {
     return clickedId;
   }
 
-  cluster.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  const currentIndex = cluster.findIndex((fp) => fp.id === clickedId);
+  cluster.sort(compareFootprintsById);
+  let currentIndex = -1;
+  for (let i = 0; i < cluster.length; i++) {
+    if (cluster[i].id === clickedId) {
+      currentIndex = i;
+      break;
+    }
+  }
   if (currentIndex === -1) return clickedId;
   const nextIndex = (currentIndex + 1) % cluster.length;
   return cluster[nextIndex].id;
