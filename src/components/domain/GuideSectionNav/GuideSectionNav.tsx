@@ -66,7 +66,8 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
               <Button
                 href={path}
                 size="sm"
-                variant={isCurrent ? 'primary' : 'subtle'}
+                variant="subtle"
+                selected={isCurrent}
                 aria-current={isCurrent ? 'page' : undefined}
               >
                 {label}

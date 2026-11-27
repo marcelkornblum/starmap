@@ -290,6 +290,8 @@ describe('<OrbitalSchematicPanel />', () => {
     const legendLink = screen.getByTestId('orbital-schematic-legend-link');
     expect(legendLink.tagName).toBe('A');
     expect(legendLink.getAttribute('href')).toContain('/guide/legend');
+    expect(legendLink).toHaveAttribute('data-variant', 'subtle');
+    expect(legendLink).toHaveAttribute('data-size', 'sm');
   });
 
   it('toggles stage visibility when tapping the Orbiting Bodies title button', () => {

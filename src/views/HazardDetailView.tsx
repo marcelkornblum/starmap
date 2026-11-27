@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
@@ -15,7 +14,6 @@ import {
   Heading,
   Stack,
 } from '../components/interface';
-import { HAZARDS_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
 import {
   getGuideExamplesForEntry,
@@ -70,30 +68,17 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
     >
       <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="hazards" />
-      <Cluster justify="between" align="center" gap="tight">
-        <Breadcrumbs
-          items={[
-            { label: 'Environmental Hazards', href: HAZARDS_GUIDE_PATH },
-            { label: primaryEntry?.title || resolvedHazardId || 'Hazard' },
-          ]}
-        />
-        <Cluster gap="tight" align="center">
-          <Button href={HAZARDS_GUIDE_PATH} variant="subtle" size="sm" data-testid="hazards-list-link">
-            All Environmental Hazards
+      {focusedEntityId && (
+        <div data-testid="guide-focus-context">
+          <Button
+            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+            variant="default"
+            size="sm"
+          >
+            Return to {focusedEntityId}
           </Button>
-          {focusedEntityId && (
-            <div data-testid="guide-focus-context">
-              <Button
-                href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
-                variant="subtle"
-                size="sm"
-              >
-                Return to {focusedEntityId}
-              </Button>
-            </div>
-          )}
-        </Cluster>
-      </Cluster>
+        </div>
+      )}
       <Heading as="h1" size="title">
         {primaryEntry
           ? `Environmental Hazard: ${primaryEntry.title}`

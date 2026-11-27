@@ -43,13 +43,13 @@
     margin: 0;
   }
 
-  .button:hover:not(:disabled) {
+  .button:hover:not(:disabled):not([data-disabled="true"]) {
     --button-bg: var(--surface-block-hover-bg);
     --button-border-color: var(--border-color-subtle);
     --button-shadow: none;
   }
 
-  .button:active:not(:disabled) {
+  .button:active:not(:disabled):not([data-disabled="true"]) {
     --button-bg: var(--surface-block-selected-bg);
     --button-border-color: oklch(from var(--state-focus) l c h / 0.35);
     --button-shadow: none;
@@ -58,11 +58,6 @@
   .button:focus-visible {
     outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
     outline-offset: var(--state-focus-ring-offset);
-  }
-
-  .button:disabled {
-    opacity: var(--ui-disabled-opacity);
-    cursor: not-allowed;
   }
 }
 
@@ -74,12 +69,12 @@
     --button-border-color: oklch(from var(--state-focus) l c h / 0.35);
     --button-shadow: none;
   }
-  .button[data-variant="primary"]:hover:not(:disabled) {
+  .button[data-variant="primary"]:hover:not(:disabled):not([data-disabled="true"]) {
     --button-bg: oklch(from var(--state-focus) l c h / 0.22);
     --button-border-color: oklch(from var(--state-focus) l c h / 0.50);
     --button-shadow: none;
   }
-  .button[data-variant="primary"]:active:not(:disabled) {
+  .button[data-variant="primary"]:active:not(:disabled):not([data-disabled="true"]) {
     --button-bg: oklch(from var(--state-focus) l c h / 0.28);
     --button-border-color: oklch(from var(--state-focus) l c h / 0.50);
     --button-shadow: none;
@@ -92,13 +87,13 @@
     --button-border-color: transparent;
     --button-shadow: none;
   }
-  .button[data-variant="subtle"]:hover:not(:disabled) {
+  .button[data-variant="subtle"]:hover:not(:disabled):not([data-disabled="true"]) {
     --button-bg: var(--surface-block-bg);
     --button-color: var(--content-prominent);
     --button-border-color: transparent;
     --button-shadow: none;
   }
-  .button[data-variant="subtle"]:active:not(:disabled) {
+  .button[data-variant="subtle"]:active:not(:disabled):not([data-disabled="true"]) {
     --button-bg: var(--surface-block-hover-bg);
     --button-border-color: transparent;
     --button-shadow: none;
@@ -111,15 +106,39 @@
     --button-border-color: oklch(from var(--status-critical) l c h / 0.32);
     --button-shadow: none;
   }
-  .button[data-variant="danger"]:hover:not(:disabled) {
+  .button[data-variant="danger"]:hover:not(:disabled):not([data-disabled="true"]) {
     --button-bg: oklch(from var(--status-critical) l c h / 0.22);
     --button-border-color: oklch(from var(--status-critical) l c h / 0.45);
     --button-shadow: none;
   }
-  .button[data-variant="danger"]:active:not(:disabled) {
+  .button[data-variant="danger"]:active:not(:disabled):not([data-disabled="true"]) {
     --button-bg: oklch(from var(--status-critical) l c h / 0.28);
     --button-border-color: oklch(from var(--status-critical) l c h / 0.50);
     --button-shadow: none;
+  }
+
+  /* State: Selected */
+  .button[data-selected="true"]:not(:disabled):not([data-disabled="true"]) {
+    --button-bg: var(--ui-control-subtle-active-bg);
+    --button-color: var(--state-selected-content);
+    --button-border-color: oklch(from var(--state-selected-border) l c h / 0.22);
+    --button-shadow: none;
+  }
+  .button[data-selected="true"]:hover:not(:disabled):not([data-disabled="true"]) {
+    --button-bg: var(--ui-control-subtle-active-bg);
+    --button-color: var(--state-selected-content);
+    --button-border-color: oklch(from var(--state-selected-border) l c h / 0.32);
+  }
+
+  /* State: Disabled */
+  .button:disabled,
+  .button[data-disabled="true"] {
+    --button-bg: var(--state-disabled-surface);
+    --button-color: var(--state-disabled-content);
+    --button-border-color: var(--state-disabled-border);
+    --button-shadow: none;
+    opacity: var(--ui-disabled-opacity);
+    cursor: var(--state-disabled-cursor);
   }
 
   /* Sizes */

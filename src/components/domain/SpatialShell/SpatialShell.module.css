@@ -55,6 +55,13 @@
     pointer-events: auto;
   }
 
+  .documentDiscoverRegion {
+    padding: var(--space-fib-4);
+    max-inline-size: var(--size-measure-lg);
+    inline-size: 100%;
+    box-sizing: border-box;
+  }
+
   .spatialShell,
   .stage {
     overflow: hidden;
@@ -140,7 +147,6 @@
   .breadcrumbsRegion,
   .searchRegion {
     pointer-events: auto;
-    padding: var(--space-fib-1) var(--space-fib-2);
     background: var(--surface-panel-bg);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
@@ -149,6 +155,9 @@
   }
 
   .breadcrumbsRegion {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-fib-1) var(--space-fib-3);
     inline-size: fit-content;
     max-inline-size: 100%;
     min-inline-size: 0;
@@ -170,6 +179,7 @@
     --ui-control-inset-border-color: transparent;
     --ui-control-inset-shadow: none;
     --state-focus-halo: none;
+    padding: var(--stroke-width-1) var(--stroke-width-2);
     inline-size: clamp(var(--size-measure-sm), 28vw, var(--size-measure-panel));
   }
 
@@ -339,6 +349,10 @@
     .floatingLeft {
       inline-size: clamp(var(--size-measure-sm), 42vw, var(--size-measure-panel));
     }
+
+    .spatialShell[data-bodies-drawer-open='true'] .minimapRegion {
+      right: calc(min(var(--size-measure-panel), 88vw) + var(--space-fib-4));
+    }
   }
 
   @media (min-width: 1280px) {
@@ -374,16 +388,6 @@
   }
 
   @media (max-width: 1279px) {
-    .bodiesBackdrop[data-bodies-drawer-open='true'] {
-      display: block;
-      position: fixed;
-      inset: 0;
-      background: var(--surface-scrim-bg);
-      backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
-      z-index: var(--layer-drawer);
-      pointer-events: auto;
-    }
-
     .bodiesRegion {
       position: fixed;
       inset: 0 0 0 auto;
@@ -441,6 +445,10 @@
       grid-row: 1;
     }
 
+    .documentDiscoverRegion {
+      padding: var(--space-fib-2);
+    }
+
     .dockRegion {
       grid-column: 1;
       grid-row: 2;
@@ -469,7 +477,9 @@
       grid-column: 1;
       grid-row: 1;
       justify-self: start;
-      padding: var(--stroke-width-2) var(--space-fib-2);
+      min-block-size: var(--size-touch-target-min);
+      padding-block: var(--space-fib-1);
+      padding-inline: var(--space-fib-3);
       min-inline-size: 0;
     }
 
@@ -556,6 +566,16 @@
 
     .minimapRegion {
       display: none;
+    }
+
+    .bodiesBackdrop[data-bodies-drawer-open='true'] {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: var(--surface-scrim-bg);
+      backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
+      z-index: var(--layer-drawer);
+      pointer-events: auto;
     }
 
     .floatingLeft[data-camera-retracted='true'] {

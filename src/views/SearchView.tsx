@@ -7,7 +7,15 @@ import { SpatialShell } from '../components/domain/SpatialShell';
 import { Center, Panel, Stack } from '../components/interface';
 import styles from './SearchView.module.css';
 
-export const SearchView: FC = () => {
+export interface SearchViewProps {
+  readonly locationPathname?: string;
+  readonly locationSearch?: string;
+}
+
+export const SearchView: FC<SearchViewProps> = ({
+  locationPathname,
+  locationSearch,
+}) => {
   useEffect(() => {
     escalateSearchBackgroundWarmup();
   }, []);
@@ -28,7 +36,10 @@ export const SearchView: FC = () => {
           />
           <Center max="lg" gutter="none">
             <Panel aria-label="Search">
-              <Search.Root>
+              <Search.Root
+                locationPathname={locationPathname}
+                locationSearch={locationSearch}
+              >
                 <Search.Panel scope="search" />
                 <Search.Results
                   alwaysOpen

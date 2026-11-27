@@ -209,6 +209,7 @@ export const SearchRoot = ({
     layerIndex,
     loadedLayers,
     results,
+    query,
     filter,
     setQueryState,
     setFilterState,

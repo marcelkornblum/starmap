@@ -78,7 +78,7 @@ describe('useThemeTokenSync', () => {
 
     const meta = document.head.querySelector('meta[name="theme-color"]');
     expect(meta).not.toBeNull();
-    expect(meta?.getAttribute('content')).toBe('#050b0d');
+    expect(meta?.getAttribute('content')).toBe('#ff00aa');
 
     act(() => {
       useSettingsStore.getState().setTheme('light');
@@ -93,7 +93,7 @@ describe('useThemeTokenSync', () => {
     act(() => {
       useSettingsStore.getState().setTheme('dark');
     });
-    expect(document.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#050b0d');
+    expect(document.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#ff00aa');
   });
 
   it('extracts tokens once per store theme switch without tearing down subscriptions', () => {

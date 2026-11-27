@@ -125,9 +125,12 @@ export const DirectionsPartialSection: React.FC<DirectionsPartialSectionProps> =
               <Button
                 href={option.selectHref}
                 size="sm"
-                variant="subtle"
+                variant="default"
                 data-testid="directions-option-select"
                 onClick={(e) => {
+                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+                    return;
+                  }
                   if (onOptionSelect) {
                     e.preventDefault();
                     onOptionSelect(option.id);

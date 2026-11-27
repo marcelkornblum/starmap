@@ -23,6 +23,20 @@ export interface LayerCardProps {
  * 2. Item Mode: Active layer item details, step counter (X of Y), item title, prose text, observational confidence,
  *    thematic tags with filtered galaxy links, and step-by-step previous/next navigation with wrapping.
  */
+const CloseIcon: React.FC = () => (
+  <Icon size="sm">
+    <svg
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    >
+      <path d="M3 3L9 9M9 3L3 9" />
+    </svg>
+  </Icon>
+);
+
 export const LayerCard: React.FC<LayerCardProps> = React.memo(({ card }) => {
   if (!card) {
     return null;
@@ -53,7 +67,7 @@ export const LayerCard: React.FC<LayerCardProps> = React.memo(({ card }) => {
               size="sm"
               variant="subtle"
             >
-              ×
+              <CloseIcon />
             </Button>
           </Cluster>
         </header>
@@ -138,7 +152,7 @@ export const LayerCard: React.FC<LayerCardProps> = React.memo(({ card }) => {
             size="sm"
             variant="subtle"
           >
-            ×
+            <CloseIcon />
           </Button>
         </Cluster>
       </header>
@@ -186,7 +200,7 @@ export const LayerCard: React.FC<LayerCardProps> = React.memo(({ card }) => {
             href={card.prevHref}
             data-testid="layer-card-prev"
             size="sm"
-            variant="subtle"
+            variant="default"
           >
             <Icon direction="left" size="sm" />
             {` ${card.prevLabel}`}
@@ -195,7 +209,7 @@ export const LayerCard: React.FC<LayerCardProps> = React.memo(({ card }) => {
             href={card.nextHref}
             data-testid="layer-card-next"
             size="sm"
-            variant="subtle"
+            variant="default"
           >
             {`${card.nextLabel} `}
             <Icon direction="right" size="sm" />

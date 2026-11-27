@@ -8,6 +8,7 @@
 
     display: inline-flex;
     align-items: center;
+    position: relative;
     margin: 0;
     font-family: var(--visor-scale-pill-font-family);
     font-variant-numeric: tabular-nums;
@@ -38,9 +39,21 @@
 
 @layer exceptions {
   .visorScalePill [data-size='sm'] {
+    --button-min-height: calc(var(--space-fib-5) + var(--space-fib-2));
+    --button-min-width: auto;
     --button-gap: var(--visor-scale-pill-gap);
     --button-padding-inline: var(--space-fib-2);
-    --button-padding-block: var(--space-fib-1);
+    --button-padding-block: var(--stroke-width-2);
     --button-radius: var(--radius-control);
+    position: relative;
+  }
+
+  @media (pointer: coarse) {
+    .visorScalePill [data-size='sm']::after {
+      content: '';
+      position: absolute;
+      inset-block: var(--space-hit-slop-block);
+      inset-inline: var(--space-hit-slop-inline);
+    }
   }
 }

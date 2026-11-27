@@ -38,6 +38,7 @@ export interface UseSearchUrlSyncEffectOptions {
   readonly layerIndex: readonly DatasetLayerIndexEntry[];
   readonly loadedLayers: readonly DatasetLayerManifest[];
   readonly results: GroupedSearchResults;
+  readonly query?: string;
   readonly filter: SearchCategoryFilter;
   readonly setQueryState: Dispatch<SetStateAction<string>>;
   readonly setFilterState: Dispatch<SetStateAction<SearchCategoryFilter>>;
@@ -68,6 +69,7 @@ export const useSearchUrlSyncEffect = ({
   layerIndex,
   loadedLayers,
   results,
+  query,
   filter,
   setQueryState,
   setFilterState,
@@ -78,10 +80,17 @@ export const useSearchUrlSyncEffect = ({
 }: UseSearchUrlSyncEffectOptions): void => {
   const fallbackFocusIdRef = useRef<string | null>(null);
   const initialResultsRef = useRef(results);
+  const liveQueryRef = useRef(query);
+  liveQueryRef.current = query;
+  const liveFilterRef = useRef(filter);
+  liveFilterRef.current = filter;
+  const submitSearchRef = useRef(submitSearch);
+  submitSearchRef.current = submitSearch;
   const prevUrlKeyRef = useRef<string>(getSearchRelevantUrlKey(activePathname, activeSearch));
   const prevLoadedLayerKeyRef = useRef<string>('');
   const prewarmedCorpusRef = useRef<readonly CompactSearchEntry[] | null>(null);
-  const initialPrewarmFiredRef = useRef<boolean>(false);
+  const initialPrewarmCompletedRef = useRef<boolean>(false);
+  const prewarmedWithEmptyLayerIndexRef = useRef<boolean>(false);
   const prevFocusSlugRef = useRef<string | null>(null);
   const activeScope = parseSpatialRouteTarget(activePathname)?.scope ?? 'galaxy';
 
@@ -97,10 +106,11 @@ export const useSearchUrlSyncEffect = ({
 
   // Synchronise store on client mount
   useEffect(() => {
+    const resolvedMountFilter = resolveInitialFilter(syncUrl, activeSearch, initialFilter);
     const focusCorpus =
       initialCorpus ??
       getCachedCorpusForFilter('all') ??
-      getCachedCorpusForFilter(initialFilter) ??
+      getCachedCorpusForFilter(resolvedMountFilter) ??
       getCachedCorpusForFilter('startup') ??
       [];
     syncSelectedSystemsToStore(
@@ -177,12 +187,30 @@ export const useSearchUrlSyncEffect = ({
 
   // Pre-warm the base search corpus in the background on mount
   useEffect(() => {
-    if (initialCorpus || typeof window === 'undefined' || initialPrewarmFiredRef.current) {
+    if (initialCorpus || typeof window === 'undefined') {
       return;
     }
-    initialPrewarmFiredRef.current = true;
+
+    const startQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
+    const effectiveQuery = liveQueryRef.current ?? startQuery;
+    const shouldRefreshForHydratedLayerIndex =
+      initialPrewarmCompletedRef.current &&
+      prewarmedWithEmptyLayerIndexRef.current &&
+      layerIndex.length > 0 &&
+      effectiveQuery.trim().length > 0;
+
+    if (initialPrewarmCompletedRef.current && !shouldRefreshForHydratedLayerIndex) {
+      return;
+    }
+
+    if (shouldRefreshForHydratedLayerIndex && liveQueryRef.current !== undefined && liveQueryRef.current !== startQuery) {
+      prewarmedWithEmptyLayerIndexRef.current = false;
+      void submitSearchRef.current(liveQueryRef.current, liveFilterRef.current);
+      return;
+    }
 
     let cancelled = false;
+    const hadEmptyLayerIndex = layerIndex.length === 0;
     void runSearchCorpusPrewarm({
       initialFilter,
       activeSearch,
@@ -200,7 +228,12 @@ export const useSearchUrlSyncEffect = ({
       fallbackFocusIdRef,
       isCancelled: () => cancelled,
     }).then((focusCorpus) => {
-      if (!cancelled && focusCorpus) {
+      if (cancelled) {
+        return;
+      }
+      initialPrewarmCompletedRef.current = true;
+      prewarmedWithEmptyLayerIndexRef.current = hadEmptyLayerIndex;
+      if (focusCorpus) {
         prewarmedCorpusRef.current = focusCorpus;
       }
     }).catch(() => undefined);

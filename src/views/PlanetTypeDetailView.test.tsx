@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { PlanetTypeDetailView } from './PlanetTypeDetailView';
 import {
@@ -95,13 +95,13 @@ describe('<PlanetTypeDetailView />', () => {
     expect(links[0]?.getAttribute('href')).toBe('/system/sol?focus=earth');
   });
 
-  it('renders 2-crumb breadcrumbs without redundant Guide prefix and wraps telemetry in a CollapsibleSection', () => {
-    render(<PlanetTypeDetailView planetType="terrestrial" />);
+  it('relies on GuideSectionNav for the section link without duplicate breadcrumbs or list-link button and wraps telemetry in a CollapsibleSection', () => {
+    const { container } = render(<PlanetTypeDetailView planetType="terrestrial" />);
 
-    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
-    expect(within(breadcrumbs).getAllByTestId('breadcrumb-item')).toHaveLength(2);
-    expect(breadcrumbs.textContent).not.toContain('Guide');
-    expect(breadcrumbs.textContent).toContain('Planet Types');
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
+    expect(screen.queryByTestId('planet-types-list-link')).toBeNull();
+    const sectionLink = container.querySelector('a[href="/guide/planet-types"]');
+    expect(sectionLink).not.toBeNull();
 
     const telemetryToggle = screen.getByRole('button', { name: /Geophysical & Atmospheric Telemetry/i });
     expect(telemetryToggle).toHaveAttribute('aria-expanded', 'true');

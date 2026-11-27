@@ -42,6 +42,13 @@ export function useDetentSheetController({
   const [isBeyondPartialState, setIsBeyondPartialState] = useState<boolean>(activeDetent === 'full');
   const [isScrollableState, setIsScrollableState] = useState<boolean>(activeDetent === 'full');
   const [peekHeightPxState, setPeekHeightPxState] = useState<number>(DEFAULT_PEEK_HEIGHT_PX);
+  const [partialHeightPxState, setPartialHeightPxState] = useState<number>(() =>
+    resolveDetentTargetHeight('partial', {
+      stageHeightPx: getViewportHeight(),
+      peekHeightPx: DEFAULT_PEEK_HEIGHT_PX,
+      midStageNaturalPx: 0,
+    }),
+  );
 
   const detentStateRef = useRef<DetentLevel>(detentState);
   const isFullScreenRef = useRef<boolean>(isFullScreenState);
@@ -87,9 +94,11 @@ export function useDetentSheetController({
   const syncSheetProperties = useCallback(
     (heightPx: number, detent: DetentLevel, metrics: MeasuredSheetMetrics) => {
       const { beyondPartial, peekHeightPx, scrollable } = applyDetentSheetCssVars(sheetRef.current, heightPx, detent, metrics);
+      const partialHeightPx = resolveDetentTargetHeight('partial', metrics);
       setIsBeyondPartialState((prev) => (prev === beyondPartial ? prev : beyondPartial));
       setIsScrollableState((prev) => (prev === scrollable ? prev : scrollable));
       setPeekHeightPxState((prev) => (prev === peekHeightPx ? prev : peekHeightPx));
+      setPartialHeightPxState((prev) => (prev === partialHeightPx ? prev : partialHeightPx));
     },
     [],
   );
@@ -277,7 +286,7 @@ export function useDetentSheetController({
   return {
     sheetRef, dragHandleRef, peekSectionRef,
     detentState, detentStateRef,
-    isFullScreenState, isDraggingState, isBeyondPartialState, isScrollableState, peekHeightPxState,
+    isFullScreenState, isDraggingState, isBeyondPartialState, isScrollableState, peekHeightPxState, partialHeightPxState,
     applyTapDetent, handlePointerDown, isRecentDrag, isSheetDraggable,
   };
 }

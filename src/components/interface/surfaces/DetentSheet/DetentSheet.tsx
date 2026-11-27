@@ -66,6 +66,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
     isBeyondPartialState,
     isScrollableState,
     peekHeightPxState,
+    partialHeightPxState,
     applyTapDetent,
     handlePointerDown,
     isRecentDrag,
@@ -84,6 +85,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       data-beyond-partial={isBeyondPartialState ? 'true' : 'false'}
       data-scrollable={isScrollableState ? 'true' : 'false'}
       data-min-height-px={peekHeightPxState}
+      data-partial-height-px={partialHeightPxState}
       className={styles.detentSheet}
       onPointerDown={handlePointerDown}
       onDragStart={(e) => {

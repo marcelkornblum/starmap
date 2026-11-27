@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { StarTypeDetailView } from './StarTypeDetailView';
 import {
@@ -109,13 +109,13 @@ describe('<StarTypeDetailView />', () => {
     expect(links[0]?.getAttribute('href')).toBe('/system/sol');
   });
 
-  it('renders 2-crumb breadcrumbs without redundant Guide prefix and wraps decoded subtype and telemetry in CollapsibleSections', () => {
-    render(<StarTypeDetailView starType="G8.5V" />);
+  it('relies on GuideSectionNav for the section link without duplicate breadcrumbs or list-link button and wraps decoded subtype and telemetry in CollapsibleSections', () => {
+    const { container } = render(<StarTypeDetailView starType="G8.5V" />);
 
-    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
-    expect(within(breadcrumbs).getAllByTestId('breadcrumb-item')).toHaveLength(2);
-    expect(breadcrumbs.textContent).not.toContain('Guide');
-    expect(breadcrumbs.textContent).toContain('Star Types');
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
+    expect(screen.queryByTestId('star-types-list-link')).toBeNull();
+    const sectionLink = container.querySelector('a[href="/guide/star-types"]');
+    expect(sectionLink).not.toBeNull();
 
     const decodedToggle = screen.getByRole('button', { name: /Decoded Yerkes Classification/i });
     expect(decodedToggle).toHaveAttribute('aria-expanded', 'true');

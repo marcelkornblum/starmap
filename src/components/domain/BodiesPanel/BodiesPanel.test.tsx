@@ -450,6 +450,8 @@ describe('<BodiesPanel />', () => {
 
     const showMoreBtn = screen.getByTestId('bodies-minor-bodies-show-more');
     expect(showMoreBtn).toBeInTheDocument();
+    expect(showMoreBtn).toHaveAttribute('data-variant', 'default');
+    expect(showMoreBtn).toHaveAttribute('data-size', 'sm');
 
     fireEvent.click(showMoreBtn);
     expect(screen.getAllByTestId('bodies-minor-body-item')).toHaveLength(100);

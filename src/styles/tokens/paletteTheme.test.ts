@@ -139,12 +139,12 @@ describe('Theme & Palette Management (paletteTheme)', () => {
       const indexHtml = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
       const colorSchemeMatch = indexHtml.match(/<meta\s+name=["']color-scheme["']\s+content=["']dark light["']\s*\/?>/);
       const darkThemeMatch = indexHtml.match(
-        /<meta\s+name=["']theme-color["']\s+media=["']\(prefers-color-scheme:\s*dark\)["']\s+content=["']#050b0d["']\s*\/?>/,
+        /<meta\s+name=["']theme-color["']\s+media=["']\(prefers-color-scheme:\s*dark\)["']\s+content=["']#ff00aa["']\s*\/?>/,
       );
       const lightThemeMatch = indexHtml.match(
-        /<meta\s+name=["']theme-color["']\s+media=["']\(prefers-color-scheme:\s*light\)["']\s+content=["']#050b0d["']\s*\/?>/,
+        /<meta\s+name=["']theme-color["']\s+media=["']\(prefers-color-scheme:\s*light\)["']\s+content=["']#ff00aa["']\s*\/?>/,
       );
-      const fallbackThemeMatch = indexHtml.match(/<meta\s+name=["']theme-color["']\s+content=["']#050b0d["']\s*\/?>/);
+      const fallbackThemeMatch = indexHtml.match(/<meta\s+name=["']theme-color["']\s+content=["']#ff00aa["']\s*\/?>/);
       const manifestMatch = indexHtml.match(/<link\s+rel=["']manifest["']\s+href=["']%BASE_URL%manifest\.webmanifest["']\s*\/?>/);
 
       expect(colorSchemeMatch).not.toBeNull();
@@ -174,13 +174,13 @@ describe('Theme & Palette Management (paletteTheme)', () => {
         start_url: '.',
         display: 'standalone',
         background_color: '#050b0d',
-        theme_color: '#050b0d',
+        theme_color: '#ff00aa',
         icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }],
       });
     });
 
     it('resolves canonical browser chrome hex colours for dark, light, and amoled themes', () => {
-      expect(resolveThemeBrowserColor('dark')).toBe('#050b0d');
+      expect(resolveThemeBrowserColor('dark')).toBe('#ff00aa');
       expect(resolveThemeBrowserColor('light')).toBe('#f2f7f7');
       expect(resolveThemeBrowserColor('amoled')).toBe('#000000');
     });
@@ -189,7 +189,7 @@ describe('Theme & Palette Management (paletteTheme)', () => {
       syncThemeColorMeta('dark');
       const created = document.querySelector('meta[name="theme-color"]');
       expect(created).not.toBeNull();
-      expect(created?.getAttribute('content')).toBe('#050b0d');
+      expect(created?.getAttribute('content')).toBe('#ff00aa');
       expect(document.documentElement.style.colorScheme).toBe('dark');
 
       const extraMediaDark = createMockMetaElement();
@@ -223,7 +223,7 @@ describe('Theme & Palette Management (paletteTheme)', () => {
       expect(document.documentElement.style.colorScheme).toBe('dark');
 
       applyTheme('dark');
-      expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#050b0d');
+      expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#ff00aa');
       expect(document.documentElement.style.colorScheme).toBe('dark');
     });
   });

@@ -162,7 +162,7 @@ describe('useViewportSafeRectObserver', () => {
     expect(useUIStore.getState().viewportSafeRect).toBeNull();
   });
 
-  it('reads detailsDetent from useUIStore and sets bypass=true when detailsDetent is full on mobile', () => {
+  it('reads detailsDetent from useUIStore and clamps bottom inset without setting bypass=true when detailsDetent is full on mobile', () => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       writable: true,
@@ -203,7 +203,8 @@ describe('useViewportSafeRectObserver', () => {
       vi.runAllTimers();
     });
 
-    expect(useUIStore.getState().viewportSafeRect?.bypass).toBe(true);
+    expect(useUIStore.getState().viewportSafeRect?.bypass).toBe(false);
+    expect(useUIStore.getState().viewportSafeRect?.bottom).toBeCloseTo(844 * 0.68, 4);
   });
 
   it('gates bodiesRegion measurement on isBodiesDrawerOpen below 1280px desktop breakpoint and includes it when open or >= 1280px', () => {

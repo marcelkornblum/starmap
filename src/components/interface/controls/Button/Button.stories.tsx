@@ -16,6 +16,7 @@ const meta: Meta<typeof Button> = {
       options: ['sm', 'md', 'lg'],
     },
     disabled: { control: 'boolean' },
+    selected: { control: 'boolean' },
   },
 };
 
@@ -47,5 +48,27 @@ export const ButtonStory: Story = {
         </Cluster>
       </Stack>
     </div>
+  ),
+};
+
+export const Selected: Story = {
+  render: () => (
+    <Stack gap="default">
+      <Cluster gap="default" align="center">
+        <Button variant="subtle">Map</Button>
+        <Button variant="subtle" selected>
+          Discover
+        </Button>
+        <Button variant="subtle">Guide</Button>
+      </Cluster>
+      <Cluster gap="default" align="center">
+        <Button href="/guide" variant="subtle" selected>
+          Selected Link
+        </Button>
+        <Button href="/guide" variant="subtle" disabled>
+          Disabled Link
+        </Button>
+      </Cluster>
+    </Stack>
   ),
 };

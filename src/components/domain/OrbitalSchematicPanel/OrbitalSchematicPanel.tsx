@@ -233,13 +233,14 @@ const OrbitalSchematicBody = memo(function OrbitalSchematicBody({
                 : `Show minor bodies (${elements.minorBodyCount})`}
             </Button>
           ) : null}
-          <a
-            href={resolveAppHref(LEGEND_GUIDE_PATH)}
-            className={styles.legendLink}
+          <Button
+            href={LEGEND_GUIDE_PATH}
+            variant="subtle"
+            size="sm"
             data-testid="orbital-schematic-legend-link"
           >
             Legend
-          </a>
+          </Button>
         </Cluster>
       }
     >

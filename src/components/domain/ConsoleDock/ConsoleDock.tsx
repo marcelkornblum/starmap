@@ -94,7 +94,8 @@ export const ConsoleDock = React.memo(function ConsoleDock({
         data-testid="console-dock"
       >
         <Button
-          variant={isMapActive ? 'primary' : 'subtle'}
+          variant="subtle"
+          selected={isMapActive}
           href={mapHref}
           onClick={handleNavClick('map')}
           aria-current={isMapActive ? 'page' : undefined}
@@ -107,7 +108,8 @@ export const ConsoleDock = React.memo(function ConsoleDock({
         </Button>
 
         <Button
-          variant={isDiscoverActive ? 'primary' : 'subtle'}
+          variant="subtle"
+          selected={isDiscoverActive}
           onClick={onToggleDiscover}
           aria-pressed={onToggleDiscover ? Boolean(isDiscoverOpen) : undefined}
           aria-current={!onToggleDiscover && activeItem === 'discover' ? 'page' : undefined}
@@ -120,7 +122,8 @@ export const ConsoleDock = React.memo(function ConsoleDock({
         </Button>
 
         <Button
-          variant={isGuideActive ? 'primary' : 'subtle'}
+          variant="subtle"
+          selected={isGuideActive}
           href={guideHref}
           onClick={handleNavClick('guide')}
           aria-current={isGuideActive ? 'page' : undefined}

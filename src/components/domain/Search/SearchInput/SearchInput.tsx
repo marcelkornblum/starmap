@@ -33,6 +33,8 @@ export const SearchInput = ({
     searchInputRef?.current?.focus();
   };
 
+  const hasTrimmedQuery = query.trim().length > 0;
+
   return (
     <div
       className={styles.inputRow}
@@ -86,7 +88,8 @@ export const SearchInput = ({
         <Button
           type="submit"
           size="sm"
-          variant={query.trim().length > 0 ? 'primary' : 'subtle'}
+          variant={hasTrimmedQuery ? 'default' : 'subtle'}
+          disabled={!hasTrimmedQuery}
           aria-label="Search"
           data-testid="search-submit-button"
         >

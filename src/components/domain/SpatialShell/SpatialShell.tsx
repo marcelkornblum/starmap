@@ -3,12 +3,10 @@ import { Button, Icon, Panel } from '../../interface';
 import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useLayerIndex } from '../../../hooks/useLayerData';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
-import { handleSpaNavigation } from '../../../hooks/spaNavigation';
-import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
+import { useSpaLocation } from '../../../hooks/useSpaLocation';
 import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import { extractUrlLayerId } from '../../../services/search/searchUrlSelection';
 import { useUIStore } from '../../../stores/useUIStore';
-import { resolveAppHref } from '../../../utils/url';
 import { ConsoleDock } from '../ConsoleDock';
 import { DiscoverPanel } from '../DiscoverPanel';
 import { VisorScalePill } from '../VisorScalePill';
@@ -65,7 +63,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
   children,
   ...rest
 }) {
-  const router = useOptionalRouter();
   const { pathname, search: locationSearch } = useSpaLocation();
   const layerIndex = useLayerIndex();
 
@@ -123,30 +120,12 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
     [mode, activeWorkspace, companionMapHref, lastMapHref, pathname, isDiscoverOpen],
   );
 
-  const handleToggleDiscover = useCallback(
-    (event?: React.MouseEvent<HTMLElement>) => {
-      if (mode === 'document') {
-        setDiscoverOpen(true);
-        if (event) {
-          handleSpaNavigation(event, dockConfig.mapHref, router);
-        } else {
-          const targetHref = resolveAppHref(dockConfig.mapHref) ?? dockConfig.mapHref;
-          if (router && typeof router.navigate === 'function') {
-            void router.navigate({ href: targetHref });
-          } else if (router?.history?.push) {
-            router.history.push(targetHref);
-          }
-        }
-        return;
-      }
-
-      toggleDiscover();
-      if (isBodiesDrawerOpen) {
-        handleClose();
-      }
-    },
-    [mode, setDiscoverOpen, dockConfig.mapHref, router, toggleDiscover, isBodiesDrawerOpen, handleClose],
-  );
+  const handleToggleDiscover = useCallback(() => {
+    toggleDiscover();
+    if (isBodiesDrawerOpen) {
+      handleClose();
+    }
+  }, [toggleDiscover, isBodiesDrawerOpen, handleClose]);
 
   const handleNavigateItem = useCallback(() => {
     setDiscoverOpen(false);
@@ -157,12 +136,12 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
     [locationSearch, layerIndex],
   );
 
-  const { content: resolvedPrimaryFloat, isShowingDetails } = resolvePrimaryPanelsMeta({
+  const { content: resolvedPrimaryFloat } = resolvePrimaryPanelsMeta({
     detailsPanel, directionsPanel, isDetailsOpen, isDirectionsOpen,
     primaryPanelPriority, dualPanelPolicy, isWideViewport,
   });
 
-  const resolvedPreview = isShowingDetails ? null : preview;
+  const resolvedPreview = resolvedPrimaryFloat ? null : preview;
 
   const ssrInFlightAttr =
     typeof window === 'undefined'
@@ -195,7 +174,19 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
 
       {mode === 'document' ? (
         <div className={styles.documentRegion} data-spatial-region="document">
-          {children}
+          {isDiscoverOpen ? (
+            <div className={styles.documentDiscoverRegion}>
+              <Panel padding="tight">
+                <DiscoverPanel
+                  activeLayerSlug={activeLayerSlug}
+                  onClose={() => setDiscoverOpen(false)}
+                  onSelectLayer={() => setDiscoverOpen(false)}
+                />
+              </Panel>
+            </div>
+          ) : (
+            children
+          )}
         </div>
       ) : (
         <>
@@ -218,7 +209,8 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                     <div className={styles.bodiesTriggerRegion} data-spatial-region="bodies-trigger">
                       <Button
                         size="sm"
-                        variant={isBodiesDrawerOpen ? 'primary' : 'subtle'}
+                        variant="subtle"
+                        selected={isBodiesDrawerOpen}
                         data-testid="spatial-shell-bodies-toggle"
                         aria-label="Objects in View"
                         aria-expanded={isBodiesDrawerOpen}
@@ -226,11 +218,18 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                         onClick={handleToggle}
                       >
                         <Icon size="sm">
-                          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                            <circle cx="2.25" cy="3" r="0.75" fill="currentColor" stroke="none" />
-                            <circle cx="2.25" cy="6" r="0.75" fill="currentColor" stroke="none" />
-                            <circle cx="2.25" cy="9" r="0.75" fill="currentColor" stroke="none" />
-                            <path d="M4.75 3H10M4.75 6H10M4.75 9H10" />
+                          <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.25"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <ellipse cx="8" cy="8" rx="6.25" ry="3.25" transform="rotate(-28 8 8)" />
+                            <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
+                            <circle cx="12.6" cy="5.4" r="1.35" fill="currentColor" stroke="none" />
                           </svg>
                         </Icon>
                       </Button>

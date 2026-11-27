@@ -39,7 +39,8 @@ describe('<ConsoleDock />', () => {
     expect(mapItem.tagName.toLowerCase()).toBe('a');
     expect(mapItem).toHaveAttribute('href', '/galaxy');
     expect(mapItem).toHaveAttribute('aria-current', 'page');
-    expect(mapItem).toHaveAttribute('data-variant', 'primary');
+    expect(mapItem).toHaveAttribute('data-variant', 'subtle');
+    expect(mapItem).toHaveAttribute('data-selected', 'true');
     expect(mapItem).toHaveAttribute('data-active', 'true');
 
     const guideItem = screen.getByTestId('console-dock-guide');
@@ -47,6 +48,7 @@ describe('<ConsoleDock />', () => {
     expect(guideItem).toHaveAttribute('href', '/guide/star-types');
     expect(guideItem).not.toHaveAttribute('aria-current');
     expect(guideItem).toHaveAttribute('data-variant', 'subtle');
+    expect(guideItem).not.toHaveAttribute('data-selected');
     expect(guideItem).not.toHaveAttribute('data-active');
   });
 
@@ -65,6 +67,7 @@ describe('<ConsoleDock />', () => {
     expect(discoverBtn).toHaveAttribute('aria-pressed', 'false');
     expect(discoverBtn).not.toHaveAttribute('aria-current');
     expect(discoverBtn).toHaveAttribute('data-variant', 'subtle');
+    expect(discoverBtn).not.toHaveAttribute('data-selected');
 
     fireEvent.click(discoverBtn);
     expect(onToggleDiscover).toHaveBeenCalledTimes(1);
@@ -79,7 +82,8 @@ describe('<ConsoleDock />', () => {
     );
 
     expect(discoverBtn).toHaveAttribute('aria-pressed', 'true');
-    expect(discoverBtn).toHaveAttribute('data-variant', 'primary');
+    expect(discoverBtn).toHaveAttribute('data-variant', 'subtle');
+    expect(discoverBtn).toHaveAttribute('data-selected', 'true');
     expect(discoverBtn).toHaveAttribute('data-active', 'true');
   });
 
@@ -130,12 +134,14 @@ describe('<ConsoleDock />', () => {
 
     const guideItem = screen.getByTestId('console-dock-guide');
     expect(guideItem).toHaveAttribute('aria-current', 'page');
-    expect(guideItem).toHaveAttribute('data-variant', 'primary');
+    expect(guideItem).toHaveAttribute('data-variant', 'subtle');
+    expect(guideItem).toHaveAttribute('data-selected', 'true');
     expect(guideItem).toHaveAttribute('data-active', 'true');
 
     const mapItem = screen.getByTestId('console-dock-map');
     expect(mapItem).not.toHaveAttribute('aria-current');
     expect(mapItem).toHaveAttribute('data-variant', 'subtle');
+    expect(mapItem).not.toHaveAttribute('data-selected');
 
     const discoverBtn = screen.getByTestId('console-dock-discover');
     expect(discoverBtn.tagName.toLowerCase()).toBe('button');

@@ -37,6 +37,9 @@ describe('<DetentSheet />', () => {
     expect(panel.getAttribute('data-is-dragging')).toBe('false');
     expect(panel.getAttribute('data-beyond-partial')).toBe('false');
     expect(panel.getAttribute('data-min-height-px')).toBe(String(DEFAULT_PEEK_HEIGHT_PX));
+    expect(panel.getAttribute('data-partial-height-px')).toBe(
+      String(Math.round(window.innerHeight * FALLBACK_PARTIAL_SHEET_RATIO)),
+    );
     expect(panel.getAttribute('data-entity-id')).toBe('trappist-1');
     expect(panel.getAttribute('data-system-id')).toBe('trappist-1-sys');
     expect(panel.getAttribute('data-focused-kind')).toBe('star');

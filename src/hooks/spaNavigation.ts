@@ -66,6 +66,20 @@ export function handleSpaNavigation(
     return false;
   }
 
+  const currentEl = event.currentTarget instanceof Element ? event.currentTarget : null;
+  const anchorEl =
+    currentEl?.tagName.toLowerCase() === 'a'
+      ? currentEl
+      : event.target instanceof Element
+        ? event.target.closest('a')
+        : null;
+  if (anchorEl) {
+    const anchorTarget = anchorEl.getAttribute('target');
+    if ((anchorTarget && anchorTarget !== '_self') || anchorEl.hasAttribute('download')) {
+      return false;
+    }
+  }
+
   const rawHref = href.trim();
   if (
     rawHref.startsWith('#') ||

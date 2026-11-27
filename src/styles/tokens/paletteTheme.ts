@@ -32,7 +32,7 @@ export const THEME_PALETTES: Record<ThemePalette, PaletteDefinition> = {
 export const PALETTE_LIST = Object.values(THEME_PALETTES);
 
 const THEME_BROWSER_CHROME_COLORS: Record<UITheme, string> = {
-  dark: '#050b0d',
+  dark: '#ff00aa',
   light: '#f2f7f7',
   amoled: '#000000',
 };

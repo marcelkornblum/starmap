@@ -45,20 +45,54 @@ function resolveBodiesRegion(
   return { ...rawBodiesRect, left: resolvedLeft, right: resolvedLeft + resolvedWidth, width: resolvedWidth };
 }
 
+interface FloatingLeftEntry {
+  readonly rect: PanelRectLike;
+  readonly element: Element;
+}
+
+interface ResolvedMobileDetentSheet extends PanelRectLike {
+  readonly detent: string;
+  readonly beyondPartial: boolean;
+  readonly partialHeightPx?: number;
+}
+
+function resolveDetentHostElement(element: Element): Element {
+  return element.hasAttribute('data-detent')
+    ? element
+    : (element.querySelector('[data-detent]') ?? element);
+}
+
 function resolveMobileDetentSheet(
-  floatingLeftItems: readonly PanelRectLike[],
+  floatingLeftEntries: readonly FloatingLeftEntry[],
   viewportWidth: number,
   detailsDetent: string,
-): (PanelRectLike & { readonly detent: string }) | null {
-  const candidates = floatingLeftItems.filter(
-    (rect) =>
+): ResolvedMobileDetentSheet | null {
+  const candidates = floatingLeftEntries.filter(
+    ({ rect }) =>
       rect.width > 0 &&
       rect.height > 0 &&
       (viewportWidth < MOBILE_BREAKPOINT_PX || rect.width >= viewportWidth * FULL_WIDTH_SHEET_RATIO),
   );
   if (candidates.length === 0) return null;
-  const primarySheet = candidates.reduce((tallest, rect) => (rect.top < tallest.top ? rect : tallest));
-  return { ...primarySheet, detent: detailsDetent };
+  const primary = candidates.reduce((tallest, entry) =>
+    entry.rect.top < tallest.rect.top ? entry : tallest,
+  );
+  const detentEl = resolveDetentHostElement(primary.element);
+  const detent = detentEl.getAttribute('data-detent') ?? detailsDetent;
+  const beyondPartial = detentEl.getAttribute('data-beyond-partial') === 'true';
+  const rawPartialHeight = detentEl.getAttribute('data-partial-height-px');
+  const parsedPartialHeight = rawPartialHeight !== null ? Number(rawPartialHeight) : Number.NaN;
+  const partialHeightPx =
+    Number.isFinite(parsedPartialHeight) && parsedPartialHeight > 0
+      ? parsedPartialHeight
+      : undefined;
+
+  return {
+    ...primary.rect,
+    detent,
+    beyondPartial,
+    ...(partialHeightPx !== undefined ? { partialHeightPx } : {}),
+  };
 }
 
 /**
@@ -114,15 +148,17 @@ export function useViewportSafeRectObserver(
           ? toPanelRectLike(topBarEl.getBoundingClientRect())
           : null;
 
-      const floatingLeftItems = floatingLeftEl
-        ? Array.from(floatingLeftEl.children).map((child) =>
-            toPanelRectLike(child.getBoundingClientRect()),
-          )
+      const floatingLeftEntries: FloatingLeftEntry[] = floatingLeftEl
+        ? Array.from(floatingLeftEl.children).map((element) => ({
+            rect: toPanelRectLike(element.getBoundingClientRect()),
+            element,
+          }))
         : [];
+      const floatingLeftItems = floatingLeftEntries.map((entry) => entry.rect);
 
       const detailsDetent = useUIStore.getState().detailsDetent;
       const mobileDetentSheet = resolveMobileDetentSheet(
-        floatingLeftItems,
+        floatingLeftEntries,
         viewportWidth,
         detailsDetent,
       );

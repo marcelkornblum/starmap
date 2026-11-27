@@ -1,5 +1,4 @@
 import React, { useMemo, useEffect, useSyncExternalStore } from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { MetricComparativePanel } from '../components/domain/MetricComparativePanel';
@@ -15,7 +14,6 @@ import {
   Stack,
   Unit,
 } from '../components/interface';
-import { METRICS_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
 import { getGuideExamplesForEntry } from '../services/guide/guideCatalogExamples';
 import {
@@ -91,35 +89,17 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
     >
       <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="metrics" />
-      <Cluster justify="between" align="center" gap="tight">
-        <Breadcrumbs
-          items={[
-            { label: 'Telemetry Metrics', href: METRICS_GUIDE_PATH },
-            { label: resolvedMetricId || 'Telemetry Metric' },
-          ]}
-        />
-        <Cluster gap="tight" align="center">
+      {resolvedFocusId && (
+        <div data-testid="guide-focus-context">
           <Button
-            href={METRICS_GUIDE_PATH}
-            variant="subtle"
+            href={`/system/${encodeURIComponent(resolvedFocusId)}?focus=${encodeURIComponent(resolvedFocusId)}`}
+            variant="default"
             size="sm"
-            data-testid="metrics-list-link"
           >
-            All Telemetry Metrics
+            Return to {resolvedFocusId}
           </Button>
-          {resolvedFocusId && (
-            <div data-testid="guide-focus-context">
-              <Button
-                href={`/system/${encodeURIComponent(resolvedFocusId)}?focus=${encodeURIComponent(resolvedFocusId)}`}
-                variant="subtle"
-                size="sm"
-              >
-                Return to {resolvedFocusId}
-              </Button>
-            </div>
-          )}
-        </Cluster>
-      </Cluster>
+        </div>
+      )}
       <Heading as="h1" size="title">
         {resolvedMetricId
           ? `Telemetry Metric: ${resolvedMetricId}`

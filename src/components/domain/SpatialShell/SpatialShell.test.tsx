@@ -260,7 +260,24 @@ describe('SpatialShell Domain Component', () => {
 
       fireEvent.click(screen.getByTestId('console-dock-discover'));
       expect(useUIStore.getState().isDiscoverOpen).toBe(true);
-      expect(navigateMock).toHaveBeenCalledWith({ href: '/planet/mars-prime' });
+      expect(navigateMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId('discover-panel')).toBeInTheDocument();
+      expect(screen.queryByTestId('doc-content')).toBeNull();
+      expect(document.querySelector('[data-spatial-region="document"]')).toContainElement(
+        screen.getByTestId('discover-panel'),
+      );
+
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(false);
+      expect(navigateMock).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('discover-panel')).toBeNull();
+      expect(screen.getByTestId('doc-content')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(screen.getByTestId('discover-panel')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('discover-layer-link'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(false);
+      expect(navigateMock).toHaveBeenCalled();
       unmount();
 
       // Cold load (lastMapHref === '/galaxy'): uses companionMapHref
@@ -275,7 +292,9 @@ describe('SpatialShell Domain Component', () => {
       );
       expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=sol');
       fireEvent.click(screen.getByTestId('console-dock-discover'));
-      expect(navigateMock).toHaveBeenCalledWith({ href: '/galaxy?focus=sol' });
+      expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+      expect(navigateMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId('discover-panel')).toBeInTheDocument();
     });
 
     it('falls back to lastMapHref in document mode when companionMapHref is omitted', () => {
@@ -607,6 +626,36 @@ describe('SpatialShell Domain Component', () => {
       expect(screen.getByTestId('preview')).toBeInTheDocument();
     });
 
+    it('suppresses preview when directionsPanel is showing and shows it when directions is closed', () => {
+      act(() => {
+        useUIStore.getState().setDirectionsOpen(true);
+      });
+
+      const { rerender } = render(
+        <SpatialShell
+          directionsPanel={<div data-testid="directions">Directions</div>}
+          preview={<div data-testid="preview">Preview</div>}
+        />,
+      );
+
+      expect(screen.getByTestId('directions')).toBeInTheDocument();
+      expect(screen.queryByTestId('preview')).toBeNull();
+
+      act(() => {
+        useUIStore.getState().setDirectionsOpen(false);
+      });
+
+      rerender(
+        <SpatialShell
+          directionsPanel={<div data-testid="directions">Directions</div>}
+          preview={<div data-testid="preview">Preview</div>}
+        />,
+      );
+
+      expect(screen.queryByTestId('directions')).toBeNull();
+      expect(screen.getByTestId('preview')).toBeInTheDocument();
+    });
+
     it('integrates with useUIStore panel state and dual-panel policy', () => {
       act(() => {
         useUIStore.getState().setPrimaryPanelPriority('directions');
@@ -856,7 +905,7 @@ describe('SpatialShell Domain Component', () => {
       expect(useUIStore.getState().viewportSafeRect).toBeNull();
     });
 
-    it('gracefully handles missing ResizeObserver and measures mobile detent sheet bypass', () => {
+    it('gracefully handles missing ResizeObserver and clamps mobile full detent sheet at partial ceiling without bypass', () => {
       Object.defineProperty(globalThis, 'ResizeObserver', {
         configurable: true,
         writable: true,
@@ -872,7 +921,7 @@ describe('SpatialShell Domain Component', () => {
       render(
         <SpatialShell
           breadcrumbs={<div data-testid="mob-breadcrumbs">Breadcrumbs</div>}
-          detailsPanel={<div data-testid="full-sheet">Full Sheet</div>}
+          detailsPanel={<div data-testid="full-sheet" data-partial-height-px="360">Full Sheet</div>}
         />,
       );
 
@@ -891,7 +940,10 @@ describe('SpatialShell Domain Component', () => {
         vi.useRealTimers();
       }
 
-      expect(useUIStore.getState().viewportSafeRect?.bypass).toBe(true);
+      expect(useUIStore.getState().viewportSafeRect).toMatchObject({
+        bottom: 360,
+        bypass: false,
+      });
     });
 
     it('treats desktop DetentSheet as left occlusion rather than mobile bottom sheet and excludes closed tablet drawer', () => {
@@ -1002,7 +1054,7 @@ describe('SpatialShell Domain Component', () => {
       expect(topBar.contains(visorScale)).toBe(false);
     });
 
-    it('renders Objects in View trigger as subtle when closed, primary when open, and uses an SVG close icon in the drawer', () => {
+    it('renders Objects in View trigger as subtle with selected state and orbital SVG icon, and uses an SVG close icon in the drawer', () => {
       render(
         <SpatialShell bodies={<div data-testid="bodies-content">Bodies</div>} />,
       );
@@ -1010,11 +1062,16 @@ describe('SpatialShell Domain Component', () => {
       const toggleBtn = screen.getByTestId('spatial-shell-bodies-toggle');
       expect(toggleBtn).toHaveAttribute('data-variant', 'subtle');
       expect(toggleBtn).toHaveAttribute('aria-label', 'Objects in View');
-      expect(toggleBtn.querySelector('svg')).not.toBeNull();
+      const iconSvg = toggleBtn.querySelector('svg');
+      expect(iconSvg).not.toBeNull();
+      expect(iconSvg).toHaveAttribute('viewBox', '0 0 16 16');
+      expect(iconSvg?.querySelector('ellipse')).not.toBeNull();
+      expect(iconSvg?.querySelectorAll('circle')).toHaveLength(2);
       expect(toggleBtn.textContent).toBe('');
 
       fireEvent.click(toggleBtn);
-      expect(toggleBtn).toHaveAttribute('data-variant', 'primary');
+      expect(toggleBtn).toHaveAttribute('data-variant', 'subtle');
+      expect(toggleBtn).toHaveAttribute('data-selected', 'true');
       expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
 
       const closeBtn = screen.getByTestId('spatial-shell-bodies-close');

@@ -49,7 +49,8 @@ describe('<SearchInput />', () => {
     const submitBtn = screen.getByTestId('search-submit-button');
     expect(submitBtn).toHaveAttribute('aria-label', 'Search');
     expect(submitBtn).toHaveAttribute('type', 'submit');
-    expect(submitBtn).toHaveAttribute('data-variant', 'primary');
+    expect(submitBtn).toHaveAttribute('data-variant', 'default');
+    expect(submitBtn).not.toBeDisabled();
     expect(submitBtn.querySelector('svg')).not.toBeNull();
 
     fireEvent.click(clearBtn);
@@ -78,5 +79,28 @@ describe('<SearchInput />', () => {
     expect(input.parentElement).toHaveAttribute('data-has-query', 'false');
     expect(screen.getByTestId('search-clear-button').parentElement).toHaveAttribute('data-has-query', 'false');
     expect(screen.getByTestId('search-submit-button')).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByTestId('search-submit-button')).toBeDisabled();
+
+    rerender(
+      <SearchContext.Provider
+        value={{
+          query: '   ',
+          filter: 'all',
+          status: 'idle',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: '   ', filter: 'all' }),
+          setQuery,
+          setFilter: vi.fn(),
+          submitSearch: vi.fn(),
+          isFocused: true,
+          searchInputRef,
+        }}
+      >
+        <SearchInput />
+      </SearchContext.Provider>,
+    );
+
+    expect(screen.getByTestId('search-submit-button')).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByTestId('search-submit-button')).toBeDisabled();
   });
 });

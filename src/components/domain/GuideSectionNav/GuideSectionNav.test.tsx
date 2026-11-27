@@ -53,24 +53,30 @@ describe('<GuideSectionNav />', () => {
     }
   });
 
-  it('marks current section with data-variant="primary" and aria-current="page", and inactive items with data-variant="subtle"', () => {
+  it('marks current section with data-selected="true" and aria-current="page", while keeping all items data-variant="subtle"', () => {
     const { rerender } = render(<GuideSectionNav currentSection="star-types" />);
     expect(screen.getByRole('link', { name: 'Star Types' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'Star Types' })).toHaveAttribute('data-variant', 'primary');
+    expect(screen.getByRole('link', { name: 'Star Types' })).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByRole('link', { name: 'Star Types' })).toHaveAttribute('data-selected', 'true');
     expect(screen.getByRole('link', { name: 'Planet Types' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: 'Planet Types' })).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByRole('link', { name: 'Planet Types' })).not.toHaveAttribute('data-selected');
 
     rerender(<GuideSectionNav currentSection="metrics" />);
     expect(screen.getByRole('link', { name: 'Star Types' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: 'Star Types' })).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByRole('link', { name: 'Star Types' })).not.toHaveAttribute('data-selected');
     expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toHaveAttribute('data-variant', 'primary');
+    expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toHaveAttribute('data-selected', 'true');
 
     rerender(<GuideSectionNav currentSection="legend" />);
     expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).not.toHaveAttribute('data-selected');
     expect(screen.getByRole('link', { name: 'Legend' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'Legend' })).toHaveAttribute('data-variant', 'primary');
+    expect(screen.getByRole('link', { name: 'Legend' })).toHaveAttribute('data-variant', 'subtle');
+    expect(screen.getByRole('link', { name: 'Legend' })).toHaveAttribute('data-selected', 'true');
   });
 
   it('navigates via SPA router on unmodified click and respects modified clicks', () => {

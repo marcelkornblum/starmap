@@ -152,7 +152,7 @@ const BodiesMinorBodiesSection = React.memo(function BodiesMinorBodiesSection({
       </Stack>
       {remainingCount > 0 ? (
         <Button
-          variant="subtle"
+          variant="default"
           size="sm"
           onClick={() => setVisibleLimit((prev) => prev + MINOR_BODIES_PAGE_STEP)}
           data-testid="bodies-minor-bodies-show-more"

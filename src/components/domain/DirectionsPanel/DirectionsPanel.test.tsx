@@ -56,10 +56,18 @@ describe('<DirectionsPanel />', () => {
     );
 
     expect(screen.getByTestId('directions-total-distance')).toBeInTheDocument();
+    const closeButton = screen.getByTestId('directions-close-button');
+    expect(closeButton).toHaveAttribute('aria-label', 'Close directions');
+    expect(closeButton).toHaveAttribute('data-variant', 'subtle');
+    expect(closeButton).toHaveAttribute('data-size', 'sm');
+    expect(closeButton.querySelector('[data-size="sm"] svg')).not.toBeNull();
+
     const options = screen.getAllByTestId('directions-option-item');
     expect(options.length).toBeGreaterThan(0);
 
     const selectButtons = screen.getAllByTestId('directions-option-select');
+    expect(selectButtons[0]).toHaveAttribute('data-variant', 'default');
+    expect(selectButtons[0]).toHaveAttribute('data-size', 'sm');
     fireEvent.click(selectButtons[0]);
 
     expect(journey).not.toBeNull();
@@ -86,6 +94,8 @@ describe('<DirectionsPanel />', () => {
     expect(screen.getByTestId('directions-steps-list')).toBeInTheDocument();
 
     const backButton = screen.getByTestId('directions-back-to-options');
+    expect(backButton).toHaveAttribute('data-variant', 'default');
+    expect(backButton).toHaveAttribute('data-size', 'sm');
     fireEvent.click(backButton);
     expect(onOptionSelect).toHaveBeenCalledWith(null);
   });

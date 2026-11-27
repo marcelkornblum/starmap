@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
@@ -14,7 +13,6 @@ import {
   Heading,
   Stack,
 } from '../components/interface';
-import { PLANET_TYPES_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
 import {
   getGuideExamplesForEntry,
@@ -67,35 +65,17 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
     >
       <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="planet-types" />
-      <Cluster justify="between" align="center" gap="tight">
-        <Breadcrumbs
-          items={[
-            { label: 'Planet Types', href: PLANET_TYPES_GUIDE_PATH },
-            { label: resolvedPlanetType || 'Planet Type' },
-          ]}
-        />
-        <Cluster gap="tight" align="center">
+      {focusedEntityId && (
+        <div data-testid="guide-focus-context">
           <Button
-            href={PLANET_TYPES_GUIDE_PATH}
-            variant="subtle"
+            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+            variant="default"
             size="sm"
-            data-testid="planet-types-list-link"
           >
-            All Planet Types
+            Return to {focusedEntityId}
           </Button>
-          {focusedEntityId && (
-            <div data-testid="guide-focus-context">
-              <Button
-                href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
-                variant="subtle"
-                size="sm"
-              >
-                Return to {focusedEntityId}
-              </Button>
-            </div>
-          )}
-        </Cluster>
-      </Cluster>
+        </div>
+      )}
       <Heading as="h1" size="title">
         {resolvedPlanetType
           ? `Planet Type: ${resolvedPlanetType}`

@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { SpatialShell } from '../components/domain/SpatialShell';
@@ -15,7 +14,6 @@ import {
   SpectralBadge,
   Stack,
 } from '../components/interface';
-import { STAR_TYPES_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
 import {
   getGuideExamplesForEntry,
@@ -98,35 +96,17 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
     >
       <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="star-types" />
-      <Cluster justify="between" align="center" gap="tight">
-        <Breadcrumbs
-          items={[
-            { label: 'Star Types', href: STAR_TYPES_GUIDE_PATH },
-            { label: resolvedStarType || 'Star Type' },
-          ]}
-        />
-        <Cluster gap="tight" align="center">
+      {focusedEntityId && (
+        <div data-testid="guide-focus-context">
           <Button
-            href={STAR_TYPES_GUIDE_PATH}
-            variant="subtle"
+            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+            variant="default"
             size="sm"
-            data-testid="star-types-list-link"
           >
-            All Star Types
+            Return to {focusedEntityId}
           </Button>
-          {focusedEntityId && (
-            <div data-testid="guide-focus-context">
-              <Button
-                href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
-                variant="subtle"
-                size="sm"
-              >
-                Return to {focusedEntityId}
-              </Button>
-            </div>
-          )}
-        </Cluster>
-      </Cluster>
+        </div>
+      )}
       <Heading as="h1" size="title">{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</Heading>
 
       {resolvedDetails.length > 0 ? (
