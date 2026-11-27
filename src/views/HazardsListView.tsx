@@ -19,7 +19,7 @@ export const HazardsListView: React.FC = () => {
     >
       <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="hazards" />
-      <Heading as="h1" size="title">Environmental Hazards</Heading>
+      <Heading as="h1" size="title" visuallyHidden>Environmental Hazards</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="hazards-guide-list">
         {HAZARD_GUIDE_ENTRIES.map((entry) => (
           <Block

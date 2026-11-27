@@ -38,7 +38,7 @@ export const LegendGuideView: React.FC = () => {
     >
       <div className={guideStyles.guideRoot}>
       <GuideSectionNav currentSection="legend" />
-      <Heading as="h1" size="title">Cartography &amp; Symbology</Heading>
+      <Heading as="h1" size="title" visuallyHidden>Cartography &amp; Symbology</Heading>
 
       <Stack gap="section">
         <CollapsibleSection

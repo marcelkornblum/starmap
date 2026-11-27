@@ -23,7 +23,7 @@ export const MetricsListView: React.FC = () => {
     >
       <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="metrics" />
-      <Heading as="h1" size="title">Telemetry Metrics</Heading>
+      <Heading as="h1" size="title" visuallyHidden>Telemetry Metrics</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="metrics-guide-list">
         {METRIC_GUIDE_ENTRIES.map((entry) => {
           const metricBaseline = baselines?.metrics[entry.id];

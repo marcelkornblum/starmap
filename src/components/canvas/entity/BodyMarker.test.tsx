@@ -623,4 +623,75 @@ describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
     await rendererA.unmount();
     expect(document.body.style.cursor).toBe('auto');
   });
+
+  it('captures and releases pointer on pointerDown/pointerUp/pointerCancel and clears tap state on cancel', async () => {
+    const handleClick = vi.fn();
+    const setPointerCapture = vi.fn();
+    const releasePointerCapture = vi.fn();
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <BodyMarker id="capture-star" position={[0, 0, 0]} onClick={handleClick} />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const hitarea = renderer.scene.find((node) => node.props.name === 'celestial-hitarea');
+
+    // Pointer down captures pointerId 5, then pointer cancel releases it and clears tap tracking
+    await renderer.fireEvent(hitarea, 'pointerDown', {
+      pointerId: 5,
+      pointerType: 'touch',
+      clientX: 100,
+      clientY: 100,
+      target: { setPointerCapture, releasePointerCapture },
+      stopPropagation: vi.fn(),
+    });
+    expect(setPointerCapture).toHaveBeenCalledWith(5);
+
+    await renderer.fireEvent(hitarea, 'pointerCancel', {
+      pointerId: 5,
+      pointerType: 'touch',
+      target: { setPointerCapture, releasePointerCapture },
+      stopPropagation: vi.fn(),
+    });
+    expect(releasePointerCapture).toHaveBeenCalledWith(5);
+
+    // Subsequent pointerUp without new pointerDown must not fire onClick
+    await renderer.fireEvent(hitarea, 'pointerUp', {
+      pointerId: 5,
+      pointerType: 'touch',
+      clientX: 100,
+      clientY: 100,
+      target: { setPointerCapture, releasePointerCapture },
+      stopPropagation: vi.fn(),
+    });
+    expect(handleClick).not.toHaveBeenCalled();
+
+    // Clean down -> up releases pointer capture and fires onClick
+    setPointerCapture.mockClear();
+    releasePointerCapture.mockClear();
+    await renderer.fireEvent(hitarea, 'pointerDown', {
+      pointerId: 6,
+      pointerType: 'touch',
+      clientX: 50,
+      clientY: 50,
+      target: { setPointerCapture, releasePointerCapture },
+      stopPropagation: vi.fn(),
+    });
+    await renderer.fireEvent(hitarea, 'pointerUp', {
+      pointerId: 6,
+      pointerType: 'touch',
+      clientX: 52,
+      clientY: 51,
+      target: { setPointerCapture, releasePointerCapture },
+      stopPropagation: vi.fn(),
+    });
+    expect(setPointerCapture).toHaveBeenCalledWith(6);
+    expect(releasePointerCapture).toHaveBeenCalledWith(6);
+    expect(handleClick).toHaveBeenCalledTimes(1);
+
+    await renderer.unmount();
+  });
 });

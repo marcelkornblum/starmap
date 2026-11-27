@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
 import {
   computeMarkerDotWorldScale,
   getPointerCoord,
   syncBodyMarkerHitareaTransform,
+  captureThreePointer,
+  releaseThreePointer,
+  markEntityPointerActive,
+  consumeEntityPointerActive,
+  resetEntityPointersForTesting,
   type BillboardSyncState,
 } from './bodyMarkerHelpers';
 
@@ -68,5 +73,42 @@ describe('bodyMarkerHelpers', () => {
     expect(hitarea.scale.x).toBeGreaterThan(0);
     expect(hitarea.position.x).toBeGreaterThan(0);
     expect(hitarea.position.y).toBeGreaterThan(0);
+  });
+
+  it('safely captures and releases ThreeEvent pointers with try/catch fallback', () => {
+    const setPointerCapture = vi.fn();
+    const releasePointerCapture = vi.fn();
+    const ev = {
+      pointerId: 42,
+      target: { setPointerCapture, releasePointerCapture },
+    } as unknown as ThreeEvent<PointerEvent>;
+
+    captureThreePointer(ev);
+    releaseThreePointer(ev);
+    expect(setPointerCapture).toHaveBeenCalledWith(42);
+    expect(releasePointerCapture).toHaveBeenCalledWith(42);
+
+    const throwingEv = {
+      pointerId: 9,
+      target: {
+        setPointerCapture: () => { throw new Error('boom'); },
+        releasePointerCapture: () => { throw new Error('boom'); },
+      },
+    } as unknown as ThreeEvent<PointerEvent>;
+    expect(() => captureThreePointer(throwingEv)).not.toThrow();
+    expect(() => releaseThreePointer(throwingEv)).not.toThrow();
+  });
+
+  it('tracks and consumes active entity pointer IDs cleanly', () => {
+    resetEntityPointersForTesting();
+    expect(consumeEntityPointerActive(7)).toBe(false);
+
+    markEntityPointerActive(7);
+    expect(consumeEntityPointerActive(7)).toBe(true);
+    expect(consumeEntityPointerActive(7)).toBe(false);
+
+    markEntityPointerActive(12);
+    resetEntityPointersForTesting();
+    expect(consumeEntityPointerActive(12)).toBe(false);
   });
 });

@@ -30,6 +30,7 @@ describe('<MetricsListView />', () => {
 
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Telemetry Metrics');
+    expect(heading).toHaveAttribute('data-visually-hidden', 'true');
 
     const list = screen.getByTestId('metrics-guide-list');
     expect(list).toBeTruthy();

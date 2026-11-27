@@ -22,6 +22,7 @@ describe('<PlanetTypesListView />', () => {
 
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Planet Types');
+    expect(heading).toHaveAttribute('data-visually-hidden', 'true');
 
     const list = screen.getByTestId('planet-types-guide-list');
     expect(list).toBeTruthy();

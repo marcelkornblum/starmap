@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useEffect } from 'react';
 import { Button, Cluster } from '../../interface';
 import {
   STAR_TYPES_GUIDE_PATH,
@@ -7,6 +8,7 @@ import {
   HAZARDS_GUIDE_PATH,
   LEGEND_GUIDE_PATH,
 } from '../../../content/guide';
+import { preloadGuideListViews } from '../../../services/navigation/guidePreloader';
 import styles from './GuideSectionNav.module.css';
 
 export type GuideSectionId = 'star-types' | 'planet-types' | 'metrics' | 'hazards' | 'legend';
@@ -28,6 +30,28 @@ const GUIDE_SECTIONS: readonly {
 ];
 
 export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection }) => {
+  useEffect(() => {
+    if (import.meta.env.MODE === 'test') {
+      return;
+    }
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(() => {
+        void preloadGuideListViews();
+      });
+      return () => {
+        if (typeof window.cancelIdleCallback === 'function') {
+          window.cancelIdleCallback(idleId);
+        }
+      };
+    }
+    const timerId = globalThis.setTimeout(() => {
+      void preloadGuideListViews();
+    }, 120);
+    return () => {
+      globalThis.clearTimeout(timerId);
+    };
+  }, []);
+
   return (
     <nav
       aria-label="Guide sections"

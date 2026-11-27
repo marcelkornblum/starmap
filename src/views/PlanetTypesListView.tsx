@@ -19,7 +19,7 @@ export const PlanetTypesListView: React.FC = () => {
     >
       <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="planet-types" />
-      <Heading as="h1" size="title">Planet Types</Heading>
+      <Heading as="h1" size="title" visuallyHidden>Planet Types</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="planet-types-guide-list">
         {PLANET_TYPE_GUIDE_ENTRIES.map((entry) => (
           <Block

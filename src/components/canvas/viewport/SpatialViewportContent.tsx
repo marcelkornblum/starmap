@@ -23,6 +23,7 @@ import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import { useViewportStoreSync } from './useViewportStoreSync';
 import { useViewportPointerHandlers } from './useViewportPointerHandlers';
+import { consumeEntityPointerActive } from '../entity/bodyMarkerHelpers';
 import type { SpatialViewportProps } from './SpatialViewport';
 
 export interface SpatialViewportContentProps extends SpatialViewportProps {
@@ -132,6 +133,7 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
     handleEntityDoubleClick,
     handlePointerMissed,
     recordPointerDown,
+    handleDomTouchPointerUp,
   } = useViewportPointerHandlers({
     storeApi,
     occlusionManager,
@@ -149,14 +151,48 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
   useEffect(() => {
     const domElement = gl?.domElement;
     if (!domElement || typeof domElement.addEventListener !== 'function') return;
+    const activeTouchIds = new Set<number>();
+    let wasMultiTouch = false;
+
     const onPointerDown = (e: PointerEvent) => {
       recordPointerDown(e);
+      if (e.pointerType === 'touch') {
+        activeTouchIds.add(e.pointerId);
+        if (activeTouchIds.size > 1) {
+          wasMultiTouch = true;
+        }
+      }
     };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      activeTouchIds.delete(e.pointerId);
+      const hitEntity = consumeEntityPointerActive(e.pointerId);
+      handleDomTouchPointerUp(e, wasMultiTouch, hitEntity);
+      if (activeTouchIds.size === 0) {
+        wasMultiTouch = false;
+      }
+    };
+
+    const onPointerCancel = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      activeTouchIds.delete(e.pointerId);
+      consumeEntityPointerActive(e.pointerId);
+      if (activeTouchIds.size === 0) {
+        wasMultiTouch = false;
+      }
+    };
+
     domElement.addEventListener('pointerdown', onPointerDown, { passive: true });
+    domElement.addEventListener('pointerup', onPointerUp, { passive: true });
+    domElement.addEventListener('pointercancel', onPointerCancel, { passive: true });
     return () => {
       domElement.removeEventListener('pointerdown', onPointerDown);
+      domElement.removeEventListener('pointerup', onPointerUp);
+      domElement.removeEventListener('pointercancel', onPointerCancel);
+      activeTouchIds.clear();
     };
-  }, [gl, recordPointerDown]);
+  }, [gl, recordPointerDown, handleDomTouchPointerUp]);
 
   return (
     <EntityDotsBatchContext.Provider value={dotsBatchRegistry}>

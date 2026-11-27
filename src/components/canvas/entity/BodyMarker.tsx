@@ -19,8 +19,12 @@ import {
   SHARED_DOT_GEOMETRY,
   SHARED_HITAREA_GEOMETRY,
   SHARED_HITAREA_INVISIBLE_MATERIAL,
+  captureThreePointer,
   computeMarkerDotWorldScale,
   getPointerCoord,
+  getThreePointerId,
+  markEntityPointerActive,
+  releaseThreePointer,
   syncBodyMarkerHitareaTransform,
   type BillboardSyncState,
 } from './bodyMarkerHelpers';
@@ -89,28 +93,17 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   const isBatched = batchRegistry !== null;
   const frameCtx = useSpatialFrameSafe();
 
-  const setMarkerRef = useCallback((node: THREE.Mesh | null) => {
-    if (node === null || 'isMesh' in node) markerRef.current = node;
-  }, []);
-  const setHitareaRef = useCallback((node: THREE.Mesh | null) => {
-    if (node === null || 'isMesh' in node) hitareaRef.current = node;
-  }, []);
-  const setBillboardRef = useCallback((node: THREE.Group | null) => {
-    if (node === null || 'isGroup' in node) billboardRef.current = node;
-  }, []);
-  const setGroupRef = useCallback((node: THREE.Group | null) => {
-    if (node === null || 'isGroup' in node) groupRef.current = node;
-  }, [groupRef]);
+  const setMarkerRef = useCallback((node: THREE.Mesh | null) => { if (node === null || 'isMesh' in node) markerRef.current = node; }, []);
+  const setHitareaRef = useCallback((node: THREE.Mesh | null) => { if (node === null || 'isMesh' in node) hitareaRef.current = node; }, []);
+  const setBillboardRef = useCallback((node: THREE.Group | null) => { if (node === null || 'isGroup' in node) billboardRef.current = node; }, []);
+  const setGroupRef = useCallback((node: THREE.Group | null) => { if (node === null || 'isGroup' in node) groupRef.current = node; }, [groupRef]);
 
   const pointerDownPosRef = useRef<{ x: number; y: number; isTouch: boolean } | null>(null);
   const isCoarseOrTouchRef = useLazyRef(() => getCoarsePointerSnapshot());
   const isLocalHoveredRef = useRef(false);
   const hasSyncedFrameRef = useRef(false);
   const lastAlphaRef = useRef(Number.NaN);
-  const lastBillboardSyncRef = useRef<BillboardSyncState>({
-    qx: Number.NaN, qy: Number.NaN, qz: Number.NaN, qw: Number.NaN,
-    scale: Number.NaN, hx: Number.NaN, hy: Number.NaN,
-  });
+  const lastBillboardSyncRef = useRef<BillboardSyncState>({ qx: Number.NaN, qy: Number.NaN, qz: Number.NaN, qw: Number.NaN, scale: Number.NaN, hx: Number.NaN, hy: Number.NaN });
 
   useEffect(() => {
     const syncCoarse = () => {
@@ -149,6 +142,8 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
 
   const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
+    captureThreePointer(e);
+    markEntityPointerActive(getThreePointerId(e));
     const pointerType = e.pointerType || (e.nativeEvent as PointerEvent | undefined)?.pointerType;
     const isTouch = pointerType === 'touch';
     if (isTouch) {
@@ -166,6 +161,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   const handlePointerUp = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
+      releaseThreePointer(e);
       if (!pointerDownPosRef.current) return;
       const { x: startX, y: startY, isTouch: downTouch } = pointerDownPosRef.current;
       const pointerType = e.pointerType || (e.nativeEvent as PointerEvent | undefined)?.pointerType;
@@ -260,6 +256,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
             scale={0}
             onPointerDown={onClick ? handlePointerDown : undefined}
             onPointerUp={onClick ? handlePointerUp : undefined}
+            onPointerCancel={onClick ? (e) => { e.stopPropagation(); releaseThreePointer(e); pointerDownPosRef.current = null; } : undefined}
             onDoubleClick={onDoubleClick ? (e) => {
               e.stopPropagation();
               onDoubleClick(id, e);

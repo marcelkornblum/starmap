@@ -330,4 +330,79 @@ describe('useViewportPointerHandlers hook', () => {
     expect(mockStore.getState().focusedId).toBe('star-1');
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  it('handles 8px-14px DOM touch pointerup misses once and suppresses trailing synthetic click double-fire', () => {
+    mockStore.getState().setFocused('star-1');
+    const onTouchPointerMissed = vi.fn(() => false);
+
+    const { result } = renderHook(() =>
+      useViewportPointerHandlers({
+        storeApi: mockStore,
+        occlusionManager: mockOcclusionManager,
+        transitionTo,
+        invalidate: mockInvalidate,
+        onSelect,
+        onFocusChange,
+        onTouchPointerMissed,
+      }),
+    );
+
+    // 1. Touch tap with 10px drag (between R3F's 2px click cutoff and 14px touch slop)
+    act(() => {
+      result.current.recordPointerDown({ pointerType: 'touch', clientX: 100, clientY: 100 });
+      result.current.handleDomTouchPointerUp(
+        { pointerType: 'touch', clientX: 110, clientY: 100 },
+        false,
+        false,
+      );
+    });
+
+    expect(onTouchPointerMissed).toHaveBeenCalledTimes(1);
+    expect(mockStore.getState().focusedId).toBeNull();
+    expect(onFocusChange).toHaveBeenCalledWith(null);
+
+    // 2. Trailing synthetic click from R3F for the same tap must be suppressed (no double-fire)
+    act(() => {
+      result.current.handlePointerMissed({ type: 'click', clientX: 101, clientY: 100 } as unknown as MouseEvent);
+    });
+    expect(onTouchPointerMissed).toHaveBeenCalledTimes(1);
+    expect(onFocusChange).toHaveBeenCalledTimes(1);
+
+    // 3. Touch drag > 14px does not fire miss
+    mockStore.getState().setFocused('star-1');
+    act(() => {
+      result.current.recordPointerDown({ pointerType: 'touch', clientX: 100, clientY: 100 });
+      result.current.handleDomTouchPointerUp(
+        { pointerType: 'touch', clientX: 120, clientY: 100 },
+        false,
+        false,
+      );
+    });
+    expect(onTouchPointerMissed).toHaveBeenCalledTimes(1);
+    expect(mockStore.getState().focusedId).toBe('star-1');
+
+    // 4. Multi-touch pinch does not fire miss
+    act(() => {
+      result.current.recordPointerDown({ pointerType: 'touch', clientX: 100, clientY: 100 });
+      result.current.handleDomTouchPointerUp(
+        { pointerType: 'touch', clientX: 102, clientY: 100 },
+        true,
+        false,
+      );
+    });
+    expect(onTouchPointerMissed).toHaveBeenCalledTimes(1);
+    expect(mockStore.getState().focusedId).toBe('star-1');
+
+    // 5. Entity hit does not fire miss
+    act(() => {
+      result.current.recordPointerDown({ pointerType: 'touch', clientX: 100, clientY: 100 });
+      result.current.handleDomTouchPointerUp(
+        { pointerType: 'touch', clientX: 102, clientY: 100 },
+        false,
+        true,
+      );
+    });
+    expect(onTouchPointerMissed).toHaveBeenCalledTimes(1);
+    expect(mockStore.getState().focusedId).toBe('star-1');
+  });
 });

@@ -38,6 +38,65 @@ export function getPointerCoord(e: ThreeEvent<PointerEvent>): { x: number; y: nu
   };
 }
 
+interface PointerCaptureTarget {
+  setPointerCapture?: (pointerId: number) => void;
+  releasePointerCapture?: (pointerId: number) => void;
+}
+
+export function getThreePointerId(e: ThreeEvent<PointerEvent>): number | undefined {
+  if (typeof e.pointerId === 'number') return e.pointerId;
+  const nativeId = (e.nativeEvent as PointerEvent | undefined)?.pointerId;
+  return typeof nativeId === 'number' ? nativeId : undefined;
+}
+
+export function captureThreePointer(e: ThreeEvent<PointerEvent>): void {
+  const pointerId = getThreePointerId(e);
+  if (pointerId === undefined) return;
+  const target = e.target as PointerCaptureTarget | undefined;
+  const nativeTarget = (e.nativeEvent as { target?: PointerCaptureTarget } | undefined)?.target;
+  const captureTarget = typeof target?.setPointerCapture === 'function' ? target : nativeTarget;
+  try {
+    captureTarget?.setPointerCapture?.(pointerId);
+  } catch {
+    // Ignore synthetic or detached target capture failures
+  }
+}
+
+export function releaseThreePointer(e: ThreeEvent<PointerEvent>): void {
+  const pointerId = getThreePointerId(e);
+  if (pointerId === undefined) return;
+  const target = e.target as PointerCaptureTarget | undefined;
+  const nativeTarget = (e.nativeEvent as { target?: PointerCaptureTarget } | undefined)?.target;
+  const releaseTarget = typeof target?.releasePointerCapture === 'function' ? target : nativeTarget;
+  try {
+    releaseTarget?.releasePointerCapture?.(pointerId);
+  } catch {
+    // Ignore synthetic or already-released pointer capture failures
+  }
+}
+
+const MAX_TRACKED_ENTITY_POINTERS = 32;
+const activeEntityPointerIds = new Set<number>();
+
+export function markEntityPointerActive(pointerId: number | undefined): void {
+  if (typeof pointerId === 'number' && Number.isFinite(pointerId)) {
+    if (activeEntityPointerIds.size >= MAX_TRACKED_ENTITY_POINTERS) {
+      activeEntityPointerIds.clear();
+    }
+    activeEntityPointerIds.add(pointerId);
+  }
+}
+
+export function consumeEntityPointerActive(pointerId: number | undefined): boolean {
+  if (typeof pointerId !== 'number' || !activeEntityPointerIds.has(pointerId)) return false;
+  activeEntityPointerIds.delete(pointerId);
+  return true;
+}
+
+export function resetEntityPointersForTesting(): void {
+  activeEntityPointerIds.clear();
+}
+
 export function computeMarkerDotWorldScale(
   camera: THREE.Camera,
   camDist: number,

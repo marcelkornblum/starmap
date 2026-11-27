@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { useRouter } from '@tanstack/react-router';
+import * as guidePreloader from '../../../services/navigation/guidePreloader';
 import { GuideSectionNav } from './GuideSectionNav';
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
@@ -20,6 +21,13 @@ describe('<GuideSectionNav />', () => {
       navigate: mockNavigate,
       history: { push: mockNavigate },
     } as never);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('renders all 5 guide section links with subtle variant by default', () => {
@@ -77,5 +85,51 @@ describe('<GuideSectionNav />', () => {
     const ctrlHandled = fireEvent.click(screen.getByRole('link', { name: 'Legend' }), { ctrlKey: true });
     expect(ctrlHandled).toBe(true);
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('schedules preloadGuideListViews on requestIdleCallback outside test mode and cancels on unmount', () => {
+    vi.stubEnv('MODE', 'production');
+    const preloadSpy = vi
+      .spyOn(guidePreloader, 'preloadGuideListViews')
+      .mockResolvedValue(undefined);
+    let scheduledCallback: IdleRequestCallback | undefined;
+    const requestIdleMock = vi.fn((cb: IdleRequestCallback) => {
+      scheduledCallback = cb;
+      return 42;
+    });
+    const cancelIdleMock = vi.fn();
+
+    vi.stubGlobal('requestIdleCallback', requestIdleMock);
+    vi.stubGlobal('cancelIdleCallback', cancelIdleMock);
+
+    const { unmount } = render(<GuideSectionNav currentSection="star-types" />);
+
+    expect(requestIdleMock).toHaveBeenCalledTimes(1);
+    expect(preloadSpy).not.toHaveBeenCalled();
+
+    scheduledCallback?.({ didTimeout: false, timeRemaining: () => 50 });
+    expect(preloadSpy).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(cancelIdleMock).toHaveBeenCalledWith(42);
+  });
+
+  it('falls back to setTimeout when requestIdleCallback is unavailable outside test mode', () => {
+    vi.stubEnv('MODE', 'production');
+    vi.useFakeTimers();
+    const preloadSpy = vi
+      .spyOn(guidePreloader, 'preloadGuideListViews')
+      .mockResolvedValue(undefined);
+
+    vi.stubGlobal('requestIdleCallback', undefined);
+    vi.stubGlobal('cancelIdleCallback', undefined);
+
+    const { unmount } = render(<GuideSectionNav currentSection="star-types" />);
+
+    expect(preloadSpy).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(120);
+    expect(preloadSpy).toHaveBeenCalledTimes(1);
+
+    unmount();
   });
 });

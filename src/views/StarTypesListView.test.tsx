@@ -22,6 +22,7 @@ describe('<StarTypesListView />', () => {
 
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Star Types');
+    expect(heading).toHaveAttribute('data-visually-hidden', 'true');
 
     const list = screen.getByTestId('star-types-guide-list');
     expect(list).toBeTruthy();

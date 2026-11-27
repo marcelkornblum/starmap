@@ -48,9 +48,11 @@ export function useViewportPointerHandlers({
   const triggerInvalidate = invalidate ?? r3fInvalidate;
   const lastPointerDownRef = useRef<{ pointerType: string; x: number; y: number } | null>(null);
   const lastPointerTypeRef = useRef<string | null>(null);
+  const suppressNextClickMissRef = useRef(false);
 
   const recordPointerDown = useCallback(
     (e: { pointerType?: string; clientX?: number; clientY?: number }) => {
+      suppressNextClickMissRef.current = false;
       const pointerType = e.pointerType || null;
       if (pointerType) {
         lastPointerTypeRef.current = pointerType;
@@ -128,6 +130,10 @@ export function useViewportPointerHandlers({
 
   const handlePointerMissed = useCallback(
     (event?: MouseEvent | PointerEvent) => {
+      if (suppressNextClickMissRef.current && event?.type === 'click') {
+        suppressNextClickMissRef.current = false;
+        return;
+      }
       const eventPointerType =
         event &&
         'pointerType' in event &&
@@ -173,10 +179,47 @@ export function useViewportPointerHandlers({
     [storeApi, triggerInvalidate, onSelect, onFocusChange, onTouchPointerMissed],
   );
 
+  const handleDomTouchPointerUp = useCallback(
+    (
+      e: { pointerType?: string; clientX?: number; clientY?: number },
+      wasMultiTouch: boolean,
+      hitEntity: boolean,
+    ): boolean => {
+      if (e.pointerType !== 'touch') return false;
+      const down = lastPointerDownRef.current;
+      if (wasMultiTouch) {
+        lastPointerDownRef.current = null;
+        suppressNextClickMissRef.current = true;
+        return false;
+      }
+      if (hitEntity || !down) {
+        lastPointerDownRef.current = null;
+        return false;
+      }
+      if (
+        Number.isFinite(down.x) &&
+        Number.isFinite(down.y) &&
+        typeof e.clientX === 'number' &&
+        typeof e.clientY === 'number'
+      ) {
+        const dragDist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+        if (dragDist > POINTER_TAP_SLOP_TOUCH_PX) {
+          lastPointerDownRef.current = null;
+          return false;
+        }
+      }
+      handlePointerMissed(e as unknown as PointerEvent);
+      suppressNextClickMissRef.current = true;
+      return true;
+    },
+    [handlePointerMissed],
+  );
+
   return {
     handleEntityClick,
     handleEntityDoubleClick,
     handlePointerMissed,
     recordPointerDown,
+    handleDomTouchPointerUp,
   };
 }

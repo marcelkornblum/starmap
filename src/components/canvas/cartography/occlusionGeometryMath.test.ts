@@ -129,4 +129,50 @@ describe('occlusionGeometryMath - Geometry Primitives & Grid', () => {
     expect(emptyCount).toBe(0);
     expect(out.length).toBe(5);
   });
+
+  it('ignores non-finite coordinates and handles extreme 1e20 coordinates in O(1) without infinite loop', () => {
+    const grid = new ScreenSpatialGrid(100);
+    const validFp = {
+      id: 'valid',
+      state: 'active' as const,
+      screenX: 50,
+      screenY: 50,
+      reticleRadius: 20,
+      starRadius: 3,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 100,
+    };
+    grid.insert(validFp);
+    grid.insert({ ...validFp, id: 'nan-fp', screenX: Number.NaN, screenY: 50 });
+    grid.insert({ ...validFp, id: 'inf-fp', screenX: Number.POSITIVE_INFINITY, screenY: 50 });
+    grid.insert({ ...validFp, id: 'huge-fp', screenX: 1e20, screenY: -1e20 });
+
+    const found: string[] = [];
+    grid.forEachNearby(Number.NaN, 50, 100, (item) => {
+      found.push(item.id);
+    });
+    grid.forEachNearby(50, Number.POSITIVE_INFINITY, 100, (item) => {
+      found.push(item.id);
+    });
+    grid.forEachNearby(50, 50, Number.NaN, (item) => {
+      found.push(item.id);
+    });
+    grid.forEachNearby(50, 50, -10, (item) => {
+      found.push(item.id);
+    });
+    expect(found).toEqual([]);
+
+    grid.forEachNearby(1e20, -1e20, 50, (item) => {
+      found.push(item.id);
+    });
+    expect(found).toContain('huge-fp');
+
+    const out: typeof validFp[] = [];
+    expect(grid.collectNearby(Number.NaN, 0, 50, out)).toBe(0);
+    expect(grid.collectNearby(0, 0, Number.POSITIVE_INFINITY, out)).toBe(0);
+    expect(grid.collectNearby(0, 0, -5, out)).toBe(0);
+    expect(grid.collectNearby(0, 0, 1e20, out)).toBeGreaterThanOrEqual(1);
+    expect(grid.collectNearby(1e20, -1e20, 50, out)).toBe(1);
+  });
 });

@@ -30,6 +30,7 @@ describe('<LegendGuideView />', () => {
 
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Cartography & Symbology');
+    expect(heading).toHaveAttribute('data-visually-hidden', 'true');
   });
 
   it('renders all line trajectory entries, zone boundary entries, celestial symbol groups, and chromaticity entries', () => {

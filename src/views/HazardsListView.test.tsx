@@ -22,6 +22,7 @@ describe('<HazardsListView />', () => {
 
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Environmental Hazards');
+    expect(heading).toHaveAttribute('data-visually-hidden', 'true');
 
     const list = screen.getByTestId('hazards-guide-list');
     expect(list).toBeTruthy();

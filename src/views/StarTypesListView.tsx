@@ -19,7 +19,7 @@ export const StarTypesListView: React.FC = () => {
     >
       <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="star-types" />
-      <Heading as="h1" size="title">Star Types</Heading>
+      <Heading as="h1" size="title" visuallyHidden>Star Types</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="star-types-guide-list">
         {STAR_TYPE_GUIDE_ENTRIES.map((entry) => (
           <Block
