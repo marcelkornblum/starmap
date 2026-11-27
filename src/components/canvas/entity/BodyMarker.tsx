@@ -176,6 +176,42 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
     [triggerClick],
   );
 
+  const handlePointerCancel = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    releaseThreePointer(e);
+    pointerDownPosRef.current = null;
+  }, []);
+
+  const handleDoubleClick = useCallback(
+    (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation();
+      onDoubleClick?.(id, e);
+    },
+    [id, onDoubleClick],
+  );
+
+  const handlePointerOver = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation();
+      if (e.pointerType === 'touch' || e.buttons > 0) return;
+      isLocalHoveredRef.current = true;
+      if (document.body.style.cursor !== 'pointer') document.body.style.cursor = 'pointer';
+      onPointerOver?.(id, e);
+    },
+    [id, onPointerOver],
+  );
+
+  const handlePointerOut = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation();
+      if (e.pointerType === 'touch' || e.buttons > 0) return;
+      isLocalHoveredRef.current = false;
+      if (document.body.style.cursor !== 'auto') document.body.style.cursor = 'auto';
+      onPointerOut?.(id, e);
+    },
+    [id, onPointerOut],
+  );
+
   useEffect(() => {
     if (!interactive && isLocalHoveredRef.current) {
       isLocalHoveredRef.current = false;
@@ -256,25 +292,10 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
             scale={0}
             onPointerDown={onClick ? handlePointerDown : undefined}
             onPointerUp={onClick ? handlePointerUp : undefined}
-            onPointerCancel={onClick ? (e) => { e.stopPropagation(); releaseThreePointer(e); pointerDownPosRef.current = null; } : undefined}
-            onDoubleClick={onDoubleClick ? (e) => {
-              e.stopPropagation();
-              onDoubleClick(id, e);
-            } : undefined}
-            onPointerOver={onPointerOver ? (e) => {
-              e.stopPropagation();
-              if (e.pointerType === 'touch' || e.buttons > 0) return;
-              isLocalHoveredRef.current = true;
-              if (document.body.style.cursor !== 'pointer') document.body.style.cursor = 'pointer';
-              onPointerOver(id, e);
-            } : undefined}
-            onPointerOut={onPointerOut ? (e) => {
-              e.stopPropagation();
-              if (e.pointerType === 'touch' || e.buttons > 0) return;
-              isLocalHoveredRef.current = false;
-              if (document.body.style.cursor !== 'auto') document.body.style.cursor = 'auto';
-              onPointerOut(id, e);
-            } : undefined}
+            onPointerCancel={onClick ? handlePointerCancel : undefined}
+            onDoubleClick={onDoubleClick ? handleDoubleClick : undefined}
+            onPointerOver={onPointerOver ? handlePointerOver : undefined}
+            onPointerOut={onPointerOut ? handlePointerOut : undefined}
           >
             {debugHitarea && (
               <meshBasicMaterial color={stateFocus} transparent opacity={0.35} wireframe depthWrite={false} side={THREE.DoubleSide} />
