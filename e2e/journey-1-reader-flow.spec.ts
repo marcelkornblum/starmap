@@ -85,8 +85,8 @@ test.describe('Journey 1: The Reader Flow (Target Acquisition & Travel Planning)
     await expect(detailsPane).toBeVisible();
     await expect(directionsPane).not.toBeVisible();
 
-    // 9. Clicks "Details" link in Details pane to transition to System scale
-    const systemDetailsLink = detailsPane.getByRole('link', { name: 'Details' });
+    // 9. Clicks "Zoom to" link in Details pane to transition to System scale
+    const systemDetailsLink = detailsPane.getByRole('link', { name: 'Zoom to' });
     await expect(systemDetailsLink).toBeVisible();
     await systemDetailsLink.click();
 

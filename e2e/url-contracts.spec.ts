@@ -126,10 +126,13 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         // Navigating with entity id sets centre
         await page.goto('/galaxy?center=sol');
         await expect(page).toHaveURL(/center=sol/);
+        const canvas = page.locator('[data-testid="root-canvas-host"] canvas');
+        await expect(canvas).toHaveAttribute('data-gl-draw-calls', /^[1-9]\d*$/, {
+          timeout: 15_000,
+        });
         const historyLengthBefore = await page.evaluate(() => window.history.length);
 
         // Panning camera away replaces entity id with settled coordinates
-        const canvas = page.locator('[data-testid="root-canvas-host"] canvas');
         const box = await canvas.boundingBox();
         if (box) {
           const cx = box.x + box.width / 2;

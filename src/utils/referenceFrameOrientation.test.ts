@@ -8,6 +8,7 @@ import {
   GALACTIC_TO_ECLIPTIC_TILT_DEG,
   computeCrossScaleArrivalFade,
   computeCrossScaleDepartureFade,
+  computeCrossScaleOrbitAttenuation,
   computeCrossScalePreviewHandoffOpacity,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
@@ -96,11 +97,12 @@ describe('referenceFrameOrientation', () => {
     );
   });
 
-  it('computes cross-scale arrival fade with default [0.0, 0.55] window and supports custom config', () => {
+  it('computes cross-scale arrival fade with default [0.18, 0.75] window and supports custom config', () => {
     expect(computeCrossScaleArrivalFade(-0.1)).toBe(0);
     expect(computeCrossScaleArrivalFade(0)).toBe(0);
-    expect(computeCrossScaleArrivalFade(0.275)).toBeCloseTo(easeOutCubic(0.5), 8);
-    expect(computeCrossScaleArrivalFade(0.55)).toBe(1);
+    expect(computeCrossScaleArrivalFade(0.18)).toBe(0);
+    expect(computeCrossScaleArrivalFade(0.465)).toBeCloseTo(easeOutCubic(0.5), 8);
+    expect(computeCrossScaleArrivalFade(0.75)).toBe(1);
     expect(computeCrossScaleArrivalFade(1.0)).toBe(1);
 
     const customConfig: CrossScaleChoreographyConfig = {
@@ -148,13 +150,19 @@ describe('referenceFrameOrientation', () => {
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.zoomOutMoveWindow).toEqual([0.0, 0.85]);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.zoomOutTiltWindow).toEqual([0.35, 1.0]);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.departureFadeWindow).toEqual([0.15, 0.95]);
-    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalFadeWindow).toEqual([0.0, 0.55]);
+    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalFadeWindow).toEqual([0.18, 0.75]);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalPreviewFadeWindow).toEqual([0.15, 0.85]);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadHoldThreshold).toBe(0.78);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadHoldCeiling).toBe(0.94);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadCreepTimeConstantSec).toBe(1.8);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadMaxHoldSec).toBe(4.0);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.minSceneScale).toBe(0.04);
+    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.orbitSquashFullScale).toBe(0.35);
+    expect(computeCrossScaleOrbitAttenuation(0.04)).toBe(0);
+    expect(computeCrossScaleOrbitAttenuation(0.195)).toBeCloseTo(0.5, 6);
+    expect(computeCrossScaleOrbitAttenuation(0.35)).toBe(1);
+    expect(computeCrossScaleOrbitAttenuation(1.0)).toBe(1);
+    expect(computeCrossScaleOrbitAttenuation(Number.NaN)).toBe(1);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.departureInDistanceMultiplier).toBe(0.22);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.departureOutDistanceMultiplier).toBe(2.2);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalInDistanceMultiplier).toBe(1.85);

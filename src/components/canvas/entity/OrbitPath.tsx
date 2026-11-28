@@ -1,10 +1,14 @@
 import React, { useMemo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
+import { computeCrossScaleOrbitAttenuation } from '../../../utils/referenceFrameOrientation';
 import { CartoLineMaterial } from '../materials/CartoLineMaterial';
+import { getCrossScaleInstrumentFade } from '../instrument/crossScaleFadeState';
+import { getCrossScaleSceneScale } from '../instrument/crossScaleVisualState';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { calculateScreenInvariantScale, NOOP_RAYCAST } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
@@ -63,6 +67,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   const lastPeriapsisOpacityRef = useRef<number>(Number.NaN);
   const lastResolutionRef = useRef({ width: -1, height: -1, proj11: Number.NaN });
   const frameCtx = useSpatialFrameSafe();
+  const getThreeState = useThree((s) => s.get);
 
   const scratchWorldTangent = useLazyRef(() => new THREE.Vector3());
   const scratchCamDir = useLazyRef(() => new THREE.Vector3());
@@ -113,18 +118,21 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     ],
   );
 
-  const lineMat = useMemo(
-    () =>
-      shouldRender
-        ? new CartoLineMaterial({
-            lineWidth: 2.0,
-            lineStyle: lineStyle ?? orbitStyle ?? 'dashed',
-            transparent: true,
-            depthWrite: false,
-          })
-        : null,
-    [shouldRender, lineStyle, orbitStyle],
-  );
+  const lineMat = useMemo(() => {
+    if (!shouldRender) return null;
+    const mat = new CartoLineMaterial({
+      lineWidth: 2.0,
+      lineStyle: lineStyle ?? orbitStyle ?? 'dashed',
+      opacity: 0,
+      transparent: true,
+      depthWrite: false,
+    });
+    const liveState = typeof getThreeState === 'function' ? getThreeState() : undefined;
+    if (liveState?.camera && liveState?.size) {
+      mat.updateResolution(liveState.camera, liveState.size.width, liveState.size.height);
+    }
+    return mat;
+  }, [shouldRender, lineStyle, orbitStyle, getThreeState]);
 
   const lineMesh = useMemo(() => {
     if (!geometries || !lineMat) return null;
@@ -144,10 +152,11 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     };
   }, [geometries, lineMat]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!lineMat) return;
-    const instrumentFade = frameCtx?.frameRef?.current?.instrumentFade ?? 1;
-    const initialAlpha = resolvedAlpha * instrumentFade;
+    const instrumentFade = frameCtx?.frameRef?.current?.instrumentFade ?? getCrossScaleInstrumentFade();
+    const initialAlpha =
+      resolvedAlpha * instrumentFade * computeCrossScaleOrbitAttenuation(getCrossScaleSceneScale());
     lineMat.setColor(resolvedColor);
     lineMat.setOpacity(initialAlpha);
     lastLineOpacityRef.current = initialAlpha;
@@ -168,7 +177,15 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     } else {
       lastPeriapsisOpacityRef.current = Number.NaN;
     }
-  }, [lineMat, resolvedColor, resolvedAlpha, frameCtx]);
+  }, [
+    lineMat,
+    resolvedColor,
+    resolvedAlpha,
+    frameCtx,
+    showPeriapsisTick,
+    showDirectionIndicator,
+    geometries,
+  ]);
 
   useFrame(({ camera, size }) => {
     if (!shouldRender || !lineMat || !geometries) return;
@@ -186,8 +203,9 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     }
 
     const frameState = frameCtx?.frameRef?.current;
-    const instrumentFade = frameState?.instrumentFade ?? 1;
-    const nextAlpha = resolvedAlpha * instrumentFade;
+    const instrumentFade = frameState?.instrumentFade ?? getCrossScaleInstrumentFade();
+    const nextAlpha =
+      resolvedAlpha * instrumentFade * computeCrossScaleOrbitAttenuation(getCrossScaleSceneScale());
     if (Number.isNaN(lastLineOpacityRef.current) || Math.abs(nextAlpha - lastLineOpacityRef.current) > 1e-4) {
       lineMat.setOpacity(nextAlpha);
       lastLineOpacityRef.current = nextAlpha;
@@ -244,7 +262,6 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
           <lineBasicMaterial
             ref={periapsisMatRef}
             color={resolvedColor}
-            opacity={resolvedAlpha}
             transparent
             depthWrite={false}
           />
@@ -262,7 +279,6 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
             <meshBasicMaterial
               ref={directionMatRef}
               color={resolvedColor}
-              opacity={resolvedAlpha}
               side={THREE.DoubleSide}
               transparent
               depthWrite={false}

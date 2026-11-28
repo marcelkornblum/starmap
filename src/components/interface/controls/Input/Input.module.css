@@ -70,7 +70,6 @@
   .input[data-status="error"]:focus {
     --input-border-color: var(--status-critical);
     --input-shadow: var(--status-critical-focus-halo);
-    box-shadow: var(--input-shadow);
   }
 
   .input[data-status="success"] {

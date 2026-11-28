@@ -85,13 +85,14 @@ test.describe('Click freeze & anchor navigation regression', () => {
     await expect(marsLink).toBeVisible();
     await marsLink.click();
 
-    // C. FS-013 hides "Centre" while Sol is already centred; pan off-centre to reveal it and click "Centre"
+    // C. FS-013 disables "Centred on map" while Sol is already centred; pan off-centre to enable "Centre on map" and click it
     const centreLink = detailsPane.getByTestId('details-button-center');
-    await expect(centreLink).toHaveCount(0);
+    await expect(centreLink).toHaveAttribute('aria-disabled', 'true');
     await panCanvasOffCenter(page);
-    await expect(centreLink).toBeVisible({ timeout: 5_000 });
+    await expect(centreLink).toHaveText('Centre on map', { timeout: 5_000 });
+    await expect(centreLink).not.toHaveAttribute('aria-disabled', 'true');
     await centreLink.click();
-    await expect(centreLink).toHaveCount(0, { timeout: 5_000 });
+    await expect(centreLink).toHaveAttribute('aria-disabled', 'true', { timeout: 5_000 });
 
     // 4. Type "Sol" again in the searchbox and click "Sol" a second time (re-selecting already focused system)
     await searchbox.fill('Sol');

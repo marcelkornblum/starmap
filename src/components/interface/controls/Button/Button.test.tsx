@@ -99,7 +99,7 @@ describe('<Button />', () => {
     );
 
     const link = screen.getByRole('link', { name: 'Locked Link' });
-    expect(link).toHaveAttribute('href');
+    expect(link).not.toHaveAttribute('href');
     expect(link).toHaveAttribute('aria-disabled', 'true');
     expect(link).toHaveAttribute('data-disabled', 'true');
     expect(link).toHaveAttribute('tabindex', '-1');

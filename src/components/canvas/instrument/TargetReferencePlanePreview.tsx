@@ -10,7 +10,6 @@ import {
   getCrossScalePlanePreviewState,
   stepCrossScalePlanePreview,
 } from './crossScaleVisualState';
-import { buildPreviewReferenceMarksGeometry } from './targetReferencePlaneGeometry';
 
 const PREVIEW_SEGMENTS = 64;
 const OUTER_RING_INNER_RADIUS = 0.985;
@@ -22,12 +21,10 @@ const MIN_SCALE = 0.001;
 const OPACITY_EPSILON = 1e-4;
 
 /**
- * Translucent cartographic reference-plane preview disc, concentric rings, and compass/grid marks
- * rendered during cross-scale transitions as a visual bridge into the target datum plane.
+ * Unfilled concentric cartographic reference-plane rings rendered during cross-scale
+ * transitions as a clean orientation bridge into or out of the target datum plane.
  */
 export const TargetReferencePlanePreview: React.FC = React.memo(() => {
-  const datumPlaneFillColor = useThreeTokenStore((s) => s.tokens.datumPlaneFillColor);
-  const datumPlaneFillAlpha = useThreeTokenStore((s) => s.tokens.datumPlaneFillAlpha);
   const datumPlaneMajorColor = useThreeTokenStore((s) => s.tokens.datumPlaneMajorColor);
   const datumPlaneMajorAlpha = useThreeTokenStore((s) => s.tokens.datumPlaneMajorAlpha);
   const datumPlaneMinorColor = useThreeTokenStore((s) => s.tokens.datumPlaneMinorColor);
@@ -36,7 +33,6 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
   const invalidate = useThree((s) => s.invalidate);
   const choreography = useCrossScaleChoreography();
   const groupRef = useRef<THREE.Group>(null);
-  const discMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const outerRingMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const innerRing1MatRef = useRef<THREE.MeshBasicMaterial>(null);
   const innerRing2MatRef = useRef<THREE.MeshBasicMaterial>(null);
@@ -45,9 +41,8 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
   const tiltAxisRef = useLazyRef(() => new THREE.Vector3(1, 0, 0));
   const orientationQuatRef = useLazyRef(() => new THREE.Quaternion());
 
-  const { discGeom, outerRingGeom, innerRing1Geom, innerRing2Geom, marksGeom } = useMemo(
+  const { outerRingGeom, innerRing1Geom, innerRing2Geom } = useMemo(
     () => ({
-      discGeom: new THREE.CircleGeometry(1, PREVIEW_SEGMENTS),
       outerRingGeom: new THREE.RingGeometry(
         OUTER_RING_INNER_RADIUS,
         OUTER_RING_OUTER_RADIUS,
@@ -63,53 +58,17 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
         INNER_RING_2_RADIUS + INNER_RING_HALF_WIDTH,
         PREVIEW_SEGMENTS,
       ),
-      marksGeom: buildPreviewReferenceMarksGeometry(),
     }),
     [],
   );
 
-  const { majorLineMat, minorLineMat, marksMaterials } = useMemo(() => {
-    const major = new THREE.LineBasicMaterial({
-      opacity: 0,
-      transparent: true,
-      depthWrite: false,
-    });
-    const minor = new THREE.LineBasicMaterial({
-      opacity: 0,
-      transparent: true,
-      depthWrite: false,
-    });
-    return {
-      majorLineMat: major,
-      minorLineMat: minor,
-      marksMaterials: [major, minor] as [THREE.LineBasicMaterial, THREE.LineBasicMaterial],
-    };
-  }, []);
-
-  useEffect(() => {
-    majorLineMat.color.set(datumPlaneMajorColor);
-    minorLineMat.color.set(datumPlaneMinorColor);
-  }, [majorLineMat, minorLineMat, datumPlaneMajorColor, datumPlaneMinorColor]);
-
   useEffect(() => {
     return () => {
-      discGeom.dispose();
       outerRingGeom.dispose();
       innerRing1Geom.dispose();
       innerRing2Geom.dispose();
-      marksGeom.dispose();
-      majorLineMat.dispose();
-      minorLineMat.dispose();
     };
-  }, [
-    discGeom,
-    outerRingGeom,
-    innerRing1Geom,
-    innerRing2Geom,
-    marksGeom,
-    majorLineMat,
-    minorLineMat,
-  ]);
+  }, [outerRingGeom, innerRing1Geom, innerRing2Geom]);
 
   useFrame((_, delta) => {
     const dt = Number.isFinite(delta) && delta > 0 ? Math.min(delta, 0.05) : 0;
@@ -127,12 +86,9 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
       if (!wasVisibleRef.current) return;
       wasVisibleRef.current = false;
       group.visible = false;
-      if (discMatRef.current) discMatRef.current.opacity = 0;
       if (outerRingMatRef.current) outerRingMatRef.current.opacity = 0;
       if (innerRing1MatRef.current) innerRing1MatRef.current.opacity = 0;
       if (innerRing2MatRef.current) innerRing2MatRef.current.opacity = 0;
-      majorLineMat.opacity = 0;
-      minorLineMat.opacity = 0;
       return;
     }
 
@@ -153,9 +109,6 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
     );
     group.scale.set(radiusScale, radiusScale, 1);
 
-    if (discMatRef.current) {
-      discMatRef.current.opacity = datumPlaneFillAlpha * preview.opacity;
-    }
     if (outerRingMatRef.current) {
       outerRingMatRef.current.opacity = datumPlaneMajorAlpha * preview.opacity;
     }
@@ -165,27 +118,10 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
     if (innerRing2MatRef.current) {
       innerRing2MatRef.current.opacity = datumPlaneMinorAlpha * preview.opacity;
     }
-    majorLineMat.opacity = datumPlaneMajorAlpha * preview.opacity;
-    minorLineMat.opacity = datumPlaneMinorAlpha * preview.opacity;
   });
 
   return (
     <group ref={groupRef} visible={false} name="target-reference-plane-preview">
-      <mesh
-        name="target-plane-preview-disc"
-        frustumCulled={false}
-        raycast={NOOP_RAYCAST}
-      >
-        <primitive object={discGeom} attach="geometry" />
-        <meshBasicMaterial
-          ref={discMatRef}
-          color={datumPlaneFillColor}
-          opacity={0}
-          transparent
-          depthWrite={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
       <mesh
         name="target-plane-preview-outer-ring"
         frustumCulled={false}
@@ -231,13 +167,8 @@ export const TargetReferencePlanePreview: React.FC = React.memo(() => {
           side={THREE.DoubleSide}
         />
       </mesh>
-      <lineSegments
-        name="target-plane-preview-reference-marks"
-        geometry={marksGeom}
-        material={marksMaterials}
-        frustumCulled={false}
-        raycast={NOOP_RAYCAST}
-      />
     </group>
   );
 });
+
+TargetReferencePlanePreview.displayName = 'TargetReferencePlanePreview';

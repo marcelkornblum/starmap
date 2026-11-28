@@ -26,7 +26,7 @@ describe('<DetailsActionControls />', () => {
     expect(screen.getByTestId('details-button-directions')).toBeInTheDocument();
   });
 
-  it('hides details-button-center when camera target matches scene-local SpatialEntityStore position on SystemView and shows it with preserved params once panned away', () => {
+  it('disables details-button-center as "Centred on map" when camera target matches scene-local SpatialEntityStore position on SystemView and enables "Centre on map" with preserved params once panned away', () => {
     const store = createSpatialEntityStore();
     store.getState().registerEntity({
       id: 'earth',
@@ -48,12 +48,22 @@ describe('<DetailsActionControls />', () => {
           id="earth"
           coordinatesPc={[0, 0, 0]}
           centerHref={centerHref}
+          systemDetailsHref="/planet/earth"
           directionsHref="/galaxy?focus=sol"
         />
       </SpatialEntityStoreContext.Provider>,
     );
 
-    expect(screen.queryByTestId('details-button-center')).toBeNull();
+    const zoomBtn = screen.getByTestId('details-button-system-details');
+    expect(zoomBtn).toHaveTextContent('Zoom to');
+    expect(zoomBtn).toHaveAttribute('data-variant', 'primary');
+    expect(screen.getByTestId('details-button-directions')).toHaveAttribute('data-variant', 'default');
+
+    const centredBtn = screen.getByTestId('details-button-center');
+    expect(centredBtn).toHaveTextContent('Centred on map');
+    expect(centredBtn).toHaveAttribute('data-variant', 'subtle');
+    expect(centredBtn).toHaveAttribute('data-disabled', 'true');
+    expect(centredBtn).toHaveAttribute('aria-disabled', 'true');
 
     act(() => {
       useCameraStore.getState().setCameraPose({
@@ -63,11 +73,13 @@ describe('<DetailsActionControls />', () => {
     });
 
     const centreBtn = screen.getByTestId('details-button-center');
-    expect(centreBtn).toBeInTheDocument();
+    expect(centreBtn).toHaveTextContent('Centre on map');
+    expect(centreBtn).toHaveAttribute('data-variant', 'default');
+    expect(centreBtn).not.toHaveAttribute('data-disabled');
     expect(centreBtn.getAttribute('href')).toBe(centerHref);
   });
 
-  it('hides details-button-center on GalaxyView when camera target matches coordinatesPc and shows it when panned away', () => {
+  it('disables details-button-center as "Centred on map" on GalaxyView when camera target matches coordinatesPc and enables "Centre on map" when panned away', () => {
     useCameraStore.getState().setCameraPose({
       position: [-0.94, 2.37, 17.07],
       target: [-0.94, 2.37, -2.93],
@@ -84,7 +96,8 @@ describe('<DetailsActionControls />', () => {
       />,
     );
 
-    expect(screen.queryByTestId('details-button-center')).toBeNull();
+    expect(screen.getByTestId('details-button-center')).toHaveTextContent('Centred on map');
+    expect(screen.getByTestId('details-button-center')).toHaveAttribute('aria-disabled', 'true');
 
     act(() => {
       useCameraStore.getState().setCameraPose({
@@ -94,7 +107,8 @@ describe('<DetailsActionControls />', () => {
     });
 
     const centreBtn = screen.getByTestId('details-button-center');
-    expect(centreBtn).toBeInTheDocument();
+    expect(centreBtn).toHaveTextContent('Centre on map');
+    expect(centreBtn).not.toHaveAttribute('aria-disabled');
     expect(centreBtn.getAttribute('href')).toBe(centerHref);
   });
 
@@ -131,7 +145,8 @@ describe('<DetailsActionControls />', () => {
       </SpatialEntityStoreContext.Provider>,
     );
 
-    expect(screen.getByTestId('details-button-center')).toBeInTheDocument();
+    expect(screen.getByTestId('details-button-center')).toHaveTextContent('Centre on map');
+    expect(screen.getByTestId('details-button-center')).not.toHaveAttribute('aria-disabled');
 
     act(() => {
       useCameraStore.getState().setCameraPose({
@@ -140,7 +155,8 @@ describe('<DetailsActionControls />', () => {
       });
     });
 
-    expect(screen.queryByTestId('details-button-center')).toBeNull();
+    expect(screen.getByTestId('details-button-center')).toHaveTextContent('Centred on map');
+    expect(screen.getByTestId('details-button-center')).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('ignores non-entity aperture updates on effectiveEntityStore without re-evaluating snapshots', () => {

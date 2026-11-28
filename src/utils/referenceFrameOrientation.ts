@@ -26,6 +26,7 @@ export interface CrossScaleChoreographyConfig {
   readonly arrivalFadeWindow: readonly [number, number];
   readonly arrivalPreviewFadeWindow: readonly [number, number];
   readonly minSceneScale: number;
+  readonly orbitSquashFullScale: number;
   readonly departureInDistanceMultiplier: number;
   readonly departureOutDistanceMultiplier: number;
   readonly arrivalInDistanceMultiplier: number;
@@ -49,9 +50,10 @@ export const DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG: CrossScaleChoreographyConf
   zoomOutMoveWindow: [0.0, 0.85],
   zoomOutTiltWindow: [0.35, 1.0],
   departureFadeWindow: [0.15, 0.95],
-  arrivalFadeWindow: [0.0, 0.55],
+  arrivalFadeWindow: [0.18, 0.75],
   arrivalPreviewFadeWindow: [0.15, 0.85],
   minSceneScale: 0.04,
+  orbitSquashFullScale: 0.35,
   departureInDistanceMultiplier: 0.22,
   departureOutDistanceMultiplier: 2.2,
   arrivalInDistanceMultiplier: 1.85,
@@ -296,4 +298,24 @@ export function computePlanePreviewMaxRadius(
 ): number {
   const safeDistance = Number.isFinite(distance) && distance > 0 ? distance : 0;
   return Math.max(config.minPreviewRadius, safeDistance * config.previewRadiusFactor);
+}
+
+/**
+ * Computes the smoothstep opacity attenuation `[0, 1]` preventing screen-space `OrbitPath`
+ * strokes from stacking into an opaque cluster while `sceneScale` is squashed near `minSceneScale`.
+ */
+export function computeCrossScaleOrbitAttenuation(
+  sceneScale: number,
+  config: CrossScaleChoreographyConfig = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+): number {
+  const fullScale = config.orbitSquashFullScale;
+  const minScale = config.minSceneScale;
+  if (!Number.isFinite(sceneScale) || sceneScale >= fullScale || fullScale <= minScale) {
+    return 1;
+  }
+  if (sceneScale <= minScale) {
+    return 0;
+  }
+  const t = (sceneScale - minScale) / (fullScale - minScale);
+  return t * t * (3 - 2 * t);
 }

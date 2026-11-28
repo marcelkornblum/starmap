@@ -178,7 +178,7 @@ describe('<SearchResults />', () => {
         planetsList &&
           (planetsList.compareDocumentPosition(planetsLink) & Node.DOCUMENT_POSITION_FOLLOWING),
       ),
-    );
+    ).toBe(true);
 
     // Stars group has only 1 match (totalMatches <= items.length) -> no View all button
     expect(screen.getByTestId('search-results-group-stars')).toBeInTheDocument();

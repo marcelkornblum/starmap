@@ -1,9 +1,14 @@
+import { SOL_REFERENCE_TARGET } from '../../config/referenceTargets';
 import {
   fetchDetailRecord,
+  fetchSolPrimaryShard,
   fetchSummaryNode,
   getCachedDetailRecord,
   getCachedSummaryNode,
+  isSolPrimaryShardCached,
 } from '../../data/detailsRepository';
+import { getCachedCorpusForFilter } from '../../data/searchRepository';
+import { resolveSystemIdFromCorpus } from '../search/searchCorpusHelpers';
 import type { SpatialScale } from '../../utils/referenceFrameOrientation';
 
 export type SpatialCanvasScope = SpatialScale;
@@ -41,6 +46,25 @@ export function preloadSceneEntry(scope: SpatialCanvasScope): Promise<unknown> {
   return registeredSceneEntryPreloader ? registeredSceneEntryPreloader(scope) : Promise.resolve();
 }
 
+function resolvePreloadSystemId(targetId: string): string {
+  if (getCachedDetailRecord(targetId)) {
+    return targetId;
+  }
+  const corpus =
+    getCachedCorpusForFilter('startup') ??
+    getCachedCorpusForFilter('all') ??
+    getCachedCorpusForFilter('stars');
+  return corpus ? resolveSystemIdFromCorpus(targetId, corpus) : targetId;
+}
+
+function needsSystemDataPreload(resolvedId: string): boolean {
+  return (
+    !getCachedDetailRecord(resolvedId) ||
+    !getCachedSummaryNode(resolvedId) ||
+    (resolvedId === SOL_REFERENCE_TARGET.id && !isSolPrimaryShardCached())
+  );
+}
+
 /**
  * Preloads system manifest and summary records when transitioning into a stellar system
  * so entities are warm in cache prior to the atomic scene swap.
@@ -53,14 +77,18 @@ export function preloadSystemData(
   if (!forceInTest && import.meta.env.MODE === 'test') {
     return Promise.resolve();
   }
-  const needDetail = !getCachedDetailRecord(targetId);
-  const needSummary = !getCachedSummaryNode(targetId);
-  if (!needDetail && !needSummary) {
+  const resolvedId = resolvePreloadSystemId(targetId);
+  const needDetail = !getCachedDetailRecord(resolvedId);
+  const needSummary = !getCachedSummaryNode(resolvedId);
+  const needSolPrimary =
+    resolvedId === SOL_REFERENCE_TARGET.id && !isSolPrimaryShardCached();
+  if (!needDetail && !needSummary && !needSolPrimary) {
     return Promise.resolve();
   }
   return Promise.all([
-    needDetail ? fetchDetailRecord(targetId).catch(() => undefined) : Promise.resolve(undefined),
-    needSummary ? fetchSummaryNode(targetId).catch(() => undefined) : Promise.resolve(undefined),
+    needDetail ? fetchDetailRecord(resolvedId).catch(() => undefined) : Promise.resolve(undefined),
+    needSummary ? fetchSummaryNode(resolvedId).catch(() => undefined) : Promise.resolve(undefined),
+    needSolPrimary ? fetchSolPrimaryShard().catch(() => false) : Promise.resolve(false),
   ]).then(() => undefined);
 }
 
@@ -77,12 +105,11 @@ export function preloadTargetScaleEntry(
     return scenePromise;
   }
   const viewPromise = preloadSpatialView(scope).catch(() => undefined);
-  if (
-    scope === 'system' &&
-    targetId &&
-    (!getCachedDetailRecord(targetId) || !getCachedSummaryNode(targetId))
-  ) {
-    return Promise.all([scenePromise, viewPromise, preloadSystemData(targetId, forceInTest)]);
+  if (scope === 'system' && targetId) {
+    const resolvedId = resolvePreloadSystemId(targetId);
+    if (needsSystemDataPreload(resolvedId)) {
+      return Promise.all([scenePromise, viewPromise, preloadSystemData(targetId, forceInTest)]);
+    }
   }
   return Promise.all([scenePromise, viewPromise]);
 }

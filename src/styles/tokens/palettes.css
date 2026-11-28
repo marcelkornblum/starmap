@@ -52,10 +52,10 @@
     );
     --gradient-surface-slab-dark: linear-gradient(
       137deg,
-      oklch(13.6% 0.018 196 / 0.80) 0px,
-      oklch(11.8% 0.016 196 / 0.85) 180px,
-      oklch(10.4% 0.014 196 / 0.89) 360px,
-      oklch(10.4% 0.014 196 / 0.89) 100%
+      oklch(9.5% 0.018 196 / 0.34) 0px,
+      oklch(8.0% 0.016 196 / 0.42) 180px,
+      oklch(6.8% 0.014 196 / 0.48) 360px,
+      oklch(6.8% 0.014 196 / 0.48) 100%
     );
     --gradient-surface-overlay-dark: linear-gradient(
       137deg,
@@ -222,9 +222,5 @@
     );
     --bevel-control-selected-dark:  inset 0 1px 0 0 oklch(92% 0.09 166 / 0.30), inset 1px 0 0 0 oklch(92% 0.09 166 / 0.16);
     --bevel-control-selected-light: inset 0 1px 0 0 oklch(100% 0 0 / 0.72), inset 1px 0 0 0 oklch(100% 0 0 / 0.42);
-
-    /* Inset Well Bottom & Right Specular Bevels (Prodigy) */
-    --bevel-bottom-rim-dark:  inset 0 -1px 0 0 oklch(96% 0.020 198 / 0.22), inset -1px 0 0 0 oklch(96% 0.020 198 / 0.14);
-    --bevel-bottom-rim-light: inset 0 -1px 0 0 oklch(100% 0 0 / 0.70), inset -1px 0 0 0 oklch(100% 0 0 / 0.40);
   }
 }

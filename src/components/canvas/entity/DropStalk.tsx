@@ -2,8 +2,10 @@ import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
+import { getCrossScaleInstrumentFade } from '../instrument/crossScaleFadeState';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { getCrossScaleSceneScale } from '../instrument/crossScaleVisualState';
 import type { CelestialClassification } from '../../../types/spatial';
@@ -104,11 +106,13 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
   const lineGeom = useMemo(() => {
     const geom = new THREE.BufferGeometry();
+    const p0 = progressRef.current;
+    const tipZ = startZ + p0 * (targetZ - startZ);
     const positions = new Float32Array([
       x, y, startZ,
-      x, y, targetZ,
+      x, y, tipZ,
     ]);
-    const totalDist = Math.abs(targetZ - startZ);
+    const totalDist = p0 * Math.abs(targetZ - startZ);
     const lineDistances = new Float32Array([
       0,
       totalDist,
@@ -131,13 +135,27 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
     });
   }, [isDashed]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
+    if (!isStalkTier && progressRef.current <= 0.001) return;
     lineMaterial.setColor(stalkColor);
-    const initialFade = frameCtx?.frameRef?.current?.instrumentFade ?? 1.0;
+    const initialFade = frameCtx?.frameRef?.current?.instrumentFade ?? getCrossScaleInstrumentFade();
     const initialOpacity = stalkOpacity * initialFade;
     lineMaterial.setOpacity(initialOpacity);
     lastStalkOpacityRef.current = initialOpacity;
-  }, [lineMaterial, stalkColor, stalkOpacity, frameCtx]);
+    const p0 = progressRef.current;
+    if (lineMeshRef.current) {
+      lineMeshRef.current.visible = p0 > 0.001 && Math.abs(deltaZ) > 1e-4;
+    }
+    if (footprintRef.current) {
+      footprintRef.current.visible =
+        p0 > 0.85 && initialFade > 1e-4 && Math.abs(deltaZ) > 1e-4;
+    }
+    if (footprintMatRef.current) {
+      const initialFpOpacity = resolvedFootprintAlpha * initialFade;
+      footprintMatRef.current.opacity = initialFpOpacity;
+      lastFootprintOpacityRef.current = initialFpOpacity;
+    }
+  }, [isStalkTier, deltaZ, lineMaterial, stalkColor, stalkOpacity, resolvedFootprintAlpha, frameCtx]);
 
   useEffect(() => {
     lastProgressRef.current = Number.NaN;
@@ -208,7 +226,7 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
     const frameState = frameCtx?.frameRef?.current;
     const planeWeights = frameState?.planeWeights;
-    const instrumentFade = frameState?.instrumentFade ?? 1.0;
+    const instrumentFade = frameState?.instrumentFade ?? getCrossScaleInstrumentFade();
     const fadePlanar = planeWeights ? Math.max(0, 1.0 - planeWeights.maxAlpha) : 1.0;
 
     if (footprintRef.current) {
@@ -277,7 +295,6 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
           <lineBasicMaterial
             ref={footprintMatRef}
             color={resolvedFootprintColor}
-            opacity={resolvedFootprintAlpha}
             transparent
             depthWrite={false}
           />

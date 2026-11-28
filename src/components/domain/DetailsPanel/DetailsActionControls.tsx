@@ -109,40 +109,41 @@ export const DetailsActionControls = memo(function DetailsActionControls({
 
   const isOffCenter = useCameraStore((s) => {
     if (!entityPosition) return true;
-    return (
-      Math.hypot(
-        s.target[0] - entityPosition[0],
-        s.target[1] - entityPosition[1],
-        s.target[2] - entityPosition[2],
-      ) > CENTER_TOLERANCE
+    const distance = Math.hypot(
+      s.target[0] - entityPosition[0],
+      s.target[1] - entityPosition[1],
+      s.target[2] - entityPosition[2],
     );
+    return !Number.isFinite(distance) || distance > CENTER_TOLERANCE;
   });
-
-  const shouldRenderCenter = Boolean(centerHref) && isOffCenter;
 
   return (
     <Cluster gap="fib-2" data-cta-row="true" data-testid="details-cta-group">
       {systemDetailsHref ? (
         <Button
           href={systemDetailsHref}
-          variant="default"
+          size="sm"
+          variant="primary"
           data-testid="details-button-system-details"
         >
-          Details
+          Zoom to
         </Button>
       ) : null}
-      {shouldRenderCenter && centerHref ? (
+      {centerHref ? (
         <Button
           href={centerHref}
-          variant="default"
+          size="sm"
+          variant={isOffCenter ? 'default' : 'subtle'}
+          disabled={!isOffCenter}
           data-testid="details-button-center"
         >
-          Centre
+          {isOffCenter ? 'Centre on map' : 'Centred on map'}
         </Button>
       ) : null}
       <Button
         href={directionsHref}
-        variant="primary"
+        size="sm"
+        variant="default"
         data-testid="details-button-directions"
       >
         Directions

@@ -225,4 +225,40 @@ describe('SpatialViewportContent Component', () => {
       canvas.remove();
     }
   });
+
+  it('ignores non-primary mouse buttons and contextmenu events in onPointerMissed so right-click pan preserves focus', async () => {
+    const store = createSpatialEntityStore({ focusedId: 'star-a' });
+    const onFocusChange = vi.fn();
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <SpatialEntityProvider store={store}>
+          <SpatialViewportContent
+            entities={[
+              {
+                id: 'star-a',
+                name: 'Star A',
+                classification: 'star',
+                position: [0, 0, 0],
+              },
+            ]}
+            onFocusChange={onFocusChange}
+          />
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>,
+    );
+
+    const viewportGroup = renderer.scene.find((node) => node.props.name === 'spatial-viewport');
+
+    await renderer.fireEvent(viewportGroup, 'pointerMissed', { type: 'contextmenu', button: 2 });
+    await renderer.fireEvent(viewportGroup, 'pointerMissed', { type: 'click', button: 2 });
+    expect(store.getState().focusedId).toBe('star-a');
+    expect(onFocusChange).not.toHaveBeenCalled();
+
+    await renderer.fireEvent(viewportGroup, 'pointerMissed', { type: 'click', button: 0 });
+    expect(store.getState().focusedId).toBeNull();
+    expect(onFocusChange).toHaveBeenCalledWith(null);
+
+    await renderer.unmount();
+  });
 });
