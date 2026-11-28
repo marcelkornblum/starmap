@@ -147,7 +147,7 @@
   .breadcrumbsRegion,
   .searchRegion {
     pointer-events: auto;
-    background: var(--surface-panel-bg);
+    background: var(--surface-panel-sheen), var(--surface-panel-bg);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -167,7 +167,7 @@
     display: none;
     flex: 0 0 auto;
     pointer-events: auto;
-    background: var(--surface-panel-bg);
+    background: var(--surface-panel-sheen), var(--surface-panel-bg);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -178,7 +178,6 @@
     --ui-control-inset-bg: transparent;
     --ui-control-inset-border-color: transparent;
     --ui-control-inset-shadow: none;
-    --state-focus-halo: none;
     padding: var(--stroke-width-1) var(--stroke-width-2);
     inline-size: clamp(var(--size-measure-sm), 28vw, var(--size-measure-panel));
   }
@@ -187,7 +186,7 @@
     flex: 0 0 auto;
     pointer-events: auto;
     padding: 0;
-    background: var(--surface-panel-bg);
+    background: var(--surface-panel-sheen), var(--surface-panel-bg);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     border-radius: var(--surface-block-radius);
@@ -253,7 +252,7 @@
     padding: var(--space-inset-panel-tight);
     z-index: var(--layer-hud);
     pointer-events: auto;
-    background: var(--surface-panel-bg);
+    background: var(--surface-panel-sheen), var(--surface-panel-bg);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -285,7 +284,7 @@
     inline-size: clamp(var(--size-measure-panel), 30vw, var(--size-measure-card));
     block-size: 100dvh;
     overflow-y: auto;
-    background: var(--surface-panel-bg);
+    background: var(--surface-panel-sheen), var(--surface-panel-bg);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border-inline-start: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -334,8 +333,7 @@
   .searchRegion:has([data-search-focused='true']) {
     --ui-control-inset-bg: var(--surface-inset-bg);
     --ui-control-inset-border-color: var(--surface-inset-border-color);
-    --ui-control-inset-shadow: var(--surface-inset-shadow);
-    --state-focus-halo: var(--palette-accent-focus-halo);
+    --ui-control-inset-shadow: var(--surface-inset-shadow), var(--surface-inset-bevel);
     border-radius: var(--radius-container);
     border-color: var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -383,7 +381,7 @@
       inline-size: clamp(var(--size-measure-md), 25vw, var(--size-measure-panel));
       block-size: auto;
       overflow-y: auto;
-      background: var(--surface-panel-bg);
+      background: var(--surface-panel-sheen), var(--surface-panel-bg);
       backdrop-filter: var(--surface-panel-backdrop-filter);
       border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
       box-shadow: var(--surface-panel-shadow);
@@ -407,7 +405,7 @@
       inline-size: min(var(--size-measure-panel), 88vw);
       block-size: 100dvh;
       padding: 0 var(--space-fib-4) var(--space-fib-4) var(--space-fib-4);
-      background: var(--surface-panel-bg);
+      background: var(--surface-panel-sheen), var(--surface-panel-bg);
       backdrop-filter: var(--surface-panel-backdrop-filter);
       border-inline-start: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
       box-shadow: var(--surface-panel-shadow);
@@ -423,7 +421,7 @@
       position: sticky;
       top: 0;
       padding-block: var(--space-fib-3);
-      background: var(--surface-panel-bg);
+      background: var(--surface-dock-bg);
       border-block-end: var(--border-width-1) var(--border-style-boundary) var(--border-color-subtle);
       z-index: var(--layer-hud);
     }

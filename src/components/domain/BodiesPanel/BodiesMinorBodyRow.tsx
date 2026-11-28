@@ -31,12 +31,11 @@ export const BodiesMinorBodyRow = React.memo(function BodiesMinorBodyRow({
     <Block
       as="li"
       interactive
-      selected={isFocused || isSelected}
+      selected={isSelected}
       padding="tight"
       data-testid="bodies-minor-body-item"
       data-body-id={body.id}
       data-focused={isFocused ? 'true' : undefined}
-      data-selected={isSelected ? 'true' : undefined}
       onMouseEnter={() => onHoverEntity?.(body.id)}
       onMouseLeave={() => onHoverEntity?.(null)}
       onFocus={() => onHoverEntity?.(body.id)}

@@ -62,13 +62,12 @@ export const BodiesGalaxySystemRow = React.memo(function BodiesGalaxySystemRow({
     <Block
       as="li"
       interactive
-      selected={isItemFocused || isItemSelected}
+      selected={isItemSelected}
       padding="tight"
       data-testid="bodies-galaxy-system-item"
       data-system-id={sys.id}
       data-tier={sys.tier}
       data-focused={isItemFocused ? 'true' : undefined}
-      data-selected={isItemSelected ? 'true' : undefined}
       data-hovered={isItemHovered ? 'true' : undefined}
       onMouseEnter={() => onHoverEntity?.(sys.id)}
       onMouseLeave={() => onHoverEntity?.(null)}

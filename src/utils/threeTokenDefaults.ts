@@ -9,9 +9,15 @@ export function createDefaultTokenSnapshot(theme: ThreeTheme = 'dark'): ThreeTok
   const isLight = theme === 'light';
   const isAmoled = theme === 'amoled';
 
-  const canvasBgHex = isAmoled ? '#000000' : isLight ? '#fdf6e3' : '#002b36';
+  const canvasBgHex = isAmoled ? '#000000' : isLight ? '#f2f7f7' : '#050b0d';
   const chromeToneHex = isLight ? '#586e75' : '#829fa6';
-  const focusHex = isLight ? '#007840' : '#00d078';
+  const focusHex = isLight ? '#006843' : '#31d69c';
+  const nominalHex = isLight ? '#006f49' : '#3bc994';
+  const verdigrisMajorHex = isLight ? '#0c6348' : '#40c296';
+  const verdigrisMinorHex = isLight ? '#226152' : '#4bae93';
+  const datumFillHex = isLight ? '#18634d' : '#39aa86';
+  const stalkSelectedHex = isLight ? '#2f504a' : '#9ed1c9';
+  const footprintSelectedHex = isLight ? '#21483f' : '#a8dfd3';
   const stalkToneHex = isLight ? '#263339' : '#e0e7e7';
   const redHex = '#dc322f';
 
@@ -19,48 +25,48 @@ export function createDefaultTokenSnapshot(theme: ThreeTheme = 'dark'): ThreeTok
     canvasBg: canvasBgHex,
     canvasOpacity: 1.0,
 
-    gridPrimaryColor: chromeToneHex,
-    gridPrimaryAlpha: 0.3,
+    gridPrimaryColor: verdigrisMajorHex,
+    gridPrimaryAlpha: isLight ? 0.36 : 0.42,
     gridPrimaryWidth: 2,
-    gridSecondaryColor: chromeToneHex,
-    gridSecondaryAlpha: 0.16,
+    gridSecondaryColor: verdigrisMinorHex,
+    gridSecondaryAlpha: isLight ? 0.24 : 0.28,
     gridSecondaryWidth: 1,
-    rangeRingColor: chromeToneHex,
-    rangeRingAlpha: 0.24,
+    rangeRingColor: verdigrisMajorHex,
+    rangeRingAlpha: isLight ? 0.32 : 0.38,
     rangeRingWidth: 1,
-    rangeTickColor: chromeToneHex,
-    rangeTickAlpha: 0.4,
+    rangeTickColor: verdigrisMajorHex,
+    rangeTickAlpha: isLight ? 0.45 : 0.52,
     rangeTickWidth: 2,
 
-    datumPlaneColor: theme === 'light' ? '#073642' : '#8cb8cc',
-    datumPlaneAlpha: 0.35,
+    datumPlaneColor: verdigrisMajorHex,
+    datumPlaneAlpha: isLight ? 0.45 : 0.52,
     datumPlaneWidth: 1,
-    datumPlaneMajorColor: theme === 'light' ? '#073642' : '#8cb8cc',
-    datumPlaneMajorAlpha: 0.35,
-    datumPlaneMinorColor: theme === 'light' ? '#586e75' : '#8cb8cc',
-    datumPlaneMinorAlpha: 0.18,
-    datumPlaneFillColor: theme === 'light' ? '#073642' : '#8cb8cc',
-    datumPlaneFillAlpha: theme === 'light' ? 0.08 : 0.16,
+    datumPlaneMajorColor: verdigrisMajorHex,
+    datumPlaneMajorAlpha: isLight ? 0.45 : 0.52,
+    datumPlaneMinorColor: verdigrisMinorHex,
+    datumPlaneMinorAlpha: isLight ? 0.22 : 0.26,
+    datumPlaneFillColor: datumFillHex,
+    datumPlaneFillAlpha: isLight ? 0.12 : 0.22,
     datumPlaneFillGradientInner: 0.25,
     datumPlaneFillGradientExponent: 2.0,
-    datumFootprintColor: theme === 'light' ? '#586e75' : '#93a1a1',
-    datumFootprintAlpha: 0.25,
+    datumFootprintColor: verdigrisMajorHex,
+    datumFootprintAlpha: isLight ? 0.42 : 0.50,
     datumFootprintWidth: 2,
 
     reticleBracketColor: chromeToneHex,
     reticleBracketAlpha: 0.4,
-    boresightColor: chromeToneHex,
-    boresightAlpha: 0.3,
-    axisLineColor: chromeToneHex,
-    axisLineAlpha: 0.16,
+    boresightColor: verdigrisMajorHex,
+    boresightAlpha: isLight ? 0.35 : 0.40,
+    axisLineColor: verdigrisMinorHex,
+    axisLineAlpha: isLight ? 0.22 : 0.24,
     axisLineWidth: 1,
     axisLineStyle: 'solid',
-    bearingLineColor: redHex,
-    bearingLineAlpha: 0.35,
+    bearingLineColor: focusHex,
+    bearingLineAlpha: 0.38,
     bearingLineWidth: 2,
     bearingLineStyle: 'solid',
-    bearingOrbitalColor: redHex,
-    bearingOrbitalAlpha: 0.35,
+    bearingOrbitalColor: focusHex,
+    bearingOrbitalAlpha: 0.42,
     bearingOrbitalWidth: 2,
     bearingOrbitalStyle: 'dashed',
     bearingCoreColor: '#b58900',
@@ -70,34 +76,34 @@ export function createDefaultTokenSnapshot(theme: ThreeTheme = 'dark'): ThreeTok
     headingIndicatorColor: chromeToneHex,
     headingIndicatorAlpha: 0.5,
 
-    kinematicColor: redHex,
-    kinematicAlpha: 0.35,
+    kinematicColor: focusHex,
+    kinematicAlpha: 0.42,
 
-    stalkSelectedColor: stalkToneHex,
-    stalkSelectedAlpha: 0.7,
-    stalkFocusedColor: stalkToneHex,
-    stalkFocusedAlpha: 0.85,
+    stalkSelectedColor: stalkSelectedHex,
+    stalkSelectedAlpha: 0.72,
+    stalkFocusedColor: focusHex,
+    stalkFocusedAlpha: 0.88,
     stalkWidth: 1,
     stalkStyle: 'solid',
 
-    footprintColor: theme === 'light' ? '#586e75' : '#93a1a1',
-    footprintAlpha: 0.35,
-    footprintSelectedColor: stalkToneHex,
+    footprintColor: verdigrisMajorHex,
+    footprintAlpha: isLight ? 0.42 : 0.50,
+    footprintSelectedColor: footprintSelectedHex,
     footprintSelectedAlpha: 0.85,
     footprintFocusedColor: focusHex,
-    footprintFocusedAlpha: 0.85,
+    footprintFocusedAlpha: 0.92,
 
-    orbitColor: theme === 'light' ? '#586e75' : '#93a1a1',
-    orbitAlpha: 0.24,
+    orbitColor: verdigrisMinorHex,
+    orbitAlpha: isLight ? 0.28 : 0.30,
     orbitWidth: 1,
     orbitStyle: 'dashed',
-    orbitSelectedColor: redHex,
-    orbitSelectedAlpha: 0.35,
-    orbitFocusedColor: redHex,
-    orbitFocusedAlpha: 0.35,
+    orbitSelectedColor: focusHex,
+    orbitSelectedAlpha: 0.52,
+    orbitFocusedColor: focusHex,
+    orbitFocusedAlpha: 0.52,
 
-    routeColor: redHex,
-    routeAlpha: 0.9,
+    routeColor: focusHex,
+    routeAlpha: 0.90,
     routeWidth: 3,
     routeStyle: 'solid',
 
@@ -107,10 +113,10 @@ export function createDefaultTokenSnapshot(theme: ThreeTheme = 'dark'): ThreeTok
     stalkRetractEase: parseCssCubicBezier('cubic-bezier(0.4, 0, 1, 1)'),
     footprintStampDuration: 0.075,
 
-    ringMajorAlpha: 0.45,
-    ringMinorAlpha: 0.2,
-    finPerimeterAlpha: 0.25,
-    tickAlpha: 0.4,
+    ringMajorAlpha: isLight ? 0.50 : 0.55,
+    ringMinorAlpha: isLight ? 0.24 : 0.28,
+    finPerimeterAlpha: isLight ? 0.32 : 0.36,
+    tickAlpha: isLight ? 0.45 : 0.52,
     reticleActiveAlpha: 0.6,
     reticleSelectedAlpha: 0.9,
     reticleFocusedAlpha: 1.0,
@@ -123,7 +129,7 @@ export function createDefaultTokenSnapshot(theme: ThreeTheme = 'dark'): ThreeTok
 
     stateFocus: focusHex,
     stateSelected: stalkToneHex,
-    stateSelectedBorder: stalkToneHex,
+    stateSelectedBorder: focusHex,
     stateHoverOverlayAlpha: 0.04,
 
     categoryStar: '#cb4b16',
@@ -131,7 +137,7 @@ export function createDefaultTokenSnapshot(theme: ThreeTheme = 'dark'): ThreeTok
     categoryOrbit: '#6c71c4',
     categoryHabitability: '#859900',
 
-    statusNominal: '#859900',
+    statusNominal: nominalHex,
     statusCaution: '#b58900',
     statusCritical: redHex,
     confidenceConfirmed: '#859900',

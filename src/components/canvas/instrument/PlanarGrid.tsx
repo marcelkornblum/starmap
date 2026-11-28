@@ -47,6 +47,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
   const stateFocus = useThreeTokenStore((s) => s.tokens.stateFocus);
   const footprintColor = useThreeTokenStore((s) => s.tokens.footprintColor);
   const footprintAlpha = useThreeTokenStore((s) => s.tokens.footprintAlpha);
+  const footprintFocusedAlpha = useThreeTokenStore((s) => s.tokens.footprintFocusedAlpha);
   const bearingCoreColor = useThreeTokenStore((s) => s.tokens.bearingCoreColor);
   const bearingCoreAlpha = useThreeTokenStore((s) => s.tokens.bearingCoreAlpha);
   const bearingOrbitalColor = useThreeTokenStore((s) => s.tokens.bearingOrbitalColor);
@@ -142,7 +143,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
       primaryFootprintRef.current.position.set(-focusPoint.x, -focusPoint.y, -focusPoint.z + 0.002);
       primaryFootprintRef.current.visible = isFootprintEnabled && fadePlanar > 1e-3;
     }
-    if (primaryFootprintMatRef.current) primaryFootprintMatRef.current.opacity = footprintAlpha * fadePlanar;
+    if (primaryFootprintMatRef.current) primaryFootprintMatRef.current.opacity = footprintFocusedAlpha * fadePlanar;
 
     if (explicitFootprintsRef.current) {
       explicitFootprintsRef.current.position.set(-focusPoint.x, -focusPoint.y, -focusPoint.z);
@@ -197,7 +198,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
         <group ref={primaryFootprintRef} name="planar-footprint">
           <lineSegments frustumCulled={false} raycast={NOOP_RAYCAST}>
             <primitive object={primaryFootprintGeom} attach="geometry" />
-            <lineBasicMaterial ref={primaryFootprintMatRef} color={footprintColor} opacity={footprintAlpha} transparent depthWrite={false} />
+            <lineBasicMaterial ref={primaryFootprintMatRef} color={stateFocus} opacity={footprintFocusedAlpha} transparent depthWrite={false} />
           </lineSegments>
         </group>
       )}

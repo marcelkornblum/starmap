@@ -98,12 +98,11 @@ export const BodiesPrimaryRow = React.memo(function BodiesPrimaryRow({
     <Block
       as="li"
       interactive
-      selected={isFocused || isSelected}
+      selected={isSelected}
       padding="tight"
       data-testid="bodies-primary-item"
       data-entity-id={item.id}
       data-focused={isFocused ? 'true' : undefined}
-      data-selected={isSelected ? 'true' : undefined}
       onMouseEnter={() => onHoverEntity?.(item.id)}
       onMouseLeave={() => onHoverEntity?.(null)}
       onFocus={() => onHoverEntity?.(item.id)}

@@ -4,7 +4,7 @@
 
 ### Product & Spatial Feature Tracks
 - [x] **Track: Mobile UX, Fluid Details & Console Dock** *Link: [conductor/tracks/mobile-ux-and-console-dock_20261127/index.md](./tracks/mobile-ux-and-console-dock_20261127/index.md)* *(Theme-color meta, coarse-pointer UI & 3D hit targets, fluid variable-detent DetailsPanel, predictable Bodies drawer, Console Dock `Map · Discover · Guide` & bilateral visor)*
-- [~] **Track: Prodigy Bio-Glass Visual Richness & Cartographic Instrument Alignment** *Link: [conductor/tracks/prodigy-visual-richness_20261128/index.md](./tracks/prodigy-visual-richness_20261128/index.md)* *(Directional slab/button gradients, specular bevels, Bio-Jade nominal & selected accents, and Bio-Jade 3D cartographic instrument)*
+- [x] **Track: Prodigy Bio-Glass Visual Richness & Cartographic Instrument Alignment** *Link: [conductor/tracks/prodigy-visual-richness_20261128/index.md](./tracks/prodigy-visual-richness_20261128/index.md)* *(Directional slab/button gradients, specular bevels, Bio-Jade nominal & selected accents, and Bio-Jade 3D cartographic instrument)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)* *(Input-capability detection, shortcut registry + keyboard help modal, navigation modes)*
 
 ## Backlog

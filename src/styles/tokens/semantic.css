@@ -493,7 +493,6 @@
     /* UI Control Hardware & Dedicated State Indicators (Dark Theme) */
     --ui-control-default-bg:             var(--gradient-surface-button-dark);
     --ui-control-hover-bg:               var(--gradient-surface-button-hover-dark);
-    --ui-control-active-bg:              linear-gradient(137deg, oklch(from var(--ui-control-active) l c h / 0.16), oklch(from var(--ui-control-active) l c h / 0.08)), var(--surface-inset-bg);
     --ui-control-press-bg:               var(--gradient-surface-button-active-dark);
     --ui-control-border-color:           oklch(88% 0.04 190 / 0.15);
     --ui-control-hover-border-color:     oklch(92% 0.04 188 / 0.24);
@@ -685,6 +684,7 @@
     --status-critical-bevel:       inset 0 1px 0 0 oklch(80% 0.10 26 / 0.35), inset 1px 0 0 0 oklch(80% 0.10 26 / 0.20);
     --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast);
     --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel);
+    --status-critical-focus-halo:  0 0 0 1px oklch(60.0% 0.220 26 / 0.45), 0 0 12px 0 oklch(60.0% 0.220 26 / 0.22);
 
     --status-info-surface:         linear-gradient(
       137deg,
@@ -1046,7 +1046,6 @@
     /* UI Control Hardware & Dedicated State Indicators (Light Theme) */
     --ui-control-default-bg:             var(--gradient-surface-button-light);
     --ui-control-hover-bg:               var(--gradient-surface-button-hover-light);
-    --ui-control-active-bg:              linear-gradient(137deg, oklch(from var(--ui-control-active) l c h / 0.12), oklch(from var(--ui-control-active) l c h / 0.06)), var(--surface-inset-bg);
     --ui-control-press-bg:               var(--gradient-surface-button-active-light);
     --ui-control-border-color:           var(--palette-specular-black-16);
     --ui-control-hover-border-color:     oklch(0% 0 0 / 0.24);
@@ -1239,6 +1238,7 @@
     --status-critical-bevel:       inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
     --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast-light);
     --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel-light);
+    --status-critical-focus-halo:  0 0 0 1px oklch(46.0% 0.210 26 / 0.40), 0 0 10px 0 oklch(46.0% 0.210 26 / 0.16);
 
     --status-info-surface:         linear-gradient(
       137deg,

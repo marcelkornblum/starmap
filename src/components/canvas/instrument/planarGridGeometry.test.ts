@@ -17,6 +17,12 @@ describe('planarGridGeometry', () => {
     expect(DATUM_FILL_FRAGMENT_SHADER).toContain('uInnerRadius');
   });
 
+  it('derives rimTint from uColor in DATUM_FILL_FRAGMENT_SHADER without mixing toward white', () => {
+    expect(DATUM_FILL_FRAGMENT_SHADER).toContain('vec3 rimTint = clamp(uColor * 1.35 + vec3(0.02, 0.10, 0.07), 0.0, 1.0);');
+    expect(DATUM_FILL_FRAGMENT_SHADER).toContain('mix(uColor, rimTint, rimGlow * 0.65)');
+    expect(DATUM_FILL_FRAGMENT_SHADER).not.toContain('mix(uColor, vec3(1.0)');
+  });
+
   it('builds boundary, fill, and core bearing base geometries', () => {
     const { boundaryGeom, fillCircleGeom, bearingCoreGeom } = buildPlanarBaseGeometries();
     expect(boundaryGeom).toBeInstanceOf(THREE.BufferGeometry);

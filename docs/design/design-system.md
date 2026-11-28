@@ -10,14 +10,14 @@ Starmap is a technical, high-density schematic tool for navigating astronomical 
 
 ### Core Principles
 
-1. **Schematic Map over Realistic Void:** The interface avoids pseudo-cinematic glows and dark void clichés. Space is presented as an organised, measured coordinate environment with precise typography and clear spatial planes.
-2. **Strict Colour Channel Separation:**
-   - **Achromatic Text & Surfaces:** All typography, reading prose, container panels, and table structures operate on a high-contrast neutral axis. Text never borrows chromatic hues from data categories.
-   - **Reserved Interactive Focus:** Vibrant chromatic accent (`--state-focus`) is strictly reserved for user tracking, active waypoints, and keyboard `:focus-visible` states.
-   - **Scientific Indicators:** Chromatic hues are restricted strictly to telemetry condition/status (`--status-*`), observational confidence (`--confidence-*`), and astronomical domains (`--category-*`).
-   - **Neutral Cartographic Chrome:** Grids, range circles, reticles, and coordinate axes are rendered in neutral lines so they never compete with thematic star data.
-3. **Themed Solarized Palette & Multi-Palette OKLCH System:** Initial color literals are derived from Ethan Schoonover’s canonical Solarized palette, mapped in the perceptually uniform **OKLCH** color space to guarantee predictable lightness, uniform contrast, and clean alpha blending. Multi-palette themes extend this across four distinct spectral identities (`src/styles/tokens/palettes.css`).
-4. **Pure Orthogonal Geometry:** All surfaces, containers, buttons, and inputs default to `--radius-none` (`0px`), creating a sharp, high-precision aesthetic.
+1. **Schematic Map over Realistic Void:** The interface avoids pseudo-cinematic bloom passes and empty void clichés. Space is presented as an organised, measured coordinate environment with a subtle abyssal-verdigris radial stage glow, precise typography, and clear spatial planes.
+2. **Strict Colour & State Channel Separation:**
+   - **Achromatic Text & Directional Bio-Glass Surfaces:** Body prose, tables, and unselected map labels stay on a calm titanium-slate neutral axis (`--content-*`, `--status-neutral`), while container slabs and tactile controls use `137deg` directional gradients and overhead-left specular bevels (`--surface-panel-bg`, `--ui-control-default-bg`).
+   - **Distinct Control Semantics:** Interactive states never alias one another. Neutral buttons depress with recessed shadow on `:active` press; `variant="primary"` single-surface CTAs carry a directional Bio-Jade surface gradient and specular rim; `[data-selected="true"]` tabs and filter toggles use a calm Bio-Jade tint (`--state-selected-*`); and `:focus-visible` exclusively owns the outer focus ring and halo (`--state-focus`).
+   - **Scientific Indicators:** Chromatic hues distinguish telemetry condition (`--status-nominal` Bio-Jade emerald, `--status-caution`, `--status-critical`, `--status-info`), observational confidence (`--confidence-*`), and astronomical domains (`--category-*`).
+   - **Calibrated Verdigris & Bio-Jade Cartographic Chrome:** Datum planes, range rings, coordinate fins, ticks, and baseline footprints render in low-glare verdigris hues (`hue 168–182`), elevating to `--state-focus` Bio-Jade on focused entities and local instrument footprints.
+3. **Prodigy OKLCH Palette & Theme System:** Tokens are authored in perceptually uniform **OKLCH** across `dark`, `light`, and true-black `amoled` themes (`src/styles/tokens/palettes.css`, `src/styles/tokens/semantic.css`). Low-GPU devices (`data-device-tier="tier1"`) disable `backdrop-filter` blurs while retaining directional CSS gradients and specular bevels.
+4. **Proportional Control & Container Radii:** Containers, blocks, controls, and badges use calibrated semantic radii (`--radius-container`, `--surface-block-radius`, `--radius-control`, `--radius-badge`), reserving `--radius-none` (`0px`) for coplanar viewport-locked chrome such as `ConsoleDock`.
 
 ---
 
@@ -96,7 +96,7 @@ Maps literal values to UI roles, spatial tiers, and domain meaning. **This is th
 - **Naming Pattern:** `--[category]-[target]-[property]` (e.g. `--surface-panel-bg`, `--text-content-hero-title-size`, `--space-inset-card`, `--chrome-range-ring-color`).
 
 ### Multi-Palette Theme Architecture (`src/styles/tokens/palettes.css`)
-In addition to light and dark theme switching (`data-theme="dark" | "light"`), Starmap supports the calibrated `prodigy` palette (`data-palette="prodigy"`) configured in `src/styles/tokens/palettes.css` and managed via `src/styles/tokens/paletteTheme.ts`. The palette defines the surface hue angle, focus accent chromaticity, gradients, and specular rims without altering semantic token interfaces.
+Alongside `dark`, `light`, and `amoled` theme switching (`data-theme="dark" | "light" | "amoled"`), Starmap uses the calibrated `prodigy` Bio-Glass palette (`data-palette="prodigy"`) configured in `src/styles/tokens/palettes.css` and synchronised with browser `<meta name="theme-color">` via `src/styles/tokens/paletteTheme.ts`. The palette defines surface and focus hue angles, `137deg` directional slab and button gradients, and dual-edge specular bevels while keeping component local token interfaces theme-agnostic.
 
 ### 3. Component Layer (Local Token Interface)
 Components declare localized CSS variables at the top of their CSS Module rules. Components consume **only** Semantic tokens, never Literal tokens.

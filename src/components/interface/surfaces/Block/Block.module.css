@@ -1,18 +1,20 @@
 @layer blocks {
   .block {
     --block-bg: var(--surface-block-bg);
+    --block-border-color: transparent;
     --block-radius: var(--surface-block-radius);
     --block-padding: var(--space-fib-3);
 
     background: var(--block-bg);
-    border: none;
+    border: var(--border-width-1) var(--border-style-boundary) var(--block-border-color);
     border-radius: var(--block-radius);
     padding: var(--block-padding);
     margin: 0;
     list-style: none;
     box-sizing: border-box;
     color: inherit;
-    transition: background var(--motion-duration-feedback) var(--motion-ease-default);
+    transition: background var(--motion-duration-feedback) var(--motion-ease-default),
+                border-color var(--motion-duration-feedback) var(--motion-ease-default);
   }
 
   .block:focus-visible {
@@ -41,11 +43,35 @@
     }
   }
 
-  .block[data-selected="true"] { --block-bg: var(--surface-block-selected-bg); }
+  .block[data-selected="true"],
+  .block[data-focused="true"] {
+    --block-bg: var(--surface-block-selected-bg);
+    --block-border-color: var(--surface-block-selected-border-color);
+  }
 
-  .block[data-status="nominal"] { --block-bg: oklch(from var(--status-nominal) l c h / 0.12); }
-  .block[data-status="caution"] { --block-bg: oklch(from var(--status-caution) l c h / 0.12); }
-  .block[data-status="critical"] { --block-bg: oklch(from var(--status-critical) l c h / 0.12); }
-  .block[data-status="info"] { --block-bg: oklch(from var(--status-info) l c h / 0.12); }
-  .block[data-status="neutral"] { --block-bg: oklch(from var(--status-neutral) l c h / 0.12); }
+  .block[data-interactive="true"][data-selected="true"]:hover,
+  .block[data-interactive="true"][data-focused="true"]:hover {
+    --block-bg: var(--surface-block-selected-bg);
+  }
+
+  .block[data-status="nominal"] {
+    --block-bg: oklch(from var(--status-nominal) l c h / 0.12);
+    --block-border-color: var(--status-nominal-border);
+  }
+  .block[data-status="caution"] {
+    --block-bg: oklch(from var(--status-caution) l c h / 0.12);
+    --block-border-color: var(--status-caution-border);
+  }
+  .block[data-status="critical"] {
+    --block-bg: oklch(from var(--status-critical) l c h / 0.12);
+    --block-border-color: var(--status-critical-border);
+  }
+  .block[data-status="info"] {
+    --block-bg: oklch(from var(--status-info) l c h / 0.12);
+    --block-border-color: var(--status-info-border);
+  }
+  .block[data-status="neutral"] {
+    --block-bg: oklch(from var(--status-neutral) l c h / 0.12);
+    --block-border-color: var(--status-neutral-border);
+  }
 }
