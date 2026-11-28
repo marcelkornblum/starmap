@@ -52,10 +52,10 @@
     );
     --gradient-surface-slab-dark: linear-gradient(
       137deg,
-      oklch(15.8% 0.020 196 / 0.78) 0px,
-      oklch(13.8% 0.017 196 / 0.82) 180px,
-      oklch(12.4% 0.015 196 / 0.86) 360px,
-      oklch(12.4% 0.015 196 / 0.86) 100%
+      oklch(13.6% 0.018 196 / 0.80) 0px,
+      oklch(11.8% 0.016 196 / 0.85) 180px,
+      oklch(10.4% 0.014 196 / 0.89) 360px,
+      oklch(10.4% 0.014 196 / 0.89) 100%
     );
     --gradient-surface-overlay-dark: linear-gradient(
       137deg,
@@ -195,6 +195,33 @@
     );
     --bevel-control-primary-dark:  inset 0 1px 0 0 oklch(90% 0.10 166 / 0.28), inset 1px 0 0 0 oklch(90% 0.10 166 / 0.14);
     --bevel-control-primary-light: inset 0 1px 0 0 oklch(100% 0 0 / 0.35), inset 1px 0 0 0 oklch(100% 0 0 / 0.18);
+
+    --gradient-control-selected-dark: linear-gradient(
+      137deg,
+      oklch(28.0% 0.056 168 / 0.88) 0px,
+      oklch(22.0% 0.044 172 / 0.86) 80px,
+      oklch(18.0% 0.034 176 / 0.88) 100%
+    );
+    --gradient-control-selected-hover-dark: linear-gradient(
+      137deg,
+      oklch(31.5% 0.064 168 / 0.92) 0px,
+      oklch(25.0% 0.050 172 / 0.90) 80px,
+      oklch(20.5% 0.040 176 / 0.92) 100%
+    );
+    --gradient-control-selected-light: linear-gradient(
+      137deg,
+      oklch(94.5% 0.032 166 / 0.92) 0px,
+      oklch(91.5% 0.038 168 / 0.88) 80px,
+      oklch(89.0% 0.042 170 / 0.90) 100%
+    );
+    --gradient-control-selected-hover-light: linear-gradient(
+      137deg,
+      oklch(92.5% 0.038 166 / 0.95) 0px,
+      oklch(89.5% 0.044 168 / 0.92) 80px,
+      oklch(87.0% 0.048 170 / 0.94) 100%
+    );
+    --bevel-control-selected-dark:  inset 0 1px 0 0 oklch(92% 0.09 166 / 0.30), inset 1px 0 0 0 oklch(92% 0.09 166 / 0.16);
+    --bevel-control-selected-light: inset 0 1px 0 0 oklch(100% 0 0 / 0.72), inset 1px 0 0 0 oklch(100% 0 0 / 0.42);
 
     /* Inset Well Bottom & Right Specular Bevels (Prodigy) */
     --bevel-bottom-rim-dark:  inset 0 -1px 0 0 oklch(96% 0.020 198 / 0.22), inset -1px 0 0 0 oklch(96% 0.020 198 / 0.14);

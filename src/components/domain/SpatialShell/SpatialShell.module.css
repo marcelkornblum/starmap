@@ -26,7 +26,7 @@
     z-index: var(--layer-dock);
   }
 
-  .dockRegion > [data-position] {
+  .dockRegion > * {
     inline-size: 100%;
     block-size: 100%;
     border-radius: var(--radius-none);
@@ -148,6 +148,7 @@
   .searchRegion {
     pointer-events: auto;
     background: var(--surface-panel-sheen), var(--surface-panel-bg);
+    -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -168,6 +169,7 @@
     flex: 0 0 auto;
     pointer-events: auto;
     background: var(--surface-panel-sheen), var(--surface-panel-bg);
+    -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -187,6 +189,7 @@
     pointer-events: auto;
     padding: 0;
     background: var(--surface-panel-sheen), var(--surface-panel-bg);
+    -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     border-radius: var(--surface-block-radius);
@@ -253,6 +256,7 @@
     z-index: var(--layer-hud);
     pointer-events: auto;
     background: var(--surface-panel-sheen), var(--surface-panel-bg);
+    -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -263,7 +267,6 @@
   .discoverRegion,
   .floatingLeft,
   .minimapRegion {
-    will-change: opacity, transform;
     transition:
       opacity var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease),
       transform var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease);
@@ -285,6 +288,7 @@
     block-size: 100dvh;
     overflow-y: auto;
     background: var(--surface-panel-sheen), var(--surface-panel-bg);
+    -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border-inline-start: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
@@ -305,6 +309,7 @@
   .discoverRegion[data-camera-retracted='true'],
   .floatingLeft[data-camera-retracted='true'],
   .minimapRegion[data-camera-retracted='true'] {
+    will-change: opacity, transform;
     opacity: var(--spatial-shell-retract-opacity);
     pointer-events: none;
   }
@@ -348,11 +353,6 @@
     .visorScaleRow {
       display: none;
     }
-
-    .floatingLeft {
-      transform: translateZ(0);
-      contain: layout style;
-    }
   }
 
   @media (min-width: 768px) and (max-width: 1279px) {
@@ -382,6 +382,7 @@
       block-size: auto;
       overflow-y: auto;
       background: var(--surface-panel-sheen), var(--surface-panel-bg);
+      -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
       backdrop-filter: var(--surface-panel-backdrop-filter);
       border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
       box-shadow: var(--surface-panel-shadow);
@@ -406,6 +407,7 @@
       block-size: 100dvh;
       padding: 0 var(--space-fib-4) var(--space-fib-4) var(--space-fib-4);
       background: var(--surface-panel-sheen), var(--surface-panel-bg);
+      -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
       backdrop-filter: var(--surface-panel-backdrop-filter);
       border-inline-start: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
       box-shadow: var(--surface-panel-shadow);

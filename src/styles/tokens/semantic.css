@@ -335,7 +335,7 @@
     --surface-panel-border-color:  oklch(88% 0.05 182 / 0.15);
     --surface-panel-border-style:  var(--border-style-boundary);
     --surface-panel-shadow:        var(--bevel-top-rim-subtle), var(--elevation-panel);
-    --surface-panel-sheen:         linear-gradient(137deg, oklch(100% 0 0 / 0.08) 0%, oklch(100% 0 0 / 0.02) 40%, transparent 100%);
+    --surface-panel-sheen:         linear-gradient(137deg, oklch(100% 0 0 / 0.045) 0%, oklch(100% 0 0 / 0.012) 40%, transparent 100%);
     --surface-panel-opacity:       var(--opacity-100);
     --surface-panel-backdrop-blur: var(--filter-blur-5);
     --surface-panel-backdrop-filter: blur(var(--surface-panel-backdrop-blur));
@@ -440,11 +440,11 @@
     --state-active-overlay:       var(--palette-white-alpha-8);
 
     --state-selected:             var(--content-prominent);
-    --state-selected-bg:          oklch(81.5% 0.148 166 / 0.14);
-    --state-selected-hover-bg:    oklch(81.5% 0.148 166 / 0.20);
-    --state-selected-border:      oklch(81.5% 0.148 166 / 0.42);
+    --state-selected-bg:          var(--gradient-control-selected-dark);
+    --state-selected-hover-bg:    var(--gradient-control-selected-hover-dark);
+    --state-selected-border:      oklch(81.5% 0.148 166 / 0.46);
     --state-selected-content:     var(--state-focus);
-    --state-selected-shadow:      inset 0 1px 0 0 oklch(88% 0.10 166 / 0.18);
+    --state-selected-shadow:      var(--bevel-control-selected-dark), var(--ui-control-elevation);
 
     --state-disabled-content:     var(--content-faint);
     --state-disabled-border:      var(--palette-white-alpha-8);
@@ -993,11 +993,11 @@
     --state-active-overlay:       var(--palette-black-alpha-8);
 
     --state-selected:             var(--content-prominent);
-    --state-selected-bg:          oklch(46.0% 0.140 166 / 0.12);
-    --state-selected-hover-bg:    oklch(46.0% 0.140 166 / 0.18);
-    --state-selected-border:      oklch(46.0% 0.140 166 / 0.42);
+    --state-selected-bg:          var(--gradient-control-selected-light);
+    --state-selected-hover-bg:    var(--gradient-control-selected-hover-light);
+    --state-selected-border:      oklch(46.0% 0.140 166 / 0.46);
     --state-selected-content:     var(--state-focus);
-    --state-selected-shadow:      inset 0 1px 0 0 oklch(100% 0 0 / 0.45);
+    --state-selected-shadow:      var(--bevel-control-selected-light), var(--ui-control-elevation);
 
     --state-disabled-content:     var(--content-faint);
     --state-disabled-border:      var(--palette-black-alpha-8);

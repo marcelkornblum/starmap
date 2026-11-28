@@ -12,6 +12,8 @@
     flex-direction: column;
     box-sizing: border-box;
     background: var(--panel-bg);
+    -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
+    backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--panel-border-width) var(--panel-border-style) var(--panel-border-color);
     box-shadow: var(--panel-shadow);
     border-radius: var(--panel-radius);
