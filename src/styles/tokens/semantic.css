@@ -288,7 +288,7 @@
 
     /* Surfaces */
     --surface-canvas-bg:           oklch(10.5% 0.024 198);
-    --surface-canvas-stage-bg:     radial-gradient(ellipse at 50% 48%, oklch(17.2% 0.038 192) 0%, oklch(10.5% 0.024 198) 68%);
+    --surface-canvas-stage-bg:     radial-gradient(ellipse at 52% 44%, oklch(18.2% 0.042 190) 0%, oklch(12.4% 0.028 196) 46%, oklch(10.5% 0.024 198) 78%);
     --surface-canvas-border-width: var(--stroke-width-0);
     --surface-canvas-border-color: transparent;
     --surface-canvas-border-style: var(--stroke-style-none);
@@ -330,11 +330,12 @@
     --surface-dock-backdrop-blur:  var(--filter-blur-0);
 
     /* Family 2: Task Slabs (Panel & Drawer - Bio-Glass) */
-    --surface-panel-bg:            oklch(13.8% 0.016 196 / 0.72);
+    --surface-panel-bg:            var(--gradient-surface-slab-dark);
     --surface-panel-border-width:  var(--stroke-width-1);
-    --surface-panel-border-color:  oklch(88% 0.05 182 / 0.12);
+    --surface-panel-border-color:  oklch(88% 0.05 182 / 0.15);
     --surface-panel-border-style:  var(--border-style-boundary);
-    --surface-panel-shadow:        inset 0 1px 0 0 oklch(95% 0.04 180 / 0.10), var(--elevation-panel);
+    --surface-panel-shadow:        var(--bevel-top-rim-subtle), var(--elevation-panel);
+    --surface-panel-sheen:         linear-gradient(137deg, oklch(100% 0 0 / 0.08) 0%, oklch(100% 0 0 / 0.02) 40%, transparent 100%);
     --surface-panel-opacity:       var(--opacity-100);
     --surface-panel-backdrop-blur: var(--filter-blur-5);
     --surface-panel-backdrop-filter: blur(var(--surface-panel-backdrop-blur));
@@ -344,6 +345,7 @@
     --surface-block-bg:            oklch(19.5% 0.018 194 / 0.80);
     --surface-block-hover-bg:      oklch(23.5% 0.02 188 / 0.85);
     --surface-block-selected-bg:   oklch(28.5% 0.036 176 / 0.88);
+    --surface-block-selected-border-color: oklch(81.5% 0.148 166 / 0.42);
     --surface-block-sub-bg:        oklch(0% 0 0 / 0.22);
     --surface-block-radius:        var(--radius-4);
 
@@ -438,9 +440,11 @@
     --state-active-overlay:       var(--palette-white-alpha-8);
 
     --state-selected:             var(--content-prominent);
-    --state-selected-bg:          var(--palette-white-alpha-8);
-    --state-selected-border:      var(--border-color-prominent);
-    --state-selected-content:     var(--content-prominent);
+    --state-selected-bg:          oklch(81.5% 0.148 166 / 0.14);
+    --state-selected-hover-bg:    oklch(81.5% 0.148 166 / 0.20);
+    --state-selected-border:      oklch(81.5% 0.148 166 / 0.42);
+    --state-selected-content:     var(--state-focus);
+    --state-selected-shadow:      inset 0 1px 0 0 oklch(88% 0.10 166 / 0.18);
 
     --state-disabled-content:     var(--content-faint);
     --state-disabled-border:      var(--palette-white-alpha-8);
@@ -448,19 +452,19 @@
     --state-disabled-cursor:      not-allowed;
 
     /* Cartographic Chrome */
-    --chrome-grid-primary-color:         var(--palette-white-alpha-30);
+    --chrome-grid-primary-color:         oklch(74.0% 0.105 172 / 0.42);
     --chrome-grid-primary-width:         var(--stroke-width-2);
     --chrome-grid-primary-style:         var(--border-style-boundary);
 
-    --chrome-grid-secondary-color:       var(--palette-white-alpha-16);
+    --chrome-grid-secondary-color:       oklch(70.0% 0.095 176 / 0.28);
     --chrome-grid-secondary-width:       var(--stroke-width-1);
     --chrome-grid-secondary-style:       var(--border-style-guide);
 
-    --chrome-range-ring-color:           var(--palette-white-alpha-24);
+    --chrome-range-ring-color:           oklch(74.0% 0.110 170 / 0.38);
     --chrome-range-ring-width:           var(--stroke-width-1);
     --chrome-range-ring-style:           var(--border-style-boundary);
 
-    --chrome-range-tick-color:           var(--palette-white-alpha-40);
+    --chrome-range-tick-color:           oklch(78.0% 0.125 168 / 0.52);
     --chrome-range-tick-width:           var(--stroke-width-2);
     --chrome-range-tick-style:           var(--border-style-boundary);
 
@@ -468,7 +472,7 @@
     --chrome-reticle-bracket-width:      var(--stroke-width-2);
     --chrome-reticle-bracket-style:      var(--border-style-boundary);
 
-    --chrome-boresight-color:            var(--palette-white-alpha-30);
+    --chrome-boresight-color:            oklch(76.0% 0.115 170 / 0.40);
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
@@ -484,12 +488,25 @@
     /* UI Control Inset Wells & Cavities (Dark Theme) */
     --ui-control-inset-bg:               var(--surface-inset-bg);
     --ui-control-inset-border-color:     var(--surface-inset-border-color);
-    --ui-control-inset-shadow:           var(--surface-inset-shadow);
+    --ui-control-inset-shadow:           var(--surface-inset-shadow), var(--surface-inset-bevel);
 
     /* UI Control Hardware & Dedicated State Indicators (Dark Theme) */
     --ui-control-default-bg:             var(--gradient-surface-button-dark);
     --ui-control-hover-bg:               var(--gradient-surface-button-hover-dark);
     --ui-control-active-bg:              linear-gradient(137deg, oklch(from var(--ui-control-active) l c h / 0.16), oklch(from var(--ui-control-active) l c h / 0.08)), var(--surface-inset-bg);
+    --ui-control-press-bg:               var(--gradient-surface-button-active-dark);
+    --ui-control-border-color:           oklch(88% 0.04 190 / 0.15);
+    --ui-control-hover-border-color:     oklch(92% 0.04 188 / 0.24);
+    --ui-control-active-border-color:    oklch(88% 0.04 190 / 0.20);
+    --ui-control-surface-shadow:         var(--bevel-top-rim-subtle), var(--ui-control-elevation);
+
+    --ui-control-primary-bg:             var(--gradient-control-primary-dark);
+    --ui-control-primary-hover-bg:       var(--gradient-control-primary-hover-dark);
+    --ui-control-primary-active-bg:      var(--gradient-control-primary-active-dark);
+    --ui-control-primary-text:           oklch(96.0% 0.030 166);
+    --ui-control-primary-border-color:   oklch(81.5% 0.148 166 / 0.50);
+    --ui-control-primary-hover-border-color: oklch(85.5% 0.140 166 / 0.68);
+    --ui-control-primary-shadow:         var(--bevel-control-primary-dark), var(--ui-control-elevation);
 
     --ui-control-handle-bg:              var(--ui-control-default);
     --ui-control-handle-hover-bg:        var(--ui-control-hover);
@@ -509,7 +526,7 @@
     --chrome-clamp-glow-color-mid:       oklch(from var(--state-focus) l c h / 0.18);
 
     --chrome-node-label-bg:              oklch(0% 0 0 / 0);
-    --chrome-node-label-color:           var(--status-nominal);
+    --chrome-node-label-color:           var(--status-neutral);
     --chrome-node-label-border-color:    oklch(0% 0 0 / 0);
     --chrome-node-label-selected-color:  var(--content-prominent);
     --chrome-node-label-selected-border-color: var(--state-selected-border);
@@ -518,19 +535,19 @@
     --chrome-node-label-border-width:    var(--border-width-1);
     --chrome-node-label-border-style:    var(--border-style-boundary);
     --chrome-node-label-radius:          var(--radius-badge);
-    --chrome-node-facet-separator-color: var(--status-nominal);
+    --chrome-node-facet-separator-color: var(--status-neutral);
     --chrome-node-facet-separator-opacity: var(--opacity-85);
 
     /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
-    --chrome-datum-plane-color:          var(--palette-white-alpha-35);
-    --chrome-datum-plane-alpha:          0.35;
+    --chrome-datum-plane-color:          oklch(76.0% 0.125 168 / 0.52);
+    --chrome-datum-plane-alpha:          0.52;
     --chrome-datum-plane-width:          var(--stroke-width-1);
-    --chrome-datum-plane-major-color:    var(--palette-white-alpha-35);
-    --chrome-datum-plane-major-alpha:    0.35;
-    --chrome-datum-plane-minor-color:    var(--palette-white-alpha-16);
-    --chrome-datum-plane-minor-alpha:    0.16;
-    --chrome-datum-plane-fill-color:     var(--palette-white-alpha-35);
-    --chrome-datum-plane-fill-alpha:     0.16;
+    --chrome-datum-plane-major-color:    oklch(76.0% 0.125 168 / 0.52);
+    --chrome-datum-plane-major-alpha:    0.52;
+    --chrome-datum-plane-minor-color:    oklch(70.0% 0.095 176 / 0.26);
+    --chrome-datum-plane-minor-alpha:    0.26;
+    --chrome-datum-plane-fill-color:     oklch(68.0% 0.115 172);
+    --chrome-datum-plane-fill-alpha:     0.22;
     --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
     --chrome-datum-footprint-color:      var(--chrome-footprint-color);
@@ -542,30 +559,30 @@
     --chrome-kinematic-alpha:            0.42;
 
     /* Drop Stalks (Monochrome, State-Driven) */
-    --chrome-stalk-selected-color:       var(--palette-white-alpha-70);
-    --chrome-stalk-selected-alpha:       0.70;
-    --chrome-stalk-focused-color:        var(--palette-white-alpha-70);
-    --chrome-stalk-focused-alpha:        0.85;
+    --chrome-stalk-selected-color:       oklch(82.0% 0.065 180 / 0.72);
+    --chrome-stalk-selected-alpha:       0.72;
+    --chrome-stalk-focused-color:        oklch(81.5% 0.148 166 / 0.88);
+    --chrome-stalk-focused-alpha:        0.88;
     --chrome-stalk-width:                var(--stroke-width-1);
     --chrome-stalk-style:                solid;
 
     /* Datum Footprints (Decoupled, Monochrome Baseline) */
-    --chrome-footprint-color:            var(--palette-white-alpha-35);
-    --chrome-footprint-alpha:            0.35;
-    --chrome-footprint-selected-color:   var(--state-selected);
+    --chrome-footprint-color:            oklch(74.0% 0.115 170 / 0.50);
+    --chrome-footprint-alpha:            0.50;
+    --chrome-footprint-selected-color:   oklch(86.0% 0.075 176);
     --chrome-footprint-selected-alpha:   0.85;
     --chrome-footprint-focused-color:    var(--state-focus);
-    --chrome-footprint-focused-alpha:    0.85;
+    --chrome-footprint-focused-alpha:    0.92;
 
     /* Orbits (Hairline, State-Driven) */
-    --chrome-orbit-color:                var(--palette-white-alpha-24);
-    --chrome-orbit-alpha:                0.24;
+    --chrome-orbit-color:                oklch(70.0% 0.075 182 / 0.30);
+    --chrome-orbit-alpha:                0.30;
     --chrome-orbit-width:                var(--stroke-width-1);
     --chrome-orbit-style:                dashed;
     --chrome-orbit-selected-color:       var(--chrome-kinematic-color);
-    --chrome-orbit-selected-alpha:       0.35;
+    --chrome-orbit-selected-alpha:       0.52;
     --chrome-orbit-focused-color:        var(--chrome-kinematic-color);
-    --chrome-orbit-focused-alpha:        0.35;
+    --chrome-orbit-focused-alpha:        0.52;
 
     /* Routes (Kinematic Vector Chords) */
     --chrome-route-color:                var(--chrome-kinematic-color);
@@ -574,10 +591,10 @@
     --chrome-route-style:                solid;
 
     /* Instrument Alphas & Dash Metrics */
-    --chrome-ring-major-alpha:           0.45;
-    --chrome-ring-minor-alpha:           0.20;
-    --chrome-fin-perimeter-alpha:        0.25;
-    --chrome-tick-alpha:                 0.40;
+    --chrome-ring-major-alpha:           0.55;
+    --chrome-ring-minor-alpha:           0.28;
+    --chrome-fin-perimeter-alpha:        0.36;
+    --chrome-tick-alpha:                 0.52;
     --chrome-reticle-alpha-active:       0.60;
     --chrome-reticle-alpha-selected:     0.90;
     --chrome-reticle-alpha-focused:      1.0;
@@ -588,7 +605,7 @@
     --chrome-dot-size:                   2px;
     --chrome-dot-gap:                    4px;
 
-    --chrome-axis-line-color:            var(--palette-white-alpha-16);
+    --chrome-axis-line-color:            oklch(70.0% 0.085 178 / 0.24);
     --chrome-axis-line-width:            var(--stroke-width-1);
     --chrome-axis-line-style:            var(--border-style-boundary);
 
@@ -622,9 +639,9 @@
     --confidence-theoretical-bg:   oklch(72.0% 0.180 300 / 0.15);
     --confidence-theoretical-glow: 0 0 5px oklch(72.0% 0.180 300 / 0.70), 0 0 10px oklch(72.0% 0.180 300 / 0.35);
 
-    /* Telemetry Condition / Status (Nominal is Calibrated Baseline Neutral) */
-    --status-nominal:              var(--palette-accent-neutral);
-    --status-nominal-bg:           var(--palette-accent-neutral-subtle);
+    /* Telemetry Condition / Status (Nominal is Bio-Jade; Neutral is Titanium Slate) */
+    --status-nominal:              oklch(78.0% 0.135 164);
+    --status-nominal-bg:           oklch(78.0% 0.135 164 / 0.15);
     --status-caution:              oklch(74.0% 0.160 85);
     --status-caution-bg:           oklch(74.0% 0.160 85 / 0.15);
     --status-critical:             oklch(60.0% 0.220 26);
@@ -635,13 +652,13 @@
     /* Telemetry Condition / Status Surfaces & Subtle Borders (Dark Theme) */
     --status-nominal-surface:      linear-gradient(
       137deg,
-      oklch(20.0% 0.030 198 / 0.92) 0px,
-      oklch(18.0% 0.022 198 / 0.95) 180px,
-      oklch(16.0% 0.016 198 / 0.98) 360px,
-      oklch(16.0% 0.016 198 / 0.98) 100%
+      oklch(20.5% 0.038 166 / 0.92) 0px,
+      oklch(18.0% 0.028 168 / 0.95) 180px,
+      oklch(16.0% 0.020 170 / 0.98) 360px,
+      oklch(16.0% 0.020 170 / 0.98) 100%
     );
-    --status-nominal-border:       oklch(68.0% 0.050 198 / 0.28);
-    --status-nominal-bevel:        inset 0 1px 0 0 oklch(85% 0.04 198 / 0.35), inset 1px 0 0 0 oklch(85% 0.04 198 / 0.20);
+    --status-nominal-border:       oklch(78.0% 0.135 164 / 0.36);
+    --status-nominal-bevel:        inset 0 1px 0 0 oklch(88% 0.08 164 / 0.35), inset 1px 0 0 0 oklch(88% 0.08 164 / 0.20);
     --status-nominal-toast-shadow: var(--status-nominal-bevel), var(--elevation-toast);
     --status-nominal-panel-shadow: var(--status-nominal-bevel), var(--elevation-panel);
 
@@ -683,11 +700,17 @@
 
     --status-neutral:              var(--palette-accent-neutral);
     --status-neutral-bg:           var(--palette-accent-neutral-subtle);
-    --status-neutral-surface:      var(--status-nominal-surface);
-    --status-neutral-border:       var(--status-nominal-border);
-    --status-neutral-bevel:        var(--status-nominal-bevel);
-    --status-neutral-toast-shadow: var(--status-nominal-toast-shadow);
-    --status-neutral-panel-shadow: var(--status-nominal-panel-shadow);
+    --status-neutral-surface:      linear-gradient(
+      137deg,
+      oklch(20.0% 0.030 198 / 0.92) 0px,
+      oklch(18.0% 0.022 198 / 0.95) 180px,
+      oklch(16.0% 0.016 198 / 0.98) 360px,
+      oklch(16.0% 0.016 198 / 0.98) 100%
+    );
+    --status-neutral-border:       oklch(68.0% 0.050 198 / 0.28);
+    --status-neutral-bevel:        inset 0 1px 0 0 oklch(85% 0.04 198 / 0.35), inset 1px 0 0 0 oklch(85% 0.04 198 / 0.20);
+    --status-neutral-toast-shadow: var(--status-neutral-bevel), var(--elevation-toast);
+    --status-neutral-panel-shadow: var(--status-neutral-bevel), var(--elevation-panel);
 
     /* ------------------------------------------------------------------------ */
     /* Data Visualisation Ramps (10% - 100% Steps in OKLCH)                     */
@@ -818,7 +841,7 @@
 
     /* Surfaces */
     --surface-canvas-bg:           oklch(97.2% 0.008 198);
-    --surface-canvas-stage-bg:     radial-gradient(ellipse at 50% 48%, oklch(99.0% 0.006 196) 0%, oklch(97.2% 0.008 198) 68%);
+    --surface-canvas-stage-bg:     radial-gradient(ellipse at 52% 44%, oklch(99.2% 0.008 192) 0%, oklch(98.0% 0.008 196) 46%, oklch(97.2% 0.008 198) 78%);
     --surface-canvas-border-width: var(--stroke-width-0);
     --surface-canvas-border-color: transparent;
     --surface-canvas-border-style: var(--stroke-style-none);
@@ -860,11 +883,12 @@
     --surface-dock-backdrop-blur:  var(--filter-blur-0);
 
     /* Family 2: Task Slabs (Panel & Drawer - Bio-Glass) */
-    --surface-panel-bg:            oklch(99% 0.004 196 / 0.80);
+    --surface-panel-bg:            var(--gradient-surface-slab-light);
     --surface-panel-border-width:  var(--stroke-width-1);
     --surface-panel-border-color:  var(--palette-specular-black-12);
     --surface-panel-border-style:  var(--border-style-boundary);
     --surface-panel-shadow:        var(--bevel-top-rim-light), var(--elevation-panel-light);
+    --surface-panel-sheen:         linear-gradient(137deg, oklch(100% 0 0 / 0.45) 0%, oklch(100% 0 0 / 0.12) 40%, transparent 100%);
     --surface-panel-opacity:       var(--opacity-100);
     --surface-panel-backdrop-blur: var(--filter-blur-5);
     --surface-panel-backdrop-filter: blur(var(--surface-panel-backdrop-blur));
@@ -874,6 +898,7 @@
     --surface-block-bg:            oklch(95.2% 0.005 196 / 0.80);
     --surface-block-hover-bg:      oklch(92.8% 0.008 190 / 0.85);
     --surface-block-selected-bg:   oklch(91.5% 0.022 172 / 0.88);
+    --surface-block-selected-border-color: oklch(46.0% 0.140 166 / 0.38);
     --surface-block-sub-bg:        oklch(25% 0.02 196 / 0.08);
     --surface-block-radius:        var(--radius-4);
 
@@ -968,9 +993,11 @@
     --state-active-overlay:       var(--palette-black-alpha-8);
 
     --state-selected:             var(--content-prominent);
-    --state-selected-bg:          var(--palette-black-alpha-8);
-    --state-selected-border:      var(--border-color-prominent);
-    --state-selected-content:     var(--content-prominent);
+    --state-selected-bg:          oklch(46.0% 0.140 166 / 0.12);
+    --state-selected-hover-bg:    oklch(46.0% 0.140 166 / 0.18);
+    --state-selected-border:      oklch(46.0% 0.140 166 / 0.42);
+    --state-selected-content:     var(--state-focus);
+    --state-selected-shadow:      inset 0 1px 0 0 oklch(100% 0 0 / 0.45);
 
     --state-disabled-content:     var(--content-faint);
     --state-disabled-border:      var(--palette-black-alpha-8);
@@ -978,19 +1005,19 @@
     --state-disabled-cursor:      not-allowed;
 
     /* Cartographic Chrome */
-    --chrome-grid-primary-color:         var(--palette-black-alpha-30);
+    --chrome-grid-primary-color:         oklch(44.0% 0.100 172 / 0.36);
     --chrome-grid-primary-width:         var(--stroke-width-2);
     --chrome-grid-primary-style:         var(--border-style-boundary);
 
-    --chrome-grid-secondary-color:       var(--palette-black-alpha-16);
+    --chrome-grid-secondary-color:       oklch(46.0% 0.090 176 / 0.24);
     --chrome-grid-secondary-width:       var(--stroke-width-1);
     --chrome-grid-secondary-style:       var(--border-style-guide);
 
-    --chrome-range-ring-color:           var(--palette-black-alpha-24);
+    --chrome-range-ring-color:           oklch(44.0% 0.105 170 / 0.32);
     --chrome-range-ring-width:           var(--stroke-width-1);
     --chrome-range-ring-style:           var(--border-style-boundary);
 
-    --chrome-range-tick-color:           var(--palette-black-alpha-40);
+    --chrome-range-tick-color:           oklch(42.0% 0.120 168 / 0.45);
     --chrome-range-tick-width:           var(--stroke-width-2);
     --chrome-range-tick-style:           var(--border-style-boundary);
 
@@ -998,7 +1025,7 @@
     --chrome-reticle-bracket-width:      var(--stroke-width-2);
     --chrome-reticle-bracket-style:      var(--border-style-boundary);
 
-    --chrome-boresight-color:            var(--palette-black-alpha-30);
+    --chrome-boresight-color:            oklch(44.0% 0.110 170 / 0.35);
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
@@ -1014,12 +1041,25 @@
     /* UI Control Inset Wells & Cavities (Light Theme) */
     --ui-control-inset-bg:               var(--surface-inset-bg);
     --ui-control-inset-border-color:     var(--surface-inset-border-color);
-    --ui-control-inset-shadow:           var(--surface-inset-shadow);
+    --ui-control-inset-shadow:           var(--surface-inset-shadow), var(--surface-inset-bevel);
 
     /* UI Control Hardware & Dedicated State Indicators (Light Theme) */
     --ui-control-default-bg:             var(--gradient-surface-button-light);
     --ui-control-hover-bg:               var(--gradient-surface-button-hover-light);
     --ui-control-active-bg:              linear-gradient(137deg, oklch(from var(--ui-control-active) l c h / 0.12), oklch(from var(--ui-control-active) l c h / 0.06)), var(--surface-inset-bg);
+    --ui-control-press-bg:               var(--gradient-surface-button-active-light);
+    --ui-control-border-color:           var(--palette-specular-black-16);
+    --ui-control-hover-border-color:     oklch(0% 0 0 / 0.24);
+    --ui-control-active-border-color:    oklch(0% 0 0 / 0.22);
+    --ui-control-surface-shadow:         var(--bevel-top-rim-light), var(--ui-control-elevation);
+
+    --ui-control-primary-bg:             var(--gradient-control-primary-light);
+    --ui-control-primary-hover-bg:       var(--gradient-control-primary-hover-light);
+    --ui-control-primary-active-bg:      var(--gradient-control-primary-active-light);
+    --ui-control-primary-text:           oklch(99.0% 0.010 166);
+    --ui-control-primary-border-color:   oklch(36.0% 0.125 166 / 0.65);
+    --ui-control-primary-hover-border-color: oklch(32.0% 0.130 166 / 0.80);
+    --ui-control-primary-shadow:         var(--bevel-control-primary-light), var(--ui-control-elevation);
 
     --ui-control-handle-bg:              var(--ui-control-default);
     --ui-control-handle-hover-bg:        var(--ui-control-hover);
@@ -1039,7 +1079,7 @@
     --chrome-clamp-glow-color-mid:       oklch(from var(--state-focus) l c h / 0.14);
 
     --chrome-node-label-bg:              oklch(0% 0 0 / 0);
-    --chrome-node-label-color:           var(--status-nominal);
+    --chrome-node-label-color:           var(--status-neutral);
     --chrome-node-label-border-color:    oklch(0% 0 0 / 0);
     --chrome-node-label-selected-color:  var(--content-prominent);
     --chrome-node-label-selected-border-color: var(--state-selected-border);
@@ -1048,19 +1088,19 @@
     --chrome-node-label-border-width:    var(--border-width-1);
     --chrome-node-label-border-style:    var(--border-style-boundary);
     --chrome-node-label-radius:          var(--radius-badge);
-    --chrome-node-facet-separator-color: var(--status-nominal);
+    --chrome-node-facet-separator-color: var(--status-neutral);
     --chrome-node-facet-separator-opacity: var(--opacity-85);
 
     /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
-    --chrome-datum-plane-color:          var(--palette-black-alpha-35);
-    --chrome-datum-plane-alpha:          0.35;
+    --chrome-datum-plane-color:          oklch(44.0% 0.120 168 / 0.45);
+    --chrome-datum-plane-alpha:          0.45;
     --chrome-datum-plane-width:          var(--stroke-width-1);
-    --chrome-datum-plane-major-color:    var(--palette-black-alpha-35);
-    --chrome-datum-plane-major-alpha:    0.35;
-    --chrome-datum-plane-minor-color:    var(--palette-black-alpha-16);
-    --chrome-datum-plane-minor-alpha:    0.16;
-    --chrome-datum-plane-fill-color:     var(--palette-solarized-base2);
-    --chrome-datum-plane-fill-alpha:     0.08;
+    --chrome-datum-plane-major-color:    oklch(44.0% 0.120 168 / 0.45);
+    --chrome-datum-plane-major-alpha:    0.45;
+    --chrome-datum-plane-minor-color:    oklch(46.0% 0.090 176 / 0.22);
+    --chrome-datum-plane-minor-alpha:    0.22;
+    --chrome-datum-plane-fill-color:     oklch(46.0% 0.105 172);
+    --chrome-datum-plane-fill-alpha:     0.12;
     --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
     --chrome-datum-footprint-color:      var(--chrome-footprint-color);
@@ -1072,30 +1112,30 @@
     --chrome-kinematic-alpha:            0.42;
 
     /* Drop Stalks (Monochrome, State-Driven) */
-    --chrome-stalk-selected-color:       var(--palette-black-alpha-70);
-    --chrome-stalk-selected-alpha:       0.70;
-    --chrome-stalk-focused-color:        var(--palette-black-alpha-70);
-    --chrome-stalk-focused-alpha:        0.85;
+    --chrome-stalk-selected-color:       oklch(40.0% 0.065 180 / 0.72);
+    --chrome-stalk-selected-alpha:       0.72;
+    --chrome-stalk-focused-color:        oklch(46.0% 0.140 166 / 0.88);
+    --chrome-stalk-focused-alpha:        0.88;
     --chrome-stalk-width:                var(--stroke-width-1);
     --chrome-stalk-style:                solid;
 
     /* Datum Footprints (Decoupled, Monochrome Baseline) */
-    --chrome-footprint-color:            var(--palette-black-alpha-35);
-    --chrome-footprint-alpha:            0.35;
-    --chrome-footprint-selected-color:   var(--state-selected);
+    --chrome-footprint-color:            oklch(44.0% 0.110 170 / 0.42);
+    --chrome-footprint-alpha:            0.42;
+    --chrome-footprint-selected-color:   oklch(36.0% 0.075 176);
     --chrome-footprint-selected-alpha:   0.85;
     --chrome-footprint-focused-color:    var(--state-focus);
-    --chrome-footprint-focused-alpha:    0.85;
+    --chrome-footprint-focused-alpha:    0.92;
 
     /* Orbits (Hairline, State-Driven) */
-    --chrome-orbit-color:                var(--palette-black-alpha-24);
-    --chrome-orbit-alpha:                0.24;
+    --chrome-orbit-color:                oklch(46.0% 0.070 182 / 0.28);
+    --chrome-orbit-alpha:                0.28;
     --chrome-orbit-width:                var(--stroke-width-1);
     --chrome-orbit-style:                dashed;
     --chrome-orbit-selected-color:       var(--chrome-kinematic-color);
-    --chrome-orbit-selected-alpha:       0.35;
+    --chrome-orbit-selected-alpha:       0.52;
     --chrome-orbit-focused-color:        var(--chrome-kinematic-color);
-    --chrome-orbit-focused-alpha:        0.35;
+    --chrome-orbit-focused-alpha:        0.52;
 
     /* Routes (Kinematic Vector Chords) */
     --chrome-route-color:                var(--chrome-kinematic-color);
@@ -1104,10 +1144,10 @@
     --chrome-route-style:                solid;
 
     /* Instrument Alphas & Dash Metrics */
-    --chrome-ring-major-alpha:           0.45;
-    --chrome-ring-minor-alpha:           0.20;
-    --chrome-fin-perimeter-alpha:        0.25;
-    --chrome-tick-alpha:                 0.40;
+    --chrome-ring-major-alpha:           0.50;
+    --chrome-ring-minor-alpha:           0.24;
+    --chrome-fin-perimeter-alpha:        0.32;
+    --chrome-tick-alpha:                 0.45;
     --chrome-reticle-alpha-active:       0.60;
     --chrome-reticle-alpha-selected:     0.90;
     --chrome-reticle-alpha-focused:      1.0;
@@ -1118,7 +1158,7 @@
     --chrome-dot-size:                   2px;
     --chrome-dot-gap:                    4px;
 
-    --chrome-axis-line-color:            var(--palette-black-alpha-16);
+    --chrome-axis-line-color:            oklch(46.0% 0.080 178 / 0.22);
     --chrome-axis-line-width:            var(--stroke-width-1);
     --chrome-axis-line-style:            var(--border-style-boundary);
 
@@ -1153,9 +1193,9 @@
     --confidence-theoretical-bg:   oklch(48.0% 0.140 300 / 0.15);
     --confidence-theoretical-glow: 0 0 4px oklch(48.0% 0.140 300 / 0.50), 0 0 8px oklch(48.0% 0.140 300 / 0.25);
 
-    /* Telemetry Condition / Status (Nominal is Calibrated Baseline Neutral) */
-    --status-nominal:              oklch(46.0% 0.045 198);
-    --status-nominal-bg:           oklch(46.0% 0.045 198 / 0.15);
+    /* Telemetry Condition / Status (Nominal is Bio-Jade; Neutral is Titanium Slate) */
+    --status-nominal:              oklch(48.0% 0.140 164);
+    --status-nominal-bg:           oklch(48.0% 0.140 164 / 0.14);
     --status-caution:              oklch(52.0% 0.160 85);
     --status-caution-bg:           oklch(52.0% 0.160 85 / 0.15);
     --status-critical:             oklch(46.0% 0.210 26);
@@ -1166,12 +1206,12 @@
     /* Telemetry Condition / Status Surfaces & Subtle Borders (Light Theme) */
     --status-nominal-surface:      linear-gradient(
       137deg,
-      oklch(98.0% 0.015 198 / 0.94) 0px,
-      oklch(96.0% 0.012 198 / 0.96) 180px,
-      oklch(94.0% 0.010 198 / 0.98) 360px,
-      oklch(94.0% 0.010 198 / 0.98) 100%
+      oklch(98.0% 0.022 164 / 0.94) 0px,
+      oklch(96.0% 0.018 164 / 0.96) 180px,
+      oklch(94.0% 0.014 164 / 0.98) 360px,
+      oklch(94.0% 0.014 164 / 0.98) 100%
     );
-    --status-nominal-border:       oklch(46.0% 0.045 198 / 0.32);
+    --status-nominal-border:       oklch(48.0% 0.140 164 / 0.34);
     --status-nominal-bevel:        inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
     --status-nominal-toast-shadow: var(--status-nominal-bevel), var(--elevation-toast-light);
     --status-nominal-panel-shadow: var(--status-nominal-bevel), var(--elevation-panel-light);
@@ -1214,11 +1254,17 @@
 
     --status-neutral:              oklch(46.0% 0.045 198);
     --status-neutral-bg:           oklch(46.0% 0.045 198 / 0.15);
-    --status-neutral-surface:      var(--status-nominal-surface);
-    --status-neutral-border:       var(--status-nominal-border);
-    --status-neutral-bevel:        var(--status-nominal-bevel);
-    --status-neutral-toast-shadow: var(--status-nominal-toast-shadow);
-    --status-neutral-panel-shadow: var(--status-nominal-panel-shadow);
+    --status-neutral-surface:      linear-gradient(
+      137deg,
+      oklch(98.0% 0.015 198 / 0.94) 0px,
+      oklch(96.0% 0.012 198 / 0.96) 180px,
+      oklch(94.0% 0.010 198 / 0.98) 360px,
+      oklch(94.0% 0.010 198 / 0.98) 100%
+    );
+    --status-neutral-border:       oklch(46.0% 0.045 198 / 0.32);
+    --status-neutral-bevel:        inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-neutral-toast-shadow: var(--status-neutral-bevel), var(--elevation-toast-light);
+    --status-neutral-panel-shadow: var(--status-neutral-bevel), var(--elevation-panel-light);
 
     /* ------------------------------------------------------------------------ */
     /* Data Visualisation Ramps (Light Theme)                                   */
@@ -1337,25 +1383,54 @@
   }
 
   /* ------------------------------------------------------------------------ */
+  /* AMOLED Theme: True-Black Bio-Glass Override (OKLCH)                      */
+  /* ------------------------------------------------------------------------ */
+  [data-theme="amoled"] {
+    color-scheme: dark;
+    --surface-canvas-bg:       oklch(0% 0 0);
+    --surface-canvas-stage-bg: radial-gradient(ellipse at 52% 44%, oklch(13.0% 0.032 190) 0%, oklch(5.0% 0.016 196) 44%, oklch(0% 0 0) 76%);
+    --surface-panel-bg:        linear-gradient(
+      137deg,
+      oklch(10.5% 0.016 196 / 0.86) 0px,
+      oklch(7.5% 0.012 196 / 0.90) 180px,
+      oklch(5.5% 0.010 196 / 0.94) 360px,
+      oklch(5.5% 0.010 196 / 0.94) 100%
+    );
+  }
+
+  /* ------------------------------------------------------------------------ */
   /* Device-Tier Low-GPU Blur Guard                                           */
   /* ------------------------------------------------------------------------ */
   :root[data-device-tier="tier1"],
   [data-theme="dark"][data-device-tier="tier1"] {
-    --surface-canvas-stage-bg:       var(--surface-canvas-bg);
     --surface-panel-backdrop-blur:   var(--filter-blur-0);
     --surface-panel-backdrop-filter: none;
-    --surface-panel-bg:              oklch(13.8% 0.016 196);
-    --surface-panel-shadow:          none;
+    --surface-panel-bg:              var(--gradient-surface-chassis-dark);
+    --surface-panel-shadow:          var(--bevel-top-rim-subtle);
     --shadow-map-label-halo:         none;
     --motion-duration-feedback:      0ms;
   }
 
   [data-theme="light"][data-device-tier="tier1"] {
-    --surface-canvas-stage-bg:       var(--surface-canvas-bg);
     --surface-panel-backdrop-blur:   var(--filter-blur-0);
     --surface-panel-backdrop-filter: none;
-    --surface-panel-bg:              oklch(99% 0.004 196);
-    --surface-panel-shadow:          none;
+    --surface-panel-bg:              var(--gradient-surface-chassis-light);
+    --surface-panel-shadow:          var(--bevel-top-rim-light);
+    --shadow-map-label-halo:         none;
+    --motion-duration-feedback:      0ms;
+  }
+
+  [data-theme="amoled"][data-device-tier="tier1"] {
+    --surface-panel-backdrop-blur:   var(--filter-blur-0);
+    --surface-panel-backdrop-filter: none;
+    --surface-panel-bg:              linear-gradient(
+      137deg,
+      oklch(10.5% 0.016 196) 0px,
+      oklch(7.5% 0.012 196) 180px,
+      oklch(5.5% 0.010 196) 360px,
+      oklch(5.5% 0.010 196) 100%
+    );
+    --surface-panel-shadow:          var(--bevel-top-rim-subtle);
     --shadow-map-label-halo:         none;
     --motion-duration-feedback:      0ms;
   }

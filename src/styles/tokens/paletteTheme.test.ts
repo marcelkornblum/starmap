@@ -227,4 +227,161 @@ describe('Theme & Palette Management (paletteTheme)', () => {
       expect(document.documentElement.style.colorScheme).toBe('dark');
     });
   });
+
+  describe('Phase 1 Prodigy Visual Richness Token Contracts', () => {
+    const semanticCss = fs.readFileSync(path.resolve(process.cwd(), 'src/styles/tokens/semantic.css'), 'utf8');
+    const palettesCss = fs.readFileSync(path.resolve(process.cwd(), 'src/styles/tokens/palettes.css'), 'utf8');
+    const fullAssemblyCss = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/canvas/FullAssembly.module.css'),
+      'utf8',
+    );
+    const storybookWrapperCss = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/canvas/cartography/StorybookCanvasWrapper.module.css'),
+      'utf8',
+    );
+    const entityLabelCss = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/canvas/entity/EntityLabel.module.css'),
+      'utf8',
+    );
+
+    function extractBlock(css: string, selectorPattern: RegExp): string {
+      const match = selectorPattern.exec(css);
+      if (!match || match.index === undefined) return '';
+      const openIdx = css.indexOf('{', match.index);
+      if (openIdx === -1) return '';
+      let depth = 0;
+      for (let i = openIdx; i < css.length; i++) {
+        if (css[i] === '{') depth++;
+        else if (css[i] === '}') {
+          depth--;
+          if (depth === 0) return css.slice(openIdx + 1, i);
+        }
+      }
+      return '';
+    }
+
+    function readProp(block: string, prop: string): string | null {
+      const escaped = prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`${escaped}\\s*:\\s*([^;]+);`);
+      const match = regex.exec(block);
+      return match?.[1]?.trim().replace(/\s+/g, ' ') ?? null;
+    }
+
+    const darkBlock = extractBlock(semanticCss, /:root,\s*\[data-theme="dark"\]\s*\{/);
+    const lightBlock = extractBlock(semanticCss, /\[data-theme="light"\]\s*\{/);
+    const amoledBlock = extractBlock(semanticCss, /\[data-theme="amoled"\]\s*\{/);
+    const tier1DarkBlock = extractBlock(semanticCss, /:root\[data-device-tier="tier1"\],\s*\[data-theme="dark"\]\[data-device-tier="tier1"\]\s*\{/);
+    const tier1LightBlock = extractBlock(semanticCss, /\[data-theme="light"\]\[data-device-tier="tier1"\]\s*\{/);
+    const tier1AmoledBlock = extractBlock(semanticCss, /\[data-theme="amoled"\]\[data-device-tier="tier1"\]\s*\{/);
+
+    it('binds --surface-panel-bg to directional slab gradients and defines [data-theme="amoled"]', () => {
+      expect(palettesCss).toContain('--gradient-control-primary-dark:');
+      expect(palettesCss).toContain('--gradient-control-primary-light:');
+      expect(palettesCss).toContain('--bevel-control-primary-dark:');
+      expect(palettesCss).toContain('--bevel-control-primary-light:');
+
+      expect(readProp(darkBlock, '--surface-panel-bg')).toBe('var(--gradient-surface-slab-dark)');
+      expect(readProp(lightBlock, '--surface-panel-bg')).toBe('var(--gradient-surface-slab-light)');
+      expect(amoledBlock).not.toBe('');
+      expect(readProp(amoledBlock, '--surface-canvas-bg')).toBe('oklch(0% 0 0)');
+      expect(readProp(amoledBlock, '--surface-canvas-stage-bg')).toContain('radial-gradient(');
+      expect(readProp(amoledBlock, '--surface-panel-bg')).toContain('linear-gradient(');
+
+      expect(fullAssemblyCss).toContain('background: var(--surface-panel-bg);');
+      expect(fullAssemblyCss).not.toContain('background-color: var(--surface-panel-bg);');
+      expect(storybookWrapperCss).toContain('background: var(--surface-panel-bg);');
+      expect(storybookWrapperCss).not.toContain('background-color: var(--surface-panel-bg);');
+    });
+
+    it('separates Bio-Jade --status-nominal (hue 164) from --status-neutral (hue 198) and keeps unselected node labels neutral', () => {
+      expect(readProp(darkBlock, '--status-nominal')).toBe('oklch(78.0% 0.135 164)');
+      expect(readProp(darkBlock, '--status-neutral')).toBe('var(--palette-accent-neutral)');
+      expect(readProp(darkBlock, '--status-neutral-surface')).toContain('198');
+      expect(readProp(darkBlock, '--status-neutral-border')).toContain('198');
+
+      expect(readProp(lightBlock, '--status-nominal')).toBe('oklch(48.0% 0.140 164)');
+      expect(readProp(lightBlock, '--status-neutral')).toBe('oklch(46.0% 0.045 198)');
+      expect(readProp(lightBlock, '--status-neutral-surface')).toContain('198');
+      expect(readProp(lightBlock, '--status-neutral-border')).toContain('198');
+
+      expect(readProp(darkBlock, '--chrome-node-label-color')).toBe('var(--status-neutral)');
+      expect(readProp(darkBlock, '--chrome-node-facet-separator-color')).toBe('var(--status-neutral)');
+      expect(readProp(lightBlock, '--chrome-node-label-color')).toBe('var(--status-neutral)');
+      expect(readProp(lightBlock, '--chrome-node-facet-separator-color')).toBe('var(--status-neutral)');
+
+      expect(entityLabelCss).not.toContain('var(--status-nominal)');
+      expect(entityLabelCss).toContain('var(--status-neutral)');
+    });
+
+    it('narrows tier1 low-GPU guard to disable blur while preserving directional gradient panel bg and stage bg', () => {
+      expect(readProp(tier1DarkBlock, '--surface-panel-backdrop-filter')).toBe('none');
+      expect(readProp(tier1DarkBlock, '--surface-panel-bg')).toBe('var(--gradient-surface-chassis-dark)');
+      expect(readProp(tier1DarkBlock, '--surface-panel-shadow')).toBe('var(--bevel-top-rim-subtle)');
+      expect(readProp(tier1DarkBlock, '--surface-canvas-stage-bg')).toBeNull();
+
+      expect(readProp(tier1LightBlock, '--surface-panel-backdrop-filter')).toBe('none');
+      expect(readProp(tier1LightBlock, '--surface-panel-bg')).toBe('var(--gradient-surface-chassis-light)');
+      expect(readProp(tier1LightBlock, '--surface-panel-shadow')).toBe('var(--bevel-top-rim-light)');
+      expect(readProp(tier1LightBlock, '--surface-canvas-stage-bg')).toBeNull();
+
+      expect(tier1AmoledBlock).not.toBe('');
+      expect(readProp(tier1AmoledBlock, '--surface-panel-backdrop-filter')).toBe('none');
+      expect(readProp(tier1AmoledBlock, '--surface-panel-bg')).toContain('linear-gradient(');
+      expect(readProp(tier1AmoledBlock, '--surface-canvas-stage-bg')).toBeNull();
+    });
+
+    it('avoids oklch(from ...) relative syntax in every color token read by extractThreeColorTokens', () => {
+      const threeColorTokens = [
+        '--surface-canvas-bg',
+        '--chrome-grid-primary-color',
+        '--chrome-grid-secondary-color',
+        '--chrome-range-ring-color',
+        '--chrome-range-tick-color',
+        '--chrome-datum-plane-color',
+        '--chrome-datum-plane-major-color',
+        '--chrome-datum-plane-minor-color',
+        '--chrome-datum-plane-fill-color',
+        '--chrome-datum-footprint-color',
+        '--chrome-reticle-bracket-color',
+        '--chrome-boresight-color',
+        '--chrome-axis-line-color',
+        '--chrome-bearing-line-color',
+        '--chrome-bearing-orbital-color',
+        '--chrome-bearing-core-color',
+        '--chrome-heading-indicator-color',
+        '--chrome-kinematic-color',
+        '--chrome-stalk-selected-color',
+        '--chrome-stalk-focused-color',
+        '--chrome-footprint-color',
+        '--chrome-footprint-selected-color',
+        '--chrome-footprint-focused-color',
+        '--chrome-orbit-color',
+        '--chrome-orbit-selected-color',
+        '--chrome-orbit-focused-color',
+        '--chrome-route-color',
+        '--state-focus',
+        '--state-selected',
+        '--state-selected-border',
+        '--category-star',
+        '--category-planet',
+        '--category-orbit',
+        '--category-habitability',
+        '--status-nominal',
+        '--status-caution',
+        '--status-critical',
+        '--confidence-confirmed',
+        '--confidence-candidate',
+        '--confidence-theoretical',
+      ];
+
+      for (const block of [darkBlock, lightBlock, amoledBlock]) {
+        for (const token of threeColorTokens) {
+          const val = readProp(block, token);
+          if (val !== null) {
+            expect(val, `${token} must not use oklch(from ...)`).not.toContain('oklch(from');
+          }
+        }
+      }
+    });
+  });
 });

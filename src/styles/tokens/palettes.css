@@ -52,10 +52,10 @@
     );
     --gradient-surface-slab-dark: linear-gradient(
       137deg,
-      oklch(15.4% 0.018 196 / 0.76) 0px,
-      oklch(13.8% 0.016 196 / 0.72) 180px,
-      oklch(12.6% 0.014 196 / 0.72) 360px,
-      oklch(12.6% 0.014 196 / 0.72) 100%
+      oklch(15.8% 0.020 196 / 0.78) 0px,
+      oklch(13.8% 0.017 196 / 0.82) 180px,
+      oklch(12.4% 0.015 196 / 0.86) 360px,
+      oklch(12.4% 0.015 196 / 0.86) 100%
     );
     --gradient-surface-overlay-dark: linear-gradient(
       137deg,
@@ -152,6 +152,49 @@
       oklch(94.4% 0.010 196) 360px,
       oklch(94.4% 0.010 196) 100%
     );
+
+    --gradient-control-primary-dark: linear-gradient(
+      137deg,
+      oklch(34.5% 0.076 168) 0px,
+      oklch(28.5% 0.066 169) 180px,
+      oklch(24.5% 0.058 170) 360px,
+      oklch(24.5% 0.058 170) 100%
+    );
+    --gradient-control-primary-hover-dark: linear-gradient(
+      137deg,
+      oklch(38.5% 0.084 168) 0px,
+      oklch(32.0% 0.074 169) 180px,
+      oklch(27.5% 0.064 170) 360px,
+      oklch(27.5% 0.064 170) 100%
+    );
+    --gradient-control-primary-active-dark: linear-gradient(
+      137deg,
+      oklch(26.5% 0.062 170) 0px,
+      oklch(23.0% 0.054 170) 180px,
+      oklch(21.5% 0.050 170) 100%
+    );
+    --gradient-control-primary-light: linear-gradient(
+      137deg,
+      oklch(48.0% 0.132 166) 0px,
+      oklch(43.5% 0.128 168) 180px,
+      oklch(39.5% 0.122 170) 360px,
+      oklch(39.5% 0.122 170) 100%
+    );
+    --gradient-control-primary-hover-light: linear-gradient(
+      137deg,
+      oklch(44.5% 0.135 166) 0px,
+      oklch(40.0% 0.130 168) 180px,
+      oklch(36.5% 0.124 170) 360px,
+      oklch(36.5% 0.124 170) 100%
+    );
+    --gradient-control-primary-active-light: linear-gradient(
+      137deg,
+      oklch(38.5% 0.124 168) 0px,
+      oklch(35.0% 0.118 170) 180px,
+      oklch(33.5% 0.114 170) 100%
+    );
+    --bevel-control-primary-dark:  inset 0 1px 0 0 oklch(90% 0.10 166 / 0.28), inset 1px 0 0 0 oklch(90% 0.10 166 / 0.14);
+    --bevel-control-primary-light: inset 0 1px 0 0 oklch(100% 0 0 / 0.35), inset 1px 0 0 0 oklch(100% 0 0 / 0.18);
 
     /* Inset Well Bottom & Right Specular Bevels (Prodigy) */
     --bevel-bottom-rim-dark:  inset 0 -1px 0 0 oklch(96% 0.020 198 / 0.22), inset -1px 0 0 0 oklch(96% 0.020 198 / 0.14);
