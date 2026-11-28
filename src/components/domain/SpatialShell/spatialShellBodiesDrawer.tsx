@@ -8,6 +8,24 @@ import styles from './SpatialShell.module.css';
 
 const TOUCH_SWIPE_DISMISS_THRESHOLD_PX = 48;
 
+export const BodiesOrbitalIcon = (): React.ReactNode => (
+  <Icon size="sm">
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <ellipse cx="8" cy="8" rx="6.25" ry="3.25" transform="rotate(-28 8 8)" />
+      <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="12.6" cy="5.4" r="1.35" fill="currentColor" stroke="none" />
+    </svg>
+  </Icon>
+);
+
 export interface SpatialShellBodiesDrawerProps {
   readonly bodies?: React.ReactNode;
   readonly bodiesRegionRef: RefObject<HTMLElement | null>;

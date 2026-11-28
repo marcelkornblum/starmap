@@ -28,12 +28,13 @@ const ConsoleDockDemo = () => {
       </header>
       <Stack gap="loose">
         <section className={storyStyles.section}>
-          <h2 className={storyStyles.sectionTitle}>Map Active (Discover Toggleable)</h2>
+          <h2 className={storyStyles.sectionTitle}>Map Active (Discover Selectable)</h2>
           <div className={storyStyles.previewContainer}>
             <ConsoleDock
               activeItem="map"
               isDiscoverOpen={discoverOpen}
-              onToggleDiscover={() => setDiscoverOpen((prev) => !prev)}
+              onSelectDiscover={() => setDiscoverOpen(true)}
+              onNavigateItem={() => setDiscoverOpen(false)}
             />
           </div>
         </section>

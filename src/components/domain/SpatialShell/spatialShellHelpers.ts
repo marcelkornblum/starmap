@@ -114,6 +114,7 @@ export interface ResolveConsoleDockConfigOptions {
   readonly companionMapHref?: string;
   readonly lastMapHref: string;
   readonly pathname: string;
+  readonly locationSearch?: string;
   readonly isDiscoverOpen: boolean;
 }
 
@@ -123,6 +124,7 @@ export function resolveConsoleDockConfig({
   companionMapHref,
   lastMapHref,
   pathname,
+  locationSearch,
   isDiscoverOpen,
 }: ResolveConsoleDockConfigOptions): {
   readonly activeItem: 'map' | 'discover' | 'guide';
@@ -138,7 +140,9 @@ export function resolveConsoleDockConfig({
       ? lastMapHref && lastMapHref !== '/galaxy'
         ? lastMapHref
         : (companionMapHref ?? lastMapHref ?? '/galaxy')
-      : '/galaxy';
+      : isDiscoverOpen && isSpatialMapPath(pathname)
+        ? `${pathname}${locationSearch ?? ''}`
+        : '/galaxy';
 
   return {
     activeItem,

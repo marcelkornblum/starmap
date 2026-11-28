@@ -5,7 +5,7 @@ import { ConsoleDock } from './ConsoleDock';
 
 describe('<ConsoleDock />', () => {
   it('renders primary navigation landmark inside Tier 2 Dock with Icon-wrapped Map, Discover, and Guide items', () => {
-    render(<ConsoleDock activeItem="map" onToggleDiscover={vi.fn()} />);
+    render(<ConsoleDock activeItem="map" onSelectDiscover={vi.fn()} />);
 
     const nav = screen.getByRole('navigation', { name: 'Primary navigation' });
     expect(nav).toHaveAttribute('data-testid', 'console-dock');
@@ -33,7 +33,7 @@ describe('<ConsoleDock />', () => {
   });
 
   it('uses default hrefs for Map and Guide and sets active state on activeItem="map"', () => {
-    render(<ConsoleDock activeItem="map" onToggleDiscover={vi.fn()} />);
+    render(<ConsoleDock activeItem="map" onSelectDiscover={vi.fn()} />);
 
     const mapItem = screen.getByTestId('console-dock-map');
     expect(mapItem.tagName.toLowerCase()).toBe('a');
@@ -52,36 +52,37 @@ describe('<ConsoleDock />', () => {
     expect(guideItem).not.toHaveAttribute('data-active');
   });
 
-  it('renders Discover as a toggle button with aria-pressed and forwards click event to onToggleDiscover', () => {
-    const onToggleDiscover = vi.fn();
+  it('renders Discover with idempotent destination semantics and forwards click event to onSelectDiscover', () => {
+    const onSelectDiscover = vi.fn();
     const { rerender } = render(
       <ConsoleDock
         activeItem="map"
         isDiscoverOpen={false}
-        onToggleDiscover={onToggleDiscover}
+        onSelectDiscover={onSelectDiscover}
       />,
     );
 
     const discoverBtn = screen.getByTestId('console-dock-discover');
     expect(discoverBtn.tagName.toLowerCase()).toBe('button');
-    expect(discoverBtn).toHaveAttribute('aria-pressed', 'false');
+    expect(discoverBtn).not.toHaveAttribute('aria-pressed');
     expect(discoverBtn).not.toHaveAttribute('aria-current');
     expect(discoverBtn).toHaveAttribute('data-variant', 'subtle');
     expect(discoverBtn).not.toHaveAttribute('data-selected');
 
     fireEvent.click(discoverBtn);
-    expect(onToggleDiscover).toHaveBeenCalledTimes(1);
-    expect(onToggleDiscover.mock.calls[0]?.[0]).toBeDefined();
+    expect(onSelectDiscover).toHaveBeenCalledTimes(1);
+    expect(onSelectDiscover.mock.calls[0]?.[0]).toBeDefined();
 
     rerender(
       <ConsoleDock
         activeItem="map"
         isDiscoverOpen={true}
-        onToggleDiscover={onToggleDiscover}
+        onSelectDiscover={onSelectDiscover}
       />,
     );
 
-    expect(discoverBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(discoverBtn).not.toHaveAttribute('aria-pressed');
+    expect(discoverBtn).toHaveAttribute('aria-current', 'true');
     expect(discoverBtn).toHaveAttribute('data-variant', 'subtle');
     expect(discoverBtn).toHaveAttribute('data-selected', 'true');
     expect(discoverBtn).toHaveAttribute('data-active', 'true');

@@ -131,7 +131,7 @@ describe('SpatialShell Domain Component', () => {
   });
 
   describe('ConsoleDock, Document Mode, and DiscoverPanel Integration', () => {
-    it('syncs lastMapHref in spatial mode for map routes and resolves ConsoleDock activeItem', () => {
+    it('syncs lastMapHref in spatial mode for map routes and resolves ConsoleDock activeItem and Map href when Discover is open', () => {
       const mockRouter = {
         state: {
           location: {
@@ -148,10 +148,14 @@ describe('SpatialShell Domain Component', () => {
 
       expect(useUIStore.getState().lastMapHref).toBe('/system/alpha?focus=beta');
       expect(screen.getByTestId('console-dock-map')).toHaveAttribute('data-active', 'true');
+      expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy');
       expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('href', '/guide/star-types');
+
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/system/alpha?focus=beta');
     });
 
-    it('opens DiscoverPanel in floatingLeft in spatial mode, closes open Bodies drawer, and closes on close/select', () => {
+    it('opens DiscoverPanel top-anchored in spatial mode, stays open on repeat Discover clicks, closes open Bodies drawer, and closes on close/select', () => {
       act(() => {
         useUIStore.getState().setActiveDrawer('bodies');
         useUIStore.getState().setDetailsOpen(true);
@@ -174,8 +178,19 @@ describe('SpatialShell Domain Component', () => {
       expect(useUIStore.getState().activeDrawer).toBeNull();
       expect(screen.getByTestId('spatial-shell-root')).toHaveAttribute('data-bodies-drawer-open', 'false');
       expect(screen.getByTestId('discover-panel')).toBeInTheDocument();
+      expect(document.querySelector('[data-spatial-region="discover"]')).toContainElement(
+        screen.getByTestId('discover-panel'),
+      );
+      expect(document.querySelector('[data-spatial-region="floating-left"]')).not.toContainElement(
+        screen.getByTestId('discover-panel'),
+      );
       expect(screen.queryByTestId('slot-details')).toBeNull();
       expect(screen.getByTestId('console-dock-discover')).toHaveAttribute('data-active', 'true');
+
+      // Re-clicking Discover is idempotent (stays open)
+      fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+      expect(screen.getByTestId('discover-panel')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('discover-layer-link'));
       expect(useUIStore.getState().isDiscoverOpen).toBe(false);
@@ -268,6 +283,11 @@ describe('SpatialShell Domain Component', () => {
       );
 
       fireEvent.click(screen.getByTestId('console-dock-discover'));
+      expect(useUIStore.getState().isDiscoverOpen).toBe(true);
+      expect(navigateMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId('discover-panel')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('discover-close-button'));
       expect(useUIStore.getState().isDiscoverOpen).toBe(false);
       expect(navigateMock).not.toHaveBeenCalled();
       expect(screen.queryByTestId('discover-panel')).toBeNull();
@@ -1024,6 +1044,46 @@ describe('SpatialShell Domain Component', () => {
         bypass: false,
       });
     });
+
+    it('accounts for open top-anchored DiscoverPanel left occlusion on >= 768px and sets data-camera-retracted during camera flight', () => {
+      mockReducedMotion(false);
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1024 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 768 });
+
+      render(<SpatialShell />);
+
+      const root = screen.getByTestId('spatial-shell-root');
+      setRect(root, { left: 0, top: 0, width: 1024, height: 768 });
+
+      vi.useFakeTimers();
+      try {
+        fireEvent.click(screen.getByTestId('console-dock-discover'));
+        const discoverRegion = root.querySelector('[data-spatial-region="discover"]');
+        expect(discoverRegion).not.toBeNull();
+        expect(discoverRegion?.getAttribute('data-camera-retracted')).toBe('false');
+        setRect(discoverRegion, { left: 8, top: 72, width: 377, height: 420 });
+
+        act(() => {
+          window.dispatchEvent(new Event('resize'));
+          vi.runAllTimers();
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      const discoverRegion = root.querySelector('[data-spatial-region="discover"]');
+      expect(useUIStore.getState().viewportSafeRect?.left).toBe(385);
+
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(true);
+      });
+      expect(discoverRegion?.getAttribute('data-camera-retracted')).toBe('true');
+
+      act(() => {
+        useUIStore.getState().setCameraTransitioning(false);
+      });
+      expect(discoverRegion?.getAttribute('data-camera-retracted')).toBe('false');
+    });
   });
 
   describe('Tier 1 & Tier 2 Interface Composition', () => {
@@ -1040,8 +1100,8 @@ describe('SpatialShell Domain Component', () => {
       expect(dockSurface).toHaveAttribute('data-padded', 'false');
       expect(dockSurface).toContainElement(screen.getByTestId('console-dock'));
 
-      const floatingLeft = document.querySelector('[data-spatial-region="floating-left"]');
-      const discoverPanelSurface = floatingLeft?.querySelector('[data-padding="tight"]');
+      const discoverRegion = document.querySelector('[data-spatial-region="discover"]');
+      const discoverPanelSurface = discoverRegion?.querySelector('[data-padding="tight"]');
       expect(discoverPanelSurface).not.toBeNull();
       expect(discoverPanelSurface).toContainElement(screen.getByTestId('discover-panel'));
 

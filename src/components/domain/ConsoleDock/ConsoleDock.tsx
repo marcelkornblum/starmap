@@ -7,7 +7,7 @@ export interface ConsoleDockProps {
   readonly mapHref?: string;
   readonly guideHref?: string;
   readonly isDiscoverOpen?: boolean;
-  readonly onToggleDiscover?: (e: React.MouseEvent<HTMLElement>) => void;
+  readonly onSelectDiscover?: (e: React.MouseEvent<HTMLElement>) => void;
   readonly onNavigateItem?: (item: 'map' | 'guide') => void;
 }
 
@@ -70,7 +70,7 @@ export const ConsoleDock = React.memo(function ConsoleDock({
   mapHref = '/galaxy',
   guideHref = '/guide/star-types',
   isDiscoverOpen,
-  onToggleDiscover,
+  onSelectDiscover,
   onNavigateItem,
 }: ConsoleDockProps): ReactNode {
   const isMapActive = activeItem === 'map';
@@ -110,9 +110,8 @@ export const ConsoleDock = React.memo(function ConsoleDock({
         <Button
           variant="subtle"
           selected={isDiscoverActive}
-          onClick={onToggleDiscover}
-          aria-pressed={onToggleDiscover ? Boolean(isDiscoverOpen) : undefined}
-          aria-current={!onToggleDiscover && activeItem === 'discover' ? 'page' : undefined}
+          onClick={onSelectDiscover}
+          aria-current={isDiscoverActive ? 'true' : undefined}
           data-dock-item=""
           data-active={isDiscoverActive ? 'true' : undefined}
           data-testid="console-dock-discover"

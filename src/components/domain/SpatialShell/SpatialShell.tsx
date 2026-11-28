@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Button, Icon, Panel } from '../../interface';
+import { Button, Panel } from '../../interface';
 import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useLayerIndex } from '../../../hooks/useLayerData';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
@@ -10,7 +10,7 @@ import { useUIStore } from '../../../stores/useUIStore';
 import { ConsoleDock } from '../ConsoleDock';
 import { DiscoverPanel } from '../DiscoverPanel';
 import { VisorScalePill } from '../VisorScalePill';
-import { SpatialShellBodiesDrawer } from './spatialShellBodiesDrawer';
+import { BodiesOrbitalIcon, SpatialShellBodiesDrawer } from './spatialShellBodiesDrawer';
 import {
   isSpatialMapPath, resolveConsoleDockConfig, resolvePrimaryPanelsMeta,
   useIsWideViewport, useSpatialKeyboardShortcuts, useSpatialShellBodiesDrawerState,
@@ -68,7 +68,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
 
   const isDiscoverOpen = useUIStore((s) => s.isDiscoverOpen);
   const setDiscoverOpen = useUIStore((s) => s.setDiscoverOpen);
-  const toggleDiscover = useUIStore((s) => s.toggleDiscover);
   const lastMapHref = useUIStore((s) => s.lastMapHref);
 
   const isDetailsOpen = useUIStore((s) => s.isDetailsOpen);
@@ -80,6 +79,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
 
   const shellRef = useRef<HTMLElement>(null);
   const topBarRef = useRef<HTMLElement>(null);
+  const discoverRegionRef = useRef<HTMLDivElement>(null);
   const floatingLeftRef = useRef<HTMLDivElement>(null);
   const bodiesRegionRef = useRef<HTMLElement>(null);
   const minimapRegionRef = useRef<HTMLDivElement>(null);
@@ -94,6 +94,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
     const applyInFlightAttr = (inFlight: boolean) => {
       const attrValue = inFlight && !prefersReducedMotion ? 'true' : 'false';
       shellRef.current?.setAttribute('data-camera-in-flight', attrValue);
+      discoverRegionRef.current?.setAttribute('data-camera-retracted', attrValue);
       floatingLeftRef.current?.setAttribute('data-camera-retracted', attrValue);
       minimapRegionRef.current?.setAttribute('data-camera-retracted', attrValue);
     };
@@ -105,7 +106,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
         applyInFlightAttr(state.isCameraTransitioning);
       }
     });
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, isDiscoverOpen]);
 
   const { isBodiesDrawerOpen, handleToggle, handleClose } = useSpatialShellBodiesDrawerState(
     initialBodiesDrawerOpen, controlledBodiesOpen, onBodiesDrawerOpenChange,
@@ -113,19 +114,26 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
   const resolvedHasActiveBodies = hasActiveBodies ?? Boolean(bodies);
 
   useSpatialKeyboardShortcuts(mode === 'spatial');
-  useViewportSafeRectObserver({ shellRef, topBarRef, floatingLeftRef, bodiesRegionRef }, isBodiesDrawerOpen);
-
-  const dockConfig = useMemo(
-    () => resolveConsoleDockConfig({ mode, activeWorkspace, companionMapHref, lastMapHref, pathname, isDiscoverOpen }),
-    [mode, activeWorkspace, companionMapHref, lastMapHref, pathname, isDiscoverOpen],
+  useViewportSafeRectObserver(
+    { shellRef, topBarRef, discoverRegionRef, floatingLeftRef, bodiesRegionRef },
+    isBodiesDrawerOpen,
+    isDiscoverOpen,
   );
 
-  const handleToggleDiscover = useCallback(() => {
-    toggleDiscover();
+  const dockConfig = useMemo(
+    () =>
+      resolveConsoleDockConfig({
+        mode, activeWorkspace, companionMapHref, lastMapHref, pathname, locationSearch, isDiscoverOpen,
+      }),
+    [mode, activeWorkspace, companionMapHref, lastMapHref, pathname, locationSearch, isDiscoverOpen],
+  );
+
+  const handleOpenDiscover = useCallback(() => {
+    setDiscoverOpen(true);
     if (isBodiesDrawerOpen) {
       handleClose();
     }
-  }, [toggleDiscover, isBodiesDrawerOpen, handleClose]);
+  }, [setDiscoverOpen, isBodiesDrawerOpen, handleClose]);
 
   const handleNavigateItem = useCallback(() => {
     setDiscoverOpen(false);
@@ -167,7 +175,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
           mapHref={dockConfig.mapHref}
           guideHref={dockConfig.guideHref}
           isDiscoverOpen={isDiscoverOpen}
-          onToggleDiscover={handleToggleDiscover}
+          onSelectDiscover={handleOpenDiscover}
           onNavigateItem={handleNavigateItem}
         />
       </div>
@@ -217,21 +225,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                         disabled={!resolvedHasActiveBodies && !isBodiesDrawerOpen}
                         onClick={handleToggle}
                       >
-                        <Icon size="sm">
-                          <svg
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.25"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <ellipse cx="8" cy="8" rx="6.25" ry="3.25" transform="rotate(-28 8 8)" />
-                            <circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none" />
-                            <circle cx="12.6" cy="5.4" r="1.35" fill="currentColor" stroke="none" />
-                          </svg>
-                        </Icon>
+                        <BodiesOrbitalIcon />
                       </Button>
                     </div>
                   ) : null}
@@ -240,6 +234,22 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                   {layerCard}
                 </div>
               </header>
+              {isDiscoverOpen ? (
+                <div
+                  ref={discoverRegionRef}
+                  className={styles.discoverRegion}
+                  data-spatial-region="discover"
+                  data-camera-retracted={ssrInFlightAttr}
+                >
+                  <Panel padding="tight">
+                    <DiscoverPanel
+                      activeLayerSlug={activeLayerSlug}
+                      onClose={() => setDiscoverOpen(false)}
+                      onSelectLayer={() => setDiscoverOpen(false)}
+                    />
+                  </Panel>
+                </div>
+              ) : null}
               <div className={styles.mobileBottomOverlay}>
                 <div className={styles.visorScaleRow}>
                   <div className={styles.visorScaleRegion} data-spatial-region="visor-scale">
@@ -252,22 +262,12 @@ export const SpatialShell: React.FC<SpatialShellProps> = memo(function SpatialSh
                   data-spatial-region="floating-left"
                   data-camera-retracted={ssrInFlightAttr}
                 >
-                  {isDiscoverOpen ? (
-                    <div className={styles.discoverRegion}>
-                      <Panel padding="tight">
-                        <DiscoverPanel
-                          activeLayerSlug={activeLayerSlug}
-                          onClose={() => setDiscoverOpen(false)}
-                          onSelectLayer={() => setDiscoverOpen(false)}
-                        />
-                      </Panel>
-                    </div>
-                  ) : (
+                  {!isDiscoverOpen ? (
                     <>
                       {resolvedPrimaryFloat}
                       {resolvedPreview}
                     </>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>

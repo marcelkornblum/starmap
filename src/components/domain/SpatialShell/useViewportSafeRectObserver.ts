@@ -1,98 +1,24 @@
 import { type RefObject, useEffect, useRef } from 'react';
 import { useUIStore } from '../../../stores/useUIStore';
-import { computeViewportSafeRect, type PanelRectLike } from '../../../utils/viewportSafeRect';
-import { DESKTOP_DOCK_BREAKPOINT_PX } from './spatialShellHelpers';
+import { computeViewportSafeRect } from '../../../utils/viewportSafeRect';
+import {
+  type FloatingLeftEntry,
+  isElementVisible,
+  MOBILE_BREAKPOINT_PX,
+  resolveBodiesRegion,
+  resolveMobileDetentSheet,
+  toPanelRectLike,
+} from './viewportSafeRectDomHelpers';
 
-const MOBILE_BREAKPOINT_PX = 768;
-const FULL_WIDTH_SHEET_RATIO = 0.65;
 const POST_FLIGHT_SETTLE_DELAY_MS = 180;
 
 export interface SpatialShellRegionRefs {
   readonly shellRef: RefObject<HTMLElement | null>;
   readonly topBarRef: RefObject<HTMLElement | null>;
+  readonly discoverRegionRef?: RefObject<HTMLElement | null>;
   readonly floatingLeftRef: RefObject<HTMLElement | null>;
   readonly bodiesRegionRef: RefObject<HTMLElement | null>;
   readonly controlsRegionRef?: RefObject<HTMLElement | null>;
-}
-
-function toPanelRectLike(rect: DOMRect): PanelRectLike {
-  const { top, right, bottom, left, width, height } = rect;
-  return { top, right, bottom, left, width, height };
-}
-
-function isElementVisible(el: HTMLElement): boolean {
-  if (typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') return true;
-  const style = window.getComputedStyle(el);
-  return style.display !== 'none' && style.visibility !== 'hidden';
-}
-
-function resolveBodiesRegion(
-  bodiesEl: HTMLElement | null,
-  isBodiesDrawerOpen: boolean,
-  viewportWidth: number,
-): PanelRectLike | null {
-  const isBodiesVisible =
-    bodiesEl !== null &&
-    (isBodiesDrawerOpen || viewportWidth >= DESKTOP_DOCK_BREAKPOINT_PX) &&
-    isElementVisible(bodiesEl);
-  if (!isBodiesVisible) return null;
-
-  const rawBodiesRect = toPanelRectLike(bodiesEl.getBoundingClientRect());
-  const resolvedWidth = rawBodiesRect.width > 0 ? rawBodiesRect.width : bodiesEl.offsetWidth;
-  if (resolvedWidth <= 0) return null;
-
-  const resolvedLeft = Math.min(rawBodiesRect.left, Math.max(0, viewportWidth - resolvedWidth));
-  return { ...rawBodiesRect, left: resolvedLeft, right: resolvedLeft + resolvedWidth, width: resolvedWidth };
-}
-
-interface FloatingLeftEntry {
-  readonly rect: PanelRectLike;
-  readonly element: Element;
-}
-
-interface ResolvedMobileDetentSheet extends PanelRectLike {
-  readonly detent: string;
-  readonly beyondPartial: boolean;
-  readonly partialHeightPx?: number;
-}
-
-function resolveDetentHostElement(element: Element): Element {
-  return element.hasAttribute('data-detent')
-    ? element
-    : (element.querySelector('[data-detent]') ?? element);
-}
-
-function resolveMobileDetentSheet(
-  floatingLeftEntries: readonly FloatingLeftEntry[],
-  viewportWidth: number,
-  detailsDetent: string,
-): ResolvedMobileDetentSheet | null {
-  const candidates = floatingLeftEntries.filter(
-    ({ rect }) =>
-      rect.width > 0 &&
-      rect.height > 0 &&
-      (viewportWidth < MOBILE_BREAKPOINT_PX || rect.width >= viewportWidth * FULL_WIDTH_SHEET_RATIO),
-  );
-  if (candidates.length === 0) return null;
-  const primary = candidates.reduce((tallest, entry) =>
-    entry.rect.top < tallest.rect.top ? entry : tallest,
-  );
-  const detentEl = resolveDetentHostElement(primary.element);
-  const detent = detentEl.getAttribute('data-detent') ?? detailsDetent;
-  const beyondPartial = detentEl.getAttribute('data-beyond-partial') === 'true';
-  const rawPartialHeight = detentEl.getAttribute('data-partial-height-px');
-  const parsedPartialHeight = rawPartialHeight !== null ? Number(rawPartialHeight) : Number.NaN;
-  const partialHeightPx =
-    Number.isFinite(parsedPartialHeight) && parsedPartialHeight > 0
-      ? parsedPartialHeight
-      : undefined;
-
-  return {
-    ...primary.rect,
-    detent,
-    beyondPartial,
-    ...(partialHeightPx !== undefined ? { partialHeightPx } : {}),
-  };
 }
 
 /**
@@ -102,10 +28,12 @@ function resolveMobileDetentSheet(
 export function useViewportSafeRectObserver(
   refs: SpatialShellRegionRefs,
   isBodiesDrawerOpen: boolean,
+  isDiscoverOpen?: boolean,
 ): void {
   const {
     shellRef,
     topBarRef,
+    discoverRegionRef,
     floatingLeftRef,
     bodiesRegionRef,
     controlsRegionRef,
@@ -113,7 +41,9 @@ export function useViewportSafeRectObserver(
 
   const isBodiesDrawerOpenRef = useRef(isBodiesDrawerOpen);
   const scheduleMeasureRef = useRef<(() => void) | null>(null);
+  const syncObserversRef = useRef<(() => void) | null>(null);
   const hasMountedDrawerEffectRef = useRef(false);
+  const hasMountedDiscoverEffectRef = useRef(false);
 
   useEffect(() => {
     const shellEl = shellRef.current;
@@ -139,6 +69,7 @@ export function useViewportSafeRectObserver(
             : 0;
 
       const topBarEl = topBarRef.current;
+      const discoverEl = discoverRegionRef?.current ?? null;
       const floatingLeftEl = floatingLeftRef.current;
       const bodiesEl = bodiesRegionRef.current;
       const controlsEl = controlsRegionRef?.current ?? null;
@@ -155,6 +86,16 @@ export function useViewportSafeRectObserver(
           }))
         : [];
       const floatingLeftItems = floatingLeftEntries.map((entry) => entry.rect);
+      if (
+        discoverEl &&
+        viewportWidth >= MOBILE_BREAKPOINT_PX &&
+        isElementVisible(discoverEl)
+      ) {
+        const discoverRect = toPanelRectLike(discoverEl.getBoundingClientRect());
+        if (discoverRect.width > 0 && discoverRect.height > 0) {
+          floatingLeftItems.push(discoverRect);
+        }
+      }
 
       const detailsDetent = useUIStore.getState().detailsDetent;
       const mobileDetentSheet = resolveMobileDetentSheet(
@@ -214,11 +155,13 @@ export function useViewportSafeRectObserver(
       resizeObserver.observe(shellEl);
 
       const topBarEl = topBarRef.current;
+      const discoverEl = discoverRegionRef?.current ?? null;
       const floatingLeftEl = floatingLeftRef.current;
       const bodiesEl = bodiesRegionRef.current;
       const controlsEl = controlsRegionRef?.current ?? null;
 
       if (topBarEl) resizeObserver.observe(topBarEl);
+      if (discoverEl) resizeObserver.observe(discoverEl);
       if (floatingLeftEl) {
         resizeObserver.observe(floatingLeftEl);
         for (const child of Array.from(floatingLeftEl.children)) {
@@ -245,10 +188,16 @@ export function useViewportSafeRectObserver(
     }
 
     let prevDetailsDetent = useUIStore.getState().detailsDetent;
+    let prevIsDiscoverOpen = useUIStore.getState().isDiscoverOpen;
     let prevInFlight = useUIStore.getState().isCameraTransitioning;
     const unsubscribeDetent = useUIStore.subscribe((state) => {
       if (state.detailsDetent !== prevDetailsDetent) {
         prevDetailsDetent = state.detailsDetent;
+        scheduleMeasure();
+      }
+      if (state.isDiscoverOpen !== prevIsDiscoverOpen) {
+        prevIsDiscoverOpen = state.isDiscoverOpen;
+        syncResizeObservers();
         scheduleMeasure();
       }
       if (prevInFlight && !state.isCameraTransitioning) {
@@ -286,11 +235,13 @@ export function useViewportSafeRectObserver(
     }
 
     scheduleMeasureRef.current = scheduleMeasure;
+    syncObserversRef.current = syncResizeObservers;
     syncResizeObservers();
     measure();
 
     return () => {
       scheduleMeasureRef.current = null;
+      syncObserversRef.current = null;
       if (rafId !== null && typeof cancelAnimationFrame === 'function') {
         cancelAnimationFrame(rafId);
       }
@@ -309,6 +260,7 @@ export function useViewportSafeRectObserver(
   }, [
     shellRef,
     topBarRef,
+    discoverRegionRef,
     floatingLeftRef,
     bodiesRegionRef,
     controlsRegionRef,
@@ -322,4 +274,13 @@ export function useViewportSafeRectObserver(
     }
     scheduleMeasureRef.current?.();
   }, [isBodiesDrawerOpen]);
+
+  useEffect(() => {
+    if (!hasMountedDiscoverEffectRef.current) {
+      hasMountedDiscoverEffectRef.current = true;
+      return;
+    }
+    syncObserversRef.current?.();
+    scheduleMeasureRef.current?.();
+  }, [isDiscoverOpen]);
 }

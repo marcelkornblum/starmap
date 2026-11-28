@@ -1,5 +1,8 @@
 import type { FormEvent, ReactNode } from 'react';
 import { Heading } from '../../../interface';
+import { useOptionalRouter } from '../../../../hooks/useSpaLocation';
+import { buildSearchViewHref } from '../../../../services/search/searchUrls';
+import { resolveAppHref } from '../../../../utils/url';
 import { useSearchContext } from '../SearchContext';
 import { SearchInput } from '../SearchInput';
 import { SearchCategoryFilterSelect } from '../SearchCategoryFilterSelect';
@@ -16,11 +19,22 @@ export const SearchPanel = ({
   children,
   scope,
 }: SearchPanelProps) => {
-  const { query, filter, submitSearch, isFocused } = useSearchContext();
+  const { query, filter, submitSearch, isFocused, setIsFocused } = useSearchContext();
+  const router = useOptionalRouter();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    submitSearch?.(query, filter);
+    void submitSearch?.(query, filter);
+    if (scope !== 'search' && query.trim().length > 0) {
+      const href = buildSearchViewHref(query, filter, '/search');
+      setIsFocused?.(false);
+      const resolved = resolveAppHref(href) ?? href;
+      if (router && typeof router.navigate === 'function') {
+        void router.navigate({ href: resolved });
+      } else if (router?.history?.push) {
+        router.history.push(resolved);
+      }
+    }
   };
 
   const isExpanded = scope === 'search' || Boolean(isFocused);
