@@ -1,8 +1,8 @@
 @layer blocks {
   .button {
-    --button-bg: var(--surface-block-bg);
+    --button-bg: var(--ui-control-default-bg);
     --button-color: var(--content-prominent);
-    --button-border-color: var(--border-color-subtle);
+    --button-border-color: var(--ui-control-border-color);
     --button-border-width: var(--border-width-1);
     --button-border-style: var(--border-style-boundary);
     --button-radius: var(--radius-control);
@@ -12,7 +12,7 @@
     --button-font-weight: var(--font-weight-medium);
     --button-leading: var(--leading-control);
     --button-gap: var(--space-cluster-dense);
-    --button-shadow: none;
+    --button-shadow: var(--ui-control-surface-shadow);
     --button-min-height: auto;
     --button-min-width: auto;
 
@@ -44,15 +44,15 @@
   }
 
   .button:hover:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: var(--surface-block-hover-bg);
-    --button-border-color: var(--border-color-subtle);
-    --button-shadow: none;
+    --button-bg: var(--ui-control-hover-bg);
+    --button-border-color: var(--ui-control-hover-border-color);
+    --button-shadow: var(--ui-control-surface-shadow);
   }
 
   .button:active:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: var(--surface-block-selected-bg);
-    --button-border-color: oklch(from var(--state-focus) l c h / 0.35);
-    --button-shadow: none;
+    --button-bg: var(--ui-control-press-bg);
+    --button-border-color: var(--ui-control-active-border-color);
+    --button-shadow: var(--ui-control-depression);
   }
 
   .button:focus-visible {
@@ -64,20 +64,20 @@
 @layer exceptions {
   /* Variant: Primary */
   .button[data-variant="primary"] {
-    --button-bg: var(--surface-block-selected-bg);
-    --button-color: var(--state-focus);
-    --button-border-color: oklch(from var(--state-focus) l c h / 0.35);
-    --button-shadow: none;
+    --button-bg: var(--ui-control-primary-bg);
+    --button-color: var(--ui-control-primary-text);
+    --button-border-color: var(--ui-control-primary-border-color);
+    --button-shadow: var(--ui-control-primary-shadow);
   }
   .button[data-variant="primary"]:hover:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: oklch(from var(--state-focus) l c h / 0.22);
-    --button-border-color: oklch(from var(--state-focus) l c h / 0.50);
-    --button-shadow: none;
+    --button-bg: var(--ui-control-primary-hover-bg);
+    --button-border-color: var(--ui-control-primary-hover-border-color);
+    --button-shadow: var(--ui-control-primary-shadow);
   }
   .button[data-variant="primary"]:active:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: oklch(from var(--state-focus) l c h / 0.28);
-    --button-border-color: oklch(from var(--state-focus) l c h / 0.50);
-    --button-shadow: none;
+    --button-bg: var(--ui-control-primary-active-bg);
+    --button-border-color: var(--ui-control-primary-border-color);
+    --button-shadow: var(--ui-control-depression);
   }
 
   /* Variant: Subtle */
@@ -88,46 +88,54 @@
     --button-shadow: none;
   }
   .button[data-variant="subtle"]:hover:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: var(--surface-block-bg);
+    --button-bg: var(--ui-control-subtle-hover-bg);
     --button-color: var(--content-prominent);
     --button-border-color: transparent;
     --button-shadow: none;
   }
   .button[data-variant="subtle"]:active:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: var(--surface-block-hover-bg);
+    --button-bg: var(--ui-control-subtle-active-bg);
+    --button-color: var(--content-prominent);
     --button-border-color: transparent;
-    --button-shadow: none;
+    --button-shadow: var(--ui-control-depression);
   }
 
   /* Variant: Danger */
   .button[data-variant="danger"] {
-    --button-bg: oklch(from var(--status-critical) l c h / 0.14);
+    --button-bg: oklch(from var(--status-critical) l c h / 0.16);
     --button-color: var(--status-critical);
-    --button-border-color: oklch(from var(--status-critical) l c h / 0.32);
-    --button-shadow: none;
+    --button-border-color: var(--status-critical-border);
+    --button-shadow: var(--ui-control-surface-shadow);
   }
   .button[data-variant="danger"]:hover:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: oklch(from var(--status-critical) l c h / 0.22);
-    --button-border-color: oklch(from var(--status-critical) l c h / 0.45);
-    --button-shadow: none;
+    --button-bg: oklch(from var(--status-critical) l c h / 0.24);
+    --button-border-color: oklch(from var(--status-critical) l c h / 0.48);
+    --button-shadow: var(--ui-control-surface-shadow);
   }
   .button[data-variant="danger"]:active:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: oklch(from var(--status-critical) l c h / 0.28);
-    --button-border-color: oklch(from var(--status-critical) l c h / 0.50);
-    --button-shadow: none;
+    --button-bg: oklch(from var(--status-critical) l c h / 0.30);
+    --button-border-color: oklch(from var(--status-critical) l c h / 0.52);
+    --button-shadow: var(--ui-control-depression);
   }
 
   /* State: Selected */
   .button[data-selected="true"]:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: var(--ui-control-subtle-active-bg);
+    --button-bg: var(--state-selected-bg);
     --button-color: var(--state-selected-content);
-    --button-border-color: oklch(from var(--state-selected-border) l c h / 0.22);
-    --button-shadow: none;
+    --button-border-color: var(--state-selected-border);
+    --button-shadow: var(--state-selected-shadow);
   }
   .button[data-selected="true"]:hover:not(:disabled):not([data-disabled="true"]) {
-    --button-bg: var(--ui-control-subtle-active-bg);
+    --button-bg: var(--state-selected-hover-bg);
     --button-color: var(--state-selected-content);
-    --button-border-color: oklch(from var(--state-selected-border) l c h / 0.32);
+    --button-border-color: oklch(from var(--state-focus) l c h / 0.55);
+    --button-shadow: var(--state-selected-shadow);
+  }
+  .button[data-selected="true"]:active:not(:disabled):not([data-disabled="true"]) {
+    --button-bg: var(--state-selected-hover-bg);
+    --button-color: var(--state-selected-content);
+    --button-border-color: oklch(from var(--state-focus) l c h / 0.55);
+    --button-shadow: var(--ui-control-depression);
   }
 
   /* State: Disabled */

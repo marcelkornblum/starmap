@@ -35,8 +35,8 @@
   }
 
   .breadcrumbItem [aria-current="page"] {
-    color: var(--content-prominent);
-    font-weight: var(--font-weight-medium);
+    color: var(--state-focus);
+    font-weight: var(--font-weight-semibold);
   }
 
   .breadcrumbItem + .breadcrumbItem::before {

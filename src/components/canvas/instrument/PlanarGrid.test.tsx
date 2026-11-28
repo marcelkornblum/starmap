@@ -227,8 +227,16 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
     expect(fillMat.uniforms.uAlpha.value).toBeCloseTo(tokens.datumPlaneFillAlpha);
     expect(boundaryMat.opacity).toBeCloseTo(tokens.datumPlaneMajorAlpha);
     expect(gridMat.opacity).toBeCloseTo(tokens.datumPlaneMinorAlpha);
-    expect(fpMat.opacity).toBeCloseTo(tokens.footprintAlpha);
+    expect(fpMat.opacity).toBeCloseTo(tokens.footprintFocusedAlpha);
     expect(boundaryLine.visible).toBe(true);
+    expect(fpMat.color.getHexString()).toBe(new THREE.Color(tokens.stateFocus).getHexString());
+
+    await renderer.update(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <PlanarGrid showFill={false} showPlanarGrid={true} showPlanarFootprint={true} />
+      </SpatialFrameProvider>,
+    );
+    expect(fpMat.color.getHexString()).toBe(new THREE.Color(tokens.stateFocus).getHexString());
 
     await renderer.unmount();
   });

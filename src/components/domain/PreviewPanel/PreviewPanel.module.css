@@ -2,8 +2,9 @@
   .previewPanel {
     display: flex;
     flex-direction: column;
-    background: var(--surface-block-bg);
-    border: none;
+    background: var(--surface-inset-bg);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-color-subtle);
+    box-shadow: var(--ui-control-inset-shadow);
     border-radius: var(--surface-block-radius);
   }
 

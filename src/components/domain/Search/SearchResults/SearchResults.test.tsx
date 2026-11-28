@@ -123,8 +123,9 @@ describe('<SearchResults />', () => {
     expect(panel.getAttribute('data-open')).toBe('true');
   });
 
-  it('truncates results per category when limitPerCategory is set, renders View all (N) button only below truncated groups, omits search-view-link, and dismisses on click', () => {
+  it('truncates results per category when limitPerCategory is set, renders View all (N) button only below truncated groups, omits search-view-link, and closes focus without clearing query on click', () => {
     const dismissSearch = vi.fn();
+    const setIsFocused = vi.fn();
     const multiResults = executeCatalogSearch(
       [
         { i: 'sol', n: 'Sol', m: [-26.7, 'G2V', 8, 1], a: 'sol' },
@@ -147,6 +148,7 @@ describe('<SearchResults />', () => {
           setFilter: () => undefined,
           submitSearch: async () => undefined,
           isFocused: true,
+          setIsFocused,
           dismissSearch,
         }}
       >
@@ -182,14 +184,16 @@ describe('<SearchResults />', () => {
     expect(screen.getByTestId('search-results-group-stars')).toBeInTheDocument();
     expect(screen.queryByTestId('search-category-link-stars')).toBeNull();
 
-    // Modified clicks (Ctrl/Cmd) do not dismiss the dropdown
+    // Modified clicks (Ctrl/Cmd) do not close the dropdown
     fireEvent.click(planetsLink, { ctrlKey: true });
     fireEvent.click(planetsLink, { metaKey: true });
+    expect(setIsFocused).not.toHaveBeenCalled();
     expect(dismissSearch).not.toHaveBeenCalled();
 
-    // Unmodified primary click on View all (N) button dismisses the dropdown
+    // Unmodified primary click on View all (N) closes focus without calling dismissSearch() (preserving query for /search?q=...)
     fireEvent.click(planetsLink);
-    expect(dismissSearch).toHaveBeenCalledTimes(1);
+    expect(setIsFocused).toHaveBeenCalledWith(false);
+    expect(dismissSearch).not.toHaveBeenCalled();
 
     // Empty categories are omitted completely
     expect(screen.queryByTestId('search-results-group-structures')).toBeNull();

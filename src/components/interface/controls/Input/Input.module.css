@@ -69,8 +69,7 @@
   }
   .input[data-status="error"]:focus {
     --input-border-color: var(--status-critical);
-    --input-shadow: var(--ui-control-inset-shadow);
-    box-shadow: var(--input-shadow);
+    --input-shadow: var(--status-critical-focus-halo);
   }
 
   .input[data-status="success"] {

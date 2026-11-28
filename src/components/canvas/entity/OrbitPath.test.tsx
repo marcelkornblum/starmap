@@ -4,11 +4,15 @@ import ReactThreeTest from '@react-three/test-renderer';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { OrbitPath } from './OrbitPath';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
-import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
+import { SpatialFrameProvider, GALACTIC_FRAME, SYSTEM_FRAME } from '../instrument';
 import {
   setCrossScaleInstrumentFade,
   resetCrossScaleInstrumentFade,
 } from '../instrument/crossScaleFadeState';
+import {
+  setCrossScaleSceneScale,
+  resetCrossScaleSceneScale,
+} from '../instrument/crossScaleVisualState';
 import { NOOP_RAYCAST } from '../engineConfig';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoLineMaterial } from '../materials/CartoLineMaterial';
@@ -18,6 +22,7 @@ import * as orbitPathGeometry from './orbitPathGeometry';
 describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
   afterEach(() => {
     resetCrossScaleInstrumentFade();
+    resetCrossScaleSceneScale();
   });
 
   it('renders circular orbit with periapsis tick by default', async () => {
@@ -293,5 +298,115 @@ describe('OrbitPath Primitive (§4.4: State-Driven Orbits)', () => {
     await hiddenRenderer.unmount();
 
     buildSpy.mockRestore();
+  });
+
+  it('mounts with 0 opacity and valid viewport resolution on Frame 0 before useFrame when cross-scale instrumentFade is 0, and preserves 0 across re-renders', async () => {
+    setCrossScaleInstrumentFade(0);
+    setCrossScaleSceneScale(0.04);
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={SYSTEM_FRAME}>
+          <OrbitPath
+            id="orbit-swap-frame0"
+            semiMajorAxis={1.0}
+            showPeriapsisTick={true}
+            showDirectionIndicator={true}
+            state="passive"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+      { width: 1440, height: 900 },
+    );
+
+    const lineGroup = renderer.scene.find((node) => node.props.name === 'orbit-path-line');
+    const line2 = lineGroup.children.find(
+      (child) => child.instance instanceof Line2 || (child.instance && 'isLine2' in child.instance),
+    )?.instance as Line2;
+    const lineMat = line2.material as CartoLineMaterial;
+    const tickMat = (
+      renderer.scene.find((node) => node.props.name === 'orbit-periapsis-tick')
+        .instance as THREE.LineSegments
+    ).material as THREE.LineBasicMaterial;
+    const arrowMat = (
+      renderer.scene.find((node) => node.props.name === 'orbit-direction-arrow')
+        .instance as THREE.Mesh
+    ).material as THREE.MeshBasicMaterial;
+
+    expect(lineMat.opacity).toBe(0);
+    expect(lineMat.uniforms.opacity.value).toBe(0);
+    expect(tickMat.opacity).toBe(0);
+    expect(arrowMat.opacity).toBe(0);
+    expect(lineMat.uniforms.resolution.value.x).toBeGreaterThan(1);
+    expect(lineMat.uniforms.resolution.value.y).toBeGreaterThan(1);
+
+    await renderer.update(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={SYSTEM_FRAME}>
+          <OrbitPath
+            id="orbit-swap-frame0"
+            semiMajorAxis={1.0}
+            showPeriapsisTick={true}
+            showDirectionIndicator={true}
+            state="focused"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    expect(lineMat.opacity).toBe(0);
+    expect(lineMat.uniforms.opacity.value).toBe(0);
+    expect(tickMat.opacity).toBe(0);
+    expect(arrowMat.opacity).toBe(0);
+
+    await renderer.unmount();
+  });
+
+  it('attenuates OrbitPath opacity to 0 when crossScaleSceneScale squashes orbits at minSceneScale', async () => {
+    setCrossScaleInstrumentFade(0.5);
+    setCrossScaleSceneScale(0.04);
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={SYSTEM_FRAME}>
+          <OrbitPath
+            id="orbit-squashed"
+            semiMajorAxis={1.0}
+            showPeriapsisTick={true}
+            showDirectionIndicator={true}
+            state="passive"
+          />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const tokens = useThreeTokenStore.getState().tokens;
+    const lineGroup = renderer.scene.find((node) => node.props.name === 'orbit-path-line');
+    const line2 = lineGroup.children.find(
+      (child) => child.instance instanceof Line2 || (child.instance && 'isLine2' in child.instance),
+    )?.instance as Line2;
+    const lineMat = line2.material as CartoLineMaterial;
+    const tickMat = (
+      renderer.scene.find((node) => node.props.name === 'orbit-periapsis-tick')
+        .instance as THREE.LineSegments
+    ).material as THREE.LineBasicMaterial;
+    const arrowMat = (
+      renderer.scene.find((node) => node.props.name === 'orbit-direction-arrow')
+        .instance as THREE.Mesh
+    ).material as THREE.MeshBasicMaterial;
+
+    await renderer.advanceFrames(1, 0.016);
+    expect(lineMat.opacity).toBe(0);
+    expect(tickMat.opacity).toBe(0);
+    expect(arrowMat.opacity).toBe(0);
+
+    setCrossScaleSceneScale(1.0);
+    setCrossScaleInstrumentFade(1.0);
+    await renderer.advanceFrames(1, 0.016);
+    expect(lineMat.opacity).toBeCloseTo(tokens.orbitAlpha);
+    expect(tickMat.opacity).toBeCloseTo(tokens.orbitAlpha);
+    expect(arrowMat.opacity).toBeCloseTo(tokens.orbitAlpha);
+
+    await renderer.unmount();
   });
 });

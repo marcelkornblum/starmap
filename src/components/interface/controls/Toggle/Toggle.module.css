@@ -87,7 +87,7 @@
     --toggle-track-bg: var(--surface-block-selected-bg);
     --toggle-track-border-color: oklch(from var(--state-focus) l c h / 0.45);
     --toggle-thumb-bg: var(--state-focus);
-    --toggle-thumb-glow: none;
+    --toggle-thumb-glow: var(--ui-control-active-glow);
     --toggle-thumb-transform: translateX(var(--toggle-thumb-active-offset));
   }
 

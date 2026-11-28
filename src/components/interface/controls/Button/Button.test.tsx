@@ -1,7 +1,9 @@
+import type { ReactElement } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { Button } from './Button';
+import { SemanticRoles } from './Button.stories';
 
 describe('<Button />', () => {
   it('renders a button element with default attributes and children', () => {
@@ -97,7 +99,7 @@ describe('<Button />', () => {
     );
 
     const link = screen.getByRole('link', { name: 'Locked Link' });
-    expect(link).toHaveAttribute('href');
+    expect(link).not.toHaveAttribute('href');
     expect(link).toHaveAttribute('aria-disabled', 'true');
     expect(link).toHaveAttribute('data-disabled', 'true');
     expect(link).toHaveAttribute('tabindex', '-1');
@@ -148,5 +150,40 @@ describe('<Button />', () => {
     const button = screen.getByRole('button', { name: 'Styled' });
     expect(button).toHaveAttribute('class');
     expect(button.className.length).toBeGreaterThan(0);
+  });
+
+  it('preserves data-disabled alongside data-selected when both selected and disabled are set', () => {
+    render(
+      <Button variant="subtle" selected disabled>
+        Locked Selected
+      </Button>
+    );
+    const button = screen.getByRole('button', { name: 'Locked Selected' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button).toHaveAttribute('data-disabled', 'true');
+    expect(button).toHaveAttribute('data-selected', 'true');
+    expect(button).toHaveAttribute('data-variant', 'subtle');
+  });
+
+  it('showcases distinct semantic roles side-by-side in Button.stories SemanticRoles', () => {
+    const renderStory = SemanticRoles.render as (() => ReactElement) | undefined;
+    expect(renderStory).toBeTypeOf('function');
+    render(renderStory!());
+
+    const defaultBtn = screen.getByRole('button', { name: 'Default' });
+    const primaryBtn = screen.getByRole('button', { name: 'Primary CTA' });
+    const subtleBtn = screen.getByRole('button', { name: 'Subtle' });
+    const selectedBtn = screen.getByRole('button', { name: 'Selected' });
+    const dangerBtn = screen.getByRole('button', { name: 'Danger' });
+    const disabledBtn = screen.getByRole('button', { name: 'Disabled' }) as HTMLButtonElement;
+
+    expect(defaultBtn).toHaveAttribute('data-variant', 'default');
+    expect(defaultBtn).not.toHaveAttribute('data-selected');
+    expect(primaryBtn).toHaveAttribute('data-variant', 'primary');
+    expect(subtleBtn).toHaveAttribute('data-variant', 'subtle');
+    expect(selectedBtn).toHaveAttribute('data-selected', 'true');
+    expect(dangerBtn).toHaveAttribute('data-variant', 'danger');
+    expect(disabledBtn.disabled).toBe(true);
+    expect(disabledBtn).toHaveAttribute('data-disabled', 'true');
   });
 });

@@ -12,7 +12,7 @@
     inset-block-start: var(--space-fib-4);
     inset-inline-start: var(--space-fib-4);
     z-index: var(--layer-hud);
-    background-color: var(--surface-panel-bg);
+    background: var(--surface-panel-bg);
     color: var(--content-prominent);
     padding: var(--space-fib-3) var(--space-fib-4);
     border-radius: var(--radius-container);

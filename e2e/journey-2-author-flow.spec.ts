@@ -20,7 +20,7 @@ test.describe('Journey 2: The Author Flow (Candidate Hunting & Territory Mapping
     await expect(detailsPane).toBeVisible();
 
     await panCanvasOffCenter(page);
-    const centreLink = detailsPane.getByRole('link', { name: 'Centre' });
+    const centreLink = detailsPane.getByRole('link', { name: 'Centre on map' });
     await expect(centreLink).toBeVisible({ timeout: 5_000 });
     await centreLink.click();
     await expect(page).toHaveURL(/center=/);

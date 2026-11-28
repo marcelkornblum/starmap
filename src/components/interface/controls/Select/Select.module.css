@@ -48,13 +48,11 @@
   .select[data-status="error"] {
     --select-border-color: var(--status-critical);
     --select-shadow: var(--ui-control-inset-shadow);
-    box-shadow: var(--select-shadow);
   }
 
   .select[data-status="error"]:focus {
     --select-border-color: var(--status-critical);
-    --select-shadow: var(--ui-control-inset-shadow);
-    box-shadow: var(--select-shadow);
+    --select-shadow: var(--status-critical-focus-halo);
   }
 
   .select[data-size="sm"] {

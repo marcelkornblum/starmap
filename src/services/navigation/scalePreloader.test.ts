@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as detailsRepository from '../../data/detailsRepository';
+import * as searchRepository from '../../data/searchRepository';
 import {
   preloadSceneEntry,
   preloadSpatialView,
@@ -99,5 +100,37 @@ describe('scalePreloader', () => {
     expect(viewPreloader).toHaveBeenCalledWith('system');
     expect(fetchDetailSpy).toHaveBeenCalledWith('target-system-id');
     expect(fetchSummarySpy).toHaveBeenCalledWith('target-system-id');
+  });
+
+  it('resolves URL slugs against the cached startup corpus so system manifests preload before scene swap', async () => {
+    vi.spyOn(searchRepository, 'getCachedCorpusForFilter').mockImplementation((scope) =>
+      scope === 'startup'
+        ? [{ i: 'hip-16537', k: 1, n: 'Epsilon Eridani (Ran)', s: 'hip-16537' }]
+        : undefined,
+    );
+    vi.spyOn(detailsRepository, 'getCachedDetailRecord').mockReturnValue(undefined);
+    vi.spyOn(detailsRepository, 'getCachedSummaryNode').mockReturnValue(undefined);
+    const fetchDetailSpy = vi
+      .spyOn(detailsRepository, 'fetchDetailRecord')
+      .mockResolvedValue(undefined);
+    const fetchSummarySpy = vi
+      .spyOn(detailsRepository, 'fetchSummaryNode')
+      .mockResolvedValue(undefined);
+
+    await preloadTargetScaleEntry('system', 'epsilon-eridani', true);
+    expect(fetchDetailSpy).toHaveBeenCalledWith('hip-16537');
+    expect(fetchSummarySpy).toHaveBeenCalledWith('hip-16537');
+  });
+
+  it('preloads sol-primary shard when entering Sol even if Sol manifest and summary are already cached', async () => {
+    vi.spyOn(detailsRepository, 'getCachedDetailRecord').mockReturnValue({ id: 'sol' } as never);
+    vi.spyOn(detailsRepository, 'getCachedSummaryNode').mockReturnValue({ id: 'sol' } as never);
+    vi.spyOn(detailsRepository, 'isSolPrimaryShardCached').mockReturnValue(false);
+    const fetchSolPrimarySpy = vi
+      .spyOn(detailsRepository, 'fetchSolPrimaryShard')
+      .mockResolvedValue(true);
+
+    await preloadTargetScaleEntry('system', 'sol', true);
+    expect(fetchSolPrimarySpy).toHaveBeenCalledTimes(1);
   });
 });

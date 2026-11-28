@@ -449,7 +449,7 @@ describe('Journey 5: Transit Flow - 3D View Reference Point, Camera URL State & 
     const centerBtn = screen.getByTestId('details-button-center');
     expect(centerBtn).toBeInTheDocument();
     expect(centerBtn).toHaveAttribute('href', '/system/sol?center=earth&focus=earth');
-    expect(centerBtn).toHaveTextContent('Centre');
+    expect(centerBtn).toHaveTextContent('Centre on map');
 
     // 2. Detents are present
     const peekDetent = screen.getByTestId('details-detent-peek');

@@ -286,3 +286,18 @@ export const findFocusedEntryInCorpus = (
     lookupInCorpusIndex(index, (i) => i.segmentMap, targetSlug, undefined)
   );
 };
+
+/**
+ * Resolves a route slug or entity identifier to its canonical host system catalogue ID
+ * using the supplied search corpus, falling back to `targetId` when unmatched.
+ */
+export const resolveSystemIdFromCorpus = (
+  targetId: string,
+  corpus: readonly CompactSearchEntry[],
+): string => {
+  if (!targetId || corpus.length === 0) {
+    return targetId;
+  }
+  const matched = findFocusedEntryInCorpus(targetId, corpus);
+  return matched?.s ?? matched?.i ?? targetId;
+};

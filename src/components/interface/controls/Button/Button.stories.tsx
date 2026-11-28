@@ -26,28 +26,41 @@ type Story = StoryObj<typeof Button>;
 export const ButtonStory: Story = {
   name: 'Button',
   render: (args) => (
-    <div style={{ fontFamily: 'sans-serif', padding: '1rem', height: '100dvh', overflowY: 'auto' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ margin: '0 0 0.5rem 0' }}>Button</h2>
-        <p style={{ margin: 0, color: '#555', maxWidth: '60ch' }}>
-          The primary interaction trigger. Available in various semantic variants and sizes. Used to initiate actions, submit forms, or navigate.
+    <Stack gap="loose">
+      <Stack gap="dense">
+        <h2>Button</h2>
+        <p>
+          The primary interaction trigger. Available in distinct semantic roles and sizes: Default, Primary CTA, Subtle, Selected, Danger, and Disabled.
         </p>
-      </div>
-      <Stack gap="loose">
-        <Cluster gap="default" align="center">
-          <Button {...args}>Default</Button>
-          <Button {...args} variant="primary">Primary</Button>
-          <Button {...args} variant="subtle">Subtle</Button>
-          <Button {...args} variant="danger">Danger</Button>
-        </Cluster>
-        <Cluster gap="default" align="center">
-          <Button {...args} disabled>Default</Button>
-          <Button {...args} variant="primary" disabled>Primary</Button>
-          <Button {...args} variant="subtle" disabled>Subtle</Button>
-          <Button {...args} variant="danger" disabled>Danger</Button>
-        </Cluster>
       </Stack>
-    </div>
+      <Cluster gap="default" align="center">
+        <Button {...args}>Default</Button>
+        <Button {...args} variant="primary">Primary CTA</Button>
+        <Button {...args} variant="subtle">Subtle</Button>
+        <Button {...args} variant="subtle" selected>Selected</Button>
+        <Button {...args} variant="danger">Danger</Button>
+        <Button {...args} disabled>Disabled</Button>
+      </Cluster>
+      <Cluster gap="default" align="center">
+        <Button {...args} disabled>Default (Disabled)</Button>
+        <Button {...args} variant="primary" disabled>Primary (Disabled)</Button>
+        <Button {...args} variant="subtle" disabled>Subtle (Disabled)</Button>
+        <Button {...args} variant="danger" disabled>Danger (Disabled)</Button>
+      </Cluster>
+    </Stack>
+  ),
+};
+
+export const SemanticRoles: Story = {
+  render: () => (
+    <Cluster gap="default" align="center">
+      <Button>Default</Button>
+      <Button variant="primary">Primary CTA</Button>
+      <Button variant="subtle">Subtle</Button>
+      <Button variant="subtle" selected>Selected</Button>
+      <Button variant="danger">Danger</Button>
+      <Button disabled>Disabled</Button>
+    </Cluster>
   ),
 };
 

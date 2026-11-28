@@ -52,10 +52,10 @@
     );
     --gradient-surface-slab-dark: linear-gradient(
       137deg,
-      oklch(15.4% 0.018 196 / 0.76) 0px,
-      oklch(13.8% 0.016 196 / 0.72) 180px,
-      oklch(12.6% 0.014 196 / 0.72) 360px,
-      oklch(12.6% 0.014 196 / 0.72) 100%
+      oklch(9.5% 0.018 196 / 0.34) 0px,
+      oklch(8.0% 0.016 196 / 0.42) 180px,
+      oklch(6.8% 0.014 196 / 0.48) 360px,
+      oklch(6.8% 0.014 196 / 0.48) 100%
     );
     --gradient-surface-overlay-dark: linear-gradient(
       137deg,
@@ -153,8 +153,74 @@
       oklch(94.4% 0.010 196) 100%
     );
 
-    /* Inset Well Bottom & Right Specular Bevels (Prodigy) */
-    --bevel-bottom-rim-dark:  inset 0 -1px 0 0 oklch(96% 0.020 198 / 0.22), inset -1px 0 0 0 oklch(96% 0.020 198 / 0.14);
-    --bevel-bottom-rim-light: inset 0 -1px 0 0 oklch(100% 0 0 / 0.70), inset -1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --gradient-control-primary-dark: linear-gradient(
+      137deg,
+      oklch(34.5% 0.076 168) 0px,
+      oklch(28.5% 0.066 169) 180px,
+      oklch(24.5% 0.058 170) 360px,
+      oklch(24.5% 0.058 170) 100%
+    );
+    --gradient-control-primary-hover-dark: linear-gradient(
+      137deg,
+      oklch(38.5% 0.084 168) 0px,
+      oklch(32.0% 0.074 169) 180px,
+      oklch(27.5% 0.064 170) 360px,
+      oklch(27.5% 0.064 170) 100%
+    );
+    --gradient-control-primary-active-dark: linear-gradient(
+      137deg,
+      oklch(26.5% 0.062 170) 0px,
+      oklch(23.0% 0.054 170) 180px,
+      oklch(21.5% 0.050 170) 100%
+    );
+    --gradient-control-primary-light: linear-gradient(
+      137deg,
+      oklch(48.0% 0.132 166) 0px,
+      oklch(43.5% 0.128 168) 180px,
+      oklch(39.5% 0.122 170) 360px,
+      oklch(39.5% 0.122 170) 100%
+    );
+    --gradient-control-primary-hover-light: linear-gradient(
+      137deg,
+      oklch(44.5% 0.135 166) 0px,
+      oklch(40.0% 0.130 168) 180px,
+      oklch(36.5% 0.124 170) 360px,
+      oklch(36.5% 0.124 170) 100%
+    );
+    --gradient-control-primary-active-light: linear-gradient(
+      137deg,
+      oklch(38.5% 0.124 168) 0px,
+      oklch(35.0% 0.118 170) 180px,
+      oklch(33.5% 0.114 170) 100%
+    );
+    --bevel-control-primary-dark:  inset 0 1px 0 0 oklch(90% 0.10 166 / 0.28), inset 1px 0 0 0 oklch(90% 0.10 166 / 0.14);
+    --bevel-control-primary-light: inset 0 1px 0 0 oklch(100% 0 0 / 0.35), inset 1px 0 0 0 oklch(100% 0 0 / 0.18);
+
+    --gradient-control-selected-dark: linear-gradient(
+      137deg,
+      oklch(28.0% 0.056 168 / 0.88) 0px,
+      oklch(22.0% 0.044 172 / 0.86) 80px,
+      oklch(18.0% 0.034 176 / 0.88) 100%
+    );
+    --gradient-control-selected-hover-dark: linear-gradient(
+      137deg,
+      oklch(31.5% 0.064 168 / 0.92) 0px,
+      oklch(25.0% 0.050 172 / 0.90) 80px,
+      oklch(20.5% 0.040 176 / 0.92) 100%
+    );
+    --gradient-control-selected-light: linear-gradient(
+      137deg,
+      oklch(94.5% 0.032 166 / 0.92) 0px,
+      oklch(91.5% 0.038 168 / 0.88) 80px,
+      oklch(89.0% 0.042 170 / 0.90) 100%
+    );
+    --gradient-control-selected-hover-light: linear-gradient(
+      137deg,
+      oklch(92.5% 0.038 166 / 0.95) 0px,
+      oklch(89.5% 0.044 168 / 0.92) 80px,
+      oklch(87.0% 0.048 170 / 0.94) 100%
+    );
+    --bevel-control-selected-dark:  inset 0 1px 0 0 oklch(92% 0.09 166 / 0.30), inset 1px 0 0 0 oklch(92% 0.09 166 / 0.16);
+    --bevel-control-selected-light: inset 0 1px 0 0 oklch(100% 0 0 / 0.72), inset 1px 0 0 0 oklch(100% 0 0 / 0.42);
   }
 }

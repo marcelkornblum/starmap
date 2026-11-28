@@ -1,8 +1,8 @@
 @layer blocks {
   .nodeLabel {
     --node-label-bg: var(--chrome-node-label-bg);
-    --node-label-color: var(--chrome-node-label-color, var(--status-nominal));
-    --node-label-border-color: var(--chrome-node-label-border-color, var(--status-nominal));
+    --node-label-color: var(--chrome-node-label-color, var(--status-neutral));
+    --node-label-border-color: var(--chrome-node-label-border-color, var(--status-neutral));
     --node-label-border-width: var(--chrome-node-label-border-width);
     --node-label-border-style: var(--chrome-node-label-border-style);
     --node-label-radius: var(--chrome-node-label-radius);
@@ -24,7 +24,7 @@
     text-shadow: var(--shadow-map-label-halo);
     border-width: var(--node-label-border-width, 1px);
     border-style: var(--node-label-border-style, solid);
-    border-color: var(--node-label-border-color, var(--status-nominal));
+    border-color: var(--node-label-border-color, var(--status-neutral));
     border-radius: var(--node-label-radius);
     white-space: nowrap;
     pointer-events: none;
@@ -40,13 +40,13 @@
   .spectralTag {
     font-size: var(--text-content-catalog-id-size);
     letter-spacing: var(--text-content-catalog-id-tracking);
-    color: var(--status-nominal);
+    color: var(--chrome-node-label-color, var(--status-neutral));
   }
 
   .spectralFacet {
     --node-facet-bg: var(--chrome-node-label-bg);
-    --node-facet-color: var(--status-nominal);
-    --node-facet-border-color: var(--chrome-node-label-border-color, var(--status-nominal));
+    --node-facet-color: var(--chrome-node-label-color, var(--status-neutral));
+    --node-facet-border-color: var(--chrome-node-label-border-color, var(--status-neutral));
     --node-facet-border-width: var(--chrome-node-label-border-width);
     --node-facet-border-style: var(--chrome-node-label-border-style);
     --node-facet-radius: var(--chrome-node-label-radius);
@@ -64,7 +64,7 @@
     background: var(--node-facet-bg);
     border-width: var(--node-facet-border-width, 1px);
     border-style: var(--node-facet-border-style, solid);
-    border-color: var(--node-facet-border-color, var(--status-nominal));
+    border-color: var(--node-facet-border-color, var(--status-neutral));
     border-radius: var(--node-facet-radius);
     white-space: nowrap;
     pointer-events: none;

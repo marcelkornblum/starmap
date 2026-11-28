@@ -261,4 +261,22 @@ describe('Spatial frame ownership (one provider per viewport)', () => {
       await renderer.unmount();
     });
   });
+
+  it('initialises instrumentFade synchronously from getCrossScaleInstrumentFade() before the first useFrame tick', async () => {
+    setCrossScaleInstrumentFade(0);
+    let capturedFade = 1;
+    const Probe = () => {
+      capturedFade = useSpatialFrame().frameRef.current.instrumentFade;
+      return null;
+    };
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={SYSTEM_FRAME}>
+        <Probe />
+      </SpatialFrameProvider>,
+    );
+
+    expect(capturedFade).toBe(0);
+    await renderer.unmount();
+  });
 });

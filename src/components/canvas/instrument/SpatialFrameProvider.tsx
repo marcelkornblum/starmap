@@ -62,7 +62,7 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     screenHeightReferenceScale: SCREEN_HEIGHT_REFERENCE_SCALE,
     fovFactor: 1.0,
     screenScale: 1.0,
-    instrumentFade: 1.0,
+    instrumentFade: getCrossScaleInstrumentFade(),
   }));
 
   const scratchCamDir = useLazyRef(() => new THREE.Vector3());

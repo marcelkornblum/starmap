@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { useIsomorphicLayoutEffect } from '../../../hooks/useIsomorphicLayoutEffect';
 import { useSpatialFrame } from './spatialFrameContext';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { calculateBearingProximityFade } from '../math';
@@ -47,6 +48,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
   const stateFocus = useThreeTokenStore((s) => s.tokens.stateFocus);
   const footprintColor = useThreeTokenStore((s) => s.tokens.footprintColor);
   const footprintAlpha = useThreeTokenStore((s) => s.tokens.footprintAlpha);
+  const footprintFocusedAlpha = useThreeTokenStore((s) => s.tokens.footprintFocusedAlpha);
   const bearingCoreColor = useThreeTokenStore((s) => s.tokens.bearingCoreColor);
   const bearingCoreAlpha = useThreeTokenStore((s) => s.tokens.bearingCoreAlpha);
   const bearingOrbitalColor = useThreeTokenStore((s) => s.tokens.bearingOrbitalColor);
@@ -82,6 +84,31 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
   const { fillUniforms, fillMatRef, primaryFootprintMatRef, updateFillAlpha } = usePlanarGridMaterials({
     datumPlaneFillColor, datumPlaneFillAlpha, datumPlaneFillGradientInner, datumPlaneFillGradientExponent, stateFocus,
   });
+
+  useIsomorphicLayoutEffect(() => {
+    const initialFade = frameRef.current.instrumentFade;
+    if (boundaryMatRef.current) boundaryMatRef.current.opacity = datumPlaneMajorAlpha * initialFade;
+    if (gridMatRef.current) gridMatRef.current.opacity = datumPlaneMinorAlpha * initialFade;
+    if (diskCoreMatRef.current) diskCoreMatRef.current.opacity = bearingCoreAlpha * initialFade;
+    if (diskOrbitalMatRef.current) diskOrbitalMatRef.current.opacity = bearingOrbitalAlpha * initialFade;
+    if (primaryFootprintMatRef.current) {
+      primaryFootprintMatRef.current.opacity = footprintFocusedAlpha * initialFade;
+    }
+    updateFillAlpha(initialFade);
+  }, [
+    frameRef,
+    datumPlaneMajorAlpha,
+    datumPlaneMinorAlpha,
+    bearingCoreAlpha,
+    bearingOrbitalAlpha,
+    footprintFocusedAlpha,
+    primaryFootprintMatRef,
+    updateFillAlpha,
+    isGridEnabled,
+    isFootprintEnabled,
+    hasCore,
+    hasOrbital,
+  ]);
 
   useFrame(({ camera }) => {
     const { apertureRadius, focusPoint, cardinalAlignment, planeWeights, orientation, screenScale, instrumentFade } = frameRef.current;
@@ -142,7 +169,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
       primaryFootprintRef.current.position.set(-focusPoint.x, -focusPoint.y, -focusPoint.z + 0.002);
       primaryFootprintRef.current.visible = isFootprintEnabled && fadePlanar > 1e-3;
     }
-    if (primaryFootprintMatRef.current) primaryFootprintMatRef.current.opacity = footprintAlpha * fadePlanar;
+    if (primaryFootprintMatRef.current) primaryFootprintMatRef.current.opacity = footprintFocusedAlpha * fadePlanar;
 
     if (explicitFootprintsRef.current) {
       explicitFootprintsRef.current.position.set(-focusPoint.x, -focusPoint.y, -focusPoint.z);
@@ -166,13 +193,13 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
       )}
       <lineLoop ref={boundaryLineRef} name="datum-plane-boundary" frustumCulled={false} raycast={NOOP_RAYCAST}>
         <primitive object={boundaryGeom} attach="geometry" />
-        <lineBasicMaterial ref={boundaryMatRef} color={datumPlaneMajorColor} opacity={datumPlaneMajorAlpha} transparent depthWrite={false} />
+        <lineBasicMaterial ref={boundaryMatRef} color={datumPlaneMajorColor} transparent depthWrite={false} />
       </lineLoop>
       {isGridEnabled && gridGeom && (
         <group ref={staticPlanarGridRef} name="static-planar-grid-group">
           <lineSegments name="planar-galactic-grid" frustumCulled={false} raycast={NOOP_RAYCAST}>
             <primitive object={gridGeom} attach="geometry" />
-            <lineBasicMaterial ref={gridMatRef} color={datumPlaneMinorColor} opacity={datumPlaneMinorAlpha} transparent depthWrite={false} />
+            <lineBasicMaterial ref={gridMatRef} color={datumPlaneMinorColor} transparent depthWrite={false} />
           </lineSegments>
         </group>
       )}
@@ -182,13 +209,13 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
           {hasCore && (
             <lineSegments ref={diskCoreRef} name="bearing-core" scale={[1, 1, 1]} frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={bearingCoreGeom} attach="geometry" />
-              <lineBasicMaterial ref={diskCoreMatRef} color={bearingCoreColor} opacity={bearingCoreAlpha} transparent depthWrite={false} />
+              <lineBasicMaterial ref={diskCoreMatRef} color={bearingCoreColor} transparent depthWrite={false} />
             </lineSegments>
           )}
           {hasOrbital && (
             <lineSegments ref={diskOrbitalRef} name="bearing-orbital" frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={diskOrbitalGeom} attach="geometry" />
-              <lineBasicMaterial ref={diskOrbitalMatRef} color={bearingOrbitalColor} opacity={bearingOrbitalAlpha} transparent depthWrite={false} />
+              <lineBasicMaterial ref={diskOrbitalMatRef} color={bearingOrbitalColor} transparent depthWrite={false} />
             </lineSegments>
           )}
         </group>
@@ -197,7 +224,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
         <group ref={primaryFootprintRef} name="planar-footprint">
           <lineSegments frustumCulled={false} raycast={NOOP_RAYCAST}>
             <primitive object={primaryFootprintGeom} attach="geometry" />
-            <lineBasicMaterial ref={primaryFootprintMatRef} color={footprintColor} opacity={footprintAlpha} transparent depthWrite={false} />
+            <lineBasicMaterial ref={primaryFootprintMatRef} color={stateFocus} transparent depthWrite={false} />
           </lineSegments>
         </group>
       )}

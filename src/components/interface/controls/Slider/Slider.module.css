@@ -14,10 +14,10 @@
     --slider-input-min-height: auto;
 
     /* Control Token API */
-    --slider-track-bg: oklch(from var(--ui-control-subtle) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.22);
+    --slider-track-bg: var(--ui-control-subtle);
     --slider-thumb-bg: var(--state-focus);
     --slider-thumb-hover-bg: var(--content-prominent);
-    --slider-thumb-glow: none;
+    --slider-thumb-glow: var(--ui-control-active-glow);
 
     display: flex;
     flex-direction: column;

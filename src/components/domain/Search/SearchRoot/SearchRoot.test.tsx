@@ -8,6 +8,7 @@ import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
 import { SEARCH_FRAMING_SETTLE_MS } from '../../../../utils/searchFraming';
 import { SOL_REFERENCE_TARGET } from '../../../../config/referenceTargets';
 import { useCameraStore } from '../../../../stores/useCameraStore';
+import { CanvasRouterBridgeContext, type AppRouterAdapter } from '../../../../hooks/useSpaLocation';
 import { SpatialEntityProvider } from '../../../canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../../../canvas/entity/SpatialEntityStore';
 import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
@@ -353,5 +354,63 @@ describe('<SearchRoot />', () => {
 
     expect(screen.getByTestId('search-root').getAttribute('data-search-focused')).toBe('false');
     expect(screen.getByTestId('search-results-panel').getAttribute('data-open')).toBe('false');
+  });
+
+  it('preserves search query and navigates cleanly to /search?q=...&searchCategory=... when clicking View all (N)', () => {
+    const store = createSpatialEntityStore();
+    const navigate = vi.fn();
+    const mockRouter: AppRouterAdapter = {
+      navigate: navigate as unknown as AppRouterAdapter['navigate'],
+      state: {
+        location: {
+          pathname: '/galaxy',
+          searchStr: '?q=Sol&select=search',
+          search: { q: 'Sol', select: 'search' },
+        },
+      },
+    };
+    const multiPlanetCorpus: readonly CompactSearchEntry[] = [
+      ...TEST_CORPUS,
+      { i: 'ceres', k: 4, n: 'Ceres', s: 'sol', a: 'ceres' },
+      { i: 'pluto', k: 4, n: 'Pluto', s: 'sol', a: 'pluto' },
+    ];
+
+    render(
+      <CanvasRouterBridgeContext.Provider value={mockRouter}>
+        <SpatialEntityProvider store={store}>
+          <SearchRoot
+            initialCorpus={multiPlanetCorpus}
+            limitPerCategory={1}
+            syncUrl={true}
+            syncMode={true}
+            locationPathname="/galaxy"
+            locationSearch="?q=Sol&select=search"
+          >
+            <SearchPanel scope="galaxy" />
+            <SearchResults searchViewPath="/search" />
+          </SearchRoot>
+        </SpatialEntityProvider>
+      </CanvasRouterBridgeContext.Provider>,
+    );
+
+    const input = screen.getByRole('searchbox') as HTMLInputElement;
+    act(() => {
+      fireEvent.focus(input);
+    });
+    expect(input.value).toBe('Sol');
+
+    const viewAllPlanetsLink = screen.getByTestId('search-category-link-planets');
+    expect(viewAllPlanetsLink).toHaveTextContent('View all (3)');
+
+    act(() => {
+      fireEvent.click(viewAllPlanetsLink);
+    });
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith({
+      href: expect.stringContaining('/search?q=Sol&searchCategory=planets'),
+    });
+    expect(input.value).toBe('Sol');
+    expect(screen.getByTestId('search-root').getAttribute('data-search-focused')).toBe('false');
   });
 });

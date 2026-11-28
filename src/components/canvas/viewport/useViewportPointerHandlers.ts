@@ -129,16 +129,26 @@ export function useViewportPointerHandlers({
   );
 
   const handlePointerMissed = useCallback(
-    (event?: MouseEvent | PointerEvent) => {
+    (event?: {
+      readonly type?: string;
+      readonly button?: number;
+      readonly pointerType?: string;
+      readonly clientX?: number;
+      readonly clientY?: number;
+    }) => {
       if (suppressNextClickMissRef.current && event?.type === 'click') {
         suppressNextClickMissRef.current = false;
         return;
       }
+      if (
+        event?.type === 'contextmenu' ||
+        (event && typeof event.button === 'number' && event.button !== 0)
+      ) {
+        lastPointerDownRef.current = null;
+        return;
+      }
       const eventPointerType =
-        event &&
-        'pointerType' in event &&
-        typeof event.pointerType === 'string' &&
-        event.pointerType.length > 0
+        event && typeof event.pointerType === 'string' && event.pointerType.length > 0
           ? event.pointerType
           : null;
       const effectivePointerType = eventPointerType ?? lastPointerTypeRef.current;
@@ -208,7 +218,7 @@ export function useViewportPointerHandlers({
           return false;
         }
       }
-      handlePointerMissed(e as unknown as PointerEvent);
+      handlePointerMissed(e);
       suppressNextClickMissRef.current = true;
       return true;
     },

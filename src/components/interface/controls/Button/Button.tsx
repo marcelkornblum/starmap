@@ -28,7 +28,7 @@ export const Button = ({
   const handleSpaLinkClick = useSpaLinkClick();
 
   if (href !== undefined) {
-    const { onClick, tabIndex, 'aria-disabled': ariaDisabled, ...anchorRest } = rest;
+    const { onClick, tabIndex, role, 'aria-disabled': ariaDisabled, ...anchorRest } = rest;
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>): void => {
       if (disabled) {
         e.preventDefault();
@@ -41,7 +41,8 @@ export const Button = ({
 
     return (
       <a
-        href={resolveAppHref(href)}
+        href={disabled ? undefined : resolveAppHref(href)}
+        role={disabled ? (role ?? 'link') : role}
         target={target}
         rel={rel}
         className={styles.button}

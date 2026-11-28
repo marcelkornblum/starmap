@@ -72,8 +72,8 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(typeof dark.stateFocus).toBe('string');
 
     expect(amoled.canvasBg).toBe('#000000');
-    expect(light.canvasBg).toBe('#fdf6e3');
-    expect(dark.canvasBg).toBe('#002b36');
+    expect(light.canvasBg).toBe('#f2f7f7');
+    expect(dark.canvasBg).toBe('#050b0d');
 
     expect(dark.dashSize).toBe(CARTO_LINE_CONSTANTS.dashSize);
     expect(dark.dashGap).toBe(CARTO_LINE_CONSTANTS.gapSize);
@@ -81,6 +81,25 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(dark.dotGap).toBe(CARTO_LINE_CONSTANTS.dotGap);
 
     expect(dark.stateFocus).not.toBe(light.stateFocus);
+  });
+
+  it('enforces Bio-Jade and Verdigris green-channel dominance across instrument and status tokens', () => {
+    const keys = [
+      'datumPlaneFillColor',
+      'datumPlaneMajorColor',
+      'rangeRingColor',
+      'stalkFocusedColor',
+      'footprintFocusedColor',
+      'statusNominal',
+    ] as const;
+
+    for (const theme of ['dark', 'light', 'amoled'] as const) {
+      const snapshot = createDefaultTokenSnapshot(theme);
+      for (const key of keys) {
+        const color = getThreeColor(snapshot[key]);
+        expect(color.g).toBeGreaterThan(color.r);
+      }
+    }
   });
 
   it('converts hex string to THREE.Color via getThreeColor with cached instance reuse', () => {
@@ -107,30 +126,30 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(typeof snapshot.canvasBg).toBe('string');
     expect(typeof snapshot.gridPrimaryColor).toBe('string');
     expect(snapshot.gridPrimaryAlpha).toBe(0.2);
-    expect(snapshot.bearingLineAlpha).toBe(0.35);
-    expect(snapshot.axisLineAlpha).toBe(0.16);
+    expect(snapshot.bearingLineAlpha).toBe(0.38);
+    expect(snapshot.axisLineAlpha).toBe(0.24);
     expect(snapshot.axisLineWidth).toBe(1);
     expect(snapshot.axisLineStyle).toBe('solid');
     expect(snapshot.gridPrimaryWidth).toBe(2);
     expect(snapshot.rangeTickWidth).toBe(2);
     expect(snapshot.datumPlaneColor).toBeDefined();
-    expect(snapshot.datumPlaneAlpha).toBe(0.35);
+    expect(snapshot.datumPlaneAlpha).toBe(0.52);
     expect(snapshot.datumPlaneWidth).toBe(1);
     expect(snapshot.datumPlaneMajorColor).toBeDefined();
-    expect(snapshot.datumPlaneMajorAlpha).toBe(0.35);
+    expect(snapshot.datumPlaneMajorAlpha).toBe(0.52);
     expect(snapshot.datumPlaneMinorColor).toBeDefined();
-    expect(snapshot.datumPlaneMinorAlpha).toBe(0.18);
+    expect(snapshot.datumPlaneMinorAlpha).toBe(0.26);
     expect(snapshot.datumPlaneFillColor).toBeDefined();
-    expect(snapshot.datumPlaneFillAlpha).toBe(0.16);
+    expect(snapshot.datumPlaneFillAlpha).toBe(0.22);
     expect(snapshot.datumPlaneFillGradientInner).toBe(0.25);
     expect(snapshot.datumPlaneFillGradientExponent).toBe(2.0);
     expect(snapshot.datumFootprintColor).toBeDefined();
-    expect(snapshot.datumFootprintAlpha).toBe(0.25);
+    expect(snapshot.datumFootprintAlpha).toBe(0.50);
     expect(snapshot.datumFootprintWidth).toBe(2);
     expect(snapshot.bearingLineWidth).toBe(2);
     expect(snapshot.bearingLineStyle).toBe('solid');
     expect(snapshot.bearingOrbitalColor).toBeDefined();
-    expect(snapshot.bearingOrbitalAlpha).toBe(0.35);
+    expect(snapshot.bearingOrbitalAlpha).toBe(0.42);
     expect(snapshot.bearingOrbitalWidth).toBe(2);
     expect(snapshot.bearingOrbitalStyle).toBe('dashed');
     expect(snapshot.bearingCoreColor).toBeDefined();
@@ -138,11 +157,11 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.bearingCoreStyle).toBe('solid');
 
     expect(snapshot.kinematicColor).toBeDefined();
-    expect(snapshot.kinematicAlpha).toBe(0.35);
-    expect(snapshot.stalkSelectedAlpha).toBe(0.70);
-    expect(snapshot.stalkFocusedAlpha).toBe(0.85);
-    expect(snapshot.footprintAlpha).toBe(0.35);
-    expect(snapshot.orbitAlpha).toBe(0.24);
+    expect(snapshot.kinematicAlpha).toBe(0.42);
+    expect(snapshot.stalkSelectedAlpha).toBe(0.72);
+    expect(snapshot.stalkFocusedAlpha).toBe(0.88);
+    expect(snapshot.footprintAlpha).toBe(0.50);
+    expect(snapshot.orbitAlpha).toBe(0.30);
     expect(snapshot.orbitStyle).toBe('dashed');
     expect(snapshot.routeWidth).toBe(3);
     expect(snapshot.routeStyle).toBe('solid');

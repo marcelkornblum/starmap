@@ -11,7 +11,8 @@
     gap: var(--detent-sheet-gap);
     padding-block: var(--detent-sheet-padding-block);
     padding-inline: var(--detent-sheet-padding-inline);
-    background: var(--surface-panel-bg);
+    background: var(--surface-panel-sheen), var(--surface-panel-bg);
+    -webkit-backdrop-filter: var(--surface-panel-backdrop-filter);
     backdrop-filter: var(--surface-panel-backdrop-filter);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     border-radius: var(--radius-container);

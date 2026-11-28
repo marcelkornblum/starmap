@@ -26,8 +26,8 @@ export const SearchResults = ({
     errorMessage,
     results,
     isFocused,
+    setIsFocused,
     onSelectResult,
-    dismissSearch,
   } = useSearchContext();
 
   if (query.trim().length === 0) {
@@ -46,10 +46,10 @@ export const SearchResults = ({
     ) {
       return;
     }
-    const target = event.target as Element | null;
-    const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+    const target = event.target instanceof Element ? event.target : null;
+    const anchor = target?.closest('a[href]') ?? null;
     if (anchor) {
-      dismissSearch?.();
+      setIsFocused?.(false);
     }
   };
 

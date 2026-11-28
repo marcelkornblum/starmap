@@ -22,7 +22,8 @@ test.describe('Camera Choreography Contracts (FS-003, FS-012, FS-013)', () => {
     await expect(bodiesList).toBeVisible({ timeout: 10_000 });
 
     const centerBtn = page.getByTestId('details-button-center');
-    await expect(centerBtn).toHaveCount(0);
+    await expect(centerBtn).toHaveText('Centred on map');
+    await expect(centerBtn).toHaveAttribute('aria-disabled', 'true');
 
     const earthTarget = await rootHost.getAttribute('data-camera-target');
     expect(earthTarget).not.toBeNull();
@@ -34,7 +35,8 @@ test.describe('Camera Choreography Contracts (FS-003, FS-012, FS-013)', () => {
     expect(page.url()).not.toContain('center=mars');
     expect(await rootHost.getAttribute('data-camera-target')).toBe(earthTarget);
 
-    await expect(centerBtn).toBeVisible({ timeout: 10_000 });
+    await expect(centerBtn).toHaveText('Centre on map', { timeout: 10_000 });
+    await expect(centerBtn).not.toHaveAttribute('aria-disabled', 'true');
     await expect(centerBtn).toHaveAttribute('href', /\/system\/sol\?center=mars&focus=mars/);
 
     const sawInFlight = await page.evaluate(async () => {
@@ -66,7 +68,8 @@ test.describe('Camera Choreography Contracts (FS-003, FS-012, FS-013)', () => {
 
     const marsTarget = await rootHost.getAttribute('data-camera-target');
     expect(marsTarget).not.toBe(earthTarget);
-    await expect(centerBtn).toHaveCount(0);
+    await expect(centerBtn).toHaveText('Centred on map');
+    await expect(centerBtn).toHaveAttribute('aria-disabled', 'true');
   });
 
   test('FS-012: prefers-reduced-motion settles cross-scale transitions immediately without HUD retraction', async ({

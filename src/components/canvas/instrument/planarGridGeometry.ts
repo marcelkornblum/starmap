@@ -28,7 +28,8 @@ void main() {
   float alpha = uAlpha * (curve * 0.65 + rimGlow * 0.35);
   float edgeFeather = 1.0 - smoothstep(0.985, 1.0, r);
   alpha *= (0.8 + 0.2 * edgeFeather);
-  vec3 edgeColor = mix(uColor, vec3(1.0), rimGlow * 0.5);
+  vec3 rimTint = clamp(uColor * 1.35 + vec3(0.02, 0.10, 0.07), 0.0, 1.0);
+  vec3 edgeColor = mix(uColor, rimTint, rimGlow * 0.65);
   gl_FragColor = vec4(edgeColor, alpha);
 }
 `;
