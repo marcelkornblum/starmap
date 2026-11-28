@@ -1,32 +1,35 @@
 @layer blocks {
   .sectionNav {
+    --guide-section-nav-bg: var(--surface-panel-bg);
+    --guide-section-nav-backdrop: var(--surface-panel-backdrop-filter);
+    --guide-section-nav-border: var(--border-subtle);
+
+    position: sticky;
+    top: 0;
+    z-index: var(--layer-hud);
     display: flex;
-    gap: var(--space-fib-1);
-    padding-bottom: var(--space-fib-3);
+    align-items: center;
+    background: var(--guide-section-nav-bg);
+    backdrop-filter: var(--guide-section-nav-backdrop);
+    border-block-end: var(--border-width-1) var(--border-style-boundary) var(--guide-section-nav-border);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    margin: 0;
   }
 
-  .sectionNavLink {
-    color: var(--content-muted);
-    text-decoration: none;
-    font-size: var(--text-ui-nav-tab-size);
-    font-weight: var(--font-weight-medium);
-    padding: var(--space-fib-2) var(--space-fib-3);
-    border-radius: var(--radius-sm);
-    transition:
-      color var(--motion-duration-feedback) var(--motion-ease-default),
-      background-color var(--motion-duration-feedback) var(--motion-ease-default);
+  .sectionNav::-webkit-scrollbar {
+    display: none;
   }
 
-  .sectionNavLink:hover {
-    color: var(--content-prominent);
-    background: var(--surface-block-hover-bg);
+  .sectionNav > ul {
+    flex-wrap: nowrap;
+    padding-block: var(--space-fib-2);
+    inline-size: 100%;
   }
-}
 
-@layer exceptions {
-  .sectionNavLink[aria-current='page'] {
-    color: var(--content-accent);
-    background: var(--surface-block-selected-bg);
-    font-weight: var(--font-weight-semibold);
+  .sectionNav li {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 }

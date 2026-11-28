@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { SearchResults } from './SearchResults';
 import { SearchContext } from '../SearchContext';
 import { executeCatalogSearch } from '../../../../services/search/searchExecution';
@@ -122,7 +123,8 @@ describe('<SearchResults />', () => {
     expect(panel.getAttribute('data-open')).toBe('true');
   });
 
-  it('truncates results per category when limitPerCategory is set, renders filtered search links under populated headings, and omits empty category sections', () => {
+  it('truncates results per category when limitPerCategory is set, renders View all (N) button only below truncated groups, omits search-view-link, and dismisses on click', () => {
+    const dismissSearch = vi.fn();
     const multiResults = executeCatalogSearch(
       [
         { i: 'sol', n: 'Sol', m: [-26.7, 'G2V', 8, 1], a: 'sol' },
@@ -145,16 +147,49 @@ describe('<SearchResults />', () => {
           setFilter: () => undefined,
           submitSearch: async () => undefined,
           isFocused: true,
+          dismissSearch,
         }}
       >
         <SearchResults searchViewPath="/search" />
       </SearchContext.Provider>,
     );
 
+    expect(screen.queryByTestId('search-view-link')).toBeNull();
+
     // Ceres and Earth should be rendered, Pluto truncated
     expect(screen.getByText('Ceres')).toBeInTheDocument();
     expect(screen.getByText('Earth')).toBeInTheDocument();
     expect(screen.queryByText('Pluto')).toBeNull();
+
+    // Planets group has totalMatches=3 > 2 shown -> View all (3) button below list
+    const planetsGroup = screen.getByTestId('search-results-group-planets');
+    const planetsLink = screen.getByTestId('search-category-link-planets');
+    expect(planetsLink.tagName.toLowerCase()).toBe('a');
+    expect(planetsLink).toHaveAttribute('data-variant', 'default');
+    expect(planetsLink).toHaveAttribute('data-size', 'sm');
+    expect(planetsLink).toHaveTextContent('View all (3)');
+    expect(planetsLink.getAttribute('href')).toContain('/search?q=Sol&searchCategory=planets');
+    const planetsList = planetsGroup.querySelector('ul');
+    expect(planetsList).not.toBeNull();
+    expect(
+      Boolean(
+        planetsList &&
+          (planetsList.compareDocumentPosition(planetsLink) & Node.DOCUMENT_POSITION_FOLLOWING),
+      ),
+    ).toBe(true);
+
+    // Stars group has only 1 match (totalMatches <= items.length) -> no View all button
+    expect(screen.getByTestId('search-results-group-stars')).toBeInTheDocument();
+    expect(screen.queryByTestId('search-category-link-stars')).toBeNull();
+
+    // Modified clicks (Ctrl/Cmd) do not dismiss the dropdown
+    fireEvent.click(planetsLink, { ctrlKey: true });
+    fireEvent.click(planetsLink, { metaKey: true });
+    expect(dismissSearch).not.toHaveBeenCalled();
+
+    // Unmodified primary click on View all (N) button dismisses the dropdown
+    fireEvent.click(planetsLink);
+    expect(dismissSearch).toHaveBeenCalledTimes(1);
 
     // Empty categories are omitted completely
     expect(screen.queryByTestId('search-results-group-structures')).toBeNull();

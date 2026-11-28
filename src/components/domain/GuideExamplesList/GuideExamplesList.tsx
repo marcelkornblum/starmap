@@ -1,8 +1,8 @@
 import type React from 'react';
 import {
   CelestialTitle,
+  CollapsibleSection,
   DataTable,
-  Heading,
   type CelestialSymbolType,
 } from '../../interface';
 import type { GuideExampleTarget } from '../../../content/guide';
@@ -20,32 +20,33 @@ export const GuideExamplesList: React.FC<GuideExamplesListProps> = ({
   reticleType,
 }) => {
   return (
-    <section className={styles.cardItem}>
-      <Heading as="h3">{title}</Heading>
-      <DataTable data-testid="guide-examples-list">
-        <DataTable.Head>
-          <DataTable.Row>
-            <DataTable.HeaderCell>Benchmark</DataTable.HeaderCell>
-            <DataTable.HeaderCell>Context</DataTable.HeaderCell>
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {examples.map((ex) => (
-            <DataTable.Row key={ex.name} data-testid="guide-example-item">
-              <DataTable.Cell>
-                <CelestialTitle
-                  type={ex.reticleType ?? reticleType ?? 'star'}
-                  title={ex.name}
-                  href={ex.href}
-                  titleTestId="guide-example-link"
-                  showTooltip={false}
-                />
-              </DataTable.Cell>
-              <DataTable.Cell>{ex.note}</DataTable.Cell>
+    <div className={styles.examplesContainer}>
+      <CollapsibleSection title={title} headingAs="h3">
+        <DataTable data-testid="guide-examples-list">
+          <DataTable.Head>
+            <DataTable.Row>
+              <DataTable.HeaderCell>Benchmark</DataTable.HeaderCell>
+              <DataTable.HeaderCell>Context</DataTable.HeaderCell>
             </DataTable.Row>
-          ))}
-        </DataTable.Body>
-      </DataTable>
-    </section>
+          </DataTable.Head>
+          <DataTable.Body>
+            {examples.map((ex) => (
+              <DataTable.Row key={ex.name} data-testid="guide-example-item">
+                <DataTable.Cell>
+                  <CelestialTitle
+                    type={ex.reticleType ?? reticleType ?? 'star'}
+                    title={ex.name}
+                    href={ex.href}
+                    titleTestId="guide-example-link"
+                    showTooltip={false}
+                  />
+                </DataTable.Cell>
+                <DataTable.Cell>{ex.note}</DataTable.Cell>
+              </DataTable.Row>
+            ))}
+          </DataTable.Body>
+        </DataTable>
+      </CollapsibleSection>
+    </div>
   );
 };

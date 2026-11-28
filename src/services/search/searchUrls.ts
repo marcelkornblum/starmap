@@ -1,5 +1,5 @@
 import type { SearchCategoryFilter } from '../../types/search';
-import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import { toCanonicalLayerSlug } from '../../utils/datasetLayerSlugs';
 import { toTagSlug } from './searchTagDefinitions';
 import { isSearchCategoryFilter } from './searchTypes';
 
@@ -17,8 +17,10 @@ export const buildTagGalaxyHref = (tag: string): string => {
  * (`/galaxy?select=layer:<shortSlug>&layer=<shortSlug>`, e.g. `/galaxy?select=layer:project-hail-mary&layer=project-hail-mary`).
  */
 export const buildLayerGalaxyHref = (layerId: string): string => {
-  const shortSlug = toUrlSlug(layerId.trim().replace(/^(?:canon|layer)[:-]/i, ''));
-  return shortSlug ? `/galaxy?select=layer:${shortSlug}&layer=${shortSlug}` : '/galaxy';
+  const shortSlug = toCanonicalLayerSlug(layerId);
+  return shortSlug
+    ? `/galaxy?select=layer:${encodeURIComponent(shortSlug)}&layer=${encodeURIComponent(shortSlug)}`
+    : '/galaxy';
 };
 
 /**

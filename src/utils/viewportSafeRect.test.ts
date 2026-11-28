@@ -170,13 +170,126 @@ describe('viewportSafeRect', () => {
       });
     });
 
-    it('sets bypass when mobileDetentSheet is in full detent', () => {
+    it('clamps mobileDetentSheet optical centring at partial through beyondPartial and full without pop-down', () => {
+      const topBar = rect(5, 5, 380, 56);
+      const controlsRegion = rect(0, 788, 390, 56);
+      const partialHeightPx = 360;
+
+      // Peek: sheet top = 672, bottom = 788 (height 116 above 56px dock -> bottom inset = 172)
+      const peek = computeViewportSafeRect(390, 844, {
+        topBar,
+        controlsRegion,
+        mobileDetentSheet: {
+          ...rect(0, 672, 390, 116),
+          detent: 'peek',
+          beyondPartial: false,
+          partialHeightPx,
+        },
+      });
+      const peekOffset = computeOpticalCenterOffsetPx(peek);
+      expect(peek.bottom).toBe(172);
+      expect(peek.bypass).toBe(false);
+      expect(peekOffset.offsetY).toBeGreaterThan(0);
+
+      // Partial: sheet top = 428, bottom = 788 (height 360 above 56px dock -> bottom inset = 416)
+      const partial = computeViewportSafeRect(390, 844, {
+        topBar,
+        controlsRegion,
+        mobileDetentSheet: {
+          ...rect(0, 428, 390, 360),
+          detent: 'partial',
+          beyondPartial: false,
+          partialHeightPx,
+        },
+      });
+      const partialOffset = computeOpticalCenterOffsetPx(partial);
+      expect(partial.bottom).toBe(416);
+      expect(partial.bypass).toBe(false);
+      expect(partialOffset.offsetY).toBeGreaterThan(peekOffset.offsetY);
+
+      // Dragging beyond partial (top = 120): locked at exact partial bottom & offsetY
+      const beyondPartial = computeViewportSafeRect(390, 844, {
+        topBar,
+        controlsRegion,
+        mobileDetentSheet: {
+          ...rect(0, 120, 390, 668),
+          detent: 'partial',
+          beyondPartial: true,
+          partialHeightPx,
+        },
+      });
+      expect(beyondPartial.bottom).toBe(partial.bottom);
+      expect(beyondPartial.bypass).toBe(false);
+      expect(computeOpticalCenterOffsetPx(beyondPartial)).toEqual(partialOffset);
+
+      // Snapped to full (top = 0): stays locked at exact partial bottom & offsetY (zero pop-down to 0)
+      const full = computeViewportSafeRect(390, 844, {
+        topBar,
+        controlsRegion,
+        mobileDetentSheet: {
+          ...rect(0, 0, 390, 788),
+          detent: 'full',
+          beyondPartial: true,
+          partialHeightPx,
+        },
+      });
+      expect(full.bottom).toBe(partial.bottom);
+      expect(full.bypass).toBe(false);
+      expect(computeOpticalCenterOffsetPx(full)).toEqual(partialOffset);
+
+      // Returning from full -> peek smoothly lowers bottom & offsetY
+      const backToPeek = computeViewportSafeRect(390, 844, {
+        topBar,
+        controlsRegion,
+        mobileDetentSheet: {
+          ...rect(0, 672, 390, 116),
+          detent: 'peek',
+          beyondPartial: false,
+          partialHeightPx,
+        },
+      });
+      expect(backToPeek.bottom).toBe(172);
+      expect(backToPeek.bypass).toBe(false);
+      expect(computeOpticalCenterOffsetPx(backToPeek)).toEqual(peekOffset);
+
+      // Collapsed (mobileDetentSheet: null) returns to baseline controlsRegion inset
+      const collapsed = computeViewportSafeRect(390, 844, {
+        topBar,
+        controlsRegion,
+        mobileDetentSheet: null,
+      });
+      expect(collapsed.bottom).toBe(56);
+      expect(collapsed.bypass).toBe(false);
+      expect(computeOpticalCenterOffsetPx(collapsed).offsetY).toBeLessThan(peekOffset.offsetY);
+    });
+
+    it('falls back to 68% ceiling and preserves MIN_SAFE_VIEWPORT_DIMENSION_PX when partialHeightPx is omitted at full detent', () => {
       const result = computeViewportSafeRect(390, 844, {
         topBar: rect(5, 5, 380, 90),
         mobileDetentSheet: { ...rect(0, 60, 390, 784), detent: 'full' },
       });
 
-      expect(result.bypass).toBe(true);
+      expect(result.bypass).toBe(false);
+      expect(result.bottom).toBeCloseTo(844 * 0.68, 4);
+      expect(result.height).toBeGreaterThanOrEqual(MIN_SAFE_VIEWPORT_DIMENSION_PX);
+      expect(computeOpticalCenterOffsetPx(result).offsetY).toBeGreaterThan(0);
+    });
+
+    it('caps partial ceiling when topBar is tall so safe height never drops below MIN_SAFE_VIEWPORT_DIMENSION_PX', () => {
+      const result = computeViewportSafeRect(390, 500, {
+        topBar: rect(5, 5, 380, 120),
+        mobileDetentSheet: {
+          ...rect(0, 0, 390, 500),
+          detent: 'full',
+          beyondPartial: true,
+          partialHeightPx: 350,
+        },
+      });
+
+      expect(result.top).toBe(125);
+      expect(result.bottom).toBe(500 - 125 - MIN_SAFE_VIEWPORT_DIMENSION_PX);
+      expect(result.height).toBe(MIN_SAFE_VIEWPORT_DIMENSION_PX);
+      expect(result.bypass).toBe(false);
     });
 
     it('sets bypass when visible safe dimension falls below MIN_SAFE_VIEWPORT_DIMENSION_PX or viewport is non-positive', () => {
@@ -189,7 +302,7 @@ describe('viewportSafeRect', () => {
 
       const shortSafe = computeViewportSafeRect(390, 300, {
         topBar: rect(5, 5, 380, 90),
-        mobileDetentSheet: { ...rect(0, 210, 390, 90), detent: 'peek' },
+        controlsRegion: rect(0, 210, 390, 90),
       });
       expect(shortSafe.height).toBe(115);
       expect(shortSafe.bypass).toBe(true);

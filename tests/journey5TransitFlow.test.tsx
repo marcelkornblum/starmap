@@ -63,7 +63,7 @@ describe('Journey 5: Transit Flow - ControlBar & Cross-View Overlays (DEC-019, D
     cleanup();
   });
 
-  it('DEC-020: mounts <CanvasLayer />, <ControlBar />, and scoped <Search.Panel /> across views', async () => {
+  it('DEC-020: mounts <CanvasLayer />, <ConsoleDock />, and scoped <Search.Panel /> across views without retired <ControlBar />', async () => {
     render(createElement(CanvasLayer, { scope: 'galaxy' }));
     const directCanvas = screen.getByTestId('canvas-layer');
     expect(directCanvas).toBeInTheDocument();
@@ -89,7 +89,8 @@ describe('Journey 5: Transit Flow - ControlBar & Cross-View Overlays (DEC-019, D
     const galaxyCanvas = screen.getByTestId('canvas-layer');
     expect(galaxyCanvas).toBeInTheDocument();
     expect(galaxyCanvas).toHaveAttribute('data-scope', 'galaxy');
-    expect(screen.getByTestId('control-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('control-bar')).toBeNull();
+    expect(screen.getByTestId('console-dock')).toBeInTheDocument();
     expect(screen.getByTestId('search-panel')).toBeInTheDocument();
     cleanup();
 
@@ -111,7 +112,8 @@ describe('Journey 5: Transit Flow - ControlBar & Cross-View Overlays (DEC-019, D
     expect(systemCanvas).toBeInTheDocument();
     expect(systemCanvas).toHaveAttribute('data-scope', 'system');
     expect(systemCanvas).toHaveAttribute('data-target-id', 'sol');
-    expect(screen.getByTestId('control-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('control-bar')).toBeNull();
+    expect(screen.getByTestId('console-dock')).toBeInTheDocument();
     expect(screen.getByTestId('search-panel')).toBeInTheDocument();
     cleanup();
 
@@ -133,7 +135,8 @@ describe('Journey 5: Transit Flow - ControlBar & Cross-View Overlays (DEC-019, D
     expect(planetCanvas).toBeInTheDocument();
     expect(planetCanvas).toHaveAttribute('data-scope', 'planet');
     expect(planetCanvas).toHaveAttribute('data-target-id', 'earth');
-    expect(screen.getByTestId('control-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('control-bar')).toBeNull();
+    expect(screen.getByTestId('console-dock')).toBeInTheDocument();
     expect(screen.getByTestId('search-panel')).toBeInTheDocument();
     cleanup();
 
@@ -145,6 +148,7 @@ describe('Journey 5: Transit Flow - ControlBar & Cross-View Overlays (DEC-019, D
         createElement(SearchView),
       ),
     );
+    expect(screen.getByTestId('console-dock')).toBeInTheDocument();
     const searchPanel = screen.getByTestId('search-panel');
     expect(searchPanel).toBeInTheDocument();
     expect(searchPanel).toHaveAttribute('data-scope', 'search');

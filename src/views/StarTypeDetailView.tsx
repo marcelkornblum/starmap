@@ -1,18 +1,19 @@
 import React, { useMemo } from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import { StarTypeCombinator } from '../components/domain/StarTypeCombinator';
 import {
+  Block,
   Button,
   CelestialSymbol,
   Cluster,
+  CollapsibleSection,
   Datum,
   Heading,
   SpectralBadge,
   Stack,
 } from '../components/interface';
-import { STAR_TYPES_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
 import {
   getGuideExamplesForEntry,
@@ -81,49 +82,32 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
     return 'V';
   }, [primaryDetail]);
 
-  return (
-    <main
-      data-testid="star-type-detail-view-root"
-      data-star-type={resolvedStarType}
-      className={styles.guideRoot}
-    >
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Star Types', href: STAR_TYPES_GUIDE_PATH },
-          { label: resolvedStarType || 'Star Type' },
-        ]}
-        companionHref={
-          focusedEntityId
-            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
-            : undefined
-        }
-      />
-      <GuideSectionNav currentSection="star-types" />
-      <Heading as="h1">{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</Heading>
+  const companionMapHref = focusedEntityId
+    ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+    : undefined;
 
+  return (
+    <SpatialShell
+      mode="document"
+      testId="star-type-detail-view-root"
+      activeWorkspace="guide"
+      companionMapHref={companionMapHref}
+      data-star-type={resolvedStarType}
+    >
+      <div className={styles.guideRoot}>
+      <GuideSectionNav currentSection="star-types" />
       {focusedEntityId && (
         <div data-testid="guide-focus-context">
           <Button
             href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
-            variant="subtle"
+            variant="default"
             size="sm"
           >
             Return to {focusedEntityId}
           </Button>
         </div>
       )}
-
-      <p>
-        <Button
-          href={STAR_TYPES_GUIDE_PATH}
-          variant="subtle"
-          size="sm"
-          data-testid="star-types-list-link"
-        >
-          All Star Types
-        </Button>
-      </p>
+      <Heading as="h1" size="title">{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</Heading>
 
       {resolvedDetails.length > 0 ? (
         <>
@@ -137,74 +121,82 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
           )}
 
           {resolvedDetails.map((resolvedDetail) => (
-            <section
+            <Block
+              as="section"
+              padding="default"
               key={resolvedDetail.requestedRaw}
-              className={styles.cardItem}
             >
-              <Cluster gap="tight" align="center">
-                <CelestialSymbol
-                  type={
-                    resolvedDetail.entry.spectralClass === 'D'
-                      ? 'white-dwarf'
-                      : resolvedDetail.entry.spectralClass === 'L' ||
-                          resolvedDetail.entry.spectralClass === 'T' ||
-                          resolvedDetail.entry.spectralClass === 'Y'
-                        ? 'brown-dwarf'
-                        : 'star'
-                  }
-                  size="sm"
-                  showTooltip={false}
-                />
-                <SpectralBadge spectralType={resolvedDetail.entry.spectralClass} interactive={false} />{' '}
-                <strong>
-                  {resolvedDetail.requestedRaw || resolvedDetail.entry.spectralClass}
-                </strong>
-                <span> — {resolvedDetail.entry.title}</span>
-              </Cluster>
-              <p data-testid="guide-detail-summary">{resolvedDetail.entry.summary}</p>
+              <Stack gap="fib-3">
+                <Cluster gap="tight" align="center">
+                  <CelestialSymbol
+                    type={
+                      resolvedDetail.entry.spectralClass === 'D'
+                        ? 'white-dwarf'
+                        : resolvedDetail.entry.spectralClass === 'L' ||
+                            resolvedDetail.entry.spectralClass === 'T' ||
+                            resolvedDetail.entry.spectralClass === 'Y'
+                          ? 'brown-dwarf'
+                          : 'star'
+                    }
+                    size="sm"
+                    showTooltip={false}
+                  />
+                  <SpectralBadge spectralType={resolvedDetail.entry.spectralClass} interactive={false} />{' '}
+                  <strong>
+                    {resolvedDetail.requestedRaw || resolvedDetail.entry.spectralClass}
+                  </strong>
+                  <span> — {resolvedDetail.entry.title}</span>
+                </Cluster>
+                <p data-testid="guide-detail-summary">{resolvedDetail.entry.summary}</p>
 
-              {resolvedDetail.decodedSubtype && (
-                <section data-testid="star-type-decoded-subtype">
-                  <Heading as="h3">Decoded Yerkes Classification</Heading>
-                  <Stack gap="none">
-                    <Datum label="Spectral Letter" value={resolvedDetail.decodedSubtype.spectralLetter} />
-                    {resolvedDetail.decodedSubtype.subdivision && (
-                      <Datum label="Subdivision" value={resolvedDetail.decodedSubtype.subdivision} />
-                    )}
-                    {resolvedDetail.decodedSubtype.luminosityClass && (
-                      <Datum
-                        label="Luminosity Class"
-                        value={
-                          resolvedDetail.decodedSubtype.luminosityLabel
-                            ? `${resolvedDetail.decodedSubtype.luminosityClass} (${resolvedDetail.decodedSubtype.luminosityLabel})`
-                            : resolvedDetail.decodedSubtype.luminosityClass
-                        }
-                      />
-                    )}
+                {resolvedDetail.decodedSubtype && (
+                  <CollapsibleSection
+                    title="Decoded Yerkes Classification"
+                    headingAs="h3"
+                    data-testid="star-type-decoded-subtype"
+                  >
+                    <Stack gap="none">
+                      <Datum label="Spectral Letter" value={resolvedDetail.decodedSubtype.spectralLetter} />
+                      {resolvedDetail.decodedSubtype.subdivision && (
+                        <Datum label="Subdivision" value={resolvedDetail.decodedSubtype.subdivision} />
+                      )}
+                      {resolvedDetail.decodedSubtype.luminosityClass && (
+                        <Datum
+                          label="Luminosity Class"
+                          value={
+                            resolvedDetail.decodedSubtype.luminosityLabel
+                              ? `${resolvedDetail.decodedSubtype.luminosityClass} (${resolvedDetail.decodedSubtype.luminosityLabel})`
+                              : resolvedDetail.decodedSubtype.luminosityClass
+                          }
+                        />
+                      )}
+                    </Stack>
+                  </CollapsibleSection>
+                )}
+
+                <CollapsibleSection title="Reference Telemetry Range" headingAs="h3">
+                  <Stack gap="none" data-testid="guide-detail-telemetry">
+                    <Datum label="Effective Temperature" value={resolvedDetail.entry.effectiveTempRange} />
+                    <Datum label="Mass Range" value={resolvedDetail.entry.massRangeMsun} />
+                    <Datum label="Radius Range" value={resolvedDetail.entry.radiusRangeRsun} />
+                    <Datum label="Luminosity Range" value={resolvedDetail.entry.luminosityRangeLsun} />
+                    <Datum label="Habitable Zone" value={resolvedDetail.entry.habitableZoneAu} />
+                    <Datum label="Chromaticity" value={resolvedDetail.entry.chromaticity} />
                   </Stack>
-                </section>
-              )}
+                </CollapsibleSection>
 
-              <Heading as="h3">Reference Telemetry Range</Heading>
-              <Stack gap="none" data-testid="guide-detail-telemetry">
-                <Datum label="Effective Temperature" value={resolvedDetail.entry.effectiveTempRange} />
-                <Datum label="Mass Range" value={resolvedDetail.entry.massRangeMsun} />
-                <Datum label="Radius Range" value={resolvedDetail.entry.radiusRangeRsun} />
-                <Datum label="Luminosity Range" value={resolvedDetail.entry.luminosityRangeLsun} />
-                <Datum label="Habitable Zone" value={resolvedDetail.entry.habitableZoneAu} />
-                <Datum label="Chromaticity" value={resolvedDetail.entry.chromaticity} />
+                <GuideExamplesList
+                  examples={getGuideExamplesForEntry('starTypes', resolvedDetail.entry.id)}
+                  reticleType="star"
+                />
               </Stack>
-
-              <GuideExamplesList
-                examples={getGuideExamplesForEntry('starTypes', resolvedDetail.entry.id)}
-                reticleType="star"
-              />
-            </section>
+            </Block>
           ))}
         </>
       ) : (
         <p>No guide record found for stellar classification &quot;{resolvedStarType}&quot;.</p>
       )}
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

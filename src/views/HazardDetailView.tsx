@@ -1,18 +1,19 @@
 import React, { useMemo } from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import {
   Badge,
+  Block,
   Button,
   Cluster,
+  CollapsibleSection,
   Datum,
   HazardBadge,
   Heading,
   Stack,
 } from '../components/interface';
-import { HAZARDS_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
 import {
   getGuideExamplesForEntry,
@@ -53,26 +54,32 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
 
   const primaryEntry = entries[0];
 
+  const companionMapHref = focusedEntityId
+    ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+    : undefined;
+
   return (
-    <main
-      data-testid="hazard-detail-view-root"
+    <SpatialShell
+      mode="document"
+      testId="hazard-detail-view-root"
+      activeWorkspace="guide"
+      companionMapHref={companionMapHref}
       data-hazard-id={resolvedHazardId}
-      className={styles.guideRoot}
     >
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Environmental Hazards', href: HAZARDS_GUIDE_PATH },
-          { label: primaryEntry?.title || resolvedHazardId || 'Hazard' },
-        ]}
-        companionHref={
-          focusedEntityId
-            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
-            : undefined
-        }
-      />
+      <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="hazards" />
-      <Heading as="h1">
+      {focusedEntityId && (
+        <div data-testid="guide-focus-context">
+          <Button
+            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+            variant="default"
+            size="sm"
+          >
+            Return to {focusedEntityId}
+          </Button>
+        </div>
+      )}
+      <Heading as="h1" size="title">
         {primaryEntry
           ? `Environmental Hazard: ${primaryEntry.title}`
           : resolvedHazardId
@@ -80,75 +87,61 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
             : 'Environmental Hazard'}
       </Heading>
 
-      {focusedEntityId && (
-        <div data-testid="guide-focus-context">
-          <Button
-            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
-            variant="subtle"
-            size="sm"
-          >
-            Return to {focusedEntityId}
-          </Button>
-        </div>
-      )}
-
-      <p>
-        <Button href={HAZARDS_GUIDE_PATH} variant="subtle" size="sm" data-testid="hazards-list-link">
-          All Environmental Hazards
-        </Button>
-      </p>
-
       {entries.length > 0 ? (
         <>
           {entries.map((entry) => (
-            <section key={entry.id} className={styles.cardItem}>
-              <Guide3DPreview
-                kind="hazard"
-                hazardId={entry.id}
-                domain={entry.domain}
-                severity={entry.severity}
-                isDetail
-              />
-
-              <Cluster gap="tight" align="center">
-                <HazardBadge
-                  code={entry.id}
-                  label={entry.title}
+            <Block as="section" padding="default" key={entry.id}>
+              <Stack gap="fib-3">
+                <Guide3DPreview
+                  kind="hazard"
+                  hazardId={entry.id}
+                  domain={entry.domain}
                   severity={entry.severity}
+                  isDetail
                 />
-                <Badge status="neutral">{entry.domainLabel}</Badge>
-              </Cluster>
 
-              <p data-testid="guide-detail-summary">{entry.summary}</p>
+                <Cluster gap="tight" align="center">
+                  <HazardBadge
+                    code={entry.id}
+                    label={entry.title}
+                    severity={entry.severity}
+                  />
+                  <Badge status="neutral">{entry.domainLabel}</Badge>
+                </Cluster>
 
-              <Heading as="h3">Hazard Parameters & Operational Impact</Heading>
-              <Stack gap="none" data-testid="guide-detail-telemetry">
-                <Datum label="Scope" value={entry.domainLabel} />
-                <Datum
-                  label="Severity Tier"
-                  value={entry.severity === 'critical'
-                    ? 'Critical Hazard'
-                    : 'Operational Warning'}
+                <p data-testid="guide-detail-summary">{entry.summary}</p>
+
+                <CollapsibleSection title="Hazard Parameters & Operational Impact" headingAs="h3">
+                  <Stack gap="none" data-testid="guide-detail-telemetry">
+                    <Datum label="Scope" value={entry.domainLabel} />
+                    <Datum
+                      label="Severity Tier"
+                      value={entry.severity === 'critical'
+                        ? 'Critical Hazard'
+                        : 'Operational Warning'}
+                    />
+                    <Datum label="Trigger Threshold" value={entry.thresholdCriteria} />
+                    <Datum label="Physical Mechanism" value={entry.physicalMechanism} />
+                    <Datum label="Operational Impact" value={entry.operationalImpact} />
+                    <Datum label="Mitigation" value={entry.mitigationNotes} />
+                  </Stack>
+                </CollapsibleSection>
+
+                <GuideExamplesList
+                  examples={getGuideExamplesForEntry('hazardTypes', entry.id)}
                 />
-                <Datum label="Trigger Threshold" value={entry.thresholdCriteria} />
-                <Datum label="Physical Mechanism" value={entry.physicalMechanism} />
-                <Datum label="Operational Impact" value={entry.operationalImpact} />
-                <Datum label="Mitigation" value={entry.mitigationNotes} />
               </Stack>
-
-              <GuideExamplesList
-                examples={getGuideExamplesForEntry('hazardTypes', entry.id)}
-              />
-            </section>
+            </Block>
           ))}
         </>
       ) : (
-        <section className={styles.cardItem}>
+        <Block as="section" padding="default">
           <p data-testid="hazard-detail-fallback">
             Hazard details not found for &quot;{resolvedHazardId}&quot;.
           </p>
-        </section>
+        </Block>
       )}
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

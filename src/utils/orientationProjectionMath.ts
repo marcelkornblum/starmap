@@ -1,4 +1,12 @@
+import { GALACTIC_FRAME, PLANETARY_FRAME, SYSTEM_FRAME } from '../config/referenceFrames';
 import { DEG_TO_RADIANS, RADIANS_TO_DEG } from './astroCoordinates';
+
+export interface OrientationCameraInput {
+  readonly scope: 'galaxy' | 'system' | 'planet';
+  readonly cameraAzimuthDeg?: number;
+  readonly cameraElevationDeg?: number;
+  readonly cameraDistance?: number;
+}
 
 export type Vec3Tuple = readonly [number, number, number];
 
@@ -224,4 +232,59 @@ export function buildProjectedRing(options: {
     backPath: backBuilder.toString(),
     samplePoint: { x: first.x, y: first.y },
   };
+}
+
+export const FRAME_BY_SCOPE = { galaxy: GALACTIC_FRAME, system: SYSTEM_FRAME, planet: PLANETARY_FRAME } as const;
+
+export function formatDistanceValue(distance: number): string {
+  if (!Number.isFinite(distance) || distance <= 0) return '—';
+  if (distance >= 100) return distance.toFixed(0);
+  if (distance >= 10) return distance.toFixed(1);
+  return distance.toFixed(2);
+}
+
+export function isInitialUntouchedPose(pos: Vec3Tuple, target: Vec3Tuple, up: Vec3Tuple): boolean {
+  return (
+    pos[0] === 0 && pos[1] === 0 && pos[2] === 10 &&
+    target[0] === 0 && target[1] === 0 && target[2] === 0 &&
+    up[0] === 0 && up[1] === 1 && up[2] === 0
+  );
+}
+
+export function resolveSphericalFallbackPose(
+  orientation: OrientationCameraInput,
+): { position: Vec3Tuple; target: Vec3Tuple; up: Vec3Tuple; distance: number } {
+  const dist =
+    typeof orientation.cameraDistance === 'number' && Number.isFinite(orientation.cameraDistance) && orientation.cameraDistance > 0
+      ? orientation.cameraDistance
+      : 20;
+  if (orientation.cameraAzimuthDeg === undefined && orientation.cameraElevationDeg === undefined) {
+    return { position: [0, -30, 18], target: CANONICAL_ISOMETRIC_POSE.target, up: CANONICAL_ISOMETRIC_POSE.up, distance: dist };
+  }
+  const azRad = (orientation.cameraAzimuthDeg ?? 45) * DEG_TO_RADIANS;
+  const elRad = (orientation.cameraElevationDeg ?? 30) * DEG_TO_RADIANS;
+  const cosEl = Math.cos(elRad);
+  return {
+    position: [-dist * cosEl * Math.cos(azRad), -dist * cosEl * Math.sin(azRad), dist * Math.sin(elRad)],
+    target: [0, 0, 0],
+    up: [0, 0, 1],
+    distance: dist,
+  };
+}
+
+export interface EffectiveCameraOrientation {
+  readonly basis: CameraBasis;
+  readonly distance: number;
+}
+
+export function resolveEffectiveCameraOrientation(
+  orientation: OrientationCameraInput | null,
+  livePose: { readonly position: Vec3Tuple; readonly target: Vec3Tuple; readonly up: Vec3Tuple; readonly focalDistance: number },
+): EffectiveCameraOrientation | null {
+  if (!orientation) return null;
+  if (isInitialUntouchedPose(livePose.position, livePose.target, livePose.up)) {
+    const fallback = resolveSphericalFallbackPose(orientation);
+    return { basis: buildCameraBasis(fallback.position, fallback.target, fallback.up), distance: fallback.distance };
+  }
+  return { basis: buildCameraBasis(livePose.position, livePose.target, livePose.up), distance: livePose.focalDistance };
 }

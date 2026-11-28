@@ -18,13 +18,9 @@
   }
 
   .expandedDrawer {
-    --search-drawer-gap: var(--space-fib-2);
-
     display: none;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--search-drawer-gap);
-    flex-wrap: wrap;
+    inline-size: 100%;
     padding-block-start: var(--space-fib-1);
   }
 }

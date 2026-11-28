@@ -1,17 +1,18 @@
 import React, { useMemo } from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideExamplesList } from '../components/domain/GuideExamplesList';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import {
+  Block,
   Button,
   CelestialBadge,
   Cluster,
+  CollapsibleSection,
   Datum,
   Heading,
   Stack,
 } from '../components/interface';
-import { PLANET_TYPES_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
 import {
   getGuideExamplesForEntry,
@@ -50,91 +51,78 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
     [resolvedPlanetType],
   );
 
-  return (
-    <main
-      data-testid="planet-type-detail-view-root"
-      data-planet-type={resolvedPlanetType}
-      className={styles.guideRoot}
-    >
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Planet Types', href: PLANET_TYPES_GUIDE_PATH },
-          { label: resolvedPlanetType || 'Planet Type' },
-        ]}
-        companionHref={
-          focusedEntityId
-            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
-            : undefined
-        }
-      />
-      <GuideSectionNav currentSection="planet-types" />
-      <Heading as="h1">
-        {resolvedPlanetType
-          ? `Planet Type: ${resolvedPlanetType}`
-          : 'Planet Type'}
-      </Heading>
+  const companionMapHref = focusedEntityId
+    ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+    : undefined;
 
+  return (
+    <SpatialShell
+      mode="document"
+      testId="planet-type-detail-view-root"
+      activeWorkspace="guide"
+      companionMapHref={companionMapHref}
+      data-planet-type={resolvedPlanetType}
+    >
+      <div className={styles.guideRoot}>
+      <GuideSectionNav currentSection="planet-types" />
       {focusedEntityId && (
         <div data-testid="guide-focus-context">
           <Button
             href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
-            variant="subtle"
+            variant="default"
             size="sm"
           >
             Return to {focusedEntityId}
           </Button>
         </div>
       )}
-
-      <p>
-        <Button
-          href={PLANET_TYPES_GUIDE_PATH}
-          variant="subtle"
-          size="sm"
-          data-testid="planet-types-list-link"
-        >
-          All Planet Types
-        </Button>
-      </p>
+      <Heading as="h1" size="title">
+        {resolvedPlanetType
+          ? `Planet Type: ${resolvedPlanetType}`
+          : 'Planet Type'}
+      </Heading>
 
       {entries.length > 0 ? (
         <>
           {entries.map((entry) => (
-            <section key={entry.id} className={styles.cardItem}>
-              <Guide3DPreview
-                kind="planet"
-                composition={entry.composition}
-                radiusRearth={entry.canonicalRadiusRearth}
-                textureTheme={entry.textureTheme}
-                isDetail
-              />
+            <Block as="section" padding="default" key={entry.id}>
+              <Stack gap="fib-3">
+                <Guide3DPreview
+                  kind="planet"
+                  composition={entry.composition}
+                  radiusRearth={entry.canonicalRadiusRearth}
+                  textureTheme={entry.textureTheme}
+                  isDetail
+                />
 
-              <Cluster gap="tight" align="center">
-                <CelestialBadge type={entry.composition} />
-                <strong>{entry.title}</strong>
-              </Cluster>
+                <Cluster gap="tight" align="center">
+                  <CelestialBadge type={entry.composition} />
+                  <strong>{entry.title}</strong>
+                </Cluster>
 
-              <p data-testid="guide-detail-summary">{entry.summary}</p>
+                <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-              <Heading as="h3">Geophysical & Atmospheric Telemetry</Heading>
-              <Stack gap="none" data-testid="guide-detail-telemetry">
-                <Datum label="Mass Range" value={entry.massRangeMearth} />
-                <Datum label="Radius Range" value={entry.radiusRangeRearth} />
-                <Datum label="Bulk Composition" value={entry.bulkComposition} />
-                <Datum label="Habitability" value={entry.habitabilityNotes} />
+                <CollapsibleSection title="Geophysical & Atmospheric Telemetry" headingAs="h3">
+                  <Stack gap="none" data-testid="guide-detail-telemetry">
+                    <Datum label="Mass Range" value={entry.massRangeMearth} />
+                    <Datum label="Radius Range" value={entry.radiusRangeRearth} />
+                    <Datum label="Bulk Composition" value={entry.bulkComposition} />
+                    <Datum label="Habitability" value={entry.habitabilityNotes} />
+                  </Stack>
+                </CollapsibleSection>
+
+                <GuideExamplesList
+                  examples={getGuideExamplesForEntry('planetTypes', entry.id)}
+                  reticleType={entry.composition ?? 'terrestrial'}
+                />
               </Stack>
-
-              <GuideExamplesList
-                examples={getGuideExamplesForEntry('planetTypes', entry.id)}
-                reticleType={entry.composition ?? 'terrestrial'}
-              />
-            </section>
+            </Block>
           ))}
         </>
       ) : (
         <p>No guide record found for planet classification &quot;{resolvedPlanetType}&quot;.</p>
       )}
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

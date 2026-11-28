@@ -1,6 +1,17 @@
+import type { ReactElement } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+  useRouter,
+} from '@tanstack/react-router';
+import {
+  RootLayout,
   router,
   routeTree,
   rootRoute,
@@ -154,12 +165,20 @@ describe('TanStack Router Architecture', () => {
 
   it('maps route definitions to lazy-loaded view components correctly', () => {
     const REACT_LAZY_TYPE = Symbol.for('react.lazy');
-    const routeComponents = [
+    const spatialRouteComponents = [
       indexRoute.options.component,
       mainGalaxyRoute.options.component,
-      mainSearchRoute.options.component,
       mainSystemRoute.options.component,
       mainPlanetRoute.options.component,
+    ];
+    for (const comp of spatialRouteComponents) {
+      expect(comp).toBeDefined();
+      expect((comp as unknown as { $$typeof?: symbol }).$$typeof).toBe(REACT_LAZY_TYPE);
+    }
+    expect(indexRoute.options.component).toBe(mainGalaxyRoute.options.component);
+
+    const documentRouteComponents = [
+      mainSearchRoute.options.component,
       starTypesListRoute.options.component,
       starTypeDetailRoute.options.component,
       planetTypesListRoute.options.component,
@@ -170,11 +189,75 @@ describe('TanStack Router Architecture', () => {
       hazardDetailRoute.options.component,
       legendGuideRoute.options.component,
     ];
-    for (const comp of routeComponents) {
+    for (const comp of documentRouteComponents) {
       expect(comp).toBeDefined();
-      expect((comp as unknown as { $$typeof?: symbol }).$$typeof).toBe(REACT_LAZY_TYPE);
+      expect(typeof (comp as unknown as { preload?: unknown }).preload).toBe('function');
     }
-    expect(indexRoute.options.component).toBe(mainGalaxyRoute.options.component);
+  });
+
+  it('keeps existing Guide navigation and ConsoleDock mounted without blank flash while target Guide chunk loads', async () => {
+    let resolveDelayedRoute!: (mod: { DelayedPlanetGuide: () => ReactElement }) => void;
+    const delayedImport = new Promise<{ DelayedPlanetGuide: () => ReactElement }>((resolve) => {
+      resolveDelayedRoute = resolve;
+    });
+
+    const testRoot = createRootRoute({ component: RootLayout });
+    const startRoute = createRoute({
+      getParentRoute: () => testRoot,
+      path: '/guide/star-types',
+      component: lazyRouteComponent(
+        () => import('../views/StarTypesListView'),
+        'StarTypesListView',
+      ),
+    });
+    const pendingTargetRoute = createRoute({
+      getParentRoute: () => testRoot,
+      path: '/guide/planet-types',
+      component: lazyRouteComponent(() => delayedImport, 'DelayedPlanetGuide'),
+    });
+
+    const testRouter = createRouter({
+      routeTree: testRoot.addChildren([startRoute, pendingTargetRoute]),
+      history: createMemoryHistory({ initialEntries: ['/guide/star-types'] }),
+    });
+
+    vi.mocked(useRouter).mockImplementation(() => testRouter as never);
+
+    try {
+      await testRouter.load();
+      render(<RouterProvider router={testRouter} />);
+
+      expect(await screen.findByTestId('star-types-list-view-root')).toBeInTheDocument();
+      expect(screen.getByTestId('guide-section-nav')).toBeInTheDocument();
+      expect(screen.getByTestId('console-dock')).toBeInTheDocument();
+
+      // Start navigation to delayed Guide route; do not resolve the chunk yet
+      let navPromise: Promise<void> | undefined;
+      act(() => {
+        navPromise = testRouter.navigate({ to: '/guide/planet-types' });
+      });
+
+      // While target chunk is pending, existing Guide UI must remain mounted (no blank Suspense fallback)
+      expect(screen.getByTestId('guide-section-nav')).toBeInTheDocument();
+      expect(screen.getByTestId('console-dock')).toBeInTheDocument();
+      expect(screen.getByTestId('star-types-list-view-root')).toBeInTheDocument();
+
+      // Now resolve the delayed chunk and finish transition
+      await act(async () => {
+        resolveDelayedRoute({
+          DelayedPlanetGuide: () => (
+            <div data-testid="delayed-planet-guide">Loaded Planet Types</div>
+          ),
+        });
+        await navPromise;
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('delayed-planet-guide')).toBeInTheDocument();
+      });
+    } finally {
+      vi.mocked(useRouter).mockReset();
+    }
   });
 
   it('renders GalaxyView with accessible elements and search controls', () => {

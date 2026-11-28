@@ -11,6 +11,8 @@
     --badge-font-size: var(--text-content-badge-size);
     --badge-font-weight: var(--text-content-badge-weight);
     --badge-leading: var(--leading-control);
+    --badge-hit-slop-block: var(--space-hit-slop-block);
+    --badge-hit-slop-inline: var(--space-hit-slop-inline);
 
     display: inline-flex;
     align-items: center;
@@ -31,7 +33,9 @@
     margin: 0;
   }
 
+  .badge:is(a),
   .badge a {
+    position: relative;
     color: inherit;
     text-decoration: none;
   }
@@ -107,5 +111,15 @@
     --badge-color: var(--category-planet);
     --badge-border-color: oklch(from var(--category-planet) l c h / 0.18);
     --badge-bg: oklch(from var(--category-planet) l c h / 0.12);
+  }
+
+  @media (pointer: coarse) {
+    .badge:is(a)::before,
+    .badge a::before {
+      content: '';
+      position: absolute;
+      inset-block: var(--badge-hit-slop-block);
+      inset-inline: var(--badge-hit-slop-inline);
+    }
   }
 }

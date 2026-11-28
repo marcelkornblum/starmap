@@ -24,12 +24,17 @@ export const Datum = ({
   confidence,
   ...rest
 }: DatumProps) => {
-  const valueElement = (
+  const useQuantity = unit !== undefined || typeof value === 'number';
+  const valueElement = useQuantity ? (
     <Quantity
       value={value}
       unit={unit}
       data-testid={valueTestId}
     />
+  ) : (
+    <span className={styles.valueSlot} data-testid={valueTestId}>
+      {value}
+    </span>
   );
 
   return (

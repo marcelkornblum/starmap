@@ -9,15 +9,16 @@ test.describe('Journey 3: The Casual Explorer Flow (Serendipitous Discovery)', (
     // 1. User starts on `/`
     await page.goto('/');
 
-    // 2. Focuses search input to expand search controls drawer, then clicks "Explore" button
-    const searchbox = page.getByRole('searchbox', { name: 'Search query' });
-    await expect(searchbox).toBeVisible();
-    await searchbox.focus();
+    // 2. Opens Discover from ConsoleDock, then clicks "Random Layer" button
+    const discoverToggle = page.getByTestId('console-dock-discover');
+    await expect(discoverToggle).toBeVisible();
+    await discoverToggle.click();
 
-    const searchRegion = page.getByRole('region', { name: 'Search' });
-    const exploreButton = searchRegion.getByRole('button', { name: 'Explore' });
-    await expect(exploreButton).toBeVisible();
-    await exploreButton.click();
+    const discoverPanel = page.getByTestId('discover-panel');
+    await expect(discoverPanel).toBeVisible();
+    const randomLayerButton = discoverPanel.getByTestId('discover-random-layer-button');
+    await expect(randomLayerButton).toBeEnabled({ timeout: 10_000 });
+    await randomLayerButton.click();
 
     // 3. Verifies URL updates with `layer=`
     await expect(page).toHaveURL(/layer=/);

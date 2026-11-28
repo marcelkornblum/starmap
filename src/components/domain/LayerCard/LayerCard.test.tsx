@@ -65,7 +65,15 @@ describe('<LayerCard />', () => {
     expect(screen.getByTestId('layer-card-kind').textContent).toBe('Fictional Canon');
     expect(screen.getByTestId('layer-card-count')).toBeInTheDocument();
     expect(screen.getByTestId('layer-card-source').getAttribute('href')).toBe('https://example.com/source');
-    expect(screen.getByTestId('layer-card-start').textContent).toContain('Explore: Tau Ceti');
+    const startButton = screen.getByTestId('layer-card-start');
+    expect(startButton.textContent).toContain('Explore: Tau Ceti');
+    expect(startButton).toHaveAttribute('data-variant', 'primary');
+
+    const closeButton = screen.getByTestId('layer-card-close');
+    expect(closeButton).toHaveAttribute('aria-label', 'Close layer card');
+    expect(closeButton).toHaveAttribute('data-variant', 'subtle');
+    expect(closeButton.textContent).not.toContain('×');
+    expect(closeButton.querySelector('[data-size="sm"] svg')).not.toBeNull();
   });
 
   it('renders item mode with step counter, text, confidence, and navigation', () => {
@@ -79,7 +87,16 @@ describe('<LayerCard />', () => {
     expect(screen.getByTestId('layer-card-text').textContent).toContain('Destination star system');
     expect(screen.getByTestId('layer-card-confidence')).toBeInTheDocument();
 
-    expect(screen.getByTestId('layer-card-prev').textContent).toContain('Sol');
-    expect(screen.getByTestId('layer-card-next').textContent).toContain('Alpha Centauri');
+    const closeButton = screen.getByTestId('layer-card-close');
+    expect(closeButton).toHaveAttribute('aria-label', 'Close layer card');
+    expect(closeButton.textContent).not.toContain('×');
+    expect(closeButton.querySelector('[data-size="sm"] svg')).not.toBeNull();
+
+    const prevButton = screen.getByTestId('layer-card-prev');
+    const nextButton = screen.getByTestId('layer-card-next');
+    expect(prevButton.textContent).toContain('Sol');
+    expect(prevButton).toHaveAttribute('data-variant', 'default');
+    expect(nextButton.textContent).toContain('Alpha Centauri');
+    expect(nextButton).toHaveAttribute('data-variant', 'default');
   });
 });

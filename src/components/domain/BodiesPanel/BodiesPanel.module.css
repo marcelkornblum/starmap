@@ -6,10 +6,9 @@
     inline-size: 100%;
   }
 
-  .section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-fib-2);
+  .root [data-block="true"][data-interactive="true"] a:not([data-stretch-link="true"]) {
+    position: relative;
+    z-index: 1;
   }
 
   .distanceCaption {

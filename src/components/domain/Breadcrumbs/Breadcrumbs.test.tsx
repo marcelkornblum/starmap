@@ -8,7 +8,7 @@ describe('<Breadcrumbs />', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders breadcrumb items and marks last item as current page', () => {
+  it('renders breadcrumb items, marks last item as current page, and does not render a mode menu', () => {
     const items = [
       { label: 'Galaxy', href: '/galaxy' },
       { label: 'Sol', href: '/system/sol' },
@@ -17,57 +17,25 @@ describe('<Breadcrumbs />', () => {
 
     render(<Breadcrumbs items={items} />);
 
-    expect(screen.getByTestId('view-breadcrumbs')).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(nav).toBeInTheDocument();
+    expect(screen.getByTestId('view-breadcrumbs')).toBe(nav);
+    expect(screen.queryByTestId('breadcrumbs-mode-menu')).toBeNull();
+    expect(screen.queryByTestId('breadcrumbs-mode-galaxy')).toBeNull();
+    expect(screen.queryByTestId('breadcrumbs-mode-guide')).toBeNull();
+    expect(screen.queryByTestId('breadcrumbs-companion-link')).toBeNull();
+
     const renderedItems = screen.getAllByTestId('breadcrumb-item');
-    expect(renderedItems.length).toBe(3);
+    expect(renderedItems).toHaveLength(3);
 
     const links = screen.getAllByTestId('breadcrumb-link');
-    expect(links.length).toBe(2);
-    expect(links[0].getAttribute('href')).toContain('/galaxy');
-    expect(links[1].getAttribute('href')).toContain('/system/sol');
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute('href', expect.stringContaining('/galaxy'));
+    expect(links[1]).toHaveAttribute('href', expect.stringContaining('/system/sol'));
 
     const current = screen.getByTestId('breadcrumb-current');
-    expect(current.getAttribute('aria-current')).toBe('page');
-    expect(current.textContent).toContain('Earth');
-  });
-
-  it('renders mode menu with Galaxy active in galaxy context', () => {
-    const items = [{ label: 'Galaxy', href: '/galaxy' }, { label: 'Sol' }];
-    render(<Breadcrumbs items={items} companionHref="/guide/star-types/G2V" />);
-
-    const modeMenu = screen.getByTestId('breadcrumbs-mode-menu');
-    expect(modeMenu).toBeInTheDocument();
-
-    const galaxyBtn = screen.getByTestId('breadcrumbs-mode-galaxy');
-    expect(galaxyBtn.getAttribute('aria-current')).toBe('page');
-    expect(galaxyBtn.getAttribute('data-active')).toBe('true');
-    expect(galaxyBtn.hasAttribute('data-mode-button')).toBe(true);
-
-    const companionLink = screen.getByTestId('breadcrumbs-companion-link');
-    expect(companionLink.getAttribute('href')).toContain('/guide/star-types/G2V');
-    expect(companionLink.hasAttribute('data-mode-button')).toBe(true);
-  });
-
-  it('renders mode menu with Guide active in guide context', () => {
-    const items = [{ label: 'Guide', href: '/guide' }, { label: 'Star Types' }];
-    render(<Breadcrumbs items={items} companionHref="/galaxy?focus=sol" />);
-
-    const guideBtn = screen.getByTestId('breadcrumbs-mode-guide');
-    expect(guideBtn.getAttribute('aria-current')).toBe('page');
-    expect(guideBtn.getAttribute('data-active')).toBe('true');
-    expect(guideBtn.hasAttribute('data-mode-button')).toBe(true);
-
-    const companionLink = screen.getByTestId('breadcrumbs-companion-link');
-    expect(companionLink.getAttribute('href')).toContain('/galaxy?focus=sol');
-    expect(companionLink.hasAttribute('data-mode-button')).toBe(true);
-  });
-
-  it('falls back to default /galaxy companion href in guide context when companionHref is omitted', () => {
-    const items = [{ label: 'Guide', href: '/guide/star-types' }, { label: 'Star Types' }];
-    render(<Breadcrumbs items={items} />);
-
-    const companionLink = screen.getByTestId('breadcrumbs-companion-link');
-    expect(companionLink.getAttribute('href')).toBe('/galaxy');
+    expect(current).toHaveAttribute('aria-current', 'page');
+    expect(current).toHaveTextContent('Earth');
   });
 
   it('renders explicit reticleType and does not infer from index or label', () => {
@@ -80,5 +48,28 @@ describe('<Breadcrumbs />', () => {
 
     expect(container.querySelector('[data-celestial-title="stellar-system"]')).not.toBeNull();
     expect(container.querySelector('[data-celestial-title="super-earth"]')).not.toBeNull();
+  });
+
+  it('renders keyboard-focusable ancestor links and non-interactive current-page item with accessible celestial titles', () => {
+    render(
+      <Breadcrumbs
+        items={[
+          { label: 'Galaxy', href: '/galaxy' },
+          { label: 'Sol', href: '/system/sol', reticleType: 'stellar-system' },
+          { label: 'Earth (Terra)', reticleType: 'terrestrial' },
+        ]}
+      />,
+    );
+
+    const galaxyLink = screen.getByRole('link', { name: 'Galaxy' });
+    const solLink = screen.getByRole('link', { name: /Sol/ });
+    expect(galaxyLink).toBeVisible();
+    expect(solLink).toBeVisible();
+    expect(solLink).toHaveAttribute('href', expect.stringContaining('/system/sol'));
+
+    const currentItem = screen.getByTestId('breadcrumb-current');
+    expect(currentItem).toHaveAttribute('aria-current', 'page');
+    expect(currentItem).toHaveTextContent('Earth (Terra)');
+    expect(screen.queryByRole('link', { name: /Earth/ })).toBeNull();
   });
 });

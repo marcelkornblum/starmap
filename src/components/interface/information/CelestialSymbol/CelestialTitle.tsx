@@ -20,6 +20,7 @@ export interface CelestialTitleProps {
   readonly symbolTestId?: string;
   readonly titleTestId?: string;
   readonly showTooltip?: boolean;
+  readonly stretchLink?: boolean;
   readonly 'data-testid'?: string;
   readonly onClick?: MouseEventHandler<HTMLAnchorElement>;
   readonly target?: string;
@@ -36,6 +37,7 @@ export const CelestialTitle: FC<CelestialTitleProps> = memo(function CelestialTi
   symbolTestId,
   titleTestId,
   showTooltip = true,
+  stretchLink = false,
   'data-testid': dataTestId,
   onClick,
   target,
@@ -58,6 +60,7 @@ export const CelestialTitle: FC<CelestialTitleProps> = memo(function CelestialTi
         href={resolveAppHref(href)}
         className={styles.titleLink}
         data-testid={titleTestId}
+        data-stretch-link={stretchLink ? 'true' : undefined}
         onClick={onClick}
         target={target}
         rel={rel}

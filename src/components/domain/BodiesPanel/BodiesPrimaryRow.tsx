@@ -115,6 +115,7 @@ export const BodiesPrimaryRow = React.memo(function BodiesPrimaryRow({
           title={item.name}
           href={item.href}
           showTooltip={false}
+          stretchLink={Boolean(item.href)}
           titleTestId="bodies-item-link"
         />
         {renderTrailingBadges(item)}

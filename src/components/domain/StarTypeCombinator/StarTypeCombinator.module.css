@@ -37,4 +37,59 @@
     color: var(--content-muted);
     margin: 0;
   }
+
+  .chromaticityValue {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+  }
+
+  .chromaticitySwatch {
+    --swatch-color: var(--spectral-g);
+    display: inline-block;
+    inline-size: var(--size-indicator-lg);
+    block-size: var(--size-indicator-lg);
+    border-radius: var(--radius-full);
+    background-color: var(--swatch-color);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-color-subtle);
+    flex-shrink: 0;
+  }
+}
+
+@layer exceptions {
+  .chromaticitySwatch[data-spectral-class="o"] {
+    --swatch-color: var(--spectral-o);
+  }
+
+  .chromaticitySwatch[data-spectral-class="b"] {
+    --swatch-color: var(--spectral-b);
+  }
+
+  .chromaticitySwatch[data-spectral-class="a"] {
+    --swatch-color: var(--spectral-a);
+  }
+
+  .chromaticitySwatch[data-spectral-class="f"] {
+    --swatch-color: var(--spectral-f);
+  }
+
+  .chromaticitySwatch[data-spectral-class="g"] {
+    --swatch-color: var(--spectral-g);
+  }
+
+  .chromaticitySwatch[data-spectral-class="k"] {
+    --swatch-color: var(--spectral-k);
+  }
+
+  .chromaticitySwatch[data-spectral-class="m"] {
+    --swatch-color: var(--spectral-m);
+  }
+
+  .chromaticitySwatch[data-spectral-class="l"] {
+    --swatch-color: var(--spectral-l);
+  }
+
+  .chromaticitySwatch[data-spectral-class="d"] {
+    --swatch-color: var(--spectral-d);
+  }
 }

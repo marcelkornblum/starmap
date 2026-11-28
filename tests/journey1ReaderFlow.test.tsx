@@ -574,7 +574,8 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     unmountSView();
 
     const { container: stlView, unmount: unmountStl } = render(createElement(StarTypesListView));
-    expect(stlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(stlView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(stlView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountStl();
 
     const { container: stdView, unmount: unmountStd } = render(
@@ -582,11 +583,13 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         starType: 'G8V',
       }),
     );
-    expect(stdView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(stdView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(stdView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountStd();
 
     const { container: ptlView, unmount: unmountPtl } = render(createElement(PlanetTypesListView));
-    expect(ptlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(ptlView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(ptlView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountPtl();
 
     const { container: ptdView, unmount: unmountPtd } = render(
@@ -594,11 +597,13 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         locationPathname: '/guide/planet-types/terrestrial',
       }),
     );
-    expect(ptdView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(ptdView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(ptdView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountPtd();
 
     const { container: mlView, unmount: unmountMl } = render(createElement(MetricsListView));
-    expect(mlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(mlView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(mlView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountMl();
 
     const { container: mdView, unmount: unmountMd } = render(
@@ -606,7 +611,8 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         locationPathname: '/guide/metrics/semi-major-axis',
       }),
     );
-    expect(mdView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(mdView.querySelector('[data-testid="guide-section-nav"]')).not.toBeNull();
+    expect(mdView.querySelector('[data-testid="view-breadcrumbs"]')).toBeNull();
     unmountMd();
 
     // SystemView at /system/tau-ceti?focus=tau-ceti-e renders Breadcrumbs, BodiesPanel, and Details (planet telemetry)

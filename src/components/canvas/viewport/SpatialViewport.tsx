@@ -48,8 +48,6 @@ export interface SpatialViewportProps {
   showPlanarFootprint?: boolean;
   /** Debug hit areas */
   debugHitarea?: boolean;
-  /** Sync selection bidirectionally with useUIStore */
-  syncWithUIStore?: boolean;
   /** Initial selected entity ID on mount */
   initialSelectedId?: string | null;
   /** Whether to smoothly transition the camera and centre the instrument when double-clicking an entity. Defaults to true */
@@ -58,6 +56,8 @@ export interface SpatialViewportProps {
   focusTransitionDuration?: number;
   /** Double click callback on an entity */
   onDoubleClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
+  /** Optional touch empty-canvas miss callback; return true to consume tap without clearing selection */
+  onTouchPointerMissed?: () => boolean;
   /** Frame-driven cartographic lighting override or false to disable */
   lighting?: Partial<FrameLightingConfig> | false;
   /** Journey chord legs to render in the viewport */

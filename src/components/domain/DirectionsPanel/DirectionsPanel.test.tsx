@@ -56,10 +56,18 @@ describe('<DirectionsPanel />', () => {
     );
 
     expect(screen.getByTestId('directions-total-distance')).toBeInTheDocument();
+    const closeButton = screen.getByTestId('directions-close-button');
+    expect(closeButton).toHaveAttribute('aria-label', 'Close directions');
+    expect(closeButton).toHaveAttribute('data-variant', 'subtle');
+    expect(closeButton).toHaveAttribute('data-size', 'sm');
+    expect(closeButton.querySelector('[data-size="sm"] svg')).not.toBeNull();
+
     const options = screen.getAllByTestId('directions-option-item');
     expect(options.length).toBeGreaterThan(0);
 
     const selectButtons = screen.getAllByTestId('directions-option-select');
+    expect(selectButtons[0]).toHaveAttribute('data-variant', 'default');
+    expect(selectButtons[0]).toHaveAttribute('data-size', 'sm');
     fireEvent.click(selectButtons[0]);
 
     expect(journey).not.toBeNull();
@@ -86,6 +94,8 @@ describe('<DirectionsPanel />', () => {
     expect(screen.getByTestId('directions-steps-list')).toBeInTheDocument();
 
     const backButton = screen.getByTestId('directions-back-to-options');
+    expect(backButton).toHaveAttribute('data-variant', 'default');
+    expect(backButton).toHaveAttribute('data-size', 'sm');
     fireEvent.click(backButton);
     expect(onOptionSelect).toHaveBeenCalledWith(null);
   });
@@ -135,5 +145,48 @@ describe('<DirectionsPanel />', () => {
     );
 
     expect(screen.getByTestId('directions-stat-geometry')).toBeInTheDocument();
+  });
+
+  it('wraps Route Geometry, Step Details, Flight Profile, and Transit Steps in CollapsibleSections', () => {
+    const overviewJourney = buildJourneyPlan({
+      stops: ['sol', 'tau-ceti'],
+      corpus: testCorpus,
+    });
+
+    const { rerender } = render(
+      <DirectionsPanel journey={overviewJourney} activeDetent="full" />,
+    );
+
+    const geometryToggle = screen.getByRole('button', { name: /Route Geometry/i });
+    expect(geometryToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(geometryToggle);
+    expect(geometryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('directions-geometry-list')).toBeNull();
+
+    const stepDetailsToggle = screen.getByRole('button', { name: /Step Details/i });
+    expect(stepDetailsToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(stepDetailsToggle);
+    expect(stepDetailsToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('directions-steps-list')).toBeNull();
+
+    const detailJourney = buildJourneyPlan({
+      stops: ['sol', 'tau-ceti'],
+      selectedOptionId: 'torchship-1g',
+      corpus: testCorpus,
+    });
+
+    rerender(<DirectionsPanel journey={detailJourney} activeDetent="full" />);
+
+    const profileToggle = screen.getByRole('button', { name: /Flight Profile/i });
+    expect(profileToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(profileToggle);
+    expect(profileToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('directions-option-telemetry-list')).toBeNull();
+
+    const transitStepsToggle = screen.getByRole('button', { name: /Transit Steps & Timings/i });
+    expect(transitStepsToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(transitStepsToggle);
+    expect(transitStepsToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('directions-steps-list')).toBeNull();
   });
 });

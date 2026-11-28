@@ -1,7 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SearchPanel } from './SearchPanel';
+import '@testing-library/jest-dom/vitest';
 import { useRouter } from '@tanstack/react-router';
+import { SearchPanel } from './SearchPanel';
+import { SearchContext } from '../SearchContext';
+import { executeCatalogSearch } from '../../../../services/search/searchExecution';
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/react-router')>();
@@ -11,27 +14,18 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../../hooks/useLayerData', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../../hooks/useLayerData')>();
-  return {
-    ...actual,
-    useLayerIndex: () => [
-      { layerId: 'project-hail-mary', title: 'Project Hail Mary', entryCount: 3 },
-      { layerId: 'exoplanet-archive', title: 'Exoplanet Archive', entryCount: 5 },
-    ],
-  };
-});
-
 describe('<SearchPanel />', () => {
+  const mockNavigate = vi.fn();
+
   beforeEach(() => {
-    vi.mocked(useRouter).mockReturnValue(undefined as never);
+    vi.clearAllMocks();
+    vi.mocked(useRouter).mockReturnValue({
+      navigate: mockNavigate,
+      history: { push: mockNavigate },
+    } as never);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('renders search panel with visuallyHidden heading and search form', () => {
+  it('renders search panel with visuallyHidden heading and search form, without Explore button', () => {
     render(<SearchPanel scope="search" />);
 
     const panel = screen.getByTestId('search-panel');
@@ -44,27 +38,98 @@ describe('<SearchPanel />', () => {
 
     expect(screen.getByRole('search')).toBeInTheDocument();
     expect(screen.getByTestId('search-expanded-drawer')).toBeInTheDocument();
+    expect(screen.queryByTestId('search-explore-button')).toBeNull();
+    expect(screen.getByTestId('search-submit-button')).toHaveAttribute('aria-label', 'Search');
   });
 
-  it('reads current layer from typed TanStack Router search state on Explore click', () => {
-    const navigate = vi.fn();
-    vi.mocked(useRouter).mockReturnValue({
-      navigate,
-      state: { location: { pathname: '/galaxy', search: { layer: 'project-hail-mary' } } },
-    } as never);
-    window.history.pushState({}, '', '/galaxy');
+  it('invokes submitSearch and navigates to /search?q=… when submitted on non-search scope with non-empty query', () => {
+    const submitSearch = vi.fn().mockResolvedValue(undefined);
+    const setIsFocused = vi.fn();
+    render(
+      <SearchContext.Provider
+        value={{
+          query: 'tau ceti',
+          filter: 'stars',
+          status: 'ready',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: 'tau ceti', filter: 'stars' }),
+          setQuery: vi.fn(),
+          setFilter: vi.fn(),
+          submitSearch,
+          isFocused: true,
+          setIsFocused,
+        }}
+      >
+        <SearchPanel scope="galaxy" />
+      </SearchContext.Provider>,
+    );
 
-    render(<SearchPanel scope="galaxy" />);
-    fireEvent.click(screen.getByTestId('search-explore-button'));
+    const submitBtn = screen.getByTestId('search-submit-button');
+    fireEvent.click(submitBtn);
+    expect(submitSearch).toHaveBeenCalledTimes(1);
+    expect(submitSearch).toHaveBeenCalledWith('tau ceti', 'stars');
+    expect(setIsFocused).toHaveBeenCalledWith(false);
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith({
+      href: '/search?q=tau+ceti&searchCategory=stars',
+    });
+  });
 
-    expect(navigate).toHaveBeenCalledTimes(1);
-    const navCall = navigate.mock.calls[0]?.[0] as {
-      to: string;
-      search: (prev: Record<string, unknown>) => Record<string, unknown>;
-    };
-    expect(navCall.to).toBe('/galaxy');
-    const nextSearch = navCall.search({ layer: 'project-hail-mary' });
-    expect(nextSearch.layer).not.toBe('project-hail-mary');
-    expect(nextSearch.select).toBe(`layer:${nextSearch.layer}`);
+  it('does not navigate when submitted on scope="search"', () => {
+    const submitSearch = vi.fn().mockResolvedValue(undefined);
+    const setIsFocused = vi.fn();
+    render(
+      <SearchContext.Provider
+        value={{
+          query: 'tau ceti',
+          filter: 'stars',
+          status: 'ready',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: 'tau ceti', filter: 'stars' }),
+          setQuery: vi.fn(),
+          setFilter: vi.fn(),
+          submitSearch,
+          isFocused: true,
+          setIsFocused,
+        }}
+      >
+        <SearchPanel scope="search" />
+      </SearchContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByTestId('search-submit-button'));
+    expect(submitSearch).toHaveBeenCalledTimes(1);
+    expect(submitSearch).toHaveBeenCalledWith('tau ceti', 'stars');
+    expect(setIsFocused).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('does not navigate when submitted with a whitespace-only query', () => {
+    const submitSearch = vi.fn().mockResolvedValue(undefined);
+    const setIsFocused = vi.fn();
+    render(
+      <SearchContext.Provider
+        value={{
+          query: '   ',
+          filter: 'all',
+          status: 'idle',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: '', filter: 'all' }),
+          setQuery: vi.fn(),
+          setFilter: vi.fn(),
+          submitSearch,
+          isFocused: true,
+          setIsFocused,
+        }}
+      >
+        <SearchPanel scope="galaxy" />
+      </SearchContext.Provider>,
+    );
+
+    fireEvent.submit(screen.getByRole('search'));
+    expect(submitSearch).toHaveBeenCalledTimes(1);
+    expect(submitSearch).toHaveBeenCalledWith('   ', 'all');
+    expect(setIsFocused).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

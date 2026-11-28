@@ -93,7 +93,7 @@ describe('searchFraming utility', () => {
       expect(result?.distance).toBeGreaterThan(MIN_SEARCH_FRAMING_DISTANCE_PC);
     });
 
-    it('frames around the bounding-sphere centroid at maxDistance when wide-spread results exceed maxDistance', () => {
+    it('anchors on positions[0] at single-result distance when wide-spread results exceed maxDistance', () => {
       const result = computeBoundingSphereFraming(
         [
           [-400, -400, 0],
@@ -102,11 +102,12 @@ describe('searchFraming utility', () => {
         { maxDistance: 120 },
       );
       expect(result).not.toBeNull();
-      expect(result?.target).toEqual([0, 0, 0]);
-      expect(result?.distance).toBe(120);
+      expect(result?.target).toEqual([-400, -400, 0]);
+      expect(result?.distance).toBe(DEFAULT_SINGLE_RESULT_DISTANCE_PC);
+      expect(result?.radius).toBe(0);
     });
 
-    it('keeps target at bounding-sphere centroid rather than positions[0] when outlier spread exceeds maxDistance', () => {
+    it('anchors on positions[0] rather than midpoint when outlier spread exceeds maxDistance', () => {
       const result = computeBoundingSphereFraming(
         [
           [1, 2, 3],
@@ -115,9 +116,93 @@ describe('searchFraming utility', () => {
         { maxDistance: 50 },
       );
       expect(result).not.toBeNull();
-      expect(result?.target).toEqual([41, 2, 3]);
-      expect(result?.distance).toBe(50);
-      expect(result?.radius).toBeCloseTo(40, 6);
+      expect(result?.target).toEqual([1, 2, 3]);
+      expect(result?.distance).toBe(DEFAULT_SINGLE_RESULT_DISTANCE_PC);
+      expect(result?.radius).toBe(0);
+    });
+
+    it('frames primary match Sol instead of interstellar void when distant match WASP-96 exceeds mobile maxDistance', () => {
+      const result = computeBoundingSphereFraming(
+        [
+          [0, 0, 0],
+          [200, 250, -145],
+        ],
+        {
+          fovDeg: 45,
+          viewportWidth: 390,
+          viewportHeight: 844,
+          maxDistance: 122,
+        },
+      );
+      expect(result).toEqual({
+        target: [0, 0, 0],
+        distance: DEFAULT_SINGLE_RESULT_DISTANCE_PC,
+        radius: 0,
+      });
+    });
+
+    it('drops distant outliers while still framing local siblings within maxDistance of positions[0]', () => {
+      const result = computeBoundingSphereFraming(
+        [
+          [0, 0, 0],
+          [10, 0, 0],
+          [200, 250, -145],
+        ],
+        {
+          fovDeg: 45,
+          viewportWidth: 390,
+          viewportHeight: 844,
+          maxDistance: 122,
+        },
+      );
+      expect(result).not.toBeNull();
+      expect(result?.target).toEqual([5, 0, 0]);
+      expect(result?.radius).toBeCloseTo(5, 6);
+      expect(result?.distance).toBeLessThanOrEqual(122);
+      expect(result?.distance).toBeGreaterThan(MIN_SEARCH_FRAMING_DISTANCE_PC);
+    });
+
+    it('tightens anchored candidate radius when opposite-side neighbours within diameter exceed maxDistance', () => {
+      // At 390x844, fov 45, padding 1.15, maxDistance 122 -> maxFramableRadius ~ 20.3 pc.
+      // [-35, 0, 0] is within 2*R (~40.6 pc) of [0,0,0], and [15,0,0] is within R (20.3 pc).
+      // Combining [-35, 0, 0] and [15, 0, 0] yields radius 25 > maxFramableRadius, so it tightens to [[0,0,0], [15,0,0]].
+      const result = computeBoundingSphereFraming(
+        [
+          [0, 0, 0],
+          [15, 0, 0],
+          [-35, 0, 0],
+          [500, 0, 0],
+        ],
+        {
+          fovDeg: 45,
+          viewportWidth: 390,
+          viewportHeight: 844,
+          maxDistance: 122,
+        },
+      );
+      expect(result).not.toBeNull();
+      expect(result?.target).toEqual([7.5, 0, 0]);
+      expect(result?.radius).toBeCloseTo(7.5, 6);
+      expect(result?.distance).toBeLessThanOrEqual(122);
+    });
+
+    it('preserves full centroid framing when multi-star results fit within maxDistance', () => {
+      const result = computeBoundingSphereFraming(
+        [
+          [0, 0, 0],
+          [20, -10, 12],
+          [-16, 8, -10],
+        ],
+        {
+          fovDeg: 45,
+          viewportWidth: 1440,
+          viewportHeight: 900,
+          maxDistance: 122,
+        },
+      );
+      expect(result).not.toBeNull();
+      expect(result?.target).toEqual([2, -1, 1]);
+      expect(result?.distance).toBeLessThanOrEqual(122);
     });
 
     it('frames multi-result cluster tightly inside active safeRect without double-dividing by visRatio', () => {

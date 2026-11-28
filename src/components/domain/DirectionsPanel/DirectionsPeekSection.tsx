@@ -6,6 +6,7 @@ import {
   CelestialTitle,
   Cluster,
   Datum,
+  Icon,
   Stack,
 } from '../../interface';
 import { renderStructuredQuantity } from './directionsQuantityHelpers';
@@ -32,21 +33,42 @@ export const DirectionsPeekSection: React.FC<DirectionsPeekSectionProps> = ({
   return (
     <div className={styles.peekMetadata}>
       <div className={styles.headerRow}>
-        <CelestialTitle
-          type="stellar-system"
-          title={journey.title}
-          as="strong"
+        <Cluster gap="tight" align="center">
+          <CelestialTitle
+            type="stellar-system"
+            title={journey.title}
+            as="strong"
+            size="sm"
+            showTooltip={false}
+            titleTestId="directions-route-title"
+          />
+          {isComingSoon ? (
+            <Badge status="caution" role="alert" data-testid="directions-coming-soon">
+              Coming soon
+            </Badge>
+          ) : isDetailMode && selectedOption ? (
+            <Badge status="info">{selectedOption.methodBadge}</Badge>
+          ) : null}
+        </Cluster>
+        <Button
+          href={journey.closeHref}
           size="sm"
-          showTooltip={false}
-          titleTestId="directions-route-title"
-        />
-        {isComingSoon ? (
-          <Badge status="caution" role="alert" data-testid="directions-coming-soon">
-            Coming soon
-          </Badge>
-        ) : isDetailMode && selectedOption ? (
-          <Badge status="info">{selectedOption.methodBadge}</Badge>
-        ) : null}
+          variant="subtle"
+          aria-label="Close directions"
+          data-testid="directions-close-button"
+        >
+          <Icon size="sm">
+            <svg
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
+              <path d="M3 3L9 9M9 3L3 9" />
+            </svg>
+          </Icon>
+        </Button>
       </div>
 
       {isComingSoon ? (
@@ -88,14 +110,17 @@ export const DirectionsPeekSection: React.FC<DirectionsPeekSectionProps> = ({
         </Stack>
       )}
 
-      <Cluster gap="dense" data-testid="directions-actions">
-        {isDetailMode ? (
+      {isDetailMode ? (
+        <Cluster gap="dense" data-testid="directions-actions">
           <Button
             href={journey.clearOptionHref}
             size="sm"
-            variant="subtle"
+            variant="default"
             data-testid="directions-back-to-options"
             onClick={(e) => {
+              if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+                return;
+              }
               if (onOptionSelect) {
                 e.preventDefault();
                 onOptionSelect(null);
@@ -105,16 +130,8 @@ export const DirectionsPeekSection: React.FC<DirectionsPeekSectionProps> = ({
           >
             Back to options
           </Button>
-        ) : null}
-        <Button
-          href={journey.closeHref}
-          size="sm"
-          variant="default"
-          data-testid="directions-close-button"
-        >
-          Close
-        </Button>
-      </Cluster>
+        </Cluster>
+      ) : null}
     </div>
   );
 };

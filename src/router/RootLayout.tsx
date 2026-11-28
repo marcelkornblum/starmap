@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useCallback } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { RootCanvasStageContext } from '../components/domain/CanvasLayer/RootCanvasStageContext';
+import { preloadGuideListViews } from '../services/navigation/guidePreloader';
 import { preloadTargetScaleEntry } from '../services/navigation/scalePreloader';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
@@ -43,9 +44,24 @@ export const RootLayout: React.FC = () => {
       const routeTarget = parseSpatialRouteTarget(href);
       if (routeTarget) {
         void preloadTargetScaleEntry(routeTarget.scope, routeTarget.targetId);
+        return;
+      }
+      if (href.startsWith('/') && !href.startsWith('//')) {
+        const toPath = href.split('?')[0]?.split('#')[0];
+        if (
+          toPath &&
+          typeof (router as { preloadRoute?: unknown } | undefined)?.preloadRoute === 'function'
+        ) {
+          void (router as { preloadRoute: (opts: { to: string }) => Promise<unknown> })
+            .preloadRoute({ to: toPath })
+            .catch(() => {});
+        }
+        if (toPath?.startsWith('/guide')) {
+          void preloadGuideListViews();
+        }
       }
     },
-    [],
+    [router],
   );
 
   const hasRegisteredRouter = router?.state !== undefined;

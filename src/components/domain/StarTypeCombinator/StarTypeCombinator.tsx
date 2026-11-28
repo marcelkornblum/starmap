@@ -78,17 +78,29 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
           />
           <Datum
             label="Chromaticity"
-            value={combination.chromaticityToken}
+            valueTestId="combinator-chromaticity"
+            value={
+              <span className={styles.chromaticityValue}>
+                <span
+                  className={styles.chromaticitySwatch}
+                  data-spectral-class={selectedClass.toLowerCase()}
+                  aria-hidden="true"
+                />
+                <span>{`Class ${selectedClass}`}</span>
+              </span>
+            }
           />
         </Stack>
 
         <p>
-          <a
+          <Button
             href={buildStarTypeGuideHref(combination.combinedCode)}
+            variant="default"
+            size="sm"
             data-testid="combinator-permalink"
           >
             {combination.combinedCode}
-          </a>
+          </Button>
         </p>
       </div>
 
@@ -106,7 +118,8 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
               <Button
                 key={cls}
                 size="sm"
-                variant={selectedClass === cls ? 'primary' : 'default'}
+                variant="subtle"
+                selected={selectedClass === cls}
                 aria-pressed={selectedClass === cls}
                 onClick={() => setSelectedClass(cls)}
               >
@@ -126,7 +139,8 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
               <Button
                 key={sub}
                 size="sm"
-                variant={selectedSub === sub ? 'primary' : 'default'}
+                variant="subtle"
+                selected={selectedSub === sub}
                 aria-pressed={selectedSub === sub}
                 onClick={() => setSelectedSub(sub)}
               >
@@ -146,7 +160,8 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
               <Button
                 key={lum}
                 size="sm"
-                variant={selectedLum === lum ? 'primary' : 'default'}
+                variant="subtle"
+                selected={selectedLum === lum}
                 aria-pressed={selectedLum === lum}
                 onClick={() => setSelectedLum(lum)}
               >

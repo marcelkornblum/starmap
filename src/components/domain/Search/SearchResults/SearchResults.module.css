@@ -9,6 +9,10 @@
     overflow-y: auto;
     padding-block-start: var(--space-fib-2);
   }
+
+  .categoryFooter {
+    padding-block-start: var(--space-fib-1);
+  }
 }
 
 @layer exceptions {

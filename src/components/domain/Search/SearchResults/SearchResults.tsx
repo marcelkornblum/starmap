@@ -2,7 +2,7 @@ import type { MouseEvent, ReactNode } from 'react';
 import { SEARCH_CATEGORIES } from '../../../../types/search';
 import { buildSearchViewHref } from '../../../../services/search/searchUrls';
 import type { SearchResultItem } from '../../../../services/search/searchTypes';
-import { Heading, Stack } from '../../../interface';
+import { Button, Heading, Stack } from '../../../interface';
 import { SearchResultItem as SearchResultItemRow } from '../../SearchResultItem';
 import { useSearchContext } from '../SearchContext';
 import styles from './SearchResults.module.css';
@@ -22,7 +22,6 @@ export const SearchResults = ({
 }: SearchResultsProps) => {
   const {
     query,
-    filter,
     status,
     errorMessage,
     results,
@@ -38,6 +37,15 @@ export const SearchResults = ({
   const isOpen = Boolean(alwaysOpen || isFocused);
 
   const handleResultsClick = (event: MouseEvent<HTMLElement>): void => {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
     const target = event.target as Element | null;
     const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
     if (anchor) {
@@ -63,16 +71,6 @@ export const SearchResults = ({
       >
         {heading}
       </Heading>
-      {searchViewPath ? (
-        <p>
-          <a
-            href={buildSearchViewHref(query, filter, searchViewPath)}
-            data-testid="search-view-link"
-          >
-            View all search results
-          </a>
-        </p>
-      ) : null}
       {status === 'loading' ? <p>Searching...</p> : null}
       {status === 'error' && errorMessage ? (
         <p role="alert">{errorMessage}</p>
@@ -92,16 +90,6 @@ export const SearchResults = ({
             <Heading as="h3" size="eyebrow">
               {category.heading}
             </Heading>
-            {searchViewPath ? (
-              <p>
-                <a
-                  href={buildSearchViewHref(query, category.key, searchViewPath)}
-                  data-testid={`search-category-link-${category.key}`}
-                >
-                  {`View all ${category.heading}`}
-                </a>
-              </p>
-            ) : null}
             <Stack as="ul" gap="tight">
               {group.items.map((item) =>
                 renderItem ? (
@@ -115,6 +103,18 @@ export const SearchResults = ({
                 ),
               )}
             </Stack>
+            {Boolean(searchViewPath) && group.totalMatches > group.items.length ? (
+              <div className={styles.categoryFooter}>
+                <Button
+                  href={buildSearchViewHref(query, category.key, searchViewPath)}
+                  variant="default"
+                  size="sm"
+                  data-testid={`search-category-link-${category.key}`}
+                >
+                  {`View all (${group.totalMatches})`}
+                </Button>
+              </div>
+            ) : null}
           </section>
         );
       })}

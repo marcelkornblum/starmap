@@ -11,6 +11,7 @@
     --slider-thumb-height: var(--space-fib-3);
     --slider-thumb-radius: var(--radius-full);
     --slider-gap: var(--space-gap-control);
+    --slider-input-min-height: auto;
 
     /* Control Token API */
     --slider-track-bg: oklch(from var(--ui-control-subtle) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.22);
@@ -43,6 +44,7 @@
     appearance: none;
     inline-size: 100%;
     block-size: var(--type-scale-1);
+    min-block-size: var(--slider-input-min-height);
     background: transparent;
     border: none;
     outline: none;
@@ -138,5 +140,13 @@
     cursor: not-allowed;
     background: var(--content-faint);
     box-shadow: none;
+  }
+
+  @media (pointer: coarse) {
+    .sliderContainer {
+      --slider-input-min-height: var(--size-touch-target-min);
+      --slider-thumb-width: var(--space-fib-5);
+      --slider-thumb-height: var(--space-fib-5);
+    }
   }
 }

@@ -18,7 +18,6 @@ export interface DetailsPanelProps {
   readonly schematic?: OrbitalSchematicSummary | null;
   readonly preview?: FocusedPreviewSummary | null;
   readonly isOpen?: boolean;
-  readonly onClose?: () => void;
   readonly onDetentChange?: (detent: DetentLevel) => void;
 }
 
@@ -33,7 +32,6 @@ export const DetailsPanel = memo(function DetailsPanel({
   schematic,
   preview,
   isOpen,
-  onClose: _onClose,
   onDetentChange,
 }: DetailsPanelProps) {
   const subscribedDetent = useUIStore((s) => s.detailsDetent);
@@ -88,21 +86,22 @@ export const DetailsPanel = memo(function DetailsPanel({
       starCount={starCount}
       isHabitableCandidate={planetTelemetry?.isHabitableCandidate}
       systemSummarySegments={systemSummarySegments}
-      actionControls={
-        <DetailsActionControls
-          id={id}
-          directionsHref={details.directionsHref}
-          centerHref={details.centerHref}
-          systemDetailsHref={details.systemDetailsHref}
-          coordinatesPc={details.coordinatesPc}
-        />
-      }
+      preview={preview ? <PreviewPanel preview={preview} headingAs="h4" /> : undefined}
+    />
+  );
+
+  const peekActions = (
+    <DetailsActionControls
+      id={id}
+      directionsHref={details.directionsHref}
+      centerHref={details.centerHref}
+      systemDetailsHref={details.systemDetailsHref}
+      coordinatesPc={details.coordinatesPc}
     />
   );
 
   const partialContent = (
     <>
-      {preview ? <PreviewPanel preview={preview} headingAs="h4" /> : null}
       <DetailsDeferredPartialLower
         canonAnnotations={canonAnnotations}
         focusedKind={focusedKind}
@@ -132,6 +131,7 @@ export const DetailsPanel = memo(function DetailsPanel({
       data-system-id={systemId}
       data-focused-kind={focusedKind}
       peek={peekContent}
+      peekActions={peekActions}
       partial={partialContent}
       full={fullContent}
     />

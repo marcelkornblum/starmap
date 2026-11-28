@@ -1,22 +1,25 @@
 import type React from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import { Badge, Block, Cluster, Datum, Grid, HazardBadge, Heading } from '../components/interface';
 import { HAZARD_GUIDE_ENTRIES } from '../content/guide';
+import { useSpaLinkClick } from '../hooks/spaNavigation';
+import { resolveAppHref } from '../utils/url';
 import styles from './GuideViews.module.css';
 
 export const HazardsListView: React.FC = () => {
+  const handleSpaLinkClick = useSpaLinkClick();
+
   return (
-    <main data-testid="hazards-list-view-root" className={styles.guideRoot}>
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Environmental Hazards' },
-        ]}
-      />
+    <SpatialShell
+      mode="document"
+      testId="hazards-list-view-root"
+      activeWorkspace="guide"
+    >
+      <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="hazards" />
-      <Heading as="h1">Environmental Hazards</Heading>
+      <Heading as="h1" size="title" visuallyHidden>Environmental Hazards</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="hazards-guide-list">
         {HAZARD_GUIDE_ENTRIES.map((entry) => (
           <Block
@@ -30,9 +33,12 @@ export const HazardsListView: React.FC = () => {
             data-hazard-severity={entry.severity}
           >
             <a
-              href={entry.href}
+              href={resolveAppHref(entry.href)}
               data-testid="hazards-guide-link"
               className={styles.cardLink}
+              onClick={(e) => {
+                handleSpaLinkClick(e, entry.href);
+              }}
             >
               <Guide3DPreview
                 kind="hazard"
@@ -54,6 +60,7 @@ export const HazardsListView: React.FC = () => {
           </Block>
         ))}
       </Grid>
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

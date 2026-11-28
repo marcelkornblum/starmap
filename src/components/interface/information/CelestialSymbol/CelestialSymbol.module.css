@@ -3,6 +3,8 @@
     --symbol-size: var(--type-scale-1);
     --symbol-gap: var(--space-fib-1);
     --symbol-color: currentColor;
+    --symbol-hit-slop-block: var(--space-hit-slop-block);
+    --symbol-hit-slop-inline: var(--space-hit-slop-inline);
 
     display: inline-flex;
     align-items: center;
@@ -38,7 +40,9 @@
 }
 
 @layer exceptions {
-  .symbol[data-interactive="true"] {
+  .symbol[data-interactive="true"],
+  .symbol:is(a) {
+    position: relative;
     color: inherit;
     text-decoration: none;
     cursor: pointer;
@@ -90,5 +94,15 @@
 
   .symbol[data-status="neutral"] {
     color: var(--content-default);
+  }
+
+  @media (pointer: coarse) {
+    .symbol[data-interactive="true"]::before,
+    .symbol:is(a)::before {
+      content: '';
+      position: absolute;
+      inset-block: var(--symbol-hit-slop-block);
+      inset-inline: var(--symbol-hit-slop-inline);
+    }
   }
 }

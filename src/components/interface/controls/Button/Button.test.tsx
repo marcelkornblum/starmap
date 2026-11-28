@@ -59,8 +59,53 @@ describe('<Button />', () => {
 
     const button = screen.getByRole('button', { name: 'Locked' }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
+    expect(button).toHaveAttribute('data-disabled', 'true');
 
     fireEvent.click(button);
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it('sets data-selected="true" when selected on both button and anchor modes', () => {
+    const { rerender } = render(
+      <Button variant="subtle" selected>
+        Discover
+      </Button>
+    );
+    expect(screen.getByRole('button', { name: 'Discover' })).toHaveAttribute('data-selected', 'true');
+
+    rerender(
+      <Button variant="subtle" selected={false}>
+        Discover
+      </Button>
+    );
+    expect(screen.getByRole('button', { name: 'Discover' })).not.toHaveAttribute('data-selected');
+
+    rerender(
+      <Button href="/guide" variant="subtle" selected>
+        Guide
+      </Button>
+    );
+    expect(screen.getByRole('link', { name: 'Guide' })).toHaveAttribute('data-selected', 'true');
+  });
+
+  it('supports disabled anchor mode with aria-disabled, data-disabled, tabIndex=-1, and blocks click navigation', () => {
+    const handleClick = vi.fn();
+    render(
+      <Button href="/system/sol" disabled onClick={handleClick}>
+        Locked Link
+      </Button>
+    );
+
+    const link = screen.getByRole('link', { name: 'Locked Link' });
+    expect(link).toHaveAttribute('href');
+    expect(link).toHaveAttribute('aria-disabled', 'true');
+    expect(link).toHaveAttribute('data-disabled', 'true');
+    expect(link).toHaveAttribute('tabindex', '-1');
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    const notPrevented = link.dispatchEvent(event);
+    expect(notPrevented).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
     expect(handleClick).not.toHaveBeenCalled();
   });
 

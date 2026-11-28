@@ -134,17 +134,31 @@ test.describe('3D Canvas <-> DOM UI Synchronization & Mobile DetentSheet', () =>
     expect(errors).toEqual([]);
   });
 
-  test('Mobile (390x844): tapping a star displays visible identity header in peek, keeps ControlBar unobscured, and expands to partial on tap', async ({
+  test('Mobile (390x844): tapping a star displays visible identity header and anchored CTAs in peek above ConsoleDock, and expands to partial on tap', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/?dist=10');
+    await page.goto('/?dist=4');
     await expect(page.getByTestId('galaxy-view-root')).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(1500);
 
-    // Tap Sol at safe optical centre
-    const safeMobile = await getSafeCanvasCenter(page);
-    await page.mouse.click(safeMobile.x, safeMobile.y);
+    // Wait until GalacticScene settles optical view-offset and mounts Sol's 3D hit-area at safe centre
+    let safeMobileX = 0;
+    let safeMobileY = 0;
+    await expect
+      .poll(
+        async () => {
+          const center = await getSafeCanvasCenter(page);
+          safeMobileX = center.x;
+          safeMobileY = center.y;
+          await page.mouse.move(safeMobileX + 1, safeMobileY + 1);
+          await page.mouse.move(safeMobileX, safeMobileY);
+          return page.evaluate(() => document.body.style.cursor);
+        },
+        { timeout: 15_000 },
+      )
+      .toBe('pointer');
+
+    await page.mouse.click(safeMobileX, safeMobileY);
 
     const detailsPanel = page.getByTestId('details-panel');
     await expect(detailsPanel).toBeVisible({ timeout: 10_000 });
@@ -152,40 +166,76 @@ test.describe('3D Canvas <-> DOM UI Synchronization & Mobile DetentSheet', () =>
 
     const peekSection = page.getByTestId('details-detent-peek');
     const peekName = page.getByTestId('details-peek-name');
+    const systemDetailsBtn = page.getByTestId('details-button-system-details');
     await expect(peekName).toHaveText('Sol');
+    await expect(systemDetailsBtn).toBeVisible();
 
     const panelBox = await detailsPanel.boundingBox();
     const peekBox = await peekSection.boundingBox();
     const nameBox = await peekName.boundingBox();
-    const controlToggle = page.getByTestId('control-bar-mobile-toggle');
-    const controlBox = await controlToggle.boundingBox();
+    const actionBox = await systemDetailsBtn.boundingBox();
+    const consoleDock = page.getByTestId('console-dock');
+    const dockBox = await consoleDock.boundingBox();
+    const bodiesToggle = page.getByTestId('spatial-shell-bodies-toggle');
+    const bodiesToggleBox = await bodiesToggle.boundingBox();
 
     expect(panelBox).not.toBeNull();
     expect(peekBox).not.toBeNull();
     expect(nameBox).not.toBeNull();
-    expect(controlBox).not.toBeNull();
+    expect(actionBox).not.toBeNull();
+    expect(dockBox).not.toBeNull();
+    expect(bodiesToggleBox).not.toBeNull();
 
-    if (panelBox && peekBox && nameBox && controlBox) {
-      // Peek section and star name must have non-zero height and sit visibly inside the 56px sheet
-      expect(panelBox.height).toBe(56);
-      expect(peekBox.height).toBeGreaterThanOrEqual(18);
+    if (panelBox && peekBox && nameBox && actionBox && dockBox && bodiesToggleBox) {
+      // Peek sheet fits measured identity + anchored CTAs without overlapping visor Bodies trigger or bottom ConsoleDock
+      expect(panelBox.height).toBeGreaterThanOrEqual(80);
+      expect(panelBox.height).toBeLessThanOrEqual(220);
+      expect(peekBox.height).toBeGreaterThanOrEqual(40);
       expect(nameBox.height).toBeGreaterThanOrEqual(14);
       expect(nameBox.y).toBeGreaterThanOrEqual(panelBox.y);
       expect(nameBox.y + nameBox.height).toBeLessThanOrEqual(panelBox.y + panelBox.height);
+      expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(panelBox.y + panelBox.height);
 
-      // Mobile ControlBar toggle button must sit above the peek sheet (never covered by it)
-      expect(controlBox.y + controlBox.height).toBeLessThanOrEqual(panelBox.y);
+      // Objects in View trigger sits in the top-right corner, and peek sheet sits above ConsoleDock
+      expect(bodiesToggleBox.y).toBeLessThan(60);
+      expect(bodiesToggleBox.x).toBeGreaterThan(200);
+      expect(bodiesToggleBox.y + bodiesToggleBox.height).toBeLessThanOrEqual(panelBox.y);
+      expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(dockBox.y + 1);
     }
 
-    // Tapping the peek section expands the sheet to partial detent, revealing action controls
-    await peekName.click();
+    // Dragging upward directly from the DetailsPanel body (not just the handle pill) expands peek -> partial -> full
+    const startNameBox = await peekName.boundingBox();
+    expect(startNameBox).not.toBeNull();
+    if (startNameBox) {
+      const dragX = startNameBox.x + startNameBox.width / 2;
+      const dragStartY = startNameBox.y + startNameBox.height / 2;
+      await page.mouse.move(dragX, dragStartY);
+      await page.mouse.down();
+      await page.mouse.move(dragX, dragStartY - 240, { steps: 8 });
+      await page.mouse.up();
+    }
+
     await expect(detailsPanel).toHaveAttribute('data-detent', 'partial');
-    const expandedBox = await detailsPanel.boundingBox();
-    expect(expandedBox).not.toBeNull();
-    if (expandedBox) {
-      expect(expandedBox.height).toBeGreaterThanOrEqual(300);
+    await expect
+      .poll(async () => (await detailsPanel.boundingBox())?.height ?? 0, { timeout: 3_000 })
+      .toBeGreaterThan((panelBox?.height ?? 0) + 40);
+    await expect(page.getByTestId('details-overview-mid-stage')).toBeVisible();
+    await expect(systemDetailsBtn).toBeVisible();
+
+    // Dragging downward on the mid-stage overview collapses partial -> peek without triggering navigation
+    const midStage = page.getByTestId('details-overview-mid-stage');
+    const midBox = await midStage.boundingBox();
+    expect(midBox).not.toBeNull();
+    if (midBox) {
+      const midX = midBox.x + midBox.width / 2;
+      const midY = midBox.y + midBox.height / 2;
+      await page.mouse.move(midX, midY);
+      await page.mouse.down();
+      await page.mouse.move(midX, midY + 240, { steps: 8 });
+      await page.mouse.up();
     }
-    await expect(page.getByTestId('details-button-system-details')).toBeVisible();
+    await expect(detailsPanel).toHaveAttribute('data-detent', 'peek');
+    await expect(page).toHaveURL(/focus=sol/);
   });
 
   test('Search result selection displays visible 3D focused entity label across default and zoomed apertures', async ({

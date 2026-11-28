@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { PlanetTypeDetailView } from './PlanetTypeDetailView';
 import {
@@ -23,7 +23,10 @@ describe('<PlanetTypeDetailView />', () => {
     render(<PlanetTypeDetailView planetType="terrestrial" />);
     const root = screen.getByTestId('planet-type-detail-view-root');
     expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
     expect(root.getAttribute('data-planet-type')).toBe('terrestrial');
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     const summary = screen.getByTestId('guide-detail-summary');
     expect(summary.textContent).toBeTruthy();
@@ -49,6 +52,7 @@ describe('<PlanetTypeDetailView />', () => {
     const focusContext = screen.getByTestId('guide-focus-context');
     expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('earth');
+    expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=earth');
   });
 
   it('renders fallback gracefully when planet type is not recognized', () => {
@@ -89,5 +93,20 @@ describe('<PlanetTypeDetailView />', () => {
     const links = screen.getAllByTestId('guide-example-link');
     expect(links[0]?.textContent).toBe('Earth');
     expect(links[0]?.getAttribute('href')).toBe('/system/sol?focus=earth');
+  });
+
+  it('relies on GuideSectionNav for the section link without duplicate breadcrumbs or list-link button and wraps telemetry in a CollapsibleSection', () => {
+    const { container } = render(<PlanetTypeDetailView planetType="terrestrial" />);
+
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
+    expect(screen.queryByTestId('planet-types-list-link')).toBeNull();
+    const sectionLink = container.querySelector('a[href="/guide/planet-types"]');
+    expect(sectionLink).not.toBeNull();
+
+    const telemetryToggle = screen.getByRole('button', { name: /Geophysical & Atmospheric Telemetry/i });
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(telemetryToggle);
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('guide-detail-telemetry')).toBeNull();
   });
 });

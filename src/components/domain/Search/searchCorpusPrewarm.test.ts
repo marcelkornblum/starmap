@@ -119,4 +119,34 @@ describe('searchCorpusPrewarm', () => {
 
     expect(loadSpy).toHaveBeenCalledWith('startup');
   });
+
+  it('respects URL searchCategory filter on cold load when syncUrl is true and initialFilter is all', async () => {
+    const loadSpy = vi
+      .spyOn(searchRepo, 'loadSearchCorpusForFilter')
+      .mockResolvedValue(SAMPLE_ENTRIES);
+    vi.spyOn(searchRepo, 'fetchSearchShard').mockResolvedValue(SAMPLE_ENTRIES);
+
+    const store = createSpatialEntityStore();
+    const updateResultsSpy = vi.fn();
+
+    await runSearchCorpusPrewarm({
+      initialFilter: 'all',
+      activeSearch: '?q=Tau&searchCategory=stars',
+      initialQuery: '',
+      syncUrl: true,
+      isSearchRoute: true,
+      store,
+      layerIndex: [],
+      loadedLayers: [],
+      resolveCurrentFocusSlug: () => null,
+      updateResultsAndSelection: updateResultsSpy,
+      setStatus: vi.fn(),
+      fallbackFocusIdRef: { current: null },
+      isCancelled: () => false,
+    });
+
+    expect(loadSpy).toHaveBeenCalledWith('stars');
+    expect(updateResultsSpy).toHaveBeenCalled();
+    expect(updateResultsSpy.mock.calls[0]?.[0]?.filter).toBe('stars');
+  });
 });

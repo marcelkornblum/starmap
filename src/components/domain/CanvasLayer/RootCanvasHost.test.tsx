@@ -123,9 +123,10 @@ describe('RootCanvasHost Domain Component', () => {
     expect(useCanvasStageStore.getState().isRootCanvasMounted).toBe(false);
   });
 
-  it('renders with data-slot="true" and immediately syncs onInspect / onSelect callbacks into useCanvasStageStore when RootCanvasHost is mounted', () => {
+  it('renders with data-slot="true" and immediately syncs onInspect / onSelect / onTouchPointerMissed callbacks into useCanvasStageStore when RootCanvasHost is mounted', () => {
     const handleInspect = vi.fn();
     const handleSelect = vi.fn();
+    const handleTouchPointerMissed = vi.fn(() => true);
 
     render(
       <div>
@@ -135,6 +136,7 @@ describe('RootCanvasHost Domain Component', () => {
           centerId="sol"
           onInspect={handleInspect}
           onSelect={handleSelect}
+          onTouchPointerMissed={handleTouchPointerMissed}
         />
       </div>,
     );
@@ -147,10 +149,12 @@ describe('RootCanvasHost Domain Component', () => {
     expect(stageProps).not.toBeNull();
     expect('onInspect' in (stageProps ?? {})).toBe(false);
     expect('onSelect' in (stageProps ?? {})).toBe(false);
+    expect('onTouchPointerMissed' in (stageProps ?? {})).toBe(false);
 
     const callbacks = getStageCallbacks();
     expect(callbacks.onInspect).toBe(handleInspect);
     expect(callbacks.onSelect).toBe(handleSelect);
+    expect(callbacks.onTouchPointerMissed).toBe(handleTouchPointerMissed);
 
     // Verify callbacks route correctly
     callbacks.onInspect?.('alpha-centauri');
@@ -160,6 +164,9 @@ describe('RootCanvasHost Domain Component', () => {
     callbacks.onSelect?.('sol');
     expect(handleSelect).toHaveBeenCalledTimes(1);
     expect(handleSelect).toHaveBeenCalledWith('sol');
+
+    expect(callbacks.onTouchPointerMissed?.()).toBe(true);
+    expect(handleTouchPointerMissed).toHaveBeenCalledTimes(1);
   });
 
   it('updates persistent <RootCanvasHost /> when a view slot changes stageProps', () => {

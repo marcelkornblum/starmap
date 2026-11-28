@@ -2,6 +2,7 @@ export interface CanvasStageCallbacks {
   readonly onInspect?: (id: string) => void;
   readonly onSelect?: (id: string | null) => void;
   readonly onFocusChange?: (id: string | null) => void;
+  readonly onTouchPointerMissed?: () => boolean;
 }
 
 const EMPTY_STAGE_CALLBACKS: CanvasStageCallbacks = {};
@@ -19,7 +20,8 @@ export function setStageCallbacks(callbacks: CanvasStageCallbacks): void {
   if (
     currentCallbacks.onInspect === callbacks.onInspect &&
     currentCallbacks.onSelect === callbacks.onSelect &&
-    currentCallbacks.onFocusChange === callbacks.onFocusChange
+    currentCallbacks.onFocusChange === callbacks.onFocusChange &&
+    currentCallbacks.onTouchPointerMissed === callbacks.onTouchPointerMissed
   ) {
     return;
   }

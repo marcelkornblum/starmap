@@ -15,6 +15,14 @@ describe('searchUrls', () => {
     expect(buildLayerGalaxyHref('canon-project-hail-mary')).toBe(
       '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary',
     );
+    expect(buildLayerGalaxyHref('overlay-recent-discoveries')).toBe(
+      '/galaxy?select=layer:recent-discoveries&layer=recent-discoveries',
+    );
+    expect(buildLayerGalaxyHref('layer:project-hail-mary')).toBe(
+      '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary',
+    );
+    expect(buildLayerGalaxyHref('   ')).toBe('/galaxy');
+    expect(buildLayerGalaxyHref('---')).toBe('/galaxy');
     expect(buildLayerGalaxyHref('')).toBe('/galaxy');
   });
 

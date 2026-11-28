@@ -3,6 +3,9 @@
     --detent-sheet-gap: var(--space-fib-3);
     --detent-sheet-padding-block: var(--space-fib-4);
     --detent-sheet-padding-inline: var(--space-fib-4);
+    --detent-sheet-block-size: auto;
+    --detent-mid-stage-size: 0px;
+    --detent-expand-progress: 0;
     display: flex;
     flex-direction: column;
     gap: var(--detent-sheet-gap);
@@ -15,6 +18,8 @@
     color: var(--content-default);
     box-shadow: var(--surface-panel-shadow);
     inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: clip;
     box-sizing: border-box;
   }
 
@@ -47,6 +52,12 @@
     background-color: var(--border-color-prominent);
   }
 
+  .dragHandleBar:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+    border-radius: var(--radius-control);
+  }
+
   .srOnly {
     position: absolute;
     inline-size: 1px;
@@ -62,9 +73,29 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-fib-2);
+    min-inline-size: 0;
+    flex-shrink: 0;
+    overflow-x: clip;
+    box-sizing: border-box;
   }
 
-  .detentSheet [data-cta-row="true"] > * {
+  .peekMidStage {
+    min-inline-size: 0;
+  }
+
+  .peekMidInner {
+    min-inline-size: 0;
+  }
+
+  .peekActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-fib-2);
+    min-inline-size: 0;
+  }
+
+  .peekActions > * {
     flex: 1 1 0;
   }
 }
@@ -76,6 +107,7 @@
       container-type: inline-size;
       container-name: detent-sheet;
       max-inline-size: calc(var(--space-fib-7) * 8 + var(--space-fib-6));
+      flex-shrink: 0;
     }
 
     .dragHandleBar {
@@ -87,18 +119,25 @@
   @media (max-width: 767px) {
     .detentSheet {
       --detent-sheet-gap: var(--space-fib-1);
-      --detent-sheet-padding-block: var(--space-fib-1);
+      --detent-sheet-padding-block: var(--space-fib-2);
       --detent-sheet-padding-inline: var(--space-fib-4);
-      container-type: size;
+      --detent-sheet-peek-size: calc(var(--space-fib-8) + var(--space-fib-5) + var(--space-fib-2) + var(--stroke-width-1));
+      container-type: inline-size;
       container-name: detent-sheet;
-      --detent-sheet-peek-size: calc(var(--space-fib-7) + var(--stroke-width-1));
       block-size: var(--detent-sheet-block-size, var(--detent-sheet-peek-size));
       min-block-size: var(--detent-sheet-peek-size);
       max-block-size: 100dvh;
+      border-inline: none;
+      border-block-end: none;
       border-end-start-radius: 0;
       border-end-end-radius: 0;
       overflow-y: hidden;
       touch-action: none;
+      transition: block-size var(--motion-duration-spatial) var(--motion-ease-spatial);
+    }
+
+    .detentSheet[data-is-dragging="true"] {
+      transition: none;
     }
 
     .detentSheet [data-detent-section="partial"],
@@ -106,67 +145,69 @@
       display: none;
     }
 
+    .dragHandleBar {
+      padding-block: var(--space-fib-2);
+    }
+
+    .detentSheet[data-scrollable="true"] {
+      overflow-y: auto;
+      touch-action: pan-y;
+      overscroll-behavior-y: contain;
+    }
+
+    .detentSheet:not(:has([data-detent-mid-stage="true"]))[data-detent="partial"] [data-detent-section="partial"],
+    .detentSheet:not(:has([data-detent-mid-stage="true"]))[data-detent="partial"] [data-detent-section="full"],
+    .detentSheet[data-beyond-partial="true"] [data-detent-section="partial"],
+    .detentSheet[data-beyond-partial="true"] [data-detent-section="full"],
+    .detentSheet[data-detent="full"] [data-detent-section="partial"],
+    .detentSheet[data-detent="full"] [data-detent-section="full"] {
+      display: flex;
+    }
+
+    .peekMidStage {
+      transition:
+        max-block-size var(--motion-duration-spatial) var(--motion-ease-spatial),
+        opacity var(--motion-duration-overlay) var(--motion-ease-default);
+    }
+
+    .detentSheet[data-detent="peek"] .peekMidStage {
+      max-block-size: 0px;
+      opacity: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .detentSheet[data-detent="partial"] .peekMidStage,
+    .detentSheet[data-detent="full"] .peekMidStage {
+      max-block-size: var(--detent-mid-stage-size, 100dvh);
+      opacity: 1;
+      pointer-events: auto;
+      overflow: hidden;
+    }
+
+    .detentSheet[data-is-dragging="true"] .peekMidStage {
+      max-block-size: calc(var(--detent-expand-progress, 0) * var(--detent-mid-stage-size, 100dvh));
+      opacity: var(--detent-expand-progress, 0);
+      pointer-events: none;
+      overflow: hidden;
+      transition: none;
+    }
+
     .detentSheet [data-detent-section="peek"] {
       flex-shrink: 0;
-      overflow: hidden;
       cursor: pointer;
     }
 
-    .detentSheet [data-detent-section="peek"] > :nth-child(n + 3) {
-      display: none;
-    }
-
-    .detentSheet [data-detent-section="peek"] [data-hero-body="true"],
-    .detentSheet [data-detent-section="peek"] [data-hero-extra="true"] {
-      display: none;
+    .detentSheet[data-detent="partial"] [data-detent-section="peek"],
+    .detentSheet[data-detent="full"] [data-detent-section="peek"] {
+      cursor: default;
     }
 
     .detentSheet [data-detent-section="peek"] [data-block="true"] {
-      --block-padding: var(--space-fib-1) var(--space-fib-2);
-      --block-bg: transparent;
-    }
-
-    /* ui-audit-disable-next-line hardcoded-css-token -- Container query threshold */
-    @container detent-sheet (min-block-size: 240px) {
-      .detentSheet {
-        --detent-sheet-gap: var(--space-fib-3);
-        --detent-sheet-padding-block: var(--space-fib-4);
-        --detent-sheet-padding-inline: var(--space-fib-4);
-        overflow-y: auto;
-        touch-action: pan-y;
-      }
-
-      .detentSheet [data-detent-section="partial"],
-      .detentSheet [data-detent-section="full"] {
-        display: flex;
-      }
-
-      .detentSheet [data-detent-section="peek"] {
-        overflow: visible;
-        cursor: default;
-      }
-
-      .detentSheet [data-detent-section="peek"] > :nth-child(n + 3) {
-        display: revert;
-      }
-
-      .detentSheet [data-detent-section="peek"] [data-hero-body="true"] {
-        display: flex;
-      }
-
-      .detentSheet [data-detent-section="peek"] [data-hero-extra="true"] {
-        display: inline-flex;
-      }
-
-      .detentSheet [data-detent-section="peek"] [data-block="true"] {
-        --block-padding: var(--space-fib-4);
-        --block-bg: var(--surface-block-bg);
-      }
+      --block-padding: var(--space-fib-2) var(--space-fib-3);
     }
 
     .detentSheet[data-is-full-screen="true"] {
-      overflow-y: auto;
-      touch-action: pan-y;
       border-radius: 0;
     }
   }

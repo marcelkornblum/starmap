@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { HazardDetailView } from './HazardDetailView';
 import {
@@ -23,7 +23,10 @@ describe('<HazardDetailView />', () => {
     render(<HazardDetailView hazardId="high-gravity" />);
     const root = screen.getByTestId('hazard-detail-view-root');
     expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
     expect(root.getAttribute('data-hazard-id')).toBe('high-gravity');
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     const summary = screen.getByTestId('guide-detail-summary');
     expect(summary.textContent).toBeTruthy();
@@ -49,6 +52,7 @@ describe('<HazardDetailView />', () => {
     const focusContext = screen.getByTestId('guide-focus-context');
     expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('jupiter');
+    expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=jupiter');
   });
 
   it('renders fallback gracefully when hazard is not recognized', () => {
@@ -91,5 +95,20 @@ describe('<HazardDetailView />', () => {
     const links = screen.getAllByTestId('guide-example-link');
     expect(links[0]?.textContent).toBe('Tau Ceti e');
     expect(links[0]?.getAttribute('href')).toBe('/system/tau-ceti?focus=tau-ceti-e');
+  });
+
+  it('relies on GuideSectionNav for the section link without duplicate breadcrumbs or list-link button and wraps telemetry in a CollapsibleSection', () => {
+    const { container } = render(<HazardDetailView hazardId="high-gravity" />);
+
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
+    expect(screen.queryByTestId('hazards-list-link')).toBeNull();
+    const sectionLink = container.querySelector('a[href="/guide/hazards"]');
+    expect(sectionLink).not.toBeNull();
+
+    const telemetryToggle = screen.getByRole('button', { name: /Hazard Parameters & Operational Impact/i });
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(telemetryToggle);
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('guide-detail-telemetry')).toBeNull();
   });
 });

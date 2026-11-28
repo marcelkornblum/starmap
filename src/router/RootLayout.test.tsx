@@ -5,6 +5,7 @@ import { useRouter } from '@tanstack/react-router';
 import { RootLayout } from './RootLayout';
 import * as spaNav from '../hooks/spaNavigation';
 import * as scalePreloader from '../services/navigation/scalePreloader';
+import * as guidePreloader from '../services/navigation/guidePreloader';
 
 const galaxyViewMountSpy = vi.fn();
 const galaxyViewUnmountSpy = vi.fn();
@@ -36,6 +37,12 @@ vi.mock('@tanstack/react-router', () => ({
         }}
       >
         Go to Sirius
+      </a>
+      <a href="/guide/planet-types?tab=all#top" data-testid="guide-link">
+        Planet Types
+      </a>
+      <a href="/search?q=sol" data-testid="search-link">
+        Search Sol
       </a>
     </div>
   ),
@@ -180,5 +187,37 @@ describe('<RootLayout />', () => {
     preloadSpy.mockClear();
     fireEvent.pointerDown(screen.getByTestId('router-outlet'));
     expect(preloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('preloads document routes via router.preloadRoute and warms guide list views on /guide/* intent', () => {
+    const preloadRouteMock = vi.fn().mockResolvedValue(undefined);
+    const guidePreloadSpy = vi
+      .spyOn(guidePreloader, 'preloadGuideListViews')
+      .mockResolvedValue(undefined);
+
+    vi.mocked(useRouter).mockReturnValue({
+      preloadRoute: preloadRouteMock,
+    } as never);
+
+    render(<RootLayout />);
+
+    const guideLink = screen.getByTestId('guide-link');
+    fireEvent.pointerDown(guideLink);
+    expect(preloadRouteMock).toHaveBeenCalledWith({ to: '/guide/planet-types' });
+    expect(guidePreloadSpy).toHaveBeenCalledTimes(1);
+
+    preloadRouteMock.mockClear();
+    guidePreloadSpy.mockClear();
+
+    fireEvent.mouseOver(guideLink);
+    expect(preloadRouteMock).toHaveBeenCalledWith({ to: '/guide/planet-types' });
+    expect(guidePreloadSpy).toHaveBeenCalledTimes(1);
+
+    preloadRouteMock.mockClear();
+    guidePreloadSpy.mockClear();
+
+    fireEvent.mouseOver(screen.getByTestId('search-link'));
+    expect(preloadRouteMock).toHaveBeenCalledWith({ to: '/search' });
+    expect(guidePreloadSpy).not.toHaveBeenCalled();
   });
 });

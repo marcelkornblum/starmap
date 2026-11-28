@@ -1,22 +1,25 @@
 import type React from 'react';
-import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import { Block, CelestialSymbol, Cluster, Datum, Grid, Heading, SpectralBadge } from '../components/interface';
 import { STAR_TYPE_GUIDE_ENTRIES } from '../content/guide';
+import { useSpaLinkClick } from '../hooks/spaNavigation';
+import { resolveAppHref } from '../utils/url';
 import styles from './GuideViews.module.css';
 
 export const StarTypesListView: React.FC = () => {
+  const handleSpaLinkClick = useSpaLinkClick();
+
   return (
-    <main data-testid="star-types-list-view-root" className={styles.guideRoot}>
-      <Breadcrumbs
-        items={[
-          { label: 'Guide', href: '/guide/star-types' },
-          { label: 'Star Types' },
-        ]}
-      />
+    <SpatialShell
+      mode="document"
+      testId="star-types-list-view-root"
+      activeWorkspace="guide"
+    >
+      <div className={styles.guideRoot}>
       <GuideSectionNav currentSection="star-types" />
-      <Heading as="h1">Star Types</Heading>
+      <Heading as="h1" size="title" visuallyHidden>Star Types</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="star-types-guide-list">
         {STAR_TYPE_GUIDE_ENTRIES.map((entry) => (
           <Block
@@ -28,9 +31,12 @@ export const StarTypesListView: React.FC = () => {
             data-star-type={entry.id}
           >
             <a
-              href={entry.href}
+              href={resolveAppHref(entry.href)}
               data-testid="star-types-guide-link"
               className={styles.cardLink}
+              onClick={(e) => {
+                handleSpaLinkClick(e, entry.href);
+              }}
             >
               <Guide3DPreview
                 kind="star"
@@ -62,6 +68,7 @@ export const StarTypesListView: React.FC = () => {
           </Block>
         ))}
       </Grid>
-    </main>
+      </div>
+    </SpatialShell>
   );
 };

@@ -301,5 +301,51 @@ describe('SectorPointCloud - Starfield Shader & Component', () => {
 
       await renderer.unmount();
     });
+
+    it('guards against non-finite focusPoint and apertureRadius in useFrame without spamming updateCameraPosition or invalidate', async () => {
+      const updateCameraPosition = vi.fn(async () => ({
+        activeSectorIds: [],
+        prefetchSectorIds: [],
+      }));
+      const mockManager = {
+        subscribe: vi.fn(() => () => {}),
+        updateCameraPosition,
+        processFrameUploads: vi.fn<() => string[]>(() => []),
+        hasPendingUploads: vi.fn<() => boolean>(() => false),
+        isActiveRingReady: vi.fn(() => true),
+        getActiveSectorQueryInputs: vi.fn(() => []),
+      } as unknown as SectorStreamingManager;
+
+      const { SpatialFrameContext } = await import('../instrument/spatialFrameContext');
+      const frameRef = {
+        current: {
+          focusPoint: new THREE.Vector3(Number.NaN, 0, 0),
+          apertureRadius: 15,
+        },
+      };
+
+      const renderer = await ReactThreeTest.create(
+        <SpatialFrameContext.Provider
+          value={{ frameRef } as unknown as React.ContextType<typeof SpatialFrameContext>}
+        >
+          <SectorPointCloud manager={mockManager} />
+        </SpatialFrameContext.Provider>,
+      );
+
+      updateCameraPosition.mockClear();
+      mockInvalidate.mockClear();
+
+      await renderer.advanceFrames(3, 0.016);
+      expect(updateCameraPosition).not.toHaveBeenCalled();
+      expect(mockInvalidate).not.toHaveBeenCalled();
+
+      frameRef.current.focusPoint.set(0, 0, 0);
+      frameRef.current.apertureRadius = Number.POSITIVE_INFINITY;
+      await renderer.advanceFrames(3, 0.016);
+      expect(updateCameraPosition).not.toHaveBeenCalled();
+      expect(mockInvalidate).not.toHaveBeenCalled();
+
+      await renderer.unmount();
+    });
   });
 });

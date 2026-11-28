@@ -41,6 +41,18 @@ export const REFERENCE_FOV_DEG = 45;
 /** Authoritative default reticle size in world units (~half of legacy 0.45) */
 export const DEFAULT_RETICLE_SIZE = 0.22;
 
+/** Minimum screen-space hit diameter and radius (px) for coarse/touch pointers. */
+export const MIN_HIT_DIAMETER_TOUCH_PX = 44;
+export const MIN_HIT_RADIUS_TOUCH_PX = MIN_HIT_DIAMETER_TOUCH_PX / 2;
+
+/** Minimum screen-space hit diameter and radius (px) for fine/mouse pointers. */
+export const MIN_HIT_DIAMETER_MOUSE_PX = 28;
+export const MIN_HIT_RADIUS_MOUSE_PX = MIN_HIT_DIAMETER_MOUSE_PX / 2;
+
+/** Maximum pointer movement (px) considered a tap/click rather than a camera drag. */
+export const POINTER_TAP_SLOP_TOUCH_PX = 14;
+export const POINTER_TAP_SLOP_MOUSE_PX = 8;
+
 /**
  * Invariant instrument footprint radius in scene units at the reference camera distance.
  * Consumed across reticle, stalk, label, and instrument scaling. Backed by `--chrome-instrument-footprint`.
@@ -91,6 +103,128 @@ export function reticleSizeToScreenPx(
   referenceScale = SCREEN_HEIGHT_REFERENCE_SCALE,
 ): number {
   return (reticleSize / referenceScale) * screenHeight;
+}
+
+/**
+ * Resolves the effective screen-space hit radius (px), enforcing the touch/mouse floor
+ * while expanding to cover larger visual reticles or projected planetary discs.
+ */
+export function resolveEffectiveHitRadiusPx(
+  visualReticleRadiusPx: number,
+  isCoarseOrTouch: boolean,
+  projectedBodyRadiusPx = 0,
+): number {
+  const floorPx = isCoarseOrTouch ? MIN_HIT_RADIUS_TOUCH_PX : MIN_HIT_RADIUS_MOUSE_PX;
+  return Math.max(visualReticleRadiusPx, floorPx, projectedBodyRadiusPx);
+}
+
+/**
+ * Converts a screen-space hit radius (px) into world-space reticle units at reference distance.
+ * Inverse of `reticleSizeToScreenPx`.
+ */
+export function screenRadiusPxToReticleWorldUnits(
+  radiusPx: number,
+  viewportHeightPx: number,
+  referenceScale = SCREEN_HEIGHT_REFERENCE_SCALE,
+): number {
+  if (viewportHeightPx <= 0 || !Number.isFinite(viewportHeightPx)) {
+    return 0;
+  }
+  return (radiusPx / viewportHeightPx) * referenceScale;
+}
+
+/**
+ * Detects whether the active environment primarily uses a coarse/touch pointer.
+ * Call outside `useFrame` hot loops.
+ */
+export function isCoarsePointerDevice(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return (
+    window.matchMedia('(pointer: coarse)').matches ||
+    window.matchMedia('(any-pointer: coarse)').matches
+  );
+}
+
+let coarsePointerInitialized = false;
+let coarsePointerValue = false;
+const coarsePointerListeners = new Set<() => void>();
+let coarsePrimaryMql: MediaQueryList | null = null;
+let coarseAnyMql: MediaQueryList | null = null;
+let coarseMqlListener: (() => void) | null = null;
+
+function notifyCoarsePointerListeners(): void {
+  for (const listener of coarsePointerListeners) {
+    listener();
+  }
+}
+
+function ensureCoarsePointerInitialized(): void {
+  if (coarsePointerInitialized) return;
+  coarsePointerInitialized = true;
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    coarsePointerValue = false;
+    return;
+  }
+  coarsePrimaryMql = window.matchMedia('(pointer: coarse)');
+  coarseAnyMql = window.matchMedia('(any-pointer: coarse)');
+  coarsePointerValue = Boolean(coarsePrimaryMql?.matches || coarseAnyMql?.matches);
+  coarseMqlListener = () => {
+    const next = Boolean(coarsePrimaryMql?.matches || coarseAnyMql?.matches);
+    if (next && !coarsePointerValue) {
+      coarsePointerValue = true;
+      notifyCoarsePointerListeners();
+    }
+  };
+  coarsePrimaryMql?.addEventListener?.('change', coarseMqlListener);
+  coarseAnyMql?.addEventListener?.('change', coarseMqlListener);
+}
+
+/**
+ * Returns the cached module-level coarse/touch pointer snapshot (safe inside `useFrame`).
+ */
+export function getCoarsePointerSnapshot(): boolean {
+  ensureCoarsePointerInitialized();
+  return coarsePointerValue;
+}
+
+/**
+ * Promotes the cached coarse-pointer snapshot to `true` upon observing a touch pointer event.
+ */
+export function promoteCoarseTouch(): void {
+  ensureCoarsePointerInitialized();
+  if (!coarsePointerValue) {
+    coarsePointerValue = true;
+    notifyCoarsePointerListeners();
+  }
+}
+
+/**
+ * Subscribes to module-level coarse-pointer promotion/media-query changes.
+ */
+export function subscribeCoarsePointer(cb: () => void): () => void {
+  ensureCoarsePointerInitialized();
+  coarsePointerListeners.add(cb);
+  return () => {
+    coarsePointerListeners.delete(cb);
+  };
+}
+
+/**
+ * Resets the singleton coarse-pointer cache and detaches media-query listeners (for unit tests).
+ */
+export function resetCoarsePointerForTesting(): void {
+  if (coarseMqlListener) {
+    coarsePrimaryMql?.removeEventListener?.('change', coarseMqlListener);
+    coarseAnyMql?.removeEventListener?.('change', coarseMqlListener);
+  }
+  coarsePrimaryMql = null;
+  coarseAnyMql = null;
+  coarseMqlListener = null;
+  coarsePointerInitialized = false;
+  coarsePointerValue = false;
+  coarsePointerListeners.clear();
 }
 
 /**

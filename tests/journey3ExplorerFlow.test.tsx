@@ -591,7 +591,7 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
     plan2!.unmount();
   });
 
-  it('renders PreviewPanel and OrbitalSchematicPanel in DetailsPanel partial detent without duplicating in full detent', () => {
+  it('renders PreviewPanel in DetailsPanel overview mid-stage and OrbitalSchematicPanel in partial detent without duplicating in full detent', () => {
     const dummyDetails = buildFocusedEntityDetails({
       focusedEntity: { id: 'earth', name: 'Earth', position: [0, 0, 0], classification: 'terrestrial' },
       corpus: SAMPLE_CORPUS,
@@ -642,11 +642,19 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
       }),
     );
 
+    const peekDetent = detentContainer.querySelector('[data-testid="details-detent-peek"]');
+    const midStage = detentContainer.querySelector('[data-testid="details-overview-mid-stage"]');
     const partialDetent = detentContainer.querySelector('[data-testid="details-detent-partial"]');
     const fullDetent = detentContainer.querySelector('[data-testid="details-detent-full"]');
+    expect(peekDetent).not.toBeNull();
+    expect(midStage).not.toBeNull();
     expect(partialDetent).not.toBeNull();
     expect(fullDetent).not.toBeNull();
-    expect(partialDetent?.querySelector('[data-testid="preview-panel"]')).not.toBeNull();
+    expect(peekDetent?.contains(midStage)).toBe(true);
+    expect(midStage?.querySelector('[data-testid="preview-panel"]')).not.toBeNull();
+    expect(partialDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="preview-panel"]')).toBeNull();
+    expect(detentContainer.querySelectorAll('[data-testid="preview-panel"]')).toHaveLength(1);
     expect(partialDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
     expect(fullDetent?.querySelector('[data-testid="orbital-schematic-panel"]')).toBeNull();
     expect(detentContainer.querySelectorAll('[data-testid="orbital-schematic-panel"]')).toHaveLength(1);

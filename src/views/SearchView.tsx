@@ -3,37 +3,55 @@ import { escalateSearchBackgroundWarmup } from '../data/searchBackgroundWarmup';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Search } from '../components/domain/Search';
 import { SearchResultItem } from '../components/domain/SearchResultItem';
-import { Center, Stack } from '../components/interface';
+import { SpatialShell } from '../components/domain/SpatialShell';
+import { Center, Panel, Stack } from '../components/interface';
 import styles from './SearchView.module.css';
 
-export const SearchView: FC = () => {
+export interface SearchViewProps {
+  readonly locationPathname?: string;
+  readonly locationSearch?: string;
+}
+
+export const SearchView: FC<SearchViewProps> = ({
+  locationPathname,
+  locationSearch,
+}) => {
   useEffect(() => {
     escalateSearchBackgroundWarmup();
   }, []);
 
   return (
-    <main className={styles.searchView} data-testid="search-view-root">
-      <Stack gap="fib-4">
-        <Breadcrumbs
-          items={[
-            { label: 'Galaxy', href: '/galaxy' },
-            { label: 'Search' },
-          ]}
-        />
-        <Center max="lg" gutter="none">
-          <section className={styles.searchPanel}>
-            <Search.Root>
-              <Search.Panel scope="search" />
-              <Search.Results
-                alwaysOpen
-                renderItem={(result) => (
-                  <SearchResultItem key={result.id} result={result} />
-                )}
-              />
-            </Search.Root>
-          </section>
-        </Center>
-      </Stack>
-    </main>
+    <SpatialShell
+      mode="document"
+      testId="search-view-root"
+      activeWorkspace="map"
+    >
+      <div className={styles.searchView}>
+        <Stack gap="fib-4">
+          <Breadcrumbs
+            items={[
+              { label: 'Galaxy', href: '/galaxy' },
+              { label: 'Search' },
+            ]}
+          />
+          <Center max="lg" gutter="none">
+            <Panel aria-label="Search">
+              <Search.Root
+                locationPathname={locationPathname}
+                locationSearch={locationSearch}
+              >
+                <Search.Panel scope="search" />
+                <Search.Results
+                  alwaysOpen
+                  renderItem={(result) => (
+                    <SearchResultItem key={result.id} result={result} />
+                  )}
+                />
+              </Search.Root>
+            </Panel>
+          </Center>
+        </Stack>
+      </div>
+    </SpatialShell>
   );
 };

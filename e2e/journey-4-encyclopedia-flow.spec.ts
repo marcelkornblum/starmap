@@ -89,13 +89,13 @@ test.describe('Journey 4: Classification Deep-Dive via Encyclopedia', () => {
     await firstHazardLink.click();
     await expect(page).toHaveURL(/\/guide\/hazards\//);
 
-    // 6. Uses Primary mode navigation to return to the 3D Atlas
-    const primaryModeNav = page.getByRole('navigation', { name: 'Primary mode' });
-    await expect(primaryModeNav).toBeVisible();
+    // 6. Uses Primary navigation (ConsoleDock) to return to the 3D Atlas
+    const primaryNav = page.getByRole('navigation', { name: 'Primary navigation' });
+    await expect(primaryNav).toBeVisible();
 
-    const galaxyLink = primaryModeNav.getByRole('link', { name: 'Galaxy' });
-    await expect(galaxyLink).toBeVisible();
-    await galaxyLink.click();
+    const mapLink = primaryNav.getByRole('link', { name: 'Map' });
+    await expect(mapLink).toBeVisible();
+    await mapLink.click();
 
     // Verifies returned to galaxy view
     await expect(page).toHaveURL(/\/galaxy/);

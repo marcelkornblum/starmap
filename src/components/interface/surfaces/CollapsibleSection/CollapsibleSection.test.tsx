@@ -210,4 +210,26 @@ describe('<CollapsibleSection />', () => {
     expect(section.getAttribute('data-expanded')).toBe('false');
     expect(trigger.getAttribute('aria-controls')).toBeNull();
   });
+
+  it('renders an accessible SVG chevron icon inside the trigger that tracks expanded state', () => {
+    render(
+      <CollapsibleSection
+        title="Orbital Parameters"
+        toggleTestId="orbital-toggle"
+        defaultOpen={false}
+      >
+        <div>Semi-major axis</div>
+      </CollapsibleSection>,
+    );
+
+    const trigger = screen.getByTestId('orbital-toggle');
+    const chevronSvg = trigger.querySelector('svg');
+    expect(chevronSvg).not.toBeNull();
+    expect(chevronSvg).toHaveAttribute('data-direction', 'down');
+    expect(chevronSvg?.parentElement).toHaveAttribute('aria-hidden', 'true');
+    expect(chevronSvg?.parentElement?.parentElement).toHaveAttribute('data-expanded', 'false');
+
+    fireEvent.click(trigger);
+    expect(chevronSvg?.parentElement?.parentElement).toHaveAttribute('data-expanded', 'true');
+  });
 });

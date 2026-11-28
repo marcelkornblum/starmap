@@ -1,12 +1,8 @@
 import type { FormEvent, ReactNode } from 'react';
-import { useLayerIndex } from '../../../../hooks/useLayerData';
-import {
-  useOptionalRouter,
-  type StarmapSearchParams,
-} from '../../../../hooks/useSpaLocation';
-import { pickRandomLayerOverviewHref } from '../../../../services/layerCardService';
-import { parseLayerQueryParam } from '../../../../utils/url';
-import { Button, Heading } from '../../../interface';
+import { Heading } from '../../../interface';
+import { useOptionalRouter } from '../../../../hooks/useSpaLocation';
+import { buildSearchViewHref } from '../../../../services/search/searchUrls';
+import { resolveAppHref } from '../../../../utils/url';
 import { useSearchContext } from '../SearchContext';
 import { SearchInput } from '../SearchInput';
 import { SearchCategoryFilterSelect } from '../SearchCategoryFilterSelect';
@@ -23,43 +19,21 @@ export const SearchPanel = ({
   children,
   scope,
 }: SearchPanelProps) => {
-  const { isFocused, setIsFocused } = useSearchContext();
-  const layerIndex = useLayerIndex();
+  const { query, filter, submitSearch, isFocused, setIsFocused } = useSearchContext();
   const router = useOptionalRouter();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-  };
-
-  const handleExplore = (): void => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    if (setIsFocused) {
-      setIsFocused(false);
-    }
-    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-    const routerSearch = router?.state?.location?.search as StarmapSearchParams | undefined;
-    const currentLayer = routerSearch?.layer ?? null;
-    const nextHref = pickRandomLayerOverviewHref(
-      currentLayer,
-      Math.random,
-      layerIndex,
-    );
-    const parsedNext = parseLayerQueryParam(
-      new URLSearchParams(nextHref.split('?')[1] ?? '').get('layer'),
-    );
-    if (router?.state && typeof router.navigate === 'function' && parsedNext?.layerSlug) {
-      void router.navigate({
-        to: '/galaxy',
-        search: (prev) => ({
-          ...prev,
-          select: `layer:${parsedNext.layerSlug}`,
-          layer: parsedNext.layerSlug,
-        }),
-      });
+    void submitSearch?.(query, filter);
+    if (scope !== 'search' && query.trim().length > 0) {
+      const href = buildSearchViewHref(query, filter, '/search');
+      setIsFocused?.(false);
+      const resolved = resolveAppHref(href) ?? href;
+      if (router && typeof router.navigate === 'function') {
+        void router.navigate({ href: resolved });
+      } else if (router?.history?.push) {
+        router.history.push(resolved);
+      }
     }
   };
 
@@ -93,15 +67,6 @@ export const SearchPanel = ({
               data-testid="search-expanded-drawer"
             >
               <SearchCategoryFilterSelect />
-              <Button
-                type="button"
-                size="sm"
-                variant="default"
-                data-testid="search-explore-button"
-                onClick={handleExplore}
-              >
-                Explore
-              </Button>
             </div>
           </>
         )}

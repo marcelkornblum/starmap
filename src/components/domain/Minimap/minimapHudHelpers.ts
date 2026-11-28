@@ -1,13 +1,23 @@
-import { GALACTIC_FRAME, PLANETARY_FRAME, SYSTEM_FRAME } from '../../../config/referenceFrames';
+import { SYSTEM_FRAME } from '../../../config/referenceFrames';
 import type { MinimapOrientationSummary, MinimapScope } from '../../../services/details/detailsNavigationTypes';
 import { DEG_TO_RADIANS } from '../../../utils/astroCoordinates';
 import {
-  CANONICAL_ISOMETRIC_POSE,
+  FRAME_BY_SCOPE,
+  formatDistanceValue,
+  isInitialUntouchedPose,
   projectPoint3D,
+  resolveSphericalFallbackPose,
   type CameraBasis,
   type ProjectedPoint,
   type Vec3Tuple,
 } from '../../../utils/orientationProjectionMath';
+
+export {
+  FRAME_BY_SCOPE,
+  formatDistanceValue,
+  isInitialUntouchedPose,
+  resolveSphericalFallbackPose,
+};
 
 export const SVG_WIDTH = 196;
 export const SVG_HEIGHT = 128;
@@ -20,50 +30,6 @@ const CORE_ARC_RADIUS = 3.8;
 const INNER_ARC_RADIUS = 2.82;
 const OUTER_ARC_RADIUS = 4.78;
 const SECTOR_HALF_SPAN_DEG = 16.5;
-
-export const FRAME_BY_SCOPE = {
-  galaxy: GALACTIC_FRAME,
-  system: SYSTEM_FRAME,
-  planet: PLANETARY_FRAME,
-} as const;
-
-export function isInitialUntouchedPose(pos: Vec3Tuple, target: Vec3Tuple, up: Vec3Tuple): boolean {
-  return (
-    pos[0] === 0 && pos[1] === 0 && pos[2] === 10 &&
-    target[0] === 0 && target[1] === 0 && target[2] === 0 &&
-    up[0] === 0 && up[1] === 1 && up[2] === 0
-  );
-}
-
-export function resolveSphericalFallbackPose(
-  orientation: MinimapOrientationSummary,
-): { position: Vec3Tuple; target: Vec3Tuple; up: Vec3Tuple; distance: number } {
-  const dist =
-    typeof orientation.cameraDistance === 'number' &&
-    Number.isFinite(orientation.cameraDistance) &&
-    orientation.cameraDistance > 0
-      ? orientation.cameraDistance
-      : 20;
-
-  if (orientation.cameraAzimuthDeg === undefined && orientation.cameraElevationDeg === undefined) {
-    return {
-      position: [0, -30, 18],
-      target: CANONICAL_ISOMETRIC_POSE.target,
-      up: CANONICAL_ISOMETRIC_POSE.up,
-      distance: dist,
-    };
-  }
-
-  const azRad = (orientation.cameraAzimuthDeg ?? 45) * DEG_TO_RADIANS;
-  const elRad = (orientation.cameraElevationDeg ?? 30) * DEG_TO_RADIANS;
-  const cosEl = Math.cos(elRad);
-  return {
-    position: [-dist * cosEl * Math.cos(azRad), -dist * cosEl * Math.sin(azRad), dist * Math.sin(elRad)],
-    target: [0, 0, 0],
-    up: [0, 0, 1],
-    distance: dist,
-  };
-}
 
 function getCumulativeScopeTiltDeg(orientation: MinimapOrientationSummary): number {
   if (orientation.scope === 'galaxy') return 0;
@@ -241,11 +207,4 @@ function computeZoomNormalized(scope: MinimapScope, distance: number): number {
 
 export function computeZoomBarFillWidth(scope: MinimapScope, distance: number): number {
   return Number((computeZoomNormalized(scope, distance) * ZOOM_TRACK_WIDTH).toFixed(1));
-}
-
-export function formatDistanceValue(distance: number): string {
-  if (!Number.isFinite(distance) || distance <= 0) return '—';
-  if (distance >= 100) return distance.toFixed(0);
-  if (distance >= 10) return distance.toFixed(1);
-  return distance.toFixed(2);
 }

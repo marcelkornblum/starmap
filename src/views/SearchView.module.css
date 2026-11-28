@@ -1,24 +1,11 @@
 @layer blocks {
   .searchView {
-    min-block-size: 100dvh;
+    inline-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 100%;
     background: var(--surface-canvas-stage-bg);
     color: var(--content-default);
     padding: var(--space-fib-4);
     box-sizing: border-box;
-  }
-
-  .searchPanel {
-    --ui-control-inset-bg: var(--surface-block-bg);
-    --ui-control-inset-border-color: transparent;
-    --ui-control-inset-shadow: none;
-    --border-color-subtle: transparent;
-    inline-size: 100%;
-    background: var(--surface-panel-bg);
-    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
-    border-radius: var(--radius-container);
-    padding: var(--space-fib-4);
-    box-sizing: border-box;
-    backdrop-filter: var(--surface-panel-backdrop-filter);
-    box-shadow: var(--surface-panel-shadow);
   }
 }

@@ -29,36 +29,38 @@ Starmap adopts an **Adaptive Hybrid Console** model, combining the unobstructed 
 
 1. **3D Viewport Canvas:**
    - The primary spatial environment for astronomical navigation.
-2. **Persistent Navigation & Control Dock:**
-   - Anchors global navigation, time/epoch controls, and search entry point.
-   - Sits **coplanar** (flush) on the exact same physical plane as the 3D canvas, separated by a clean 1px hairline boundary divider.
-   - Provides a consistent structural anchor across all device classes.
-3. **Fluid Telemetry Container:**
-   - The dedicated host for astronomical entity data, catalogues, and telemetry readouts.
-   - Adapts dynamically to viewport shape, orientation, and user intent.
+   - Enforces screen-space hit-circle floors (`44px` diameter on touch, `28px` on mouse) with cluster fan-out and `14px` touch tap-slop so celestial nodes stay acquirable across portrait and landscape viewports.
+2. **Persistent Console Dock (`ConsoleDock` on `<Dock>`):**
+   - Anchors primary workspace navigation (`Map`, `Discover`, `Guide`) across spatial, search, and reference routes, preserving active map context across workspace switches.
+   - Sits **coplanar** on the same physical plane as the stage, separated by a `1px` hairline divider: a `55px` bottom shelf on phone (`< 768px`) and a `63px` vertical left rail on tablet and desktop (`>= 768px`).
+3. **Bilateral Stage Visor & Telemetry Containers:**
+   - **Left Column (Active Locus & Dossier):** Aligns spatial `<Breadcrumbs>` directly above `DetailsPanel`, `DirectionsPanel`, `DiscoverPanel`, or `LayerCard`.
+   - **Right Column (Target Discovery):** Pairs on-map `<Search>` with the `Bodies` drawer trigger below `1280px` (sliding open a headered right drawer that auto-closes on selection), and aligns `<Search>` directly above the docked `BodiesPanel` at `>= 1280px`.
+   - **Orientation Readout:** Renders the 3D SVG `<Minimap>` on `>= 768px` and a compact `<VisorScalePill>` (focal distance + North reset) beside `<Breadcrumbs>` on `< 768px`.
 
 ### Telemetry Container Modes
 
-The telemetry container supports two primary operational states across desktop and landscape environments:
+The telemetry container supports two operational states across desktop and landscape environments:
 
 - **Overlay Mode:**
   - Floats above the 3D canvas for rapid inspection and glanceable reads.
-  - The canvas remains full-bleed beneath, preserving spatial continuity.
+  - Enforces strict inline overflow containment (`overflow-x: clip`, `min-inline-size: 0`) and wrapping `<Datum>` slots so narrow tablet viewports (`768px–1024px`) never scroll panels horizontally off-screen.
 - **Docked Mode:**
   - Locks flush with the viewport frame as a structural co-presence.
   - The 3D canvas bounds adjust so that space objects and telemetry exist side-by-side with zero occlusion.
-  - **Camera Viewport Compensation:** The 3D camera controller automatically recalculates its projection and framing to keep the active celestial target centred within the adjusted canvas area.
+  - **Camera Viewport Compensation:** The 3D camera controller recalculates its projection and framing to keep the active celestial target centred within the adjusted canvas area.
 
-### Responsive Spatial Behaviours
+### Responsive Spatial Behaviours & Touch Targets
 
-- **Mobile & Portrait Orientation (< 768px):**
-  - The telemetry container docks to the bottom edge above the persistent dock via `<DetentSheet>`.
-  - Operates via stepped vertical detents:
-    - **Peek:** Compact summary displaying identity and primary status, leaving maximum space for 3D interaction.
-    - **Partial View:** Displays key tabular metrics and immediate actions.
-    - **Full View:** Maximised sheet for comprehensive data analysis and reading.
+- **Coarse-Pointer Ergonomics (`@media (pointer: coarse)`):**
+  - Interactive controls (`<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`) and list rows enforce a `--size-touch-target-min` (`44px`) block-size floor, `16px` input text (`--text-ui-control-coarse-size`) to prevent browser auto-zoom, and pseudo-element hit-slop on inline links while keeping fine-pointer desktop chrome compact.
+- **Mobile Bottom Sheet (`< 768px`):**
+  - `DetailsPanel` docks coplanar directly above the bottom `ConsoleDock` via `<DetentSheet>`, measuring intrinsic heights with `ResizeObserver`:
+    - **Peek:** Displays the drag handle, entity identity/badges row, and primary CTA buttons (`Details`, conditional `Centre`, `Directions`).
+    - **Partial View:** Expands upward to a content-measured height (`<= 68dvh`), revealing the prose summary and `<PreviewPanel>` fluidly (`--detent-expand-progress`) *above* the CTA row while keeping the CTAs anchored at the exact same bottom Y coordinate.
+    - **Full View:** Fills the stage above `ConsoleDock` and scrolls lower telemetry naturally below the overview frame.
 - **Wide Displays (≥ 1920px):**
-  - The container expands horizontally into **Multi-Bay** configurations (via `SpatialShell`), grouping related data sets (e.g. physical parameters alongside orbital elements) when real estate permits.
+  - The container expands horizontally into **Multi-Bay** configurations (via `SpatialShell`), grouping related data sets when real estate permits.
 
 ---
 

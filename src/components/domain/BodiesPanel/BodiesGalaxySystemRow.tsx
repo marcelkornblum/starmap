@@ -82,6 +82,7 @@ export const BodiesGalaxySystemRow = React.memo(function BodiesGalaxySystemRow({
             title={sys.name}
             href={sys.href}
             showTooltip={false}
+            stretchLink={Boolean(sys.href)}
             titleTestId="bodies-galaxy-system-link"
             symbolTestId="bodies-galaxy-system-reticle"
           />

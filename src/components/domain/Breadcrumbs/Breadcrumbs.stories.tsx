@@ -29,7 +29,6 @@ const PRESETS: Record<string, readonly BreadcrumbItem[]> = {
 
 interface BreadcrumbsStoryArgs {
   preset: 'galaxy' | 'system' | 'planet' | 'search' | 'guide';
-  showCompanion: boolean;
 }
 
 const meta: Meta<BreadcrumbsStoryArgs> = {
@@ -43,10 +42,6 @@ const meta: Meta<BreadcrumbsStoryArgs> = {
       options: ['galaxy', 'system', 'planet', 'search', 'guide'],
       description: 'Hierarchy depth preset',
     },
-    showCompanion: {
-      control: 'boolean',
-      description: 'Display persistent companion button (Guide / Map)',
-    },
   },
 };
 
@@ -57,7 +52,6 @@ export const BreadcrumbsStory: Story = {
   name: 'Breadcrumbs',
   args: {
     preset: 'planet',
-    showCompanion: true,
   },
   render: (args) => {
     const activeItems = PRESETS[args.preset] ?? PRESETS.planet;
@@ -67,7 +61,7 @@ export const BreadcrumbsStory: Story = {
         <header className={storyStyles.header}>
           <h1 className={storyStyles.title}>Breadcrumbs</h1>
           <p className={storyStyles.description}>
-            Top-anchored breadcrumb navigation tracking spatial context alongside a persistent guide/map companion action.
+            Top-anchored breadcrumb navigation tracking spatial and reference hierarchy context.
           </p>
         </header>
 
@@ -77,44 +71,28 @@ export const BreadcrumbsStory: Story = {
               Interactive Preview ({args.preset})
             </h2>
             <div className={storyStyles.previewContainer}>
-              <Breadcrumbs
-                items={activeItems}
-                companionHref={args.showCompanion ? '/guide' : undefined}
-                companionLabel={args.showCompanion ? 'Guide' : undefined}
-              />
+              <Breadcrumbs items={activeItems} />
             </div>
           </section>
 
           <section className={storyStyles.section}>
             <h2 className={storyStyles.sectionTitle}>Galaxy Level</h2>
             <div className={storyStyles.previewContainer}>
-              <Breadcrumbs
-                items={PRESETS.galaxy}
-                companionHref="/guide"
-                companionLabel="Guide"
-              />
+              <Breadcrumbs items={PRESETS.galaxy} />
             </div>
           </section>
 
           <section className={storyStyles.section}>
             <h2 className={storyStyles.sectionTitle}>System Level</h2>
             <div className={storyStyles.previewContainer}>
-              <Breadcrumbs
-                items={PRESETS.system}
-                companionHref="/guide"
-                companionLabel="Guide"
-              />
+              <Breadcrumbs items={PRESETS.system} />
             </div>
           </section>
 
           <section className={storyStyles.section}>
             <h2 className={storyStyles.sectionTitle}>Planet Level</h2>
             <div className={storyStyles.previewContainer}>
-              <Breadcrumbs
-                items={PRESETS.planet}
-                companionHref="/guide"
-                companionLabel="Guide"
-              />
+              <Breadcrumbs items={PRESETS.planet} />
             </div>
           </section>
         </Stack>

@@ -162,7 +162,7 @@ describe('useViewportSafeRectObserver', () => {
     expect(useUIStore.getState().viewportSafeRect).toBeNull();
   });
 
-  it('reads detailsDetent from useUIStore and sets bypass=true when detailsDetent is full on mobile', () => {
+  it('reads detailsDetent from useUIStore and clamps bottom inset without setting bypass=true when detailsDetent is full on mobile', () => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       writable: true,
@@ -203,19 +203,20 @@ describe('useViewportSafeRectObserver', () => {
       vi.runAllTimers();
     });
 
-    expect(useUIStore.getState().viewportSafeRect?.bypass).toBe(true);
+    expect(useUIStore.getState().viewportSafeRect?.bypass).toBe(false);
+    expect(useUIStore.getState().viewportSafeRect?.bottom).toBeCloseTo(844 * 0.68, 4);
   });
 
-  it('gates bodiesRegion measurement on isBodiesDrawerOpen below desktop breakpoint and includes it when open', () => {
+  it('gates bodiesRegion measurement on isBodiesDrawerOpen below 1280px desktop breakpoint and includes it when open or >= 1280px', () => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       writable: true,
-      value: 768,
+      value: 1024,
     });
     Object.defineProperty(window, 'innerHeight', {
       configurable: true,
       writable: true,
-      value: 1024,
+      value: 768,
     });
 
     let captured: Parameters<HarnessProps['onRefsReady']>[0] | null = null;
@@ -228,8 +229,8 @@ describe('useViewportSafeRectObserver', () => {
       />,
     );
 
-    setRect(captured!.shell, { left: 0, top: 0, width: 768, height: 1024 });
-    setRect(captured!.bodiesRegion, { left: 384, top: 0, width: 384, height: 1024 });
+    setRect(captured!.shell, { left: 0, top: 0, width: 1024, height: 768 });
+    setRect(captured!.bodiesRegion, { left: 640, top: 0, width: 384, height: 768 });
 
     vi.useFakeTimers();
     act(() => {
@@ -238,6 +239,8 @@ describe('useViewportSafeRectObserver', () => {
     });
 
     expect(useUIStore.getState().viewportSafeRect?.right).toBe(0);
+
+    const setSafeRectSpy = vi.spyOn(useUIStore.getState(), 'setViewportSafeRect');
 
     rerender(
       <ObserverHarness
@@ -248,8 +251,10 @@ describe('useViewportSafeRectObserver', () => {
       />,
     );
 
-    setRect(captured!.shell, { left: 0, top: 0, width: 768, height: 1024 });
-    setRect(captured!.bodiesRegion, { left: 384, top: 0, width: 384, height: 1024 });
+    expect(setSafeRectSpy).not.toHaveBeenCalledWith(null);
+
+    setRect(captured!.shell, { left: 0, top: 0, width: 1024, height: 768 });
+    setRect(captured!.bodiesRegion, { left: 640, top: 0, width: 384, height: 768 });
 
     act(() => {
       vi.runAllTimers();

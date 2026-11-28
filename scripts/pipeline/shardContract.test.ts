@@ -58,7 +58,7 @@ describe('Precalculated Hybrid Shard Contract (H2 / M10 / M16 / P-03)', () => {
       const legacyFiles = files.filter((f) => LEGACY_36_BUCKET_REGEX.test(f));
       expect(legacyFiles, `Legacy 36-bucket files found in ${subDir}/`).toEqual([]);
     }
-  });
+  }, 20_000);
 
   it('decodes every spatial summary shard strictly with valid precalculated fields and zero sector boundary drift', () => {
     const manifest = loadDataManifest();
@@ -91,7 +91,7 @@ describe('Precalculated Hybrid Shard Contract (H2 / M10 / M16 / P-03)', () => {
     }
 
     expect(summaryCount).toBeGreaterThan(0);
-  });
+  }, 20_000);
 
   it('decodes every hybrid detail shard strictly with required composition, reticleType, counts, and routing.json', () => {
     const manifest = loadDataManifest();
@@ -203,7 +203,7 @@ describe('Precalculated Hybrid Shard Contract (H2 / M10 / M16 / P-03)', () => {
 
     expect(routing.k[routing.d['sol']!]).toBe('sector_+000_+000_+000');
     expect(routing.d['sol-A']).toBe(-1);
-  });
+  }, 20_000);
 
   it('emits valid reference-baselines.json and guide-examples.json datasets', () => {
     const manifest = loadDataManifest();

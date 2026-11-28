@@ -5,6 +5,8 @@
     --collapsible-heading-hover-color: var(--content-prominent);
     --collapsible-chevron-color: inherit;
     --collapsible-chevron-rotation: 0deg;
+    --collapsible-hit-slop-block: var(--space-hit-slop-block);
+    --collapsible-hit-slop-inline: var(--space-hit-slop-inline);
 
     display: flex;
     flex-direction: column;
@@ -14,6 +16,7 @@
   .trigger {
     --collapsible-trigger-gap: var(--space-fib-1);
 
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: var(--collapsible-trigger-gap);
@@ -62,5 +65,14 @@
 
   .chevron[data-expanded="false"] {
     --collapsible-chevron-rotation: -90deg;
+  }
+
+  @media (pointer: coarse) {
+    .trigger::after {
+      content: '';
+      position: absolute;
+      inset-block: var(--collapsible-hit-slop-block);
+      inset-inline: var(--collapsible-hit-slop-inline);
+    }
   }
 }

@@ -22,7 +22,11 @@ export interface MeasuredHudPanels {
   readonly floatingLeftItems?: readonly PanelRectLike[];
   readonly bodiesRegion?: PanelRectLike | null;
   readonly controlsRegion?: PanelRectLike | null;
-  readonly mobileDetentSheet?: (PanelRectLike & { readonly detent?: string | null }) | null;
+  readonly mobileDetentSheet?: (PanelRectLike & {
+    readonly detent?: string | null;
+    readonly beyondPartial?: boolean;
+    readonly partialHeightPx?: number;
+  }) | null;
 }
 
 export const MIN_SAFE_VIEWPORT_DIMENSION_PX = 140;
@@ -102,20 +106,42 @@ export function computeViewportSafeRect(
   ) {
     bottom = Math.max(bottom, clamp(viewportHeight - panels.controlsRegion.top, 0, viewportHeight));
   }
-  if (
-    isValidRect(panels.mobileDetentSheet) &&
-    panels.mobileDetentSheet.detent !== 'full'
-  ) {
-    bottom = Math.max(
-      bottom,
-      clamp(viewportHeight - panels.mobileDetentSheet.top, 0, viewportHeight),
+  if (isValidRect(panels.mobileDetentSheet)) {
+    const rawSheetBottom = clamp(
+      viewportHeight - panels.mobileDetentSheet.top,
+      0,
+      viewportHeight,
     );
+    const sheetBottomBaseOffset = clamp(
+      viewportHeight - panels.mobileDetentSheet.bottom,
+      0,
+      viewportHeight,
+    );
+    const maxSafeBottom = Math.max(
+      0,
+      viewportHeight - top - MIN_SAFE_VIEWPORT_DIMENSION_PX,
+    );
+    const rawPartialHeight = panels.mobileDetentSheet.partialHeightPx;
+    const partialCeilingBottom =
+      typeof rawPartialHeight === 'number' &&
+      Number.isFinite(rawPartialHeight) &&
+      rawPartialHeight > 0
+        ? sheetBottomBaseOffset + rawPartialHeight
+        : Math.min(viewportHeight * 0.68, maxSafeBottom);
+    const effectivePartialCeiling = Math.min(partialCeilingBottom, maxSafeBottom);
+
+    const sheetBottom =
+      panels.mobileDetentSheet.detent === 'full' ||
+      panels.mobileDetentSheet.beyondPartial === true
+        ? effectivePartialCeiling
+        : Math.min(rawSheetBottom, effectivePartialCeiling);
+
+    bottom = Math.max(bottom, sheetBottom);
   }
 
   const width = Math.max(0, viewportWidth - left - right);
   const height = Math.max(0, viewportHeight - top - bottom);
   const bypass =
-    panels.mobileDetentSheet?.detent === 'full' ||
     width < MIN_SAFE_VIEWPORT_DIMENSION_PX ||
     height < MIN_SAFE_VIEWPORT_DIMENSION_PX;
 

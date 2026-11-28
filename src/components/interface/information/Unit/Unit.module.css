@@ -4,6 +4,8 @@
     --unit-font-size: var(--text-unit-size, calc(1em / var(--type-ratio, 1.25)));
     --unit-color: oklch(from var(--content-warm-accent) l c h / 0.85);
     --unit-font-weight: var(--font-weight-regular);
+    --unit-hit-slop-block: var(--space-hit-slop-block);
+    --unit-hit-slop-inline: var(--space-hit-slop-inline);
 
     display: inline;
     font-family: var(--unit-font-family);
@@ -19,15 +21,29 @@
 
 @layer exceptions {
   .unit[data-interactive="true"],
+  .unit:is(a),
   .unit a {
+    position: relative;
     color: inherit;
     text-decoration: none;
     cursor: pointer;
   }
 
   .unit[data-interactive="true"]:hover,
+  .unit:is(a):hover,
   .unit a:hover {
     text-decoration: none;
     color: var(--content-prominent);
+  }
+
+  @media (pointer: coarse) {
+    .unit[data-interactive="true"]::before,
+    .unit:is(a)::before,
+    .unit a::before {
+      content: '';
+      position: absolute;
+      inset-block: var(--unit-hit-slop-block);
+      inset-inline: var(--unit-hit-slop-inline);
+    }
   }
 }

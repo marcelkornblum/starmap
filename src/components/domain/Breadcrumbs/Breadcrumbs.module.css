@@ -1,12 +1,18 @@
 @layer blocks {
   .breadcrumbsNav {
+    --breadcrumbs-gap: var(--space-fib-2);
+    --breadcrumbs-font-size: var(--type-scale-neg-1);
+    --breadcrumbs-hit-slop-block: var(--space-hit-slop-block);
+    --breadcrumbs-hit-slop-inline: var(--space-hit-slop-inline);
+
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
-    gap: var(--space-fib-2);
+    gap: var(--breadcrumbs-gap);
     flex-wrap: nowrap;
+    margin: 0;
     font-family: var(--font-interface);
-    font-size: var(--type-scale-neg-1);
+    font-size: var(--breadcrumbs-font-size);
     line-height: var(--leading-control);
   }
 
@@ -19,6 +25,7 @@
   }
 
   .breadcrumbItem a {
+    position: relative;
     color: var(--content-muted);
     text-decoration: none;
   }
@@ -36,48 +43,22 @@
     content: '/';
     color: var(--content-faint);
   }
-
-  .modeMenu {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--stroke-width-2);
-    background: transparent;
-    border: none;
-    padding: 0;
-    flex: 0 0 auto;
-  }
-
-  .modeMenu [data-mode-button] {
-    flex: 0 0 auto;
-    --button-font-size: var(--type-scale-neg-1);
-    --button-padding-block: var(--stroke-width-2);
-    --button-padding-inline: var(--space-fib-2);
-    --button-leading: var(--scalar-line-100);
-    --button-radius: calc(var(--radius-control) - var(--stroke-width-2));
-    min-block-size: var(--ui-control-height-sm);
-  }
-
-  .modeMenu [data-mode-button][data-active="true"] {
-    --button-font-weight: var(--font-weight-medium);
-  }
 }
 
 @layer exceptions {
   @media (max-width: 767px) {
     .breadcrumbsNav {
-      font-size: var(--type-scale-neg-2);
-      gap: var(--space-fib-1);
+      --breadcrumbs-font-size: var(--type-scale-neg-1);
+      --breadcrumbs-gap: var(--space-fib-1);
     }
+  }
 
-    .modeMenu {
-      padding: 0;
-      gap: var(--stroke-width-1);
-    }
-
-    .modeMenu [data-mode-button] {
-      --button-font-size: var(--type-scale-neg-2);
-      --button-padding-inline: var(--space-fib-1);
-      min-block-size: var(--space-fib-5);
+  @media (pointer: coarse) {
+    .breadcrumbItem a::before {
+      content: '';
+      position: absolute;
+      inset-block: var(--breadcrumbs-hit-slop-block);
+      inset-inline: var(--breadcrumbs-hit-slop-inline);
     }
   }
 }

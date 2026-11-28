@@ -22,7 +22,7 @@ import {
   SEARCH_MIN_QUERY_LENGTH,
   searchCatalog,
 } from './searchHelpers';
-import { resolveInitialQuery } from './searchUrlSync';
+import { resolveInitialFilter, resolveInitialQuery } from './searchUrlSync';
 import {
   syncSelectedSystemsToStore,
   syncUrlFocusToStore,
@@ -64,19 +64,20 @@ export const runSearchCorpusPrewarm = async ({
   isCancelled,
 }: PrewarmCorpusParams): Promise<readonly CompactSearchEntry[] | undefined> => {
   const startQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
+  const startFilter = resolveInitialFilter(syncUrl, activeSearch, initialFilter);
   const hasActiveSearchIntent =
     isSearchRoute ||
     startQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH ||
-    initialFilter !== 'all';
+    startFilter !== 'all';
 
   if (hasActiveSearchIntent) {
     escalateSearchBackgroundWarmup();
   }
 
-  const targetScope = hasActiveSearchIntent ? initialFilter : 'startup';
+  const targetScope = hasActiveSearchIntent ? startFilter : 'startup';
   const [corpus, coreShard] = await Promise.all([
     loadSearchCorpusForFilter(targetScope),
-    hasActiveSearchIntent && initialFilter !== 'all'
+    hasActiveSearchIntent && startFilter !== 'all'
       ? fetchSearchShard('core').catch(() => undefined)
       : Promise.resolve(undefined),
   ]);
@@ -108,7 +109,7 @@ export const runSearchCorpusPrewarm = async ({
   if (startQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH) {
     const computed = searchCatalog(corpus, {
       query: startQuery,
-      filter: initialFilter,
+      filter: startFilter,
       limitPerCategory,
       systemEntries,
     });
@@ -122,7 +123,7 @@ export const runSearchCorpusPrewarm = async ({
       store,
       searchCatalog([], {
         query: '',
-        filter: initialFilter,
+        filter: startFilter,
         limitPerCategory,
       }),
       activeSearch,

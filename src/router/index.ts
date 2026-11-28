@@ -4,12 +4,14 @@ import {
   createRoute,
   createRootRoute,
   defaultStringifySearch,
+  lazyRouteComponent,
 } from '@tanstack/react-router';
 import {
   useSpaLocation,
   resolveSpaLocation,
   type StarmapSearchParams,
 } from '../hooks/useSpaLocation';
+import { registerGuideViewsPreloader } from '../services/navigation/guidePreloader';
 import { registerSpatialViewPreloader } from '../services/navigation/scalePreloader';
 import { RootLayout } from './RootLayout';
 
@@ -22,41 +24,61 @@ registerSpatialViewPreloader((scope) => {
 const GalaxyView = lazy(() =>
   import('../views/GalaxyView').then((m) => ({ default: m.GalaxyView })),
 );
-const HazardDetailView = lazy(() =>
-  import('../views/HazardDetailView').then((m) => ({ default: m.HazardDetailView })),
+const HazardDetailView = lazyRouteComponent(
+  () => import('../views/HazardDetailView'),
+  'HazardDetailView',
 );
-const HazardsListView = lazy(() =>
-  import('../views/HazardsListView').then((m) => ({ default: m.HazardsListView })),
+const HazardsListView = lazyRouteComponent(
+  () => import('../views/HazardsListView'),
+  'HazardsListView',
 );
-const LegendGuideView = lazy(() =>
-  import('../views/LegendGuideView').then((m) => ({ default: m.LegendGuideView })),
+const LegendGuideView = lazyRouteComponent(
+  () => import('../views/LegendGuideView'),
+  'LegendGuideView',
 );
-const MetricDetailView = lazy(() =>
-  import('../views/MetricDetailView').then((m) => ({ default: m.MetricDetailView })),
+const MetricDetailView = lazyRouteComponent(
+  () => import('../views/MetricDetailView'),
+  'MetricDetailView',
 );
-const MetricsListView = lazy(() =>
-  import('../views/MetricsListView').then((m) => ({ default: m.MetricsListView })),
+const MetricsListView = lazyRouteComponent(
+  () => import('../views/MetricsListView'),
+  'MetricsListView',
 );
-const PlanetTypeDetailView = lazy(() =>
-  import('../views/PlanetTypeDetailView').then((m) => ({ default: m.PlanetTypeDetailView })),
+const PlanetTypeDetailView = lazyRouteComponent(
+  () => import('../views/PlanetTypeDetailView'),
+  'PlanetTypeDetailView',
 );
-const PlanetTypesListView = lazy(() =>
-  import('../views/PlanetTypesListView').then((m) => ({ default: m.PlanetTypesListView })),
+const PlanetTypesListView = lazyRouteComponent(
+  () => import('../views/PlanetTypesListView'),
+  'PlanetTypesListView',
 );
 const PlanetView = lazy(() =>
   import('../views/PlanetView').then((m) => ({ default: m.PlanetView })),
 );
-const SearchView = lazy(() =>
-  import('../views/SearchView').then((m) => ({ default: m.SearchView })),
+const SearchView = lazyRouteComponent(
+  () => import('../views/SearchView'),
+  'SearchView',
 );
-const StarTypeDetailView = lazy(() =>
-  import('../views/StarTypeDetailView').then((m) => ({ default: m.StarTypeDetailView })),
+const StarTypeDetailView = lazyRouteComponent(
+  () => import('../views/StarTypeDetailView'),
+  'StarTypeDetailView',
 );
-const StarTypesListView = lazy(() =>
-  import('../views/StarTypesListView').then((m) => ({ default: m.StarTypesListView })),
+const StarTypesListView = lazyRouteComponent(
+  () => import('../views/StarTypesListView'),
+  'StarTypesListView',
 );
 const SystemView = lazy(() =>
   import('../views/SystemView').then((m) => ({ default: m.SystemView })),
+);
+
+registerGuideViewsPreloader(() =>
+  Promise.all([
+    StarTypesListView.preload?.(),
+    PlanetTypesListView.preload?.(),
+    MetricsListView.preload?.(),
+    HazardsListView.preload?.(),
+    LegendGuideView.preload?.(),
+  ]),
 );
 
 export {

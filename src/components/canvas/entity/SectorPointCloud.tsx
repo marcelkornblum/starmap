@@ -240,7 +240,7 @@ export function SectorPointCloud({
     const fy = focusPoint ? focusPoint.y : (Number.isNaN(lastYRef.current) ? 0 : lastYRef.current);
     const fz = focusPoint ? focusPoint.z : (Number.isNaN(lastZRef.current) ? 0 : lastZRef.current);
     const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? DEFAULT_STARFIELD_APERTURE_RADIUS_PC;
-
+    if (!Number.isFinite(fx) || !Number.isFinite(fy) || !Number.isFinite(fz) || !Number.isFinite(apertureRadius)) return;
     const mat = materialRef.current;
     if (mat) {
       mat.uniforms.uFocusCenter.value.set(fx, fy, fz);

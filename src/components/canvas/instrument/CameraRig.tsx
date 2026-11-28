@@ -11,6 +11,7 @@ import { useCameraRigProjection } from './useCameraRigProjection';
 import { useCameraRigStoreSync } from './useCameraRigStoreSync';
 import { useCameraRigViewOffset } from './useCameraRigViewOffset';
 import { useCameraClampBump } from './useCameraClampBump';
+import { useOrbitControlsPointerGuard } from './useOrbitControlsPointerGuard';
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 
@@ -82,6 +83,12 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   useCameraClampBump({
     domElement: gl?.domElement,
     get,
+  });
+
+  useOrbitControlsPointerGuard({
+    domElement: gl?.domElement,
+    controls,
+    camera,
   });
 
   useEffect(() => {

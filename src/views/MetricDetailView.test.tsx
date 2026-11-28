@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { MetricDetailView } from './MetricDetailView';
 
@@ -71,7 +71,10 @@ describe('<MetricDetailView />', () => {
     render(<MetricDetailView metricId="stellar-mass" />);
     const root = screen.getByTestId('metric-detail-view-root');
     expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
     expect(root.getAttribute('data-metric-id')).toBe('stellar-mass');
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     expect(screen.getByTestId('metric-comparative-3d')).toBeInTheDocument();
     const summary = screen.getByTestId('guide-detail-summary');
@@ -102,6 +105,7 @@ describe('<MetricDetailView />', () => {
     const focusContext = screen.getByTestId('guide-focus-context');
     expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('jupiter');
+    expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=jupiter');
   });
 
   it('renders cards for all classifications when multi-value metric is provided (AUD-092)', () => {
@@ -137,5 +141,20 @@ describe('<MetricDetailView />', () => {
     expect(compSection.getAttribute('data-focused-entity')).toBe('tau-ceti');
     expect(screen.getByTestId('metric-comparison-baseline').textContent).toContain('Sol');
     expect(screen.getByTestId('metric-comparison-target').textContent).toContain('Tau Ceti');
+  });
+
+  it('relies on GuideSectionNav for the section link without duplicate breadcrumbs or list-link button and wraps telemetry in a CollapsibleSection', () => {
+    const { container } = render(<MetricDetailView metricId="stellar-mass" />);
+
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
+    expect(screen.queryByTestId('metrics-list-link')).toBeNull();
+    const sectionLink = container.querySelector('a[href="/guide/metrics"]');
+    expect(sectionLink).not.toBeNull();
+
+    const telemetryToggle = screen.getByRole('button', { name: /Standard Formulation & Baseline/i });
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(telemetryToggle);
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('guide-detail-telemetry')).toBeNull();
   });
 });

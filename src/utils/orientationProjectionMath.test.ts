@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   CANONICAL_ISOMETRIC_POSE,
+  FRAME_BY_SCOPE,
   buildCameraBasis,
   projectPoint3D,
   projectOrbitalPoint3D,
   buildProjectedRing,
+  formatDistanceValue,
+  isInitialUntouchedPose,
+  resolveSphericalFallbackPose,
+  resolveEffectiveCameraOrientation,
 } from './orientationProjectionMath';
 
 function dot(a: readonly [number, number, number], b: readonly [number, number, number]): number {
@@ -176,5 +181,62 @@ describe('orientationProjectionMath', () => {
       scale: 50,
     });
     expect(rotatedNode.y).toBeCloseTo(100 - 50 * Math.sin((30 * Math.PI) / 180), 2);
+  });
+
+  it('exports FRAME_BY_SCOPE, formatDistanceValue, and resolveEffectiveCameraOrientation', () => {
+    expect(FRAME_BY_SCOPE.galaxy.unit).toBe('pc');
+    expect(FRAME_BY_SCOPE.system.unit).toBe('AU');
+    expect(FRAME_BY_SCOPE.planet.unit).toBe('km');
+
+    expect(formatDistanceValue(0)).toBe('—');
+    expect(formatDistanceValue(120)).toBe('120');
+    expect(formatDistanceValue(12.34)).toBe('12.3');
+    expect(formatDistanceValue(4.567)).toBe('4.57');
+
+    expect(isInitialUntouchedPose([0, 0, 10], [0, 0, 0], [0, 1, 0])).toBe(true);
+    expect(isInitialUntouchedPose([0, -10, 10], [0, 0, 0], [0, 0, 1])).toBe(false);
+
+    expect(
+      resolveEffectiveCameraOrientation(null, {
+        position: [0, 0, 10],
+        target: [0, 0, 0],
+        up: [0, 1, 0],
+        focalDistance: 10,
+      }),
+    ).toBeNull();
+
+    const orientation = {
+      scope: 'galaxy' as const,
+      anchorId: 'sol',
+      anchorName: 'Sol',
+      systemId: 'sol',
+      systemName: 'Sol',
+      cameraAzimuthDeg: 45,
+      cameraElevationDeg: 30,
+      cameraDistance: 42,
+      focusedMarker: null,
+      selectedMarkers: [],
+      markers: [],
+    };
+    const fallbackPose = resolveSphericalFallbackPose(orientation);
+    expect(fallbackPose.distance).toBe(42);
+
+    const fromFallback = resolveEffectiveCameraOrientation(orientation, {
+      position: [0, 0, 10],
+      target: [0, 0, 0],
+      up: [0, 1, 0],
+      focalDistance: 10,
+    });
+    expect(fromFallback?.distance).toBe(42);
+    expect(fromFallback?.basis.elevationDeg).toBeCloseTo(30, 1);
+
+    const fromLive = resolveEffectiveCameraOrientation(orientation, {
+      position: [0, -10, 10],
+      target: [0, 0, 0],
+      up: [0, 0, 1],
+      focalDistance: 14.14,
+    });
+    expect(fromLive?.distance).toBeCloseTo(14.14, 2);
+    expect(fromLive?.basis.elevationDeg).toBeCloseTo(45, 1);
   });
 });

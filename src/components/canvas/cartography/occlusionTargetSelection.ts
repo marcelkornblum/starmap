@@ -60,10 +60,26 @@ export function projectFootprint(
 ): void {
   if (!fp.worldPos) return;
   scratchVec.set(fp.worldPos[0], fp.worldPos[1], fp.worldPos[2]);
-  const isBehind = scratchCamSpaceVec.copy(scratchVec).applyMatrix4(camera.matrixWorldInverse).z > -zNear;
+  const camZ = scratchCamSpaceVec.copy(scratchVec).applyMatrix4(camera.matrixWorldInverse).z;
   const ndc = scratchVec.project(camera);
-  fp.screenX = (ndc.x * 0.5 + 0.5) * size.width;
-  fp.screenY = (-ndc.y * 0.5 + 0.5) * size.height;
+  const screenX = (ndc.x * 0.5 + 0.5) * size.width;
+  const screenY = (-ndc.y * 0.5 + 0.5) * size.height;
+  if (
+    !Number.isFinite(camZ) ||
+    !Number.isFinite(ndc.x) ||
+    !Number.isFinite(ndc.y) ||
+    !Number.isFinite(screenX) ||
+    !Number.isFinite(screenY) ||
+    size.width <= 0 ||
+    size.height <= 0
+  ) {
+    fp.visible = false;
+    fp.updatedAt = evalTime;
+    return;
+  }
+  const isBehind = camZ > -zNear;
+  fp.screenX = screenX;
+  fp.screenY = screenY;
   fp.camDist = camera.position.distanceTo(scratchVec);
   fp.visible = !isBehind;
   fp.updatedAt = evalTime;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { StarTypeDetailView } from './StarTypeDetailView';
 import {
@@ -23,7 +23,10 @@ describe('<StarTypeDetailView />', () => {
     render(<StarTypeDetailView starType="G8.5V" />);
     const root = screen.getByTestId('star-type-detail-view-root');
     expect(root).toBeInTheDocument();
+    expect(root.tagName).toBe('MAIN');
+    expect(root.getAttribute('data-mode')).toBe('document');
     expect(root.getAttribute('data-star-type')).toBe('G8.5V');
+    expect(screen.getByTestId('console-dock-guide')).toHaveAttribute('data-active', 'true');
 
     expect(screen.getAllByText(/G8.5V/i).length).toBeGreaterThan(0);
     const decoded = screen.getByTestId('star-type-decoded-subtype');
@@ -63,6 +66,7 @@ describe('<StarTypeDetailView />', () => {
     const focusContext = screen.getByTestId('guide-focus-context');
     expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('sol');
+    expect(screen.getByTestId('console-dock-map')).toHaveAttribute('href', '/galaxy?focus=sol');
   });
 
   it('renders fallback gracefully when star type is not recognized', () => {
@@ -103,5 +107,25 @@ describe('<StarTypeDetailView />', () => {
     const links = screen.getAllByTestId('guide-example-link');
     expect(links[0]?.textContent).toBe('Sol');
     expect(links[0]?.getAttribute('href')).toBe('/system/sol');
+  });
+
+  it('relies on GuideSectionNav for the section link without duplicate breadcrumbs or list-link button and wraps decoded subtype and telemetry in CollapsibleSections', () => {
+    const { container } = render(<StarTypeDetailView starType="G8.5V" />);
+
+    expect(screen.queryByTestId('view-breadcrumbs')).toBeNull();
+    expect(screen.queryByTestId('star-types-list-link')).toBeNull();
+    const sectionLink = container.querySelector('a[href="/guide/star-types"]');
+    expect(sectionLink).not.toBeNull();
+
+    const decodedToggle = screen.getByRole('button', { name: /Decoded Yerkes Classification/i });
+    expect(decodedToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(decodedToggle);
+    expect(decodedToggle).toHaveAttribute('aria-expanded', 'false');
+
+    const telemetryToggle = screen.getByRole('button', { name: /Reference Telemetry Range/i });
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(telemetryToggle);
+    expect(telemetryToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('guide-detail-telemetry')).toBeNull();
   });
 });

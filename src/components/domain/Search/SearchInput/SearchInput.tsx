@@ -1,6 +1,6 @@
 import type { ChangeEvent } from 'react';
 import { escalateSearchBackgroundWarmup } from '../../../../data/searchBackgroundWarmup';
-import { Button, Input } from '../../../interface';
+import { Button, Icon, Input } from '../../../interface';
 import { useSearchContext } from '../SearchContext';
 import styles from './SearchInput.module.css';
 
@@ -30,7 +30,10 @@ export const SearchInput = ({
 
   const handleClearQuery = (): void => {
     setQuery('');
+    searchInputRef?.current?.focus();
   };
+
+  const hasTrimmedQuery = query.trim().length > 0;
 
   return (
     <div
@@ -40,7 +43,10 @@ export const SearchInput = ({
       <label htmlFor={id} className={styles.srOnly}>
         {label}
       </label>
-      <div className={styles.inputWrapper}>
+      <div
+        className={styles.inputWrapper}
+        data-has-query={query.length > 0 ? 'true' : 'false'}
+      >
         <Input
           ref={searchInputRef}
           id={id}
@@ -52,18 +58,56 @@ export const SearchInput = ({
           onFocus={handleFocus}
           onChange={handleQueryChange}
         />
-      </div>
-      <div className={styles.expandedControl}>
-        <Button
-          type="button"
-          size="sm"
-          variant="subtle"
-          data-testid="search-clear-button"
-          onClick={handleClearQuery}
+        <span
+          className={styles.clearControl}
+          data-has-query={query.length > 0 ? 'true' : 'false'}
         >
-          Clear search
-        </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="subtle"
+            aria-label="Clear search"
+            data-testid="search-clear-button"
+            onClick={handleClearQuery}
+          >
+            <Icon size="sm">
+              <svg
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              >
+                <path d="M3 3L9 9M9 3L3 9" />
+              </svg>
+            </Icon>
+          </Button>
+        </span>
       </div>
+      <span className={styles.submitControl}>
+        <Button
+          type="submit"
+          size="sm"
+          variant={hasTrimmedQuery ? 'default' : 'subtle'}
+          disabled={!hasTrimmedQuery}
+          aria-label="Search"
+          data-testid="search-submit-button"
+        >
+          <Icon size="sm">
+            <svg
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="5.25" cy="5.25" r="3.5" />
+              <path d="M8 8L10.5 10.5" />
+            </svg>
+          </Icon>
+        </Button>
+      </span>
     </div>
   );
 };

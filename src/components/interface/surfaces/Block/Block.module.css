@@ -29,8 +29,17 @@
 
   .block[data-tone="sub"] { --block-bg: var(--surface-block-sub-bg); }
 
-  .block[data-interactive="true"] { cursor: pointer; }
+  .block[data-interactive="true"] {
+    position: relative;
+    cursor: pointer;
+  }
   .block[data-interactive="true"]:hover { --block-bg: var(--surface-block-hover-bg); }
+
+  @media (pointer: coarse) {
+    .block[data-interactive="true"] {
+      min-block-size: var(--size-touch-target-min);
+    }
+  }
 
   .block[data-selected="true"] { --block-bg: var(--surface-block-selected-bg); }
 

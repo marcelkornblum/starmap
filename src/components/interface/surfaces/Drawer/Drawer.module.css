@@ -11,12 +11,6 @@
     --drawer-title-weight: var(--font-weight-semibold);
     --drawer-title-color: var(--content-prominent);
 
-    --drawer-close-color: var(--content-muted);
-    --drawer-close-hover-color: var(--content-prominent);
-    --drawer-close-hover-bg: var(--surface-dock-bg);
-    --drawer-close-radius: var(--radius-control);
-    --drawer-close-padding: var(--space-gap-item);
-
     position: fixed;
     box-sizing: border-box;
     background: transparent;
@@ -41,9 +35,10 @@
     inline-size: 100%;
     block-size: 100%;
     box-sizing: border-box;
-    overflow: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
+    gap: var(--space-stack-default);
     position: relative;
   }
 
@@ -73,34 +68,34 @@
   .headerRow {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
+    gap: var(--space-cluster-default);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .title {
+    flex: 1 1 auto;
+    min-inline-size: 0;
     font-size: var(--drawer-title-size);
     font-weight: var(--drawer-title-weight);
     color: var(--drawer-title-color);
     margin: 0;
   }
 
-  .closeButton {
-    background: transparent;
-    border: none;
-    color: var(--drawer-close-color);
-    cursor: pointer;
-    font-size: var(--drawer-title-size);
-    padding: var(--drawer-close-padding);
+  .headerExtra {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    border-radius: var(--drawer-close-radius);
-    transition: color var(--motion-duration-interactive) var(--motion-ease-default),
-                background var(--motion-duration-interactive) var(--motion-ease-default);
+    flex-shrink: 0;
   }
 
-  .closeButton:hover {
-    color: var(--drawer-close-hover-color);
-    background: var(--drawer-close-hover-bg);
+  .body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    overflow-y: auto;
+    position: relative;
+    z-index: 1;
   }
 }
 

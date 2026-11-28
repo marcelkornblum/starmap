@@ -4,6 +4,7 @@ import { useUIStore } from '../stores/useUIStore';
 import { useOptionalRouter, type StarmapSearchParams } from './useSpaLocation';
 
 export interface UseKeyboardShortcutsOptions {
+  readonly enabled?: boolean;
   readonly onTogglePlay?: () => void;
   readonly onSearchFocus?: () => void;
   readonly onRecenter?: () => void;
@@ -39,9 +40,10 @@ export function isTypingInInputElement(target: EventTarget | null): boolean {
 
 export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): void {
   const router = useOptionalRouter();
+  const enabled = options?.enabled ?? true;
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (!enabled || typeof window === 'undefined') {
       return;
     }
 
@@ -88,12 +90,21 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
         return;
       }
 
-      // 4. 'Escape' closes active drawer or clears focus
+      // 4. 'Escape' closes Discover, active overlay drawer, or clears focus
       if (event.key === 'Escape') {
-        const activeDrawer = useUIStore.getState().activeDrawer;
-        if (activeDrawer !== null) {
+        const uiState = useUIStore.getState();
+        if (uiState.isDiscoverOpen) {
           event.preventDefault();
-          useUIStore.getState().setActiveDrawer(null);
+          uiState.setDiscoverOpen(false);
+          return;
+        }
+        const activeDrawer = uiState.activeDrawer;
+        const isOverlayDrawerOpen =
+          activeDrawer !== null &&
+          (activeDrawer !== 'bodies' || window.innerWidth < 1280);
+        if (isOverlayDrawerOpen) {
+          event.preventDefault();
+          uiState.setActiveDrawer(null);
         } else {
           if (options?.onClearFocus) {
             options.onClearFocus();
@@ -141,5 +152,5 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [options, router]);
+  }, [enabled, options, router]);
 }

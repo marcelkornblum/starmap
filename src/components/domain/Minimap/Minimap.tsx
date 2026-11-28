@@ -3,21 +3,18 @@ import { useLiveCameraPose } from '../../../hooks/useLiveCameraPose';
 import { useSpaLinkClick } from '../../../hooks/spaNavigation';
 import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import {
-  CANONICAL_ISOMETRIC_POSE,
-  buildCameraBasis,
+  FRAME_BY_SCOPE,
+  formatDistanceValue,
+  resolveEffectiveCameraOrientation,
 } from '../../../utils/orientationProjectionMath';
 import { resolveAppHref } from '../../../utils/url';
 import { Heading, Quantity, Unit } from '../../interface';
 import {
-  FRAME_BY_SCOPE,
   SVG_HEIGHT,
   SVG_WIDTH,
   ZOOM_TRACK_WIDTH,
   buildMinimapProjection,
   computeZoomBarFillWidth,
-  formatDistanceValue,
-  isInitialUntouchedPose,
-  resolveSphericalFallbackPose,
 } from './minimapHudHelpers';
 import styles from './Minimap.module.css';
 
@@ -32,35 +29,14 @@ export const Minimap = memo(function Minimap({
   const handleSpaLinkClick = useSpaLinkClick();
   const livePose = useLiveCameraPose(orientation !== null);
 
-  const effectiveCamera = useMemo(() => {
-    if (!orientation) {
-      return {
-        basis: buildCameraBasis(
-          CANONICAL_ISOMETRIC_POSE.position,
-          CANONICAL_ISOMETRIC_POSE.target,
-          CANONICAL_ISOMETRIC_POSE.up,
-        ),
-        distance: 20,
-      };
-    }
-
-    if (isInitialUntouchedPose(livePose.position, livePose.target, livePose.up)) {
-      const fallback = resolveSphericalFallbackPose(orientation);
-      return {
-        basis: buildCameraBasis(fallback.position, fallback.target, fallback.up),
-        distance: fallback.distance,
-      };
-    }
-
-    return {
-      basis: buildCameraBasis(livePose.position, livePose.target, livePose.up),
-      distance: livePose.focalDistance,
-    };
-  }, [orientation, livePose]);
+  const effectiveCamera = useMemo(
+    () => resolveEffectiveCameraOrientation(orientation, livePose),
+    [orientation, livePose],
+  );
 
   const geometry = useMemo(
     () =>
-      orientation
+      orientation && effectiveCamera
         ? buildMinimapProjection(
             orientation,
             effectiveCamera.basis,
@@ -70,7 +46,7 @@ export const Minimap = memo(function Minimap({
     [orientation, effectiveCamera],
   );
 
-  if (!orientation || !geometry) {
+  if (!orientation || !effectiveCamera || !geometry) {
     return null;
   }
 

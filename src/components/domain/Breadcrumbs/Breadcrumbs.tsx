@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import {
-  Button,
   CelestialTitle,
   Cluster,
   type CelestialSymbolType,
@@ -17,33 +16,20 @@ export interface BreadcrumbItem {
 
 export interface BreadcrumbsProps {
   readonly items: readonly BreadcrumbItem[];
-  readonly companionHref?: string;
-  readonly companionLabel?: string;
 }
 
 /**
  * Domain Component (`<Breadcrumbs>`): renders semantic breadcrumb navigation
- * at the top of a view alongside a persistent mode menu (Galaxy and Guide)
- * showing the active screen.
+ * at the top of a view.
  */
 export const Breadcrumbs = memo(({
   items,
-  companionHref,
-  companionLabel: _companionLabel,
 }: BreadcrumbsProps) => {
   const handleSpaLinkClick = useSpaLinkClick();
 
   if (items.length === 0) {
     return null;
   }
-
-  const isGuideContext = items[0]?.label.trim().toLowerCase() === 'guide';
-  const resolvedGalaxyHref = isGuideContext
-    ? (companionHref ?? '/galaxy')
-    : (items[0]?.href ?? '/galaxy');
-  const resolvedGuideHref = !isGuideContext
-    ? (companionHref ?? '/guide/star-types')
-    : (items[0]?.href ?? '/guide/star-types');
 
   return (
     <nav
@@ -93,35 +79,6 @@ export const Breadcrumbs = memo(({
           );
         })}
       </Cluster>
-      <div
-        className={styles.modeMenu}
-        role="navigation"
-        aria-label="Primary mode"
-        data-testid="breadcrumbs-mode-menu"
-      >
-        <Button
-          href={resolvedGalaxyHref}
-          size="sm"
-          variant={isGuideContext ? 'subtle' : 'primary'}
-          aria-current={!isGuideContext ? 'page' : undefined}
-          data-active={!isGuideContext ? 'true' : undefined}
-          data-mode-button
-          data-testid={isGuideContext ? 'breadcrumbs-companion-link' : 'breadcrumbs-mode-galaxy'}
-        >
-          Galaxy
-        </Button>
-        <Button
-          href={resolvedGuideHref}
-          size="sm"
-          variant={isGuideContext ? 'primary' : 'subtle'}
-          aria-current={isGuideContext ? 'page' : undefined}
-          data-active={isGuideContext ? 'true' : undefined}
-          data-mode-button
-          data-testid={!isGuideContext ? 'breadcrumbs-companion-link' : 'breadcrumbs-mode-guide'}
-        >
-          Guide
-        </Button>
-      </div>
     </nav>
   );
 });

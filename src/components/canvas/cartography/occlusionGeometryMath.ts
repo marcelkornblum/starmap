@@ -95,6 +95,15 @@ export function checkGridIntersection(
   return result;
 }
 
+const MAX_GRID_COORD = 0x7fff;
+const MAX_CELL_SPAN_BEFORE_ACTIVE_SCAN = 4096;
+
+function clampGridCoord(coord: number): number {
+  if (coord < -MAX_GRID_COORD) return -MAX_GRID_COORD;
+  if (coord > MAX_GRID_COORD) return MAX_GRID_COORD;
+  return coord;
+}
+
 /**
  * 2D Screen-space spatial partition grid.
  * Groups registered footprints into fixed pixel cells to convert O(N^2) pairwise
@@ -126,8 +135,9 @@ export class ScreenSpatialGrid {
   }
 
   public insert(fp: CelestialFootprint): void {
-    const cx = Math.floor(fp.screenX / this.cellSize);
-    const cy = Math.floor(fp.screenY / this.cellSize);
+    if (!Number.isFinite(fp.screenX) || !Number.isFinite(fp.screenY)) return;
+    const cx = clampGridCoord(Math.floor(fp.screenX / this.cellSize));
+    const cy = clampGridCoord(Math.floor(fp.screenY / this.cellSize));
     const key = this.hash(cx, cy);
     let cell = this.cells.get(key);
     if (!cell) {
@@ -146,10 +156,26 @@ export class ScreenSpatialGrid {
     radius: number,
     cb: (item: CelestialFootprint) => boolean | void,
   ): void {
-    const minCx = Math.floor((x - radius) / this.cellSize);
-    const maxCx = Math.floor((x + radius) / this.cellSize);
-    const minCy = Math.floor((y - radius) / this.cellSize);
-    const maxCy = Math.floor((y + radius) / this.cellSize);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius) || radius < 0) {
+      return;
+    }
+    if (this.activeCells.length === 0) return;
+    const minCx = clampGridCoord(Math.floor((x - radius) / this.cellSize));
+    const maxCx = clampGridCoord(Math.floor((x + radius) / this.cellSize));
+    const minCy = clampGridCoord(Math.floor((y - radius) / this.cellSize));
+    const maxCy = clampGridCoord(Math.floor((y + radius) / this.cellSize));
+
+    const spanX = maxCx - minCx + 1;
+    const spanY = maxCy - minCy + 1;
+    if (spanX * spanY > MAX_CELL_SPAN_BEFORE_ACTIVE_SCAN) {
+      for (let c = 0; c < this.activeCells.length; c++) {
+        const arr = this.activeCells[c];
+        for (let i = 0; i < arr.length; i++) {
+          if (cb(arr[i]) === false) return;
+        }
+      }
+      return;
+    }
 
     for (let cx = minCx; cx <= maxCx; cx++) {
       for (let cy = minCy; cy <= maxCy; cy++) {
@@ -173,12 +199,29 @@ export class ScreenSpatialGrid {
     radius: number,
     out: CelestialFootprint[],
   ): number {
-    const minCx = Math.floor((x - radius) / this.cellSize);
-    const maxCx = Math.floor((x + radius) / this.cellSize);
-    const minCy = Math.floor((y - radius) / this.cellSize);
-    const maxCy = Math.floor((y + radius) / this.cellSize);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius) || radius < 0) {
+      return 0;
+    }
+    if (this.activeCells.length === 0) return 0;
+    const minCx = clampGridCoord(Math.floor((x - radius) / this.cellSize));
+    const maxCx = clampGridCoord(Math.floor((x + radius) / this.cellSize));
+    const minCy = clampGridCoord(Math.floor((y - radius) / this.cellSize));
+    const maxCy = clampGridCoord(Math.floor((y + radius) / this.cellSize));
 
     let count = 0;
+    const spanX = maxCx - minCx + 1;
+    const spanY = maxCy - minCy + 1;
+    if (spanX * spanY > MAX_CELL_SPAN_BEFORE_ACTIVE_SCAN) {
+      for (let c = 0; c < this.activeCells.length; c++) {
+        const arr = this.activeCells[c];
+        for (let i = 0; i < arr.length; i++) {
+          out[count] = arr[i];
+          count++;
+        }
+      }
+      return count;
+    }
+
     for (let cx = minCx; cx <= maxCx; cx++) {
       for (let cy = minCy; cy <= maxCy; cy++) {
         const key = this.hash(cx, cy);
